@@ -1,0 +1,7 @@
+{
+  "//": "CI/`pnpm typecheck`: same settings as tsconfig.json, without the dev server's generated .next/dev types (left half-written if `next dev` is interrupted).",
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "incremental": false },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules", ".next/dev"]
+}

@@ -1,0 +1,45 @@
+# HEDAX reverse proxy (Caddy 2): automatic HTTPS for {$HEDAX_DOMAIN}.
+# STATUS: written but NOT EXECUTED in the build environment (see docs/DEPLOYMENT.md).
+#
+#   /api/*    → NestJS API (REST, uploads, payment callbacks, chat WebSocket at /api/v1/ws)
+#   /media/*  → API (public product images when STORAGE_DRIVER=local; with S3 set
+#               PUBLIC_MEDIA_BASE_URL to the public bucket and this route is unused)
+#   else      → Next.js web (storefront + admin)
+# /health/* is intentionally not routed: probes run inside the Docker network.
+
+{
+	email {$ACME_EMAIL}
+}
+
+{$HEDAX_DOMAIN} {
+	encode zstd gzip
+
+	handle /api/* {
+		# Upload limits are enforced by the API (≤20 MB per file, ≤50 MB per batch); this is a ceiling.
+		request_body {
+			max_size 60MB
+		}
+		reverse_proxy api:4000
+	}
+
+	handle /media/* {
+		reverse_proxy api:4000
+	}
+
+	handle {
+		reverse_proxy web:3000
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	# Access log without request bodies or cookies.
+	log {
+		output stdout
+		format json
+	}
+}

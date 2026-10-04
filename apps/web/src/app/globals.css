@@ -1,0 +1,141 @@
+@import 'tailwindcss';
+
+/*
+ * HEDAX design tokens (design-system/MASTER.md).
+ * Brand: Dark Carbon #1A202C · Tech Blue #3182CE · Metallic Silver #E2E8F0 · Steel Gray #4A5568.
+ * Text-on-colour pairs are chosen for WCAG AA (≥4.5:1 for normal text):
+ *  - action-blue #2467A9 + white ≈ 5.85:1 (Tech Blue + white is only ≈ 4.03:1 → accents/borders only)
+ *  - tech-blue-light #63B3ED on carbon ≈ 7:1 for blue text on dark surfaces
+ *  - steel #4A5568 on white ≈ 7.5:1 (secondary text on light surfaces only)
+ */
+@theme {
+  --color-carbon: #1a202c;
+  --color-carbon-2: #2d3748;
+  --color-tech: #3182ce;
+  --color-tech-light: #63b3ed;
+  --color-action: #2467a9;
+  --color-action-hover: #1d5690;
+  --color-action-soft: #ebf4fb;
+  --color-silver: #e2e8f0;
+  --color-steel: #4a5568;
+  --color-ink: #1a202c;
+  --color-surface: #f7fafc;
+  --color-line: #cbd5e0;
+  --color-line-soft: #e2e8f0;
+  --color-success: #276749;
+  --color-success-soft: #e6f4ea;
+  --color-warning: #8a4b0f;
+  --color-warning-soft: #fdf3e1;
+  --color-danger: #b42318;
+  --color-danger-soft: #fdecea;
+  --color-info: #2467a9;
+  --color-info-soft: #ebf4fb;
+
+  --font-fa: 'Vazirmatn', 'Tahoma', system-ui, sans-serif;
+  --font-en: 'Montserrat', 'Vazirmatn', system-ui, sans-serif;
+
+  --radius-control: 8px;
+  --radius-card: 12px;
+
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    /* Keeps focused controls clear of the sticky header (WCAG 2.4.11). */
+    scroll-padding-top: 5rem;
+  }
+  html[lang='fa'] body {
+    font-family: var(--font-fa);
+    line-height: 1.75;
+  }
+  html[lang='en'] body {
+    font-family: var(--font-en);
+    line-height: 1.6;
+  }
+  body {
+    background: #ffffff;
+    color: var(--color-ink);
+    font-size: 1rem;
+    text-rendering: optimizeLegibility;
+  }
+  :focus-visible {
+    outline: 3px solid var(--color-tech);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  .on-dark :focus-visible {
+    outline-color: var(--color-tech-light);
+  }
+  a {
+    color: inherit;
+  }
+  /* Codes, SKUs, VINs, e-mails and tracking numbers render LTR inside RTL text. */
+  .ltr {
+    direction: ltr;
+    unicode-bidi: isolate;
+  }
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  .container-page {
+    width: 100%;
+    max-width: 80rem;
+    margin-inline: auto;
+    padding-inline: 1rem;
+  }
+  @media (min-width: 768px) {
+    .container-page {
+      padding-inline: 1.5rem;
+    }
+  }
+  .card {
+    background: #fff;
+    border: 1px solid var(--color-line-soft);
+    border-radius: var(--radius-card);
+  }
+  /* Blocks that start below the fold: the browser lays them out only when they come near the
+     viewport. Laying out Persian text is the costliest step before the first paint on slow phones
+     (measured, spec §15). Only an estimated height is reserved (remembered once rendered); the
+     width still comes from the page, so nothing overflows on narrow screens. */
+  .render-lazy {
+    content-visibility: auto;
+    contain-intrinsic-block-size: auto 40rem;
+  }
+  .skip-link {
+    position: absolute;
+    inset-inline-start: 1rem;
+    top: -4rem;
+    z-index: 100;
+    background: #fff;
+    color: var(--color-ink);
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-control);
+    border: 2px solid var(--color-action);
+  }
+  .skip-link:focus {
+    top: 1rem;
+  }
+  .prose-hedax p {
+    margin-block: 0.75rem;
+  }
+  .prose-hedax h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-block: 1.5rem 0.5rem;
+  }
+}

@@ -1,0 +1,22 @@
+# Build context hygiene for infra/docker/Dockerfile: no secrets, no local data, no build output.
+**/node_modules
+**/dist
+**/.next
+**/.next-e2e-perf
+**/coverage
+**/*.tsbuildinfo
+**/playwright-report
+**/test-results
+.git
+.env
+.env.*
+!.env.example
+.local-dev-credentials
+.local-pg
+apps/api/.local-pg
+storage
+apps/api/storage
+apps/api/src/generated
+brand guide hedax
+docs/test-artifacts
+*.log

@@ -1,0 +1,36 @@
+{
+  "name": "hedax",
+  "private": true,
+  "description": "HEDAX auto parts store and custom sourcing platform (monorepo)",
+  "packageManager": "pnpm@10.34.6",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "build": "pnpm -r --workspace-concurrency=1 run build",
+    "typecheck": "pnpm -r run typecheck",
+    "lint": "eslint .",
+    "test": "pnpm -r run test",
+    "test:unit": "pnpm --filter @hedax/domain --filter @hedax/contracts --filter @hedax/api run test",
+    "db:generate": "pnpm --filter @hedax/api run prisma:generate",
+    "db:migrate:dev": "pnpm --filter @hedax/api run prisma:migrate:dev",
+    "db:migrate:deploy": "pnpm --filter @hedax/api run prisma:migrate:deploy",
+    "db:seed:dev": "pnpm --filter @hedax/api run seed:dev",
+    "dev:web": "pnpm --filter @hedax/web dev",
+    "dev:web:fixtures": "pnpm --filter @hedax/web dev:fixtures",
+    "dev:api": "pnpm --filter @hedax/api dev",
+    "dev:worker": "pnpm --filter @hedax/worker dev",
+    "e2e": "pnpm --filter @hedax/web e2e"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@next/eslint-plugin-next": "16.3.7",
+    "@types/node": "^24.19.0",
+    "eslint": "10.11.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "17.13.0",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.71.0",
+    "vitest": "5.0.3"
+  }
+}

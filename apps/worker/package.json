@@ -1,0 +1,25 @@
+{
+  "name": "@hedax/worker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "HEDAX background worker: outbox dispatch, scans, imports, reconciliation, quote PDFs",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "dev": "node --env-file-if-exists=../../.env --watch dist/main.js",
+    "start": "node dist/main.js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@fontsource/montserrat": "5.3.0",
+    "@fontsource/vazirmatn": "5.3.0",
+    "@hedax/api": "workspace:*",
+    "playwright": "1.63.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.0",
+    "typescript": "6.0.3",
+    "vitest": "5.0.3"
+  }
+}

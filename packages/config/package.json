@@ -1,0 +1,7 @@
+{
+  "name": "@hedax/config",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shared TypeScript build settings for HEDAX workspaces",
+  "files": ["tsconfig.*.json"]
+}

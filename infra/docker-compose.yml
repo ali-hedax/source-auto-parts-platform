@@ -1,0 +1,199 @@
+# HEDAX single-server stack (spec §18): Caddy (TLS) → web + api; worker; PostgreSQL;
+# Redis; ClamAV. Only Caddy publishes ports — PostgreSQL, Redis, ClamAV and the
+# file store are never reachable from the internet.
+#
+# STATUS: written but NOT EXECUTED in the build environment (Docker was not
+# installed). Run from the repository root:
+#   docker compose -f infra/docker-compose.yml --env-file .env up -d --build
+# One-off tasks (after the database is healthy):
+#   docker compose -f infra/docker-compose.yml --env-file .env run --rm tools                       # migrate deploy
+#   docker compose -f infra/docker-compose.yml --env-file .env run --rm tools node dist/database/seed-base.js
+#   docker compose -f infra/docker-compose.yml --env-file .env run --rm -e HEDAX_OWNER_PASSWORD tools \
+#     node dist/cli/bootstrap-owner.js --email owner@your-domain --name "Owner Name"
+# See docs/DEPLOYMENT.md and docs/BACKUP_RESTORE.md.
+
+name: hedax
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+x-app-env: &app-env
+  APP_ENV: ${APP_ENV:-production}
+  PORT: "4000"
+  TRUST_PROXY: "true"
+  PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:?set PUBLIC_BASE_URL (https://your-domain)}
+  DATABASE_URL: postgresql://hedax:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/hedax?schema=public
+  REDIS_URL: redis://redis:6379
+  # Public page cache purge after catalog/price/stock/policy changes (API/worker → web).
+  WEB_INTERNAL_URL: http://web:3000
+  REVALIDATE_SECRET: ${REVALIDATE_SECRET:?set REVALIDATE_SECRET}
+  SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET}
+  OTP_PEPPER: ${OTP_PEPPER:?set OTP_PEPPER}
+  APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY:?set APP_ENCRYPTION_KEY}
+  COOKIE_SECURE: "true"
+  OPENAPI_ENABLED: "false"
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  STORAGE_DRIVER: ${STORAGE_DRIVER:-local}
+  LOCAL_STORAGE_DIR: /data/storage
+  PUBLIC_MEDIA_BASE_URL: ${PUBLIC_MEDIA_BASE_URL:-/media}
+  S3_ENDPOINT: ${S3_ENDPOINT:-}
+  S3_REGION: ${S3_REGION:-}
+  S3_PRIVATE_BUCKET: ${S3_PRIVATE_BUCKET:-}
+  S3_PUBLIC_BUCKET: ${S3_PUBLIC_BUCKET:-}
+  S3_PUBLIC_BASE_URL: ${S3_PUBLIC_BASE_URL:-}
+  S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-}
+  S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-}
+  MALWARE_SCANNER: clamav
+  CLAMAV_HOST: clamav
+  CLAMAV_PORT: "3310"
+  # No live gateway/SMS adapter is chosen yet: "none" refuses payment/OTP instead of pretending.
+  PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-none}
+  PAYMENT_MERCHANT_ID: ${PAYMENT_MERCHANT_ID:-}
+  PAYMENT_SESSION_MINUTES: ${PAYMENT_SESSION_MINUTES:-15}
+  SMS_PROVIDER: ${SMS_PROVIDER:-none}
+
+services:
+  postgres:
+    logging: *logging
+    image: postgres:18-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: hedax
+      POSTGRES_DB: hedax
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      # UTF-8 with a Unicode-aware ctype: required for Persian trigram search (pg_trgm).
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C.UTF-8"
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hedax -d hedax"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    logging: *logging
+    image: redis:8-alpine
+    restart: unless-stopped
+    # BullMQ needs noeviction; AOF keeps queued jobs across restarts.
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  clamav:
+    logging: *logging
+    image: clamav/clamav:stable
+    restart: unless-stopped
+    # freshclam updates signatures inside the container; first start takes several minutes.
+    volumes:
+      - clamavdb:/var/lib/clamav
+    healthcheck:
+      test: ["CMD", "clamdcheck.sh"]
+      interval: 60s
+      timeout: 10s
+      retries: 20
+      start_period: 300s
+
+  tools:
+    logging: *logging
+    profiles: ["tools"]
+    build:
+      context: ..
+      dockerfile: infra/docker/Dockerfile
+      target: tools
+    environment: *app-env
+    volumes:
+      - storage:/data/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    logging: *logging
+    build:
+      context: ..
+      dockerfile: infra/docker/Dockerfile
+      target: api
+    restart: unless-stopped
+    environment: *app-env
+    volumes:
+      - storage:/data/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      clamav:
+        condition: service_started
+
+  worker:
+    logging: *logging
+    build:
+      context: ..
+      dockerfile: infra/docker/Dockerfile
+      target: worker
+    restart: unless-stopped
+    environment: *app-env
+    volumes:
+      - storage:/data/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      clamav:
+        condition: service_started
+
+  web:
+    logging: *logging
+    build:
+      context: ..
+      dockerfile: infra/docker/Dockerfile
+      target: web
+      args:
+        API_INTERNAL_URL: http://api:4000/api/v1
+        NEXT_PUBLIC_WS_URL: same-origin
+        PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:?set PUBLIC_BASE_URL}
+    restart: unless-stopped
+    environment:
+      API_INTERNAL_URL: http://api:4000/api/v1
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:?set PUBLIC_BASE_URL}
+      HEDAX_DATA_SOURCE: api
+      REVALIDATE_SECRET: ${REVALIDATE_SECRET:?set REVALIDATE_SECRET}
+    depends_on:
+      - api
+
+  caddy:
+    logging: *logging
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      HEDAX_DOMAIN: ${HEDAX_DOMAIN:?set HEDAX_DOMAIN (e.g. shop.example.ir)}
+      ACME_EMAIL: ${ACME_EMAIL:-}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+      - api
+
+volumes:
+  pgdata:
+  redisdata:
+  clamavdb:
+  storage:
+  caddy_data:
+  caddy_config:

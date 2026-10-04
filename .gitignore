@@ -1,0 +1,28 @@
+node_modules/
+.pnpm-store/
+dist/
+build/
+.next/
+.next-e2e-perf/
+out/
+coverage/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+/storage/
+apps/api/storage/
+apps/api/src/generated/
+playwright-report/
+test-results/
+.DS_Store
+Thumbs.db
+*.log
+
+# Local PostgreSQL (embedded binaries) data and dev-only credentials
+.local-pg/
+apps/api/.local-pg/
+.local-dev-credentials
+
+# Standalone brand guide, posters and presentations live outside this repository (owner decision, 2026-10-04).
+brand guide hedax/

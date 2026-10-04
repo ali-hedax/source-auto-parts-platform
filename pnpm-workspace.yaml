@@ -1,0 +1,21 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+# Native/build-script dependencies that are allowed to run install scripts.
+onlyBuiltDependencies:
+  - "@prisma/engines"
+  - "prisma"
+  - "argon2"
+  - "sharp"
+  - "esbuild"
+  - "@parcel/watcher"
+  - "@tailwindcss/oxide"
+  - "unrs-resolver"
+  - "@swc/core"
+  - "msgpackr-extract"
+  - "@embedded-postgres/windows-x64"
+  - "@embedded-postgres/linux-x64"
+
+ignoredBuiltDependencies:
+  - "@scarf/scarf"

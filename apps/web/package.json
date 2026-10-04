@@ -1,0 +1,45 @@
+{
+  "name": "@hedax/web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "HEDAX storefront, customer account and admin panel (Next.js App Router)",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --port 3000",
+    "dev:fixtures": "node --env-file-if-exists=../../.env ./scripts/with-fixtures.mjs next dev --port 3000",
+    "build": "node scripts/clean-dev-cache.mjs && next build",
+    "start": "next start --port 3000",
+    "typecheck": "node scripts/check-messages.mjs && tsc --noEmit -p tsconfig.typecheck.json",
+    "e2e": "playwright test",
+    "e2e:real": "node scripts/e2e-real.mjs"
+  },
+  "dependencies": {
+    "@fontsource/montserrat": "5.3.0",
+    "@fontsource/vazirmatn": "5.3.0",
+    "@hedax/contracts": "workspace:*",
+    "@hedax/domain": "workspace:*",
+    "@hookform/resolvers": "5.9.1",
+    "@radix-ui/react-dialog": "1.1.23",
+    "clsx": "2.1.1",
+    "lucide-react": "1.49.0",
+    "next": "16.3.7",
+    "next-intl": "4.14.8",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-hook-form": "7.89.0",
+    "server-only": "0.0.1",
+    "socket.io-client": "4.8.4",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@playwright/test": "1.63.0",
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/node": "^24.19.0",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "postcss": "8.5.28",
+    "tailwindcss": "4.3.3",
+    "typescript": "6.0.3"
+  }
+}
