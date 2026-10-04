@@ -15,6 +15,7 @@ import { Alert, Badge, EmptyState, Ltr, PageHeader, Section, TableScroll, td, th
 import { Link, useRouter } from '@/i18n/navigation';
 import { api, uploadWithProgress } from '@/lib/api/client';
 import { errorText, isApiError } from '@/lib/api/errors';
+import { typedNumber } from '@/lib/numbers';
 import { useApi } from '@/lib/use-api';
 import { useL, usePriceSourceLabel } from './shell';
 
@@ -155,9 +156,9 @@ function ProductEditor({ taxonomy, product, reload }: { taxonomy: Taxonomy; prod
         aliases: f.aliases.split(/[،,]/).map((s) => s.trim()).filter(Boolean), descriptionFa: f.descriptionFa || null, descriptionEn: f.descriptionEn || null,
         categoryId: f.categoryId, manufacturerBrandId: f.manufacturerBrandId || null, vehicleBrandIds: f.vehicleBrandIds, partType: f.partType, condition: f.condition,
         origin: f.origin, countryOfManufacture: f.countryOfManufacture || null, warrantyFa: f.warrantyFa || null, warrantyEn: f.warrantyEn || null, unit: f.unit || 'عدد',
-        packQuantity: Number(f.packQuantity) || 1, oemCodes: f.oemCodes.split(',').map((s) => s.trim()).filter(Boolean), specs: [],
+        packQuantity: typedNumber(f.packQuantity) || 1, oemCodes: f.oemCodes.split(',').map((s) => s.trim()).filter(Boolean), specs: [],
         basePrice: { currency: f.baseCurrency, amountMinor: baseMinor }, manualPriceIrr: manualIrr, manualPriceAed: manualAed,
-        lowStockThreshold: Number(f.lowStockThreshold) || 0, isSellable: f.isSellable, ...(product ? { version: product.version } : {}),
+        lowStockThreshold: typedNumber(f.lowStockThreshold) || 0, isSellable: f.isSellable, ...(product ? { version: product.version } : {}),
       };
       const res = await api<{ id: string }>(product ? `/admin/products/${product.id}` : '/admin/products', { method: product ? 'PUT' : 'POST', body });
       setSaved(true);
@@ -343,7 +344,7 @@ function PriceRules({ product, groups, reload }: { product: AdminProduct; groups
       await api(`/admin/products/${product.id}/price-rules`, {
         method: 'POST',
         body: {
-          customerGroupId: r.customerGroupId || null, minQty: Number(r.minQty), maxQty: r.maxQty ? Number(r.maxQty) : null,
+          customerGroupId: r.customerGroupId || null, minQty: typedNumber(r.minQty), maxQty: r.maxQty ? typedNumber(r.maxQty) : null,
           basePrice: { currency: r.currency, amountMinor: parseDecimalAmount(r.price, r.currency).toString() },
           manualPriceIrr: r.manualIrr ? parseDecimalAmount(r.manualIrr, 'IRR').toString() : null,
         },

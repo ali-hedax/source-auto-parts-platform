@@ -7,6 +7,7 @@ import { Button, ButtonLink } from '@/components/ui/button';
 import { Alert } from '@/components/ui/misc';
 import { api } from '@/lib/api/client';
 import { errorText } from '@/lib/api/errors';
+import { typedNumber } from '@/lib/numbers';
 
 export function AddToCart({ productId, max, name }: { productId: string; max: number; name: string }) {
   const t = useTranslations();
@@ -39,7 +40,7 @@ export function AddToCart({ productId, max, name }: { productId: string; max: nu
             className="h-11 w-14 border-x border-line text-center font-semibold"
             value={qty}
             onChange={(e) => {
-              const n = Number(e.target.value.replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d))));
+              const n = typedNumber(e.target.value);
               if (Number.isInteger(n)) setQty(Math.min(Math.max(1, n), max));
             }}
           />

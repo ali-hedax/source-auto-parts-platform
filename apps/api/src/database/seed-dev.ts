@@ -112,6 +112,9 @@ async function seedDev(prisma: PrismaClient): Promise<void> {
   const owner = await prisma.user.findFirst({ where: { kind: 'STAFF' } });
   if (owner && !(await prisma.exchangeRate.findFirst())) {
     await prisma.exchangeRate.create({ data: { irrPerAed: '160000', effectiveFrom: new Date(), note: 'DEV SAMPLE RATE — not a market rate', createdById: owner.id } });
+  } else if (!owner) {
+    // A rate is recorded by a person; without one, AED-priced samples show "price on inquiry".
+    process.stdout.write('note: no staff user yet, so the sample exchange rate was NOT added — run owner:bootstrap first, then this seed again (or record a rate in the panel).\n');
   }
 }
 

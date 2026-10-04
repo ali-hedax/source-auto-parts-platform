@@ -1,5 +1,6 @@
 # HEDAX reverse proxy (Caddy 2): automatic HTTPS for {$HEDAX_DOMAIN}.
-# STATUS: written but NOT EXECUTED in the build environment (see docs/DEPLOYMENT.md).
+# STATUS: run locally with Docker on 2026-10-04 (HEDAX_DOMAIN=localhost: Caddy's local CA);
+# public certificates on the target server are not yet tested (see docs/DEPLOYMENT.md).
 #
 #   /api/*    → NestJS API (REST, uploads, payment callbacks, chat WebSocket at /api/v1/ws)
 #   /media/*  → API (public product images when STORAGE_DRIVER=local; with S3 set

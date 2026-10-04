@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { expect, test, type Browser, type BrowserContext, type Page } from '@playwright/test';
 import { addTestAddress, checkoutAndPay, pngOf, reviewShot, signInCustomer, testMobile, totp } from './helpers';
 
@@ -31,7 +32,8 @@ let ownerState: State | undefined;
 let productPath = '';
 
 async function open(browser: Browser, baseURL: string | undefined, state?: State): Promise<Page> {
-  const context = await browser.newContext({ baseURL, ...(state ? { storageState: state } : {}) });
+  // E2E_IGNORE_HTTPS_ERRORS: the Docker stack behind Caddy uses a local test certificate (contexts made here do not inherit the config).
+  const context = await browser.newContext({ baseURL, ignoreHTTPSErrors: process.env.E2E_IGNORE_HTTPS_ERRORS === '1', ...(state ? { storageState: state } : {}) });
   return context.newPage();
 }
 
@@ -61,6 +63,17 @@ test('owner signs in with password and enrolls an authenticator (TOTP)', async (
 test('owner creates, photographs, stocks and publishes a product that shoppers find and can buy (A01)', async ({ browser, baseURL }) => {
   const page = await open(browser, baseURL, ownerState);
   await page.goto('/fa/admin/products/new');
+  if ((await page.locator('#pf-category option').count()) < 2) {
+    // A fresh production database has no categories (the sample-data seed is refused there): the owner adds one first.
+    await page.goto('/fa/admin/taxonomy');
+    await page.locator('#tx-kind').selectOption('categories');
+    await page.locator('#tx-code').fill(`BRAKES_${stamp}`);
+    await page.locator('#tx-fa').fill('لنت و ترمز');
+    await page.locator('#tx-en').fill('Brakes');
+    await page.getByRole('button', { name: 'افزودن', exact: true }).click();
+    await expect(page.getByRole('region', { name: 'دسته' })).toContainText('لنت و ترمز');
+    await page.goto('/fa/admin/products/new');
+  }
   await page.locator('#pf-sku').fill(sku);
   await page.locator('#pf-namefa').fill(productName);
   await page.locator('#pf-nameen').fill(`Front brake pad test ${stamp}`);
@@ -177,10 +190,15 @@ test('any-brand request with a photo → quote (with PDFs) → acceptance and te
   await expect(customer.getByText('در حال تأمین').first()).toBeVisible();
   await reviewShot(customer, 'customer-procurement-fa-desktop');
   // The customer's inbox has the new quote and the stage change, in words (never a raw code).
+  // Notifications are written by the worker a moment later: reload until the stage change arrives.
   await customer.goto('/fa/account/notifications');
+  await expect(async () => {
+    await customer.reload();
+    await expect(customer.getByText(/وضعیت سفارش تأمین: در حال تأمین/).first()).toBeVisible({ timeout: 2_000 });
+  }).toPass({ timeout: 30_000 });
   await expect(customer.getByText(/پیش‌فاکتور جدید صادر شد/).first()).toBeVisible();
-  await expect(customer.getByText(/وضعیت سفارش تأمین: در حال تأمین/).first()).toBeVisible();
   await expect(customer.getByText(/procurement\.|order\./)).toHaveCount(0);
+  await expect(customer.getByText('اعلان تازه')).toHaveCount(0);
 });
 
 test('owner invites a support agent who signs in and only gets the permitted sections (A18)', async ({ browser, baseURL }) => {
@@ -230,6 +248,15 @@ test('owner updates price and stock with a spreadsheet: preview changes nothing,
   await owner.getByRole('button', { name: 'اعمال تغییرات' }).click();
   await expect(owner.getByText('تغییرات اعمال شد')).toBeVisible({ timeout: 60_000 });
   expect(await onHand(owner)).toBe(9);
+
+  // With a real malware scanner (Docker stack: E2E_SCANNER=clamav), the standard EICAR test file is refused.
+  if (process.env.E2E_SCANNER === 'clamav') {
+    // Kept as base64 so no file in the repository is itself flagged by desktop antivirus (Windows Defender blocks the plain string).
+    const eicar = Buffer.from('WDVPIVAlQEFQWzRcUFpYNTQoUF4pN0NDKTd9JEVJQ0FSLVNUQU5EQVJELUFOVElWSVJVUy1URVNULUZJTEUhJEgrSCo=', 'base64');
+    await owner.locator('#imp-file').setInputFiles({ name: 'eicar-test.csv', mimeType: 'text/csv', buffer: eicar });
+    await expect(owner.getByText('فایل در بررسی امنیتی رد شد.')).toBeVisible({ timeout: 120_000 });
+    expect(await onHand(owner)).toBe(9);
+  }
 });
 
 test('owner records a new exchange rate; the cached product page shows the new IRR amount at once (§9, §15)', async ({ browser, baseURL }) => {
@@ -312,8 +339,14 @@ test('a delivered order is returned and refunded from the panel: request → app
   await refundRow.getByRole('button', { name: 'تأیید', exact: true }).click();
   await refundRow.getByRole('button', { name: 'انجام استرداد' }).click();
   await expect(refundRow).toContainText('موفق');
+  // Notifications are written by the worker a moment later: reload until they arrive.
   await customer.goto('/fa/account/notifications');
-  await expect(customer.getByText(/بازپرداخت انجام شد/).first()).toBeVisible();
+  await expect(async () => {
+    await customer.reload();
+    await expect(customer.getByText(/بازپرداخت انجام شد/).first()).toBeVisible({ timeout: 2_000 });
+  }).toPass({ timeout: 30_000 });
+  await expect(customer.getByText('درخواست لغو یا مرجوعی شما تأیید شد').first()).toBeVisible();
+  await expect(customer.getByText('اعلان تازه')).toHaveCount(0);
 });
 
 // ---- Business customers (A26), roles, store settings and reports, all through the panel ----
@@ -517,4 +550,52 @@ test('reports show what the database holds — collections, refunds, orders, top
     await expect(row).toContainText(`${fa(top.quantity)} عدد، `);
   }
   await reviewShot(owner, 'admin-reports-fa-desktop');
+});
+
+test('site settings, catalog lists, audit log, payments and export: Persian digits accepted and every code in words (§5.3, §15)', async ({ browser, baseURL }) => {
+  const owner = await open(browser, baseURL, ownerState);
+  const reservation = async () => ((await (await owner.request.get('/api/v1/admin/settings')).json()) as { reservationMinutes: number }).reservationMinutes;
+  const before = await reservation();
+
+  // Settings: a number typed in Persian digits is saved as that number (then put back).
+  await owner.goto('/fa/admin/settings');
+  await owner.locator('#st-res').fill('۲۰');
+  await owner.getByRole('button', { name: 'ذخیره', exact: true }).click();
+  await expect.poll(reservation).toBe(20);
+  await owner.reload();
+  await owner.locator('#st-res').fill(String(before).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[Number(d)] as string));
+  await owner.getByRole('button', { name: 'ذخیره', exact: true }).click();
+  await expect.poll(reservation).toBe(before);
+
+  // Categories and brands: a new vehicle brand is listed; featured brands are marked in words.
+  await owner.goto('/fa/admin/taxonomy');
+  await owner.locator('#tx-kind').selectOption('vehicle-brands');
+  await owner.locator('#tx-code').fill(`TB${stamp}`);
+  await owner.locator('#tx-fa').fill(`برند آزمایشی ${stamp}`);
+  await owner.locator('#tx-en').fill(`Test brand ${stamp}`);
+  await owner.getByRole('button', { name: 'افزودن', exact: true }).click();
+  const brands = owner.getByRole('region', { name: 'برند خودرو' });
+  await expect(brands).toContainText(`برند آزمایشی ${stamp}`);
+  await expect(brands.getByText('ویژه').first()).toBeVisible();
+  await expect(brands).not.toContainText('★');
+
+  // Audit log: this run's sensitive actions in words — no English headers, no dotted codes.
+  await owner.goto('/fa/admin/audit');
+  const log = owner.getByRole('table');
+  for (const action of ['ساخت برند خودرو', 'تغییر تنظیمات سایت', 'انتشار کالا', 'ثبت نرخ ارز', 'تأیید حساب تجاری']) await expect(log).toContainText(action);
+  await expect(log.getByRole('columnheader')).toContainText(['تاریخ', 'انجام‌دهنده', 'عملیات', 'مورد', 'کد پیگیری درخواست']);
+  expect(await log.innerText(), 'no raw action codes').not.toMatch(/\b[a-z_]+\.[a-z_]+/);
+  await reviewShot(owner, 'admin-audit-fa-desktop');
+
+  // Payments: this run's verified payments with the status in words and the test gateway labelled.
+  await owner.goto('/fa/admin/payments');
+  const payments = owner.getByRole('table').first();
+  await expect(payments).toContainText('موفق');
+  await expect(payments).toContainText('آزمایشی');
+
+  // Catalog export: a real spreadsheet file (xlsx is a zip: "PK").
+  await owner.goto('/fa/admin/imports');
+  const [file] = await Promise.all([owner.waitForEvent('download'), owner.getByRole('link', { name: 'خروجی Excel محصولات' }).click()]);
+  expect(file.suggestedFilename()).toMatch(/\.xlsx$/);
+  expect(readFileSync(await file.path()).subarray(0, 2).toString('latin1')).toBe('PK');
 });

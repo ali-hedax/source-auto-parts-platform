@@ -20,3 +20,6 @@ apps/api/src/generated
 brand guide hedax
 docs/test-artifacts
 *.log
+
+# Backups contain customer data; never send them to an image build.
+backups

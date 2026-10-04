@@ -17,6 +17,7 @@ import { ChatThread } from '@/components/chat/chat-thread';
 import { Link } from '@/i18n/navigation';
 import { api } from '@/lib/api/client';
 import { errorText, isApiError } from '@/lib/api/errors';
+import { typedNumber } from '@/lib/numbers';
 import { useApi } from '@/lib/use-api';
 import { useL } from './shell';
 
@@ -256,14 +257,14 @@ function QuoteEditor({ request, onSaved }: { request: StaffRequest; onSaved: () 
     try {
       const body = {
         items: items.map((i) => ({
-          sourcingItemId: i.sourcingItemId, description: i.description, quantity: Number(i.quantity), manufacturer: i.manufacturer || undefined, partType: i.partType,
+          sourcingItemId: i.sourcingItemId, description: i.description, quantity: typedNumber(i.quantity), manufacturer: i.manufacturer || undefined, partType: i.partType,
           condition: i.condition, compatibility: i.compatibility, alternativeNote: i.alternativeNote || undefined, availability: i.availability,
           unitPrice: { currency: i.currency, amountMinor: i.availability === 'AVAILABLE' ? parseDecimalAmount(i.unitPrice, i.currency).toString() : '0' },
-          leadTime: { min: Number(i.leadMin), max: Number(i.leadMax), unit: i.leadUnit, dayKind: i.leadUnit === 'HOURS' ? 'CALENDAR' : i.leadDayKind },
+          leadTime: { min: typedNumber(i.leadMin), max: typedNumber(i.leadMax), unit: i.leadUnit, dayKind: i.leadUnit === 'HOURS' ? 'CALENDAR' : i.leadDayKind },
           internalCost: i.internalCost ? { currency: i.currency, amountMinor: parseDecimalAmount(i.internalCost, i.currency).toString() } : null,
         })),
         costs: shipping.amount ? [{ code: 'SHIPPING', label: shipping.label, amount: { currency: 'IRR', amountMinor: parseDecimalAmount(shipping.amount, 'IRR').toString() } }] : [],
-        validityHours: Number(validity), leadTimeWording: wording, leadTimeOrigin: 'PAYMENT_VERIFIED', termsPolicyVersionId: termsId,
+        validityHours: typedNumber(validity), leadTimeWording: wording, leadTimeOrigin: 'PAYMENT_VERIFIED', termsPolicyVersionId: termsId,
         ...(draft ? { version: draft.version } : {}),
       };
       const res = await api<{ versionId: string; version: number }>(`/admin/sourcing-requests/${request.id}/quote-draft`, { method: 'PUT', body });

@@ -14,6 +14,7 @@ import { DateTime, Num } from '@/components/ui/format';
 import { Alert, Badge, EmptyState, Ltr, PageHeader, Section, TableScroll, td, th } from '@/components/ui/misc';
 import { api, newIdempotencyKey, uploadWithProgress } from '@/lib/api/client';
 import { errorText, isApiError } from '@/lib/api/errors';
+import { typedNumber } from '@/lib/numbers';
 import { useApi } from '@/lib/use-api';
 import { useCodeLabel, useL } from './shell';
 
@@ -71,7 +72,7 @@ function AdjustDialog({ row, onClose }: { row: InvRow; onClose: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const submit = async () => {
-    const n = Number(count);
+    const n = typedNumber(count);
     if (!Number.isInteger(n) || n < 0) { setError(t('validation.invalidNumber')); return; }
     if (n < row.reserved) { setError(l(`شمارش نمی‌تواند کمتر از رزروشده (${reserved}) باشد.`, `Count cannot be below reserved (${reserved}).`)); return; }
     setBusy(true);
@@ -354,7 +355,7 @@ export function TaxonomyPage() {
         {(data) => (
           <div className="grid gap-6 lg:grid-cols-3">
             <Section title={t('parts.category')} id="tx-cat"><ul className="text-sm">{data.categories.map((c) => <li key={c.id} className="py-1"><Ltr>{c.code}</Ltr> — {l(c.nameFa, c.nameEn ?? c.nameFa)}</li>)}</ul></Section>
-            <Section title={t('parts.vehicleBrands')} id="tx-vb"><ul className="text-sm">{data.vehicleBrands.map((c) => <li key={c.id} className="py-1"><Ltr>{c.code}</Ltr> — {l(c.nameFa, c.nameEn ?? c.nameFa)}{c.isFeatured ? ' ★' : ''}</li>)}</ul></Section>
+            <Section title={t('parts.vehicleBrands')} id="tx-vb"><ul className="text-sm">{data.vehicleBrands.map((c) => <li key={c.id} className="py-1"><Ltr>{c.code}</Ltr> — {l(c.nameFa, c.nameEn ?? c.nameFa)}{c.isFeatured ? <Badge tone="info" className="ms-1">{t('admin.featured')}</Badge> : null}</li>)}</ul></Section>
             <Section title={t('parts.manufacturer')} id="tx-mb"><ul className="text-sm">{data.manufacturers.map((c) => <li key={c.id} className="py-1">{l(c.nameFa, c.nameEn ?? c.nameFa)}</li>)}</ul></Section>
           </div>
         )}

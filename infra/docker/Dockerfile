@@ -6,8 +6,8 @@
 #   web     Next.js storefront and admin panel    (port 3000, standalone server)
 #   tools   full toolchain for one-off tasks (migrations, owner bootstrap, seeds)
 #
-# STATUS: written but NOT EXECUTED in the build environment (Docker was not
-# installed). Verify with `docker compose -f infra/docker-compose.yml build`.
+# STATUS: built and run with Docker Desktop on 2026-10-04 (local test stack;
+# see docs/TEST_REPORT.md). Verify with `docker compose -f infra/docker-compose.yml build`.
 # See docs/DEPLOYMENT.md.
 
 ARG NODE_IMAGE=node:24-bookworm-slim
@@ -73,7 +73,7 @@ ENV NODE_ENV=production
 WORKDIR /repo
 COPY --from=prod-deps /repo/node_modules ./node_modules
 COPY --from=prod-deps /repo/packages/contracts/node_modules ./packages/contracts/node_modules
-COPY --from=prod-deps /repo/packages/domain/node_modules ./packages/domain/node_modules
+# packages/domain has no runtime dependencies, so pnpm creates no node_modules folder for it.
 COPY --from=prod-deps /repo/apps/api/node_modules ./apps/api/node_modules
 COPY --from=build /repo/packages/contracts/package.json ./packages/contracts/package.json
 COPY --from=build /repo/packages/contracts/dist ./packages/contracts/dist

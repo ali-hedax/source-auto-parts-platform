@@ -26,3 +26,6 @@ apps/api/.local-pg/
 
 # Standalone brand guide, posters and presentations live outside this repository (owner decision, 2026-10-04).
 brand guide hedax/
+
+# Database dumps and file archives (docs/BACKUP_RESTORE.md) contain customer data: never commit them.
+backups/

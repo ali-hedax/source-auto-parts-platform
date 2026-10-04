@@ -6,6 +6,8 @@ import { defineConfig, devices } from '@playwright/test';
  *   API with APP_ENV=development, PAYMENT_PROVIDER=simulator, SMS_PROVIDER=dev-log,
  *   PUBLIC_BASE_URL=<web origin>; web with HEDAX_DATA_SOURCE=api.
  * Then: E2E_REAL_BASE_URL=http://localhost:3200 npx playwright test -c playwright.real.config.ts
+ * Against the Docker stack behind Caddy (https://localhost with Caddy's local CA),
+ * set E2E_IGNORE_HTTPS_ERRORS=1 so the browser accepts that test certificate.
  */
 const channel = process.env.PW_CHANNEL ?? 'msedge';
 
@@ -21,6 +23,7 @@ export default defineConfig({
     channel,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
+    ignoreHTTPSErrors: process.env.E2E_IGNORE_HTTPS_ERRORS === '1',
   },
   projects: [{ name: 'desktop', use: { ...devices['Desktop Chrome'], channel } }],
 });

@@ -80,7 +80,9 @@ pnpm dev:worker           # با Redis؛ بدون Redis در .env بگذارید
 
 ## استقرار
 
-Docker Compose با Caddy (HTTPS)، PostgreSQL، Redis، ClamAV، API، worker و وب در [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) شرح داده شده است. پشتیبان‌گیری و بازیابی در [`docs/BACKUP_RESTORE.md`](docs/BACKUP_RESTORE.md) است. **پیکربندی Docker نوشته شده ولی در این محیط اجرا نشده است** (Docker نصب نبود).
+Docker Compose با Caddy (HTTPS)، PostgreSQL، Redis، ClamAV، API، worker و وب در [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) شرح داده شده است. پشتیبان‌گیری و بازیابی در [`docs/BACKUP_RESTORE.md`](docs/BACKUP_RESTORE.md) است. پیکربندی Docker روی رایانهٔ توسعه با Docker Desktop اجرا و آزموده شده است (آزمون پذیرش در حالت production و ۱۵ آزمون مرورگری؛ [`docs/TEST_REPORT.md`](docs/TEST_REPORT.md) بخش ۶). روی سرور هدف هنوز اجرا نشده است.
+
+**نسخهٔ محلی برای بررسی (Docker، حالت توسعه با دادهٔ نمونه):** فایل `.env.docker-dev` را مانند `.env.example` بسازید، با رازهای تصادفی، `APP_ENV=development`، `PAYMENT_PROVIDER=simulator`، `SMS_PROVIDER=dev-log`، `HEDAX_DOMAIN=localhost`، `PUBLIC_BASE_URL=https://localhost` و `ACME_EMAIL`. این فایل بیرون از git می‌ماند. سپس به این ترتیب اجرا کنید: migration (`run --rm tools`)، ساخت مالک (`owner:bootstrap`) و **پس از آن** `seed-dev`، و در پایان `up -d`. همه با `docker compose -p hedax-review -f infra/docker-compose.yml --env-file .env.docker-dev`. Caddy برای `localhost` گواهی محلی می‌دهد و مرورگر یک‌بار هشدار نشان می‌دهد.
 
 ## قابلیت‌ها و اتصال‌ها
 
@@ -90,8 +92,8 @@ Docker Compose با Caddy (HTTPS)، PostgreSQL، Redis، ClamAV، API، worker �
 | درخواست تأمین هر برند، چت و فایل، پیش‌فاکتور نسخه‌دار با PDF فارسی/انگلیسی، تأمین | تکمیل و آزموده |
 | کارکنان، نقش‌ها، MFA، audit، Excel ورود/خروج، مرجوعی و استرداد | تکمیل و آزموده |
 | **اتصال‌های آزمایشی** | شبیه‌ساز درگاه پرداخت، پیامک توسعه (`dev-log`)، اسکنر «بدون اسکن» توسعه، صف درون‌فرایندی worker (`QUEUE_DRIVER=inline`) — همه در production رد می‌شوند |
-| **اتصال‌های واقعیِ آزموده** | PostgreSQL 18.4، Socket.IO، ذخیرهٔ فایل محلی، رندر PDF با Edge |
-| **نوشته‌شده ولی اجرانشده** | Redis/BullMQ، ClamAV، ذخیره‌ساز S3، Docker Compose و Caddy |
+| **اتصال‌های واقعیِ آزموده** | PostgreSQL 18.4، Socket.IO، ذخیرهٔ فایل محلی، رندر PDF با Edge و با Chromium در Docker، Redis/BullMQ، ClamAV، Docker Compose و Caddy (روی Docker محلی) |
+| **نوشته‌شده ولی اجرانشده** | ذخیره‌ساز S3؛ استقرار روی سرور هدف با دامنه و گواهی عمومی |
 | **موکول به بعد** | درگاه و پیامک واقعی (پس از انتخاب مالک)، بیعانه/اقساط، رمزگشایی خودکار VIN، مدل سازگاری خودرو (طرح در `docs/FUTURE_CATALOG.md`) |
 
 ## مستندات

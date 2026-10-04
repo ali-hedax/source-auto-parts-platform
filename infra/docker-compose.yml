@@ -2,8 +2,10 @@
 # Redis; ClamAV. Only Caddy publishes ports — PostgreSQL, Redis, ClamAV and the
 # file store are never reachable from the internet.
 #
-# STATUS: written but NOT EXECUTED in the build environment (Docker was not
-# installed). Run from the repository root:
+# STATUS: built and run locally with Docker Desktop on 2026-10-04 (production
+# mode: readiness, TLS via Caddy, Redis/BullMQ, ClamAV with an EICAR test,
+# pg_dump/pg_restore; see docs/TEST_REPORT.md). Not yet run on the target server.
+# Run from the repository root:
 #   docker compose -f infra/docker-compose.yml --env-file .env up -d --build
 # One-off tasks (after the database is healthy):
 #   docker compose -f infra/docker-compose.yml --env-file .env run --rm tools                       # migrate deploy
@@ -181,7 +183,8 @@ services:
       - "443:443/udp"
     environment:
       HEDAX_DOMAIN: ${HEDAX_DOMAIN:?set HEDAX_DOMAIN (e.g. shop.example.ir)}
-      ACME_EMAIL: ${ACME_EMAIL:-}
+      # Required: the Caddyfile global `email` line cannot be empty (Caddy would not start).
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL (contact e-mail for the TLS certificate)}
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data

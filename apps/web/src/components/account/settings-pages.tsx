@@ -31,6 +31,9 @@ const NOTIFICATION_TEXT: Record<string, { fa: string; en: string }> = {
   'procurement.paid': { fa: 'پرداخت تأمین تأیید شد', en: 'Sourcing payment verified' },
   'procurement.delayed': { fa: 'زمان برآورد تأمین تغییر کرد', en: 'Sourcing estimate changed' },
   'refund.succeeded': { fa: 'بازپرداخت انجام شد', en: 'Refund completed' },
+  // Decisions on a cancellation or return request (`return.${decision}` in the API).
+  'return.approved': { fa: 'درخواست لغو یا مرجوعی شما تأیید شد', en: 'Your cancellation or return request was approved' },
+  'return.rejected': { fa: 'درخواست لغو یا مرجوعی شما تأیید نشد', en: 'Your cancellation or return request was not approved' },
   'order.paid_needs_resolution': { fa: 'پرداخت ثبت شد اما موجودی کافی نبود؛ سفارش برای بازپرداخت یا جایگزین به کارشناس ارجاع شد', en: 'Payment recorded but stock was not available; the order was referred to staff for a refund or an alternative' },
   'payment.duplicate_received': { fa: 'پرداخت تکراری دریافت شد؛ مبلغ اضافه بررسی و بازگردانده می‌شود', en: 'A duplicate payment was received; the extra amount will be reviewed and refunded' },
   'procurement.shipped': { fa: 'سفارش تأمین ارسال شد', en: 'Sourcing order shipped' },

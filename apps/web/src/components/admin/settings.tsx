@@ -11,6 +11,7 @@ import { DateTime, Money, Num, useListSeparator } from '@/components/ui/format';
 import { Alert, Badge, EmptyState, Ltr, PageHeader, Section, TableScroll, td, th } from '@/components/ui/misc';
 import { api } from '@/lib/api/client';
 import { errorText } from '@/lib/api/errors';
+import { typedNumber } from '@/lib/numbers';
 import { useApi } from '@/lib/use-api';
 import { useCodeLabel, useL } from './shell';
 
@@ -71,7 +72,7 @@ export function ShippingPage() {
     method: 'POST',
     body: {
       code: m.code, nameFa: m.nameFa, nameEn: m.nameEn || null, carrierCode: m.carrierCode || undefined, trackingUrlTemplate: m.trackingUrlTemplate || null, active: true,
-      zones: [{ provinces: m.provinces.split(/[،,]/).map((p) => p.trim()).filter(Boolean), costIrr: m.unknown ? null : parseDecimalAmount(m.cost || '0', 'IRR').toString(), minDays: m.minDays ? Number(m.minDays) : null, maxDays: m.maxDays ? Number(m.maxDays) : null }],
+      zones: [{ provinces: m.provinces.split(/[،,]/).map((p) => p.trim()).filter(Boolean), costIrr: m.unknown ? null : parseDecimalAmount(m.cost || '0', 'IRR').toString(), minDays: m.minDays ? typedNumber(m.minDays) : null, maxDays: m.maxDays ? typedNumber(m.maxDays) : null }],
     },
   }));
   return (
@@ -247,8 +248,8 @@ function SiteSettingsForm({ settings, reload }: { settings: SiteSettings; reload
     body: {
       contactPhone: s.contactPhone || undefined, contactEmail: s.contactEmail || '', contactAddressFa: s.contactAddressFa || undefined, contactAddressEn: s.contactAddressEn || undefined,
       workingHoursFa: s.workingHoursFa || undefined, workingHoursEn: s.workingHoursEn || undefined, domain: s.domain || undefined,
-      reservationMinutes: Number(s.reservationMinutes), quoteValidityHoursDefault: Number(s.quoteValidityHoursDefault),
-      taxRateBasisPoints: s.taxPercent === '' ? null : Math.round(Number(s.taxPercent) * 100), taxBase: s.taxBase, manualBankTransferEnabled: false, smsDisabledTypes: s.smsDisabledTypes ?? [], version: settings.version,
+      reservationMinutes: typedNumber(s.reservationMinutes), quoteValidityHoursDefault: typedNumber(s.quoteValidityHoursDefault),
+      taxRateBasisPoints: s.taxPercent === '' ? null : Math.round(typedNumber(s.taxPercent) * 100), taxBase: s.taxBase, manualBankTransferEnabled: false, smsDisabledTypes: s.smsDisabledTypes ?? [], version: settings.version,
     },
   }));
   const text = (key: keyof SiteSettings, label: string, ltr = false) => (
@@ -271,8 +272,8 @@ function SiteSettingsForm({ settings, reload }: { settings: SiteSettings; reload
       </Section>
       <Section title={l('فروش و پرداخت', 'Sales & payment')} id="st-sales">
         <div className="grid gap-3 md:grid-cols-4">
-          <Field id="st-res" label={l('مدت رزرو (دقیقه)', 'Reservation (minutes)')}><Input id="st-res" inputMode="numeric" value={s.reservationMinutes} onChange={(e) => setS({ ...s, reservationMinutes: Number(e.target.value) || 0 })} /></Field>
-          <Field id="st-qv" label={l('اعتبار پیش‌فرض پیش‌فاکتور (ساعت)', 'Default quote validity (hours)')}><Input id="st-qv" inputMode="numeric" value={s.quoteValidityHoursDefault} onChange={(e) => setS({ ...s, quoteValidityHoursDefault: Number(e.target.value) || 0 })} /></Field>
+          <Field id="st-res" label={l('مدت رزرو (دقیقه)', 'Reservation (minutes)')}><Input id="st-res" inputMode="numeric" value={s.reservationMinutes} onChange={(e) => setS({ ...s, reservationMinutes: typedNumber(e.target.value) || 0 })} /></Field>
+          <Field id="st-qv" label={l('اعتبار پیش‌فرض پیش‌فاکتور (ساعت)', 'Default quote validity (hours)')}><Input id="st-qv" inputMode="numeric" value={s.quoteValidityHoursDefault} onChange={(e) => setS({ ...s, quoteValidityHoursDefault: typedNumber(e.target.value) || 0 })} /></Field>
           <Field id="st-tax" label={l('نرخ مالیات (٪) — خالی یعنی تنظیم‌نشده', 'Tax rate (%) — empty = not configured')} optionalLabel={t('common.optional')}><Input id="st-tax" dir="ltr" value={s.taxPercent} onChange={(e) => setS({ ...s, taxPercent: e.target.value })} /></Field>
           <Field id="st-taxbase" label={l('مبنای مالیات', 'Tax base')}>
             <Select id="st-taxbase" value={s.taxBase} onChange={(e) => setS({ ...s, taxBase: e.target.value as SiteSettings['taxBase'] })}>
@@ -305,6 +306,9 @@ function SiteSettingsForm({ settings, reload }: { settings: SiteSettings; reload
 
 export function AuditPage() {
   const t = useTranslations();
+  const label = useCodeLabel();
+  // Codes contain dots (message keys use «_»); an unknown code is shown as it is so nothing is hidden.
+  const words = (group: string, code: string) => { const key = code.replaceAll('.', '_'); const text = label(group, key); return text === key ? code : text; };
   const state = useApi<Array<{ id: string; at: string; actor: string; action: string; entityType: string; entityId: string | null; requestId: string | null }>>('/admin/audit');
   return (
     <>
@@ -312,14 +316,14 @@ export function AuditPage() {
       <Async state={state}>
         {(rows) => rows.length ? (
           <TableScroll caption={t('admin.audit')}>
-            <thead><tr><th className={th}>{t('order.date')}</th><th className={th}>{t('admin.customer')}</th><th className={th}>Action</th><th className={th}>Entity</th><th className={th}>Request</th></tr></thead>
+            <thead><tr><th className={th}>{t('order.date')}</th><th className={th}>{t('admin.auditActor')}</th><th className={th}>{t('admin.auditAction')}</th><th className={th}>{t('admin.auditEntity')}</th><th className={th}>{t('admin.auditRequest')}</th></tr></thead>
             <tbody>
               {rows.map((a) => (
                 <tr key={a.id}>
                   <td className={td}><DateTime iso={a.at} /></td>
-                  <td className={td}>{a.actor}</td>
-                  <td className={td}><Ltr>{a.action}</Ltr></td>
-                  <td className={td}><Ltr>{a.entityType}:{a.entityId?.slice(0, 8)}</Ltr></td>
+                  <td className={td}>{words('auditActorKind', a.actor)}</td>
+                  <td className={td}>{words('auditAction', a.action)}</td>
+                  <td className={td}>{words('auditEntity', a.entityType)}{a.entityId ? <> <Ltr className="text-xs text-steel">{a.entityId.slice(0, 8)}</Ltr></> : null}</td>
                   <td className={td}><Ltr className="text-xs">{a.requestId?.slice(0, 8)}</Ltr></td>
                 </tr>
               ))}
