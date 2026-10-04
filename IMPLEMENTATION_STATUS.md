@@ -183,5 +183,5 @@
   1. `git status` و `git log -1`: درخت کار باید تمیز و برابر `origin/main` باشد.
   2. Docker Desktop را از منوی Start باز کنید تا «Engine running» شود (با ویندوز خودکار اجرا نمی‌شود).
   3. نسخهٔ بررسی محلی: `docker compose -p hedax-review -f infra/docker-compose.yml --env-file .env.docker-dev up -d`، سپس `https://localhost/fa`. ورود مالک: `https://localhost/fa/staff/login` با `REVIEW_OWNER_EMAIL` و `REVIEW_OWNER_PASSWORD` از فایل `.env.docker-dev` (بیرون از git). در اولین ورود، برنامهٔ احراز هویت را ثبت کنید.
-  4. پشته‌های آزمایشی `hedax-test`، `hedax-accept`، `hedax-e2e` و `hedax-e2e2` فقط متوقف شده‌اند و داده‌هایشان باقی است. حذف آن‌ها (`docker compose -p <نام> down -v`) با تصمیم مالک است.
+  4. نسخهٔ بررسی `hedax-review` در حال اجراست. شش پشتهٔ آزمایشی `hedax-test`، `hedax-accept`، `hedax-e2e`، `hedax-e2e2`، `hedax-e2e3` و `hedax-e2e4` فقط متوقف شده‌اند و داده‌هایشان باقی است: حدود ۱٫۳ گیگابایت volume در کل، به‌علاوهٔ ۷٫۴ گیگابایت ایمیج و ۸٫۸ گیگابایت cache ساخت. حذف آن‌ها (`docker compose -p <نام> down -v` و `docker builder prune`) با تصمیم مالک است.
   5. قدم بعد: موارد «باقی‌مانده»، سپس آماده‌سازی سرور هدف (موارد «مسدود»).
