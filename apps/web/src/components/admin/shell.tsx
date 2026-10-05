@@ -1,5 +1,7 @@
 'use client';
 
+import Image from 'next/image';
+import styles from '@/components/layout/brand.module.css';
 import type { MeView } from '@hedax/contracts';
 import {
   BarChart3, Boxes, CalendarDays, ClipboardList, CreditCard, FileSpreadsheet, FileText, Gauge, History, Landmark, LogOut, MessageSquare,
@@ -104,7 +106,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-surface">
       <header className="on-dark sticky top-0 z-40 bg-carbon text-silver">
         <div className="flex min-h-14 items-center gap-3 px-4">
-          <Link href="/admin" className="font-extrabold text-white">{locale === 'fa' ? 'هداکس' : 'HEDAX'} · <span className="font-semibold text-tech-light">{t('title')}</span></Link>
+          <Link href="/admin" className="font-extrabold text-white"><span className={styles.adminBrand}><Image src="/brand/source/icon-64.png" width={64} height={64} unoptimized alt={locale === 'fa' ? 'سورس — محصولی از هداکس' : 'Source by HEDAX'} className={styles.adminIcon} /></span> · <span className="font-semibold text-tech-light">{t('title')}</span></Link>
           <div className="ms-auto flex items-center gap-2 text-sm">
             <Suspense fallback={null}><LocaleSwitcher /></Suspense>
             {me.data ? <span className="hidden sm:inline">{me.data.displayName}</span> : null}

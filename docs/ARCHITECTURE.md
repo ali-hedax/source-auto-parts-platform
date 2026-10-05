@@ -1,4 +1,4 @@
-# معماری هداکس | HEDAX Architecture
+# معماری سورس | Source Architecture
 
 - نسخه: ۱٫۰ (۲۰۲۶-۱۰-۰۳) — هم‌خوان با کد فعلی و آزمون‌های یکپارچه.
 - تصمیم‌ها و دلیل‌ها: [`DECISIONS.md`](DECISIONS.md). قرارداد API: [`api/openapi.json`](api/openapi.json).

@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   const t = await getTranslations({ locale, namespace: 'meta' });
   return {
     metadataBase: new URL(publicSiteUrl()),
-    title: { default: t('siteTitle'), template: `%s | ${locale === 'fa' ? 'هداکس' : 'HEDAX'}` },
+    title: { default: t('siteTitle'), template: `%s | ${locale === 'fa' ? 'سورس' : 'Source'}` },
     description: t('siteDescription'),
     alternates: { languages: { fa: '/fa', en: '/en', 'x-default': '/fa' } },
     // The development preview must never be indexed.

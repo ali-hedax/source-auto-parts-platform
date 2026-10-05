@@ -79,7 +79,7 @@ th{background:#E2E8F0}.num{direction:ltr;text-align:end;unicode-bidi:isolate;whi
 .note{font-size:8.5pt;color:#4A5568}.ltr{direction:ltr;unicode-bidi:isolate}.box{border:1px solid #CBD5E0;border-radius:8px;padding:8px 12px;margin-top:10px}
 .total{font-size:13pt;font-weight:700}
 </style></head><body>
-<header><div><h1>${locale === 'fa' ? 'هداکس | HEDAX' : 'HEDAX | <bdi dir="rtl">هداکس</bdi>'}</h1><div class="meta">${L.subtitle}</div></div>
+<header><div><h1>${locale === 'fa' ? 'سورس | Source' : 'Source | <bdi dir="rtl">سورس</bdi>'}</h1><div class="meta">${L.subtitle}</div></div>
 <div class="meta">${L.number}: <span class="ltr">${esc(view.reference)}</span><br>${L.version}: ${num(view.versionNumber)}<br>
 ${L.issued}: ${view.issuedAt ? esc(formatDateTime(new Date(view.issuedAt), locale)) : '—'}<br>${L.validUntil}: ${esc(formatDateTime(new Date(view.validUntil), locale))}</div></header>
 <p>${L.customer}: ${free(customerName ?? '—')}</p>

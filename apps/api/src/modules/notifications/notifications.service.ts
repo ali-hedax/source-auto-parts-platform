@@ -7,14 +7,14 @@ import { type SmsNotificationType, siteSettingsSchema } from '@hedax/contracts';
 import { SITE_SETTINGS_KEY } from '../settings/settings.service.js';
 
 const SMS_TEXT_FA: Record<SmsNotificationType, (p: Record<string, unknown>) => string> = {
-  'order.paid': (p) => `هداکس: پرداخت سفارش ${String(p.reference ?? '')} تأیید شد.`,
-  'order.shipped': (p) => `هداکس: سفارش ${String(p.reference ?? '')} ارسال شد.`,
-  'sourcing.submitted': (p) => `هداکس: درخواست تأمین ${String(p.reference ?? '')} ثبت شد.`,
-  'sourcing.needs_info': (p) => `هداکس: برای درخواست ${String(p.reference ?? '')} اطلاعات بیشتری لازم است.`,
-  'quote.sent': (p) => `هداکس: پیش‌فاکتور ${String(p.reference ?? '')} آماده است.`,
-  'procurement.paid': (p) => `هداکس: پرداخت ${String(p.reference ?? '')} تأیید شد و تأمین آغاز می‌شود.`,
-  'procurement.delayed': (p) => `هداکس: زمان برآورد ${String(p.reference ?? '')} تغییر کرد.`,
-  'procurement.shipped': (p) => `هداکس: سفارش تأمین ${String(p.reference ?? '')} ارسال شد.`,
+  'order.paid': (p) => `سورس: پرداخت سفارش ${String(p.reference ?? '')} تأیید شد.`,
+  'order.shipped': (p) => `سورس: سفارش ${String(p.reference ?? '')} ارسال شد.`,
+  'sourcing.submitted': (p) => `سورس: درخواست تأمین ${String(p.reference ?? '')} ثبت شد.`,
+  'sourcing.needs_info': (p) => `سورس: برای درخواست ${String(p.reference ?? '')} اطلاعات بیشتری لازم است.`,
+  'quote.sent': (p) => `سورس: پیش‌فاکتور ${String(p.reference ?? '')} آماده است.`,
+  'procurement.paid': (p) => `سورس: پرداخت ${String(p.reference ?? '')} تأیید شد و تأمین آغاز می‌شود.`,
+  'procurement.delayed': (p) => `سورس: زمان برآورد ${String(p.reference ?? '')} تغییر کرد.`,
+  'procurement.shipped': (p) => `سورس: سفارش تأمین ${String(p.reference ?? '')} ارسال شد.`,
 };
 
 /**

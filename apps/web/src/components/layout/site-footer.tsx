@@ -1,3 +1,5 @@
+import Image from 'next/image';
+import styles from './brand.module.css';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 import { serverApiOptional } from '@/lib/api/server';
@@ -24,7 +26,7 @@ export async function SiteFooter() {
     <footer className="on-dark render-lazy mt-16 bg-carbon text-silver">
       <div className="container-page grid gap-8 py-10 md:grid-cols-3">
         <div>
-          <p className="text-lg font-extrabold text-white">{locale === 'fa' ? 'هداکس | HEDAX' : 'HEDAX | هداکس'}</p>
+          <p className={`text-lg font-extrabold text-white ${styles.footerBrand}`}><Image src="/brand/source/logo-dark.png" width={600} height={191} unoptimized alt={locale === 'fa' ? 'سورس — محصولی از هداکس' : 'Source by HEDAX'} className={styles.footerWordmark} /></p>
           <p className="mt-1 text-sm text-tech-light">{t('meta.tagline')}</p>
           <p className="mt-3 text-sm">{t('footer.about')}</p>
         </div>

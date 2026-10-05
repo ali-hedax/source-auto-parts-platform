@@ -1,3 +1,5 @@
+import Image from 'next/image';
+import styles from './brand.module.css';
 import { Search } from 'lucide-react';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
@@ -22,9 +24,9 @@ export async function SiteHeader() {
     <header className="on-dark sticky top-0 z-40 bg-carbon text-silver shadow-sm">
       <div className="container-page flex min-h-16 items-center gap-3 py-2">
         <MobileNav items={nav.map((n) => ({ href: n.href, label: n.label }))} />
-        <Link href="/" className="flex shrink-0 items-baseline gap-2 rounded px-1 text-white" aria-label={t('meta.siteTitle')}>
-          <span className="text-xl font-extrabold tracking-wide">{locale === 'fa' ? 'هداکس' : 'HEDAX'}</span>
-          <span className="hidden text-xs font-semibold tracking-[0.2em] text-tech-light sm:inline">{locale === 'fa' ? 'HEDAX' : 'هداکس'}</span>
+        <Link href="/" className={`flex shrink-0 items-baseline gap-2 rounded px-1 text-white ${styles.headerBrand}`} aria-label={t('meta.siteTitle')}>
+          <Image src="/brand/source/logo-dark.png" width={600} height={191} unoptimized alt={locale === 'fa' ? 'سورس — محصولی از هداکس' : 'Source by HEDAX'} className={styles.headerWordmark} />
+          <Image src="/brand/source/icon-64.png" width={64} height={64} unoptimized alt="" className={styles.headerIcon} />
         </Link>
         <form action={`/${locale}/parts`} method="get" role="search" className="mx-2 hidden flex-1 md:flex">
           <label htmlFor="header-search" className="sr-only">

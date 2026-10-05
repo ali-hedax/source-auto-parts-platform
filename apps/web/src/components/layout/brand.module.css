@@ -1,0 +1,17 @@
+/* The original text slots are retained in rem so neighbouring controls do not move.
+   Only brand images and their own frames are styled here. */
+.headerBrand { position: relative; width: 8.2354rem; height: 1.75rem; }
+.headerBrand:lang(fa) { width: 8.1689453125rem; }
+.headerWordmark { position: absolute; inset-inline: .25rem; top: -.375rem; width: calc(100% - .5rem); height: 2.5rem; object-fit: contain; }
+.headerIcon { display: none; }
+.footerBrand { position: relative; height: 1.75rem; }
+.footerWordmark { position: absolute; inset-inline-start: 0; top: -.25rem; width: 7.5rem; height: 2.25rem; object-fit: contain; }
+.adminBrand { position: relative; display: inline-block; width: 3.7393rem; height: 1em; }
+.adminBrand:lang(fa) { width: 3.20625rem; }
+.adminIcon { position: absolute; inset-inline-start: 0; top: -.375rem; width: 1.75rem; height: 1.75rem; object-fit: contain; }
+@media (max-width: 639px) {
+  .headerBrand { width: 5.330078125rem; }
+  .headerBrand:lang(fa) { width: 4.50782rem; }
+  .headerWordmark { display: none; }
+  .headerIcon { display: block; position: absolute; inset-inline: 0; margin-inline: auto; width: 1.75rem; height: 1.75rem; object-fit: contain; }
+}

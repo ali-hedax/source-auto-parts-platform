@@ -1,11 +1,11 @@
 {
   "meta": {
-    "siteTitle": "HEDAX | Auto parts & custom sourcing",
+    "siteTitle": "Source | Auto parts & custom sourcing",
     "siteDescription": "Buy in-stock auto parts or request sourcing for any brand, with price and lead time confirmed before you pay.",
     "tagline": "Pioneering Intelligence & Trade."
   },
   "common": {
-    "brand": "HEDAX",
+    "brand": "Source",
     "skipToContent": "Skip to main content",
     "loading": "Loading…",
     "retry": "Try again",
@@ -55,7 +55,7 @@
     "imported": "Imported parts",
     "brands": "Brands",
     "requestPart": "Request a part",
-    "about": "About HEDAX",
+    "about": "About Source",
     "contact": "Contact",
     "account": "Account",
     "login": "Sign in / Sign up",
@@ -93,7 +93,7 @@
     "step3Text": "Sourcing starts only after you accept the quote and the payment is verified.",
     "step4": "Sourcing & delivery",
     "step4Text": "Follow progress in your account and the conversation.",
-    "contactTitle": "Contact HEDAX",
+    "contactTitle": "Contact Source",
     "faqTitle": "Frequently asked questions",
     "faq1q": "Which currency are prices shown in?",
     "faq1a": "Prices are shown in Iranian rial (IRR) or UAE dirham (AED). Online payment settles the final amount in IRR, which you always see before paying.",
@@ -532,7 +532,7 @@
     "openSupport": "Support"
   },
   "footer": {
-    "about": "HEDAX — precise, fast and smart auto-parts sourcing.",
+    "about": "Source — precise, fast and smart auto-parts sourcing.",
     "links": "Quick links",
     "help": "Help",
     "buying": "Buying guide",
@@ -545,9 +545,9 @@
     "rights": "© {year} HEDAX"
   },
   "pages": {
-    "aboutTitle": "About HEDAX",
-    "aboutBody": "HEDAX works with a mission of “precise, fast and smart sourcing” of auto parts: selling in-stock parts with transparent specifications, and sourcing parts for any brand with price and lead time confirmed before payment.",
-    "contactTitle": "Contact HEDAX",
+    "aboutTitle": "About Source",
+    "aboutBody": "Source works with a mission of “precise, fast and smart sourcing” of auto parts: selling in-stock parts with transparent specifications, and sourcing parts for any brand with price and lead time confirmed before payment.",
+    "contactTitle": "Contact Source",
     "contactChat": "The fastest way to reach us is the on-site conversation.",
     "phone": "Phone",
     "address": "Address",
