@@ -177,13 +177,19 @@ export function ImportsPage() {
   useEffect(() => {
     if (!jobId) return;
     let timer: ReturnType<typeof setTimeout>;
+    // A request still in flight when the page is left (or a new file is chosen) must not poll on.
+    let stopped = false;
     const poll = async () => {
       const p = await api<ImportPreview>(`/admin/imports/${jobId}`).catch(() => null);
+      if (stopped) return;
       if (p) setPreview(p);
       if (!p || ['QUEUED', 'PARSING', 'COMMITTING'].includes(p.status)) timer = setTimeout(poll, 1500);
     };
     void poll();
-    return () => clearTimeout(timer);
+    return () => {
+      stopped = true;
+      clearTimeout(timer);
+    };
   }, [jobId]);
 
   const upload = async (file: File | undefined) => {

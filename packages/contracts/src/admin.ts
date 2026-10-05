@@ -114,5 +114,6 @@ export interface DashboardView {
   delayedProcurements: number;
   lowStockProducts: number;
   unreadConversations: number;
-  launchReadiness: Array<{ key: string; status: 'READY' | 'MISSING' | 'SIMULATED'; note: string }>;
+  /** ATTENTION: configured but needs a look (e.g. antivirus signatures too old). */
+  launchReadiness: Array<{ key: string; status: 'READY' | 'MISSING' | 'SIMULATED' | 'ATTENTION'; note: string }>;
 }

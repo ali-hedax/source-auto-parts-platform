@@ -24,18 +24,28 @@ export function CheckoutClient() {
   const [addressId, setAddressId] = useState<string>('');
   const [shippingId, setShippingId] = useState<string>('');
   const [preview, setPreview] = useState<CheckoutPreview | null>(null);
+  // The address and shipping choice the shown preview was computed for.
+  const [previewFor, setPreviewFor] = useState<string | null>(null);
   const [accepted, setAccepted] = useState(false);
   const [loginNeeded, setLoginNeeded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [paying, setPaying] = useState(false);
   const [adding, setAdding] = useState(false);
   const idem = useRef<string>(newIdempotencyKey());
+  const latestPreview = useRef(0);
 
   const loadPreview = useCallback(async (a: string, s: string) => {
+    const seq = ++latestPreview.current;
     const qs = new URLSearchParams({ currency: document.cookie.includes('hedax_currency=AED') ? 'AED' : 'IRR', ...(a ? { addressId: a } : {}), ...(s ? { shippingMethodId: s } : {}) });
     try {
-      setPreview(await api<CheckoutPreview>(`/checkout/preview?${qs.toString()}`));
+      const next = await api<CheckoutPreview>(`/checkout/preview?${qs.toString()}`);
+      // Answers can arrive out of order (a new address, then a quick shipping choice):
+      // only the answer for the latest choice may replace what is shown.
+      if (seq !== latestPreview.current) return;
+      setPreview(next);
+      setPreviewFor(`${a}|${s}`);
     } catch (e) {
+      if (seq !== latestPreview.current) return;
       if (isApiError(e) && e.status === 401) setLoginNeeded(true);
       else setError(t('common.unavailable'));
     }
@@ -98,7 +108,9 @@ export function CheckoutClient() {
 
   const selected = preview.shippingOptions.find((o) => o.id === shippingId);
   const grand = preview.totals?.grandTotal;
-  const canPay = !!grand && accepted && preview.blockers.length === 0;
+  // Totals still being recalculated for a new address or shipping choice are not payable.
+  const current = previewFor === `${addressId}|${shippingId}`;
+  const canPay = current && !!grand && accepted && preview.blockers.length === 0;
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_24rem]">
@@ -150,7 +162,7 @@ export function CheckoutClient() {
         </section>
       </div>
 
-      <aside className="card flex h-fit flex-col gap-3 p-5 lg:sticky lg:top-28" aria-labelledby="review-title">
+      <aside className="card flex h-fit flex-col gap-3 p-5 lg:sticky lg:top-28" aria-labelledby="review-title" aria-busy={!current}>
         <h2 id="review-title" className="text-lg font-bold">{t('checkout.review')}</h2>
         {preview.totals ? (
           <dl className="flex flex-col gap-2 text-sm">

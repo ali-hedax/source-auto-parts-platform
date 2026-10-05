@@ -597,9 +597,11 @@
     "readiness_READY": "آماده",
     "readiness_MISSING": "تنظیم نشده",
     "readiness_SIMULATED": "آزمایشی",
+    "readiness_ATTENTION": "نیاز به بررسی",
     "ready_payment_gateway": "درگاه پرداخت",
     "ready_sms": "پیامک",
     "ready_malware_scanner": "اسکن فایل",
+    "ready_malware_signatures": "به‌روز بودن امضای ضدویروس",
     "ready_private_storage": "ذخیره‌ساز خصوصی",
     "ready_domain": "دامنه",
     "ready_terms_published": "شرایط فروش منتشرشده",
@@ -863,7 +865,8 @@
     "paymentFailure_PROVIDER_FAILED": "درگاه پرداخت را ناموفق اعلام کرد",
     "paymentFailure_CUSTOMER_CANCELLED": "مشتری پرداخت را لغو کرد",
     "paymentFailure_PROVIDER_CREATE_FAILED": "درگاه نتوانست پرداخت را آغاز کند",
-    "paymentFailure_VERIFICATION_MISMATCH": "تأیید درگاه با مبلغ یا پذیرنده نخواند"
+    "paymentFailure_VERIFICATION_MISMATCH": "تأیید درگاه با مبلغ یا پذیرنده نخواند",
+    "paymentProvider_zarinpal": "زرین‌پال"
   },
   "validation": {
     "summaryTitle": "لطفاً موارد زیر را اصلاح کنید",

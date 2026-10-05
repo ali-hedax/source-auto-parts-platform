@@ -9,8 +9,9 @@
 //   pnpm --filter @hedax/api build && pnpm --filter @hedax/worker build
 //   pnpm --filter @hedax/web e2e:real                 # extra args go to Playwright, e.g. -- -g "admin"
 //   pnpm --filter @hedax/web e2e:real -- --perf       # production build + lab LCP/CLS (perf.json in the log folder)
+//   E2E_PAYMENT=zarinpal-sandbox pnpm --filter @hedax/web e2e:real   # pay through Zarinpal's public sandbox
 import { execFileSync, spawn, spawnSync } from 'node:child_process';
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, openSync, readFileSync, rmSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import net from 'node:net';
@@ -149,7 +150,10 @@ try {
     STORAGE_DRIVER: 'local',
     LOCAL_STORAGE_DIR: path.join(workDir, 'storage'),
     MALWARE_SCANNER: 'none-dev',
-    PAYMENT_PROVIDER: 'simulator',
+    // E2E_PAYMENT=zarinpal-sandbox: Zarinpal's official public sandbox (any UUID merchant ID) instead of the simulator.
+    ...(process.env.E2E_PAYMENT === 'zarinpal-sandbox'
+      ? { PAYMENT_PROVIDER: 'zarinpal', ZARINPAL_SANDBOX: 'true', PAYMENT_MERCHANT_ID: randomUUID() }
+      : { PAYMENT_PROVIDER: 'simulator' }),
     SMS_PROVIDER: 'dev-log',
     OPENAPI_ENABLED: 'false',
     LOG_LEVEL: 'warn',

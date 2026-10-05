@@ -3,6 +3,7 @@ import type { PaymentProvider } from '@hedax/domain';
 import { ENV, type Env, isProduction } from '../../config/env.js';
 import { unavailable } from '../../common/errors.js';
 import { SimulatorPaymentProvider } from './simulator.provider.js';
+import { ZarinpalPaymentProvider } from './zarinpal.provider.js';
 
 /**
  * Holds the one active payment provider. With PAYMENT_PROVIDER=none (no live
@@ -17,6 +18,9 @@ export class PaymentProviderRegistry {
     if (env.PAYMENT_PROVIDER === 'simulator') {
       if (isProduction(env)) throw new Error('PAYMENT_PROVIDER=simulator is forbidden in production');
       this.provider = new SimulatorPaymentProvider(env.PUBLIC_BASE_URL, env.PAYMENT_MERCHANT_ID, env.PAYMENT_SESSION_MINUTES, env.APP_ENV);
+    } else if (env.PAYMENT_PROVIDER === 'zarinpal') {
+      if (isProduction(env) && env.ZARINPAL_SANDBOX) throw new Error('The Zarinpal sandbox is forbidden in production');
+      this.provider = new ZarinpalPaymentProvider({ merchantId: env.PAYMENT_MERCHANT_ID, sandbox: env.ZARINPAL_SANDBOX, sessionMinutes: env.PAYMENT_SESSION_MINUTES });
     } else {
       this.provider = null;
     }

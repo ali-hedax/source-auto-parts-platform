@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { maskPhone } from '@hedax/domain';
 import { ENV, type Env } from '../../config/env.js';
 import { unavailable } from '../../common/errors.js';
+import { KavenegarSmsProvider } from './kavenegar.provider.js';
 
 export type SmsTemplate = 'otp' | 'notification';
 
@@ -51,7 +52,13 @@ export class UnconfiguredSmsProvider implements SmsProvider {
 export const smsProviderFactory = {
   provide: SMS_PROVIDER,
   inject: [ENV],
-  useFactory: (env: Env): SmsProvider => (env.SMS_PROVIDER === 'dev-log' ? new DevLogSmsProvider() : new UnconfiguredSmsProvider()),
+  useFactory: (env: Env): SmsProvider => {
+    if (env.SMS_PROVIDER === 'dev-log') return new DevLogSmsProvider();
+    if (env.SMS_PROVIDER === 'kavenegar' && env.KAVENEGAR_API_KEY && env.KAVENEGAR_OTP_TEMPLATE) {
+      return new KavenegarSmsProvider({ apiKey: env.KAVENEGAR_API_KEY, otpTemplate: env.KAVENEGAR_OTP_TEMPLATE, sender: env.KAVENEGAR_SENDER });
+    }
+    return new UnconfiguredSmsProvider();
+  },
 };
 
 @Injectable()

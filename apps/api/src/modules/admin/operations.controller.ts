@@ -58,10 +58,21 @@ export class OperationsController {
     ]);
     const site = await this.settings.site();
     const storageOk = await this.storage.ping().catch(() => false);
+    const sandbox = this.env.PAYMENT_PROVIDER === 'zarinpal' && this.env.ZARINPAL_SANDBOX;
+    const testPayments = !!this.registry.simulator() || sandbox;
+    // Signatures older than the limit still scan but miss new malware: shown as needing attention.
+    const signatures = this.scanner.name === 'clamav'
+      ? await Promise.race([this.scanner.signatures().catch(() => null), new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000))])
+      : null;
+    const signatureHours = signatures ? Math.max(0, Math.floor((now.getTime() - signatures.builtAt.getTime()) / 3_600_000)) : null;
+    const signatureRow: DashboardView['launchReadiness'] = this.scanner.name === 'clamav'
+      ? [{ key: 'malware_signatures', status: signatureHours !== null && signatureHours <= this.env.CLAMAV_SIGNATURE_MAX_AGE_HOURS ? 'READY' : 'ATTENTION', note: signatures ? `Signature database ${signatures.version}, ${signatureHours} h old` : 'Signature age unknown' }]
+      : [];
     const launchReadiness: DashboardView['launchReadiness'] = [
-      { key: 'payment_gateway', status: this.registry.simulator() ? 'SIMULATED' : this.registry.isConfigured() ? 'READY' : 'MISSING', note: this.registry.simulator() ? 'Test simulator only — no real payments' : this.registry.isConfigured() ? '' : 'No live gateway chosen/configured' },
-      { key: 'sms', status: this.env.SMS_PROVIDER === 'dev-log' ? 'SIMULATED' : 'MISSING', note: this.env.SMS_PROVIDER === 'dev-log' ? 'Codes are only written to the dev log' : 'No SMS provider configured' },
+      { key: 'payment_gateway', status: testPayments ? 'SIMULATED' : this.registry.isConfigured() ? 'READY' : 'MISSING', note: this.registry.simulator() ? 'Test simulator only — no real payments' : sandbox ? 'Zarinpal sandbox — no real payments' : this.registry.isConfigured() ? '' : 'No live gateway chosen/configured' },
+      { key: 'sms', status: this.env.SMS_PROVIDER === 'kavenegar' ? 'READY' : this.env.SMS_PROVIDER === 'dev-log' ? 'SIMULATED' : 'MISSING', note: this.env.SMS_PROVIDER === 'dev-log' ? 'Codes are only written to the dev log' : this.env.SMS_PROVIDER === 'kavenegar' ? '' : 'No SMS provider configured' },
       { key: 'malware_scanner', status: this.scanner.name === 'clamav' ? 'READY' : 'SIMULATED', note: this.scanner.name === 'clamav' ? '' : 'Files are not scanned (dev)' },
+      ...signatureRow,
       { key: 'private_storage', status: this.storage.name === 's3' && storageOk ? 'READY' : this.storage.name === 'local' ? 'SIMULATED' : 'MISSING', note: this.storage.name === 'local' ? 'Local disk storage (development)' : '' },
       { key: 'domain', status: site.domain ? 'READY' : 'MISSING', note: site.domain ? '' : 'Domain not configured' },
       { key: 'terms_published', status: terms ? 'READY' : 'MISSING', note: terms ? '' : 'Publish terms of sale before selling' },

@@ -6,13 +6,39 @@ export interface ScanResult {
   signature: string | null;
 }
 
+/** The signature database the engine has loaded. */
+export interface SignatureInfo {
+  /** e.g. "28136" (ClamAV daily database version). */
+  version: string;
+  /** When that database was published, as reported by the engine. */
+  builtAt: Date;
+}
+
 export interface MalwareScanner {
   readonly name: string;
   scan(bytes: Buffer): Promise<ScanResult>;
   ping(): Promise<boolean>;
+  /** null when the engine has no signatures (development) or does not report them. */
+  signatures(): Promise<SignatureInfo | null>;
 }
 
 export const SCANNER = Symbol('HEDAX_SCANNER');
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/**
+ * clamd VERSION reply: "ClamAV 1.5.4/28136/Fri Oct  3 08:12:01 2026" — engine, database
+ * version and database time (clamd's local time; the official image runs in UTC).
+ * Without a loaded database the reply is just "ClamAV 1.5.4", which gives null.
+ */
+export function parseClamVersion(reply: string): SignatureInfo | null {
+  const m = /^ClamAV [^/]+\/(\d+)\/[A-Z][a-z]{2} ([A-Z][a-z]{2}) +(\d{1,2}) (\d{2}):(\d{2}):(\d{2}) (\d{4})$/.exec(reply.trim());
+  if (!m) return null;
+  const [, version, mon, day, hh, mm, ss, year] = m;
+  const month = MONTHS.indexOf(mon ?? '');
+  if (!version || month < 0) return null;
+  return { version, builtAt: new Date(Date.UTC(Number(year), month, Number(day), Number(hh), Number(mm), Number(ss))) };
+}
 
 /**
  * clamd INSTREAM client (TCP). Protocol: "zINSTREAM\0", then chunks prefixed by
@@ -64,6 +90,10 @@ export class ClamAvScanner implements MalwareScanner {
     const reply = await this.command((socket) => socket.end('zPING\0'));
     return reply === 'PONG';
   }
+
+  async signatures(): Promise<SignatureInfo | null> {
+    return parseClamVersion(await this.command((socket) => socket.end('zVERSION\0')));
+  }
 }
 
 /**
@@ -79,5 +109,9 @@ export class DevNoScanner implements MalwareScanner {
 
   async ping(): Promise<boolean> {
     return true;
+  }
+
+  async signatures(): Promise<SignatureInfo | null> {
+    return null;
   }
 }

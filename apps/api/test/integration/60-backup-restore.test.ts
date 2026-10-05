@@ -44,7 +44,9 @@ const PASSWORD = 'hedax-restore-test-only';
 const pgOptions = {
   databaseDir: dataDir, user: 'hedax', password: PASSWORD, port: PORT, persistent: true, authMethod: 'scram-sha-256' as const,
   initdbFlags: ['--encoding=UTF8', process.platform === 'win32' ? '--locale=en-US' : '--locale=C.UTF-8'],
-  postgresFlags: ['-c', 'listen_addresses=127.0.0.1', '-c', 'timezone=Asia/Tehran'],
+  // io_method=sync: no I/O worker processes. On Windows an orphaned PostgreSQL 18 io_worker kept
+  // the port after stop, so the restart on the restored data failed (seen 2026-10-05).
+  postgresFlags: ['-c', 'listen_addresses=127.0.0.1', '-c', 'timezone=Asia/Tehran', '-c', 'io_method=sync'],
   onLog: () => undefined, onError: () => undefined,
 };
 let pg: EmbeddedPostgres | null = null;

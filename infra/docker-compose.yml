@@ -51,11 +51,18 @@ x-app-env: &app-env
   MALWARE_SCANNER: clamav
   CLAMAV_HOST: clamav
   CLAMAV_PORT: "3310"
-  # No live gateway/SMS adapter is chosen yet: "none" refuses payment/OTP instead of pretending.
+  CLAMAV_SIGNATURE_MAX_AGE_HOURS: ${CLAMAV_SIGNATURE_MAX_AGE_HOURS:-48}
+  # Until the owner's gateway and SMS accounts are configured, "none" refuses payment/OTP instead of pretending.
+  # Ready adapters: PAYMENT_PROVIDER=zarinpal (PAYMENT_MERCHANT_ID) and SMS_PROVIDER=kavenegar (KAVENEGAR_*); see docs/DEPLOYMENT.md §9.
   PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-none}
   PAYMENT_MERCHANT_ID: ${PAYMENT_MERCHANT_ID:-}
   PAYMENT_SESSION_MINUTES: ${PAYMENT_SESSION_MINUTES:-15}
+  # Zarinpal's public sandbox is refused when APP_ENV=production.
+  ZARINPAL_SANDBOX: ${ZARINPAL_SANDBOX:-false}
   SMS_PROVIDER: ${SMS_PROVIDER:-none}
+  KAVENEGAR_API_KEY: ${KAVENEGAR_API_KEY:-}
+  KAVENEGAR_OTP_TEMPLATE: ${KAVENEGAR_OTP_TEMPLATE:-}
+  KAVENEGAR_SENDER: ${KAVENEGAR_SENDER:-}
 
 services:
   postgres:
@@ -114,6 +121,42 @@ services:
     environment: *app-env
     volumes:
       - storage:/data/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Scheduled, encrypted backups (opt-in): add `--profile backup`. docs/BACKUP_RESTORE.md §2.
+  backup:
+    logging: *logging
+    profiles: ["backup"]
+    build:
+      context: ..
+      dockerfile: infra/docker/Dockerfile
+      target: backup
+    restart: unless-stopped
+    init: true
+    environment:
+      PGHOST: postgres
+      PGUSER: hedax
+      PGDATABASE: hedax
+      PGPASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      # The owner's age PUBLIC key(s), comma-separated; the private key never goes on the server.
+      BACKUP_AGE_RECIPIENTS: ${BACKUP_AGE_RECIPIENTS:-}
+      BACKUP_INTERVAL_MINUTES: ${BACKUP_INTERVAL_MINUTES:-1440}
+      BACKUP_KEEP: ${BACKUP_KEEP:-14}
+    volumes:
+      - storage:/data/storage:ro
+      # A named volume by default; set BACKUP_HOST_DIR (an absolute path owned by uid 1000)
+      # to keep them in a host folder that an off-server sync job reads.
+      - ${BACKUP_HOST_DIR:-backups}:/backups
+    # The postgres base image declares a volume here; tmpfs avoids an unused anonymous volume.
+    tmpfs:
+      - /var/lib/postgresql
+    healthcheck:
+      test: ["CMD", "hedax-backup", "check"]
+      interval: 15m
+      timeout: 10s
+      start_period: 30m
     depends_on:
       postgres:
         condition: service_healthy
@@ -198,5 +241,6 @@ volumes:
   redisdata:
   clamavdb:
   storage:
+  backups:
   caddy_data:
   caddy_config:

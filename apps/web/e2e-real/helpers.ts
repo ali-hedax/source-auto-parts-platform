@@ -9,7 +9,7 @@ export async function reviewShot(page: Page, name: string): Promise<void> {
 }
 
 /** A fresh test mobile number per run and purpose: the OTP resend cooldown (60 s) applies per number. */
-export function testMobile(prefix: '09361' | '09362' | '09363' | '09364' | '09365', stamp: string): string {
+export function testMobile(prefix: '09361' | '09362' | '09363' | '09364' | '09365' | '09366' | '09367', stamp: string): string {
   return `${prefix}${stamp}`;
 }
 
@@ -40,20 +40,34 @@ export async function addTestAddress(page: Page): Promise<void> {
 }
 
 /**
- * From /fa/checkout (signed in, cart filled): a new address, the test shipping
- * method, the terms, then the labelled test gateway's "success" — ends on the
- * verified payment result page.
+ * Pays on the gateway page the browser was sent to. Default: the clearly labelled
+ * simulator (no real money). With E2E_PAYMENT=zarinpal-sandbox the API uses
+ * Zarinpal's official public sandbox and the browser pays on its page.
  */
-export async function checkoutAndPay(page: Page): Promise<void> {
+export async function payOnGateway(page: Page, outcome: 'pay' | 'cancel' = 'pay'): Promise<void> {
+  if (process.env.E2E_PAYMENT === 'zarinpal-sandbox') {
+    await expect(page).toHaveURL(/^https:\/\/sandbox\.zarinpal\.com\/pg\/StartPay\/S[0-9A-Za-z]{35}$/, { timeout: 30_000 });
+    await page.getByRole('button', { name: outcome === 'pay' ? 'پرداخت' : 'انصراف', exact: true }).click();
+    return;
+  }
+  await expect(page.getByText(/TEST PAYMENT SIMULATOR/)).toBeVisible();
+  await page.getByRole('button', { name: outcome === 'pay' ? /پرداخت موفق/ : /^انصراف/ }).click();
+}
+
+/** From /fa/checkout (signed in, cart filled): a new address, the test shipping method, the terms, then «پرداخت» — ends on the gateway. */
+export async function checkoutToGateway(page: Page): Promise<void> {
   await addTestAddress(page);
   await page.getByRole('radio', { name: /ارسال آزمایشی/ }).check();
   await page.getByRole('checkbox', { name: /را خوانده‌ام و می‌پذیرم/ }).check();
   const pay = page.getByRole('button', { name: /^پرداخت/ });
   await expect(pay).toBeEnabled();
   await pay.click();
-  // Clearly labelled test gateway (simulator) — no real money.
-  await expect(page.getByText(/TEST PAYMENT SIMULATOR/)).toBeVisible();
-  await page.getByRole('button', { name: /پرداخت موفق/ }).click();
+}
+
+/** Checkout and the gateway's "success" — ends on the verified payment result page. */
+export async function checkoutAndPay(page: Page): Promise<void> {
+  await checkoutToGateway(page);
+  await payOnGateway(page);
   await expect(page).toHaveURL(/\/fa\/payment\/result\?attempt=/);
   await expect(page.getByText('پرداخت تأیید شد.')).toBeVisible();
 }

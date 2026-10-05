@@ -52,6 +52,8 @@ export default async function setup(project: TestProject): Promise<() => Promise
     // A non-UTC server zone on purpose: the application must not depend on the server's TimeZone.
     postgresFlags: [
       '-c', 'listen_addresses=127.0.0.1', '-c', 'max_connections=200', '-c', 'timezone=Asia/Tehran',
+      // No I/O worker processes: on Windows an orphaned PostgreSQL 18 io_worker can keep the port after stop.
+      '-c', 'io_method=sync',
       // Diagnostics: report lock waits, and turn an endless lock wait into a visible error.
       '-c', 'log_lock_waits=on', '-c', 'deadlock_timeout=2s', '-c', 'lock_timeout=120s',
     ],

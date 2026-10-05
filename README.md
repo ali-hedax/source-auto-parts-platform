@@ -7,7 +7,7 @@
 
 قیمت پایه به ریال (IRR) یا درهم (AED) ثبت می‌شود؛ پرداخت همیشه ریالی است و «تومان» واحد ورود یا نمایش نیست.
 
-> **وضعیت:** نسخهٔ اول برای اجرای محلی با دادهٔ آزمایشی کامل است و آزمون‌های پذیرش را دارد. **آمادهٔ دریافت پول واقعی نیست:** درگاه پرداخت، پیامک، دامنه، میزبان و متن‌های حقوقی هنوز انتخاب یا تأیید نشده‌اند. فهرست کامل در [`docs/LAUNCH_CHECKLIST.md`](docs/LAUNCH_CHECKLIST.md) و وضعیت دقیق در [`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md) است.
+> **وضعیت:** نسخهٔ اول برای اجرای محلی با دادهٔ آزمایشی کامل است و آزمون‌های پذیرش را دارد. **آمادهٔ دریافت پول واقعی نیست:** اتصال درگاه زرین‌پال و پیامک کاوه‌نگار آماده است، ولی حساب پذیرندهٔ درگاه، کلید پیامک، دامنه، میزبان و متن‌های حقوقی هنوز تهیه یا تأیید نشده‌اند. فهرست کامل در [`docs/LAUNCH_CHECKLIST.md`](docs/LAUNCH_CHECKLIST.md) و وضعیت دقیق در [`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md) است.
 
 ## ساختار مخزن
 
@@ -63,6 +63,7 @@ pnpm dev:worker           # با Redis؛ بدون Redis در .env بگذارید
 - **چت زنده در توسعه:** `NEXT_PUBLIC_WS_URL=http://localhost:4000`؛ پشت reverse proxy: `same-origin`؛ مقدار `off` یعنی دریافت دوره‌ای پیام‌ها.
 - **کد OTP در توسعه:** با `SMS_PROVIDER=dev-log` کد در پاسخ API و لاگ توسعه برمی‌گردد؛ در production این حالت رد می‌شود.
 - **پرداخت آزمایشی:** `PAYMENT_PROVIDER=simulator` صفحهٔ «درگاه آزمایشی» با برچسب واضح می‌سازد؛ هیچ پولی جابه‌جا نمی‌شود و در production رد می‌شود.
+- **sandbox زرین‌پال:** `PAYMENT_PROVIDER=zarinpal` با `ZARINPAL_SANDBOX=true` و یک UUID دلخواه در `PAYMENT_MERCHANT_ID`، مشتری را به sandbox رسمی زرین‌پال می‌برد (بدون پول؛ در production رد می‌شود). آزمون مرورگری همین مسیر: `E2E_PAYMENT=zarinpal-sandbox pnpm --filter @hedax/web e2e:real`.
 
 ## فرمان‌ها
 
@@ -93,8 +94,10 @@ Docker Compose با Caddy (HTTPS)، PostgreSQL، Redis، ClamAV، API، worker �
 | کارکنان، نقش‌ها، MFA، audit، Excel ورود/خروج، مرجوعی و استرداد | تکمیل و آزموده |
 | **اتصال‌های آزمایشی** | شبیه‌ساز درگاه پرداخت، پیامک توسعه (`dev-log`)، اسکنر «بدون اسکن» توسعه، صف درون‌فرایندی worker (`QUEUE_DRIVER=inline`) — همه در production رد می‌شوند |
 | **اتصال‌های واقعیِ آزموده** | PostgreSQL 18.4، Socket.IO، ذخیرهٔ فایل محلی، رندر PDF با Edge و با Chromium در Docker، Redis/BullMQ، ClamAV، Docker Compose و Caddy (روی Docker محلی) |
+| **آماده، در انتظار حساب مالک** | درگاه زرین‌پال (آزموده با sandbox رسمی زرین‌پال؛ نیازمند شناسهٔ مرچنت)، پیامک کاوه‌نگار (آزمون واحد و قالب درخواست؛ نیازمند کلید API و قالب تأییدشده) — `docs/DEPLOYMENT.md` بخش ۹ |
+| **آماده، در انتظار سرور** | پشتیبان خودکار رمزگذاری‌شده (`--profile backup`، `docs/BACKUP_RESTORE.md` بخش ۲٫۱) و دریافت امضای ضدویروس از mirror خصوصی (`infra/docker-compose.clamav-mirror.yml`)، هر دو آزموده روی Docker؛ سن امضای ضدویروس در readiness و داشبورد (آزمون واحد) |
 | **نوشته‌شده ولی اجرانشده** | ذخیره‌ساز S3؛ استقرار روی سرور هدف با دامنه و گواهی عمومی |
-| **موکول به بعد** | درگاه و پیامک واقعی (پس از انتخاب مالک)، بیعانه/اقساط، رمزگشایی خودکار VIN، مدل سازگاری خودرو (طرح در `docs/FUTURE_CATALOG.md`) |
+| **موکول به بعد** | بیعانه/اقساط، رمزگشایی خودکار VIN، مدل سازگاری خودرو (طرح در `docs/FUTURE_CATALOG.md`) |
 
 ## مستندات
 

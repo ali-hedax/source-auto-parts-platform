@@ -54,9 +54,32 @@ export class HealthController {
       const rows = await this.prisma.$queryRaw<Array<{ n: number | null }>>`SELECT array_length(show_trgm('فیلتر'), 1) AS n`.catch(() => null);
       searchLocale = rows ? ((rows[0]?.n ?? 0) > 0 ? 'ok' : 'degraded') : 'unknown';
     }
-    const checks = { database, redis: cache, storage, scanner, searchLocale, scannerEngine: this.scanner.name, paymentProvider: this.env.PAYMENT_PROVIDER, smsProvider: this.env.SMS_PROVIDER };
+    // Old signatures still scan, so this is reported for monitoring rather than failing readiness.
+    const signatures = scanner === 'up' ? await this.signatureAge() : null;
+    const checks = {
+      database,
+      redis: cache,
+      storage,
+      scanner,
+      searchLocale,
+      scannerEngine: this.scanner.name,
+      scannerSignatures: this.scanner.name !== 'clamav' ? 'not-applicable' : !signatures ? 'unknown' : signatures.ageHours > this.env.CLAMAV_SIGNATURE_MAX_AGE_HOURS ? 'stale' : 'fresh',
+      scannerSignatureVersion: signatures?.version ?? null,
+      scannerSignatureAgeHours: signatures?.ageHours ?? null,
+      paymentProvider: this.env.PAYMENT_PROVIDER === 'zarinpal' && this.env.ZARINPAL_SANDBOX ? 'zarinpal-sandbox' : this.env.PAYMENT_PROVIDER,
+      smsProvider: this.env.SMS_PROVIDER,
+    };
     const ok = database === 'up' && cache === 'up' && storage === 'up';
     res.status(ok ? 200 : 503);
     return { status: ok ? 'ready' : 'not-ready', checks };
+  }
+
+  private async signatureAge(): Promise<{ version: string; ageHours: number } | null> {
+    try {
+      const info = await Promise.race([this.scanner.signatures(), new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000))]);
+      return info ? { version: info.version, ageHours: Math.max(0, Math.floor((Date.now() - info.builtAt.getTime()) / 3_600_000)) } : null;
+    } catch {
+      return null;
+    }
   }
 }

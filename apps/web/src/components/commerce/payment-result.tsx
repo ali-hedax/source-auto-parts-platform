@@ -3,12 +3,13 @@
 import type { PaymentRedirect, PaymentResultView } from '@hedax/contracts';
 import { CheckCircle2, Clock, ShieldAlert, XCircle } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
-import { useLocale, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { Button, ButtonLink } from '@/components/ui/button';
 import { DateTime, Money } from '@/components/ui/format';
 import { Alert, DefinitionList, Ltr, Spinner } from '@/components/ui/misc';
 import { api, newIdempotencyKey } from '@/lib/api/client';
+import { errorText } from '@/lib/api/errors';
 
 /**
  * Shows only what the server verified. Query parameters from the gateway are
@@ -17,29 +18,35 @@ import { api, newIdempotencyKey } from '@/lib/api/client';
  */
 export function PaymentResultClient() {
   const t = useTranslations();
-  const locale = useLocale();
   const search = useSearchParams();
   const attempt = search.get('attempt');
   const [result, setResult] = useState<PaymentResultView | null>(null);
   const [error, setError] = useState(false);
   const [retrying, setRetrying] = useState(false);
+  const [retryError, setRetryError] = useState<string | null>(null);
   const tries = useRef(0);
 
   useEffect(() => {
     if (!attempt || !/^[0-9a-f-]{36}$/.test(attempt)) return;
     let timer: ReturnType<typeof setTimeout>;
+    // A request still in flight when the page is left must not schedule another one.
+    let stopped = false;
     const poll = async () => {
       try {
         const r = await api<PaymentResultView>(`/payments/attempts/${attempt}`);
+        if (stopped) return;
         setResult(r);
         tries.current += 1;
         if (r.status === 'PENDING_VERIFICATION' && tries.current < 40) timer = setTimeout(poll, Math.min(2000 * tries.current, 15000));
       } catch {
-        setError(true);
+        if (!stopped) setError(true);
       }
     };
     void poll();
-    return () => clearTimeout(timer);
+    return () => {
+      stopped = true;
+      clearTimeout(timer);
+    };
   }, [attempt]);
 
   if (!attempt) return <Alert tone="danger" title={t('payment.missing')} />;
@@ -48,12 +55,15 @@ export function PaymentResultClient() {
 
   const retry = async () => {
     setRetrying(true);
+    setRetryError(null);
     try {
       const path = result.subject.kind === 'STOCK_ORDER' ? `/orders/${result.subject.id}/pay` : `/procurements/${result.subject.id}/pay`;
       const res = await api<PaymentRedirect>(path, { method: 'POST', idempotencyKey: newIdempotencyKey() });
       window.location.assign(res.redirectUrl);
-    } catch {
+    } catch (e) {
+      // e.g. the reservation expired or the gateway is unreachable: say so next to the button.
       setRetrying(false);
+      setRetryError(errorText(t, e));
     }
   };
 
@@ -84,11 +94,11 @@ export function PaymentResultClient() {
           ...(result.providerReference ? [{ term: t('payment.reference'), value: <Ltr>{result.providerReference}</Ltr> }] : []),
         ]}
       />
+      {retryError ? <Alert tone="danger" title={retryError} /> : null}
       <div className="flex flex-wrap gap-2">
         {result.canRetry ? <Button onClick={retry} loading={retrying}>{t('payment.retry')}</Button> : null}
         <ButtonLink href={orderHref} variant={result.canRetry ? 'secondary' : 'primary'}>{t('payment.viewOrder')}</ButtonLink>
       </div>
-      <span className="sr-only">{locale}</span>
     </div>
   );
 }

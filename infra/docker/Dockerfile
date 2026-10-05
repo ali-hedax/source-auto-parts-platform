@@ -5,6 +5,7 @@
 #   worker  outbox/BullMQ jobs + quote PDFs       (no port; Chromium for PDFs)
 #   web     Next.js storefront and admin panel    (port 3000, standalone server)
 #   tools   full toolchain for one-off tasks (migrations, owner bootstrap, seeds)
+#   backup  scheduled pg_dump + uploaded files, encrypted with age (opt-in profile)
 #
 # STATUS: built and run with Docker Desktop on 2026-10-04 (local test stack;
 # see docs/TEST_REPORT.md). Verify with `docker compose -f infra/docker-compose.yml build`.
@@ -122,3 +123,21 @@ USER node
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s CMD node -e "fetch('http://127.0.0.1:3000/fa').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 CMD ["node", "apps/web/server.js"]
+
+# ---------------------------------------------------------------------------
+# backup: the same PostgreSQL major as the database service, so pg_dump always
+# matches the server; age encrypts with the owner's public key. Runs as uid 1000,
+# the owner of the uploaded files (api/worker run as node, uid 1000).
+# ---------------------------------------------------------------------------
+FROM postgres:18-bookworm AS backup
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends age \
+ && rm -rf /var/lib/apt/lists/* \
+ && groupadd --gid 1000 hedaxbackup \
+ && useradd --uid 1000 --gid 1000 --no-create-home --shell /usr/sbin/nologin hedaxbackup \
+ && mkdir -p /backups \
+ && chown hedaxbackup:hedaxbackup /backups
+COPY --chmod=0755 infra/backup/hedax-backup.sh /usr/local/bin/hedax-backup
+USER hedaxbackup
+ENTRYPOINT ["hedax-backup"]
+CMD ["schedule"]

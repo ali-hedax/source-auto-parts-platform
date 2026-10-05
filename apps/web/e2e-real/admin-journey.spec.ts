@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { expect, test, type Browser, type BrowserContext, type Page } from '@playwright/test';
-import { addTestAddress, checkoutAndPay, pngOf, reviewShot, signInCustomer, testMobile, totp } from './helpers';
+import { addTestAddress, checkoutAndPay, payOnGateway, pngOf, reviewShot, signInCustomer, testMobile, totp } from './helpers';
 
 /**
  * Spec §22 "definition of done" through the real UI, API and database: the owner
@@ -173,8 +173,7 @@ test('any-brand request with a photo → quote (with PDFs) → acceptance and te
 
   await customer.getByRole('button', { name: 'پذیرش همین نسخه' }).click();
   await customer.getByRole('button', { name: 'پرداخت پیش‌فاکتور' }).click();
-  await expect(customer.getByText(/TEST PAYMENT SIMULATOR/)).toBeVisible();
-  await customer.getByRole('button', { name: /پرداخت موفق/ }).click();
+  await payOnGateway(customer);
   await expect(customer.getByText('پرداخت تأیید شد.')).toBeVisible();
   await customer.getByRole('link', { name: 'مشاهدهٔ سفارش' }).click();
   await expect(customer).toHaveURL(/\/fa\/account\/procurements\/[0-9a-f-]{36}/);

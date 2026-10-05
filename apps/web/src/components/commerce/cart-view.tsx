@@ -3,7 +3,7 @@
 import type { CartView } from '@hedax/contracts';
 import { Minus, Plus, Trash2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ButtonLink } from '@/components/ui/button';
 import { Money, Price } from '@/components/ui/format';
 import { Alert, EmptyState, Ltr, Spinner } from '@/components/ui/misc';
@@ -16,11 +16,15 @@ export function CartClient() {
   const [cart, setCart] = useState<CartView | null>(null);
   const [failed, setFailed] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
+  const latest = useRef(0);
 
-  const load = () =>
-    api<CartView>(`/cart?currency=${document.cookie.includes('hedax_currency=AED') ? 'AED' : 'IRR'}`)
-      .then((c) => { setCart(c); setFailed(false); })
-      .catch(() => setFailed(true));
+  // Two lines changed in quick succession reload twice; only the newest answer is shown.
+  const load = () => {
+    const seq = ++latest.current;
+    return api<CartView>(`/cart?currency=${document.cookie.includes('hedax_currency=AED') ? 'AED' : 'IRR'}`)
+      .then((c) => { if (seq === latest.current) { setCart(c); setFailed(false); } })
+      .catch(() => { if (seq === latest.current) setFailed(true); });
+  };
   useEffect(() => { void load(); }, []);
 
   const change = async (lineId: string, quantity: number) => {

@@ -41,7 +41,7 @@ export function AdminDashboard() {
                   {d.launchReadiness.map((r) => (
                     <li key={r.key} className="flex items-center justify-between gap-2 rounded bg-surface p-3">
                       <span>{t.has(`ready_${r.key}`) ? t(`ready_${r.key}` as never) : r.key}</span>
-                      <Badge tone={r.status === 'READY' ? 'success' : r.status === 'SIMULATED' ? 'warning' : 'danger'}>{t(`readiness_${r.status}`)}</Badge>
+                      <Badge tone={r.status === 'READY' ? 'success' : r.status === 'SIMULATED' || r.status === 'ATTENTION' ? 'warning' : 'danger'}>{t(`readiness_${r.status}`)}</Badge>
                     </li>
                   ))}
                 </ul>

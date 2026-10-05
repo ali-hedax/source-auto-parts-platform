@@ -597,9 +597,11 @@
     "readiness_READY": "Ready",
     "readiness_MISSING": "Not configured",
     "readiness_SIMULATED": "Test only",
+    "readiness_ATTENTION": "Needs attention",
     "ready_payment_gateway": "Payment gateway",
     "ready_sms": "SMS",
     "ready_malware_scanner": "File scanning",
+    "ready_malware_signatures": "Antivirus signatures up to date",
     "ready_private_storage": "Private storage",
     "ready_domain": "Domain",
     "ready_terms_published": "Published terms of sale",
@@ -863,7 +865,8 @@
     "paymentFailure_PROVIDER_FAILED": "The gateway reported a failure",
     "paymentFailure_CUSTOMER_CANCELLED": "Cancelled by the customer",
     "paymentFailure_PROVIDER_CREATE_FAILED": "The gateway could not start the payment",
-    "paymentFailure_VERIFICATION_MISMATCH": "Gateway verification did not match the amount or merchant"
+    "paymentFailure_VERIFICATION_MISMATCH": "Gateway verification did not match the amount or merchant",
+    "paymentProvider_zarinpal": "Zarinpal"
   },
   "validation": {
     "summaryTitle": "Please fix the following",

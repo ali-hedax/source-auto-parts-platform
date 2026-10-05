@@ -47,6 +47,11 @@ export interface ProviderRefundResult {
   raw: Record<string, unknown>;
 }
 
+/** What HEDAX expects for this attempt; gateways that verify by amount (e.g. Zarinpal) need it. */
+export interface ExpectedAmount {
+  amountIrr: bigint;
+}
+
 export interface PaymentProvider {
   readonly code: string;
   readonly isSimulator: boolean;
@@ -55,9 +60,9 @@ export interface PaymentProvider {
   /** Reads the provider reference from browser/callback parameters. The values are untrusted input. */
   referenceFromCallback(params: Record<string, string>): string | null;
   /** Server-to-server verification; the only way a payment can become SUCCEEDED. */
-  verify(providerReference: string, callbackParams: Record<string, string>): Promise<ProviderVerification>;
+  verify(providerReference: string, callbackParams: Record<string, string>, expected?: ExpectedAmount): Promise<ProviderVerification>;
   /** Status inquiry used by reconciliation when the customer never returned. */
-  inquire(providerReference: string): Promise<ProviderVerification>;
+  inquire(providerReference: string, expected?: ExpectedAmount): Promise<ProviderVerification>;
   refund?(input: RefundRequest): Promise<ProviderRefundResult>;
 }
 

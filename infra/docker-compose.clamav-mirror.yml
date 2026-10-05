@@ -1,0 +1,15 @@
+# Optional: ClamAV signature updates from a private mirror, for networks where the
+# official CDN refuses freshclam (it answers 403 from some regions).
+#
+#   docker compose -f infra/docker-compose.yml -f infra/docker-compose.clamav-mirror.yml --env-file .env up -d clamav
+#
+# CLAMAV_PRIVATE_MIRROR is the mirror's base URL, e.g. an HTTP server in front of a
+# `cvdupdate` folder on a host outside the blocked region. The official image turns
+# FRESHCLAM_CONF_* variables into freshclam.conf settings; PrivateMirror overrides
+# DatabaseMirror and ScriptedUpdates. The signature files are signed by ClamAV and
+# freshclam verifies them, so the mirror only needs to serve them unchanged.
+# Kept out of the main file on purpose: an empty PrivateMirror would break freshclam.
+services:
+  clamav:
+    environment:
+      FRESHCLAM_CONF_PrivateMirror: ${CLAMAV_PRIVATE_MIRROR:?set CLAMAV_PRIVATE_MIRROR to the private mirror URL}

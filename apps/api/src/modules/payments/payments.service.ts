@@ -162,8 +162,8 @@ export class PaymentsService {
     let verification: ProviderVerification;
     try {
       verification = trigger === 'CALLBACK'
-        ? await provider.verify(attempt.providerReference, callbackParams)
-        : await provider.inquire(attempt.providerReference);
+        ? await provider.verify(attempt.providerReference, callbackParams, { amountIrr: attempt.amountIrrMinor })
+        : await provider.inquire(attempt.providerReference, { amountIrr: attempt.amountIrrMinor });
     } catch (e) {
       this.logger.warn(`verification unavailable for ${attempt.reference}: ${e instanceof Error ? e.message : 'unknown'}`);
       await this.markPendingVerification(attempt, 'PROVIDER_UNREACHABLE');

@@ -42,7 +42,7 @@ export function PaymentsPage() {
                   <td className={td}>{a.customer ?? '—'}</td>
                   <td className={td}><Money value={a.amount} />{a.overpayment.amountMinor !== '0' ? <Badge tone="warning" className="ms-1">+<Money value={a.overpayment} /></Badge> : null}</td>
                   <td className={td}><StatusBadge status={a.status} label={t(`status.${a.status}` as never)} />{a.failureCode ? <span className="block text-xs text-steel">{label('paymentFailure', a.failureCode)}</span> : null}</td>
-                  <td className={td}>{a.provider === 'simulator' ? <Badge tone="warning">{l('آزمایشی', 'Simulator')}</Badge> : a.provider}</td>
+                  <td className={td}>{a.provider === 'simulator' ? <Badge tone="warning">{l('آزمایشی', 'Simulator')}</Badge> : label('paymentProvider', a.provider)}</td>
                   <td className={td}><DateTime iso={a.createdAt} /></td>
                   <td className={td}>{['PENDING', 'PENDING_VERIFICATION'].includes(a.status) ? <Button size="sm" variant="secondary" onClick={() => void reconcile(a.id)}>{l('استعلام', 'Inquire')}</Button> : null}</td>
                 </tr>

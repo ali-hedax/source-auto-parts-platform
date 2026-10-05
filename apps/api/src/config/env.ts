@@ -64,13 +64,26 @@ const schema = z
     MALWARE_SCANNER: z.enum(['clamav', 'none-dev']).default('none-dev'),
     CLAMAV_HOST: z.string().default('clamav'),
     CLAMAV_PORT: z.coerce.number().int().default(3310),
+    // Readiness reports the signatures as "stale" beyond this age (freshclam failing, mirror down).
+    CLAMAV_SIGNATURE_MAX_AGE_HOURS: z.coerce.number().int().min(1).max(720).default(48),
 
-    /** "simulator" is development/test only. A live adapter is added once a gateway is chosen. */
-    PAYMENT_PROVIDER: z.enum(['simulator', 'none']).default('simulator'),
+    /**
+     * "simulator" is development/test only. "zarinpal" is the Zarinpal REST v4 gateway
+     * (ZARINPAL_SANDBOX=true uses its public test sandbox, refused in production).
+     * "none" refuses every payment start until a gateway is configured.
+     */
+    PAYMENT_PROVIDER: z.enum(['simulator', 'zarinpal', 'none']).default('simulator'),
     PAYMENT_MERCHANT_ID: z.string().default('SIMULATOR'),
+    ZARINPAL_SANDBOX: bool.default(false),
     PAYMENT_SESSION_MINUTES: z.coerce.number().int().min(5).max(60).default(15),
 
-    SMS_PROVIDER: z.enum(['dev-log', 'none']).default('dev-log'),
+    /** "kavenegar": Kavenegar REST API (OTP via an approved verify/lookup template). */
+    SMS_PROVIDER: z.enum(['dev-log', 'kavenegar', 'none']).default('dev-log'),
+    KAVENEGAR_API_KEY: z.preprocess(emptyAsUnset, z.string().min(10).optional()),
+    /** Name of the approved verify/lookup template whose %token is the sign-in code. */
+    KAVENEGAR_OTP_TEMPLATE: z.preprocess(emptyAsUnset, z.string().regex(/^[A-Za-z0-9_-]{1,100}$/).optional()),
+    /** Dedicated sender line for notification texts; without it only sign-in codes are sent by SMS. */
+    KAVENEGAR_SENDER: z.preprocess(emptyAsUnset, z.string().regex(/^[0-9]{4,20}$/).optional()),
 
     LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug']).default('info'),
     OPENAPI_ENABLED: bool.default(true),
@@ -87,6 +100,16 @@ const schema = z
     guard(prod && !env.COOKIE_SECURE, 'COOKIE_SECURE', 'Secure cookies are required in production');
     guard(prod && !env.PUBLIC_BASE_URL.startsWith('https://'), 'PUBLIC_BASE_URL', 'Production must use https');
     guard(prod && env.OPENAPI_ENABLED, 'OPENAPI_ENABLED', 'Disable the public OpenAPI UI in production (export the spec instead)');
+    guard(prod && env.PAYMENT_PROVIDER === 'zarinpal' && env.ZARINPAL_SANDBOX, 'ZARINPAL_SANDBOX', 'The Zarinpal sandbox is a test gateway and is forbidden in production');
+    guard(
+      env.PAYMENT_PROVIDER === 'zarinpal' && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(env.PAYMENT_MERCHANT_ID),
+      'PAYMENT_MERCHANT_ID',
+      'Zarinpal needs the 36-character merchant ID from its panel',
+    );
+    if (env.SMS_PROVIDER === 'kavenegar') {
+      guard(!env.KAVENEGAR_API_KEY, 'KAVENEGAR_API_KEY', 'KAVENEGAR_API_KEY is required when SMS_PROVIDER=kavenegar');
+      guard(!env.KAVENEGAR_OTP_TEMPLATE, 'KAVENEGAR_OTP_TEMPLATE', 'KAVENEGAR_OTP_TEMPLATE (an approved verify template) is required when SMS_PROVIDER=kavenegar');
+    }
     if (env.STORAGE_DRIVER === 's3') {
       for (const key of ['S3_ENDPOINT', 'S3_REGION', 'S3_PRIVATE_BUCKET', 'S3_PUBLIC_BUCKET', 'S3_ACCESS_KEY_ID', 'S3_SECRET_ACCESS_KEY'] as const) {
         guard(!env[key], key, `${key} is required when STORAGE_DRIVER=s3`);
