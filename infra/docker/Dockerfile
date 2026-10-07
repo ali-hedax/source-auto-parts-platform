@@ -7,7 +7,7 @@
 #   tools   full toolchain for one-off tasks (migrations, owner bootstrap, seeds)
 #   backup  scheduled pg_dump + uploaded files, encrypted with age (opt-in profile)
 #
-# STATUS: built and run with Docker Desktop on 2026-10-04 (local test stack;
+# STATUS: built and run with Docker Desktop on 2026-10-04 and 2026-10-05 (local test stacks;
 # see docs/TEST_REPORT.md). Verify with `docker compose -f infra/docker-compose.yml build`.
 # See docs/DEPLOYMENT.md.
 

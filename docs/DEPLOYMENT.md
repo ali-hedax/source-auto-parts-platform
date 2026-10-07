@@ -14,6 +14,16 @@
 1. Docker Engine و Docker Compose v2؛ ساعت سرور همگام (NTP).
 2. رکورد DNS از نوع A/AAAA برای دامنه به IP سرور؛ پورت‌های ۸۰ و ۴۴۳ باز؛ دیوار آتش برای بقیهٔ پورت‌ها بسته؛ ورود SSH فقط با کلید.
 3. کلون مخزن روی سرور.
+4. **دسترسی شبکهٔ سرور هنگام build** را پیش از روز راه‌اندازی بیازمایید:
+   - ایمیج‌های پایه از Docker Hub گرفته می‌شوند: `node`، `postgres`، `redis`، `clamav` و `caddy`.
+   - بسته‌های npm از registry npm گرفته می‌شوند.
+   - Chromium و فونت‌ها برای worker از مخزن Debian گرفته می‌شوند. این فقط در اولین build است؛ بعد از آن cache می‌شود.
+
+   روی سروری در ایران، Docker Hub ممکن است درخواست را رد کند (۴۰۳ به‌دلیل مقررات صادرات آمریکا) یا دسترسی کند باشد. دو راه هست:
+   - تنظیم `registry-mirrors` در `/etc/docker/daemon.json` به یک mirror معتبر و به‌روز؛
+   - build ایمیج‌ها روی رایانه یا CI دیگر و انتقال آن‌ها (`docker save` و `docker load`، یا registry خصوصی).
+
+   آزمایش ساده: `docker pull postgres:18-bookworm` و `curl -sI https://registry.npmjs.org/`. همین موضوع دربارهٔ امضاهای ClamAV در بخش ۵ آمده است.
 
 ## ۳. پیکربندی
 
@@ -62,9 +72,9 @@ $COMPOSE ps                                                   # همه healthy
 $COMPOSE exec api node -e "fetch('http://127.0.0.1:4000/health/ready').then(r=>r.json()).then(j=>console.log(JSON.stringify(j)))"
 ```
 
-باید `database`، `redis` و `storage` برابر `up`، `searchLocale` برابر `ok` و `scanner` برابر `up` باشد. سپس:
+باید `database`، `redis` و `storage` برابر `up`، `searchLocale` برابر `ok` و `scanner` برابر `up` باشد. `scannerSignatures` روی سرور با mirror یا شبکهٔ آزاد باید `fresh` باشد. سپس:
 
-1. `https://<دامنه>/fa` و `/en` باز شوند و `/parts` به `/fa/parts` هدایت شود.
+1. `https://<دامنه>/fa` و `/en` باز شوند و `/parts` به `/fa/parts` هدایت شود. صفحه‌ها سرآیند `Content-Security-Policy` داشته باشند و کنسول مرورگر در خرید، چت و پنل هیچ پیام «Refused to …» نشان ندهد.
 2. یک محصول با عکس ساخته و منتشر شود و عکس در فروشگاه دیده شود.
 3. بارگذاری یک PDF در گفت‌وگو پس از اسکن «آماده» شود و فایل EICAR آزمایشی «رد» شود.
 4. یک پیش‌فاکتور ارسال شود و PDF فارسی و انگلیسی آن ساخته شود.

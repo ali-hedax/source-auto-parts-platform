@@ -204,6 +204,8 @@ try {
     stdio: 'inherit',
     env: {
       ...process.env, E2E_REAL_BASE_URL: webOrigin, E2E_OWNER_EMAIL: owner.email, E2E_OWNER_PASSWORD: owner.password,
+      // Where this web server keeps its data cache (the public-cache test counts its entries).
+      E2E_FETCH_CACHE_DIR: path.join(webRoot, ...(PERF ? [PERF_DIST, 'cache'] : ['.next', 'dev', 'cache']), 'fetch-cache'),
       ...(PERF ? { E2E_PERF: '1', E2E_PERF_OUT: process.env.E2E_PERF_OUT ?? path.join(logDir, 'perf.json') } : {}),
     },
   });

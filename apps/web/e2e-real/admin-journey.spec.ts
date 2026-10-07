@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
-import { expect, test, type Browser, type BrowserContext, type Page } from '@playwright/test';
-import { addTestAddress, checkoutAndPay, payOnGateway, pngOf, reviewShot, signInCustomer, testMobile, totp } from './helpers';
+import { expect, type Browser, type BrowserContext, type Page } from '@playwright/test';
+import { addTestAddress, checkoutAndPay, payOnGateway, pngOf, reviewShot, signInCustomer, test, testMobile, totp, watchCsp } from './helpers';
 
 /**
  * Spec §22 "definition of done" through the real UI, API and database: the owner
@@ -34,6 +34,7 @@ let productPath = '';
 async function open(browser: Browser, baseURL: string | undefined, state?: State): Promise<Page> {
   // E2E_IGNORE_HTTPS_ERRORS: the Docker stack behind Caddy uses a local test certificate (contexts made here do not inherit the config).
   const context = await browser.newContext({ baseURL, ignoreHTTPSErrors: process.env.E2E_IGNORE_HTTPS_ERRORS === '1', ...(state ? { storageState: state } : {}) });
+  await watchCsp(context);
   return context.newPage();
 }
 
@@ -57,6 +58,11 @@ test('owner signs in with password and enrolls an authenticator (TOTP)', async (
   await page.getByRole('button', { name: 'بعدی' }).click();
   await expect(page).toHaveURL(/\/fa\/admin$/);
   await expect(page.getByRole('link', { name: 'محصولات' }).first()).toBeVisible();
+  if (process.env.E2E_SCANNER === 'clamav') {
+    // Launch readiness: with real ClamAV the dashboard reports the signatures' freshness in words.
+    const signatures = page.getByRole('listitem').filter({ hasText: 'به‌روز بودن امضای ضدویروس' });
+    await expect(signatures.getByText(/^(آماده|نیاز به بررسی)$/)).toBeVisible();
+  }
   ownerState = await page.context().storageState();
 });
 
@@ -359,8 +365,10 @@ const courierName = `پیک آزمایشی ${stamp}`;
 
 test('a workshop asks for business prices and the owner sets a group price; a pending request changes nothing (A26)', async ({ browser, baseURL }) => {
   const customer = await open(browser, baseURL);
-  workshopCodeAt = Date.now();
   await signInCustomer(customer, workshopMobile, '/fa/account/profile');
+  // After the sign-in, so never earlier than the code request itself: the login page can take
+  // seconds to load in `next dev`, and the server counts the minute from the actual request.
+  workshopCodeAt = Date.now();
   await expect(customer).toHaveURL(/\/fa\/account\/profile/);
   await customer.locator('#bz-type').selectOption('WORKSHOP');
   await customer.locator('#bz-name').fill(workshopName);

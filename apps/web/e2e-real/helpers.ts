@@ -1,6 +1,37 @@
 import { createHmac } from 'node:crypto';
 import path from 'node:path';
-import { expect, type Page } from '@playwright/test';
+import { test as base, expect, type BrowserContext, type Page } from '@playwright/test';
+
+const cspViolations: string[] = [];
+
+/**
+ * Records Content-Security-Policy violations in a browser context. Production builds send a
+ * CSP (next.config.ts); `next dev` does not, so in the default isolated run this stays empty.
+ */
+export async function watchCsp(context: BrowserContext): Promise<void> {
+  await context.addInitScript(() => {
+    document.addEventListener('securitypolicyviolation', (e) => {
+      // eslint-disable-next-line no-console -- runs in the page; the console is how the test hears about it
+      console.error(`[csp] ${e.effectiveDirective} blocked ${e.blockedURI || 'inline'} on ${location.pathname}`);
+    });
+  });
+  context.on('console', (msg) => {
+    if (msg.text().startsWith('[csp] ')) cspViolations.push(msg.text());
+  });
+}
+
+/** Every test watches its browser contexts and fails on any CSP violation (contexts from `open()` too). */
+export const test = base.extend<{ cspGuard: void }>({
+  cspGuard: [
+    async ({ context }, use) => {
+      cspViolations.length = 0;
+      await watchCsp(context);
+      await use();
+      expect(cspViolations, 'Content-Security-Policy violations').toEqual([]);
+    },
+    { auto: true },
+  ],
+});
 
 /** Review screenshot of a real-stack screen, saved only when E2E_SCREENSHOTS_DIR is set (e.g. docs/test-artifacts/ui). */
 export async function reviewShot(page: Page, name: string): Promise<void> {

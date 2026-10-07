@@ -1,5 +1,6 @@
-import { expect, test } from '@playwright/test';
-import { addTestAddress, checkoutAndPay, checkoutToGateway, payOnGateway, signInCustomer as signIn, testMobile } from './helpers';
+import { existsSync, readdirSync } from 'node:fs';
+import { expect } from '@playwright/test';
+import { addTestAddress, checkoutAndPay, checkoutToGateway, payOnGateway, signInCustomer as signIn, test, testMobile } from './helpers';
 
 /**
  * End-to-end customer journey through the real web → API → PostgreSQL stack:
@@ -85,6 +86,31 @@ test('a late checkout total never replaces the current address and shipping choi
   // The older answer arrived last; the page still shows the totals for the current choice.
   await expect(pay).toBeEnabled();
   await expect(page.getByText('روش ارسال را انتخاب کنید.')).toHaveCount(0);
+});
+
+test('anonymous visitors share one cached copy of a public page, whatever their IP or cookies', async ({ browser, baseURL }) => {
+  const dir = process.env.E2E_FETCH_CACHE_DIR;
+  test.skip(!dir, 'needs the isolated runner, which knows where the web server keeps its data cache');
+  const entries = () => (existsSync(dir as string) ? readdirSync(dir as string).length : 0);
+  // A query no other test uses, so its results are not cached yet.
+  const url = `/fa/parts?q=${encodeURIComponent(`لنت ${stamp}`)}`;
+  const visit = async (ip: string, cookie: string) => {
+    const context = await browser.newContext({ baseURL, extraHTTPHeaders: { 'x-forwarded-for': ip } });
+    await context.addCookies([{ name: 'hedax_probe', value: cookie, url: baseURL as string }]);
+    const page = await context.newPage();
+    await page.goto(url);
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    await context.close();
+    await new Promise((resolve) => setTimeout(resolve, 1_500)); // entries are written after the response
+  };
+  const before = entries();
+  await visit('10.9.0.21', 'first');
+  const afterFirst = entries();
+  expect(afterFirst, 'the first anonymous visit fills the shared cache').toBeGreaterThan(before);
+  // Before the fix every visitor got a private copy (the visitor's IP and cookies were part of the key).
+  await visit('10.9.0.22', 'second');
+  await visit('10.9.0.23', 'third');
+  expect(entries(), 'later anonymous visitors reuse the same copy').toBe(afterFirst);
 });
 
 test('request a part for a brand outside the catalog and chat about it', async ({ page }) => {

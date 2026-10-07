@@ -28,7 +28,8 @@ const pg = new EmbeddedPostgres({
   // A Unicode-aware LC_CTYPE is required: with the "C" locale pg_trgm extracts no
   // trigrams from Persian text, so fuzzy search and ranking silently degrade.
   initdbFlags: ['--encoding=UTF8', process.platform === 'win32' ? '--locale=en-US' : '--locale=C.UTF-8'],
-  postgresFlags: ['-c', 'listen_addresses=127.0.0.1', '-c', 'max_connections=100'],
+  // io_method=sync: no I/O worker processes; on Windows an orphaned one kept the port after a stop.
+  postgresFlags: ['-c', 'listen_addresses=127.0.0.1', '-c', 'max_connections=100', '-c', 'io_method=sync'],
   onLog: () => undefined,
   onError: (e) => process.stderr.write(`[postgres] ${String(e).slice(0, 300)}\n`),
 });

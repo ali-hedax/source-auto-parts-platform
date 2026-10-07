@@ -123,8 +123,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
           user.kind !== 'STAFF' ? (
             <p className="p-8">{t('noPermission')}</p>
           ) : (
-            <div className="grid lg:grid-cols-[16rem_1fr]">
-              <nav aria-label={t('title')} className="border-e border-line-soft bg-white lg:min-h-[calc(100vh-3.5rem)]">
+            <div className="grid grid-cols-1 lg:grid-cols-[16rem_1fr]">
+              {/* grid-cols-1 + min-w-0: on phones the menu strip scrolls inside itself instead of widening the page. */}
+              <nav aria-label={t('title')} className="min-w-0 border-e border-line-soft bg-white lg:min-h-[calc(100vh-3.5rem)]">
                 <ul className="flex gap-1 overflow-x-auto p-2 lg:flex-col lg:overflow-visible">
                   {groups.map((g) => {
                     const visible = g.items.filter((i) => !i.perm || user.permissions.includes(i.perm));

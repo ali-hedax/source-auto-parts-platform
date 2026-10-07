@@ -23,6 +23,8 @@ Thumbs.db
 .local-pg/
 apps/api/.local-pg/
 .local-dev-credentials
+# Local run without Docker (scripts/local): logs, process ids, generated secret
+.local-run/
 
 # Standalone brand guide, posters and presentations live outside this repository (owner decision, 2026-10-04).
 brand guide hedax/

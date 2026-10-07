@@ -10,11 +10,42 @@ if (dataSource === 'fixtures' && process.env.NODE_ENV === 'production') {
 
 const apiOrigin = (process.env.API_INTERNAL_URL ?? 'http://localhost:4000/api/v1').replace(/\/api\/v1\/?$/, '');
 
+/**
+ * Content-Security-Policy for production builds (`next dev` needs eval for fast refresh).
+ * Next.js puts inline bootstrap scripts in every page; per-request nonces would make every
+ * page dynamic and defeat the public page cache, so scripts are this origin plus inline:
+ * no other origin, no eval, no plugins, no framing, forms only to this site.
+ * Chat uses a WebSocket: its origin comes from PUBLIC_BASE_URL or NEXT_PUBLIC_WS_URL
+ * ("same-origin" in the Docker setup; an absolute URL when the API is on another origin).
+ */
+function contentSecurityPolicy(): string {
+  const connect = new Set<string>(["'self'"]);
+  for (const value of [process.env.PUBLIC_BASE_URL, process.env.NEXT_PUBLIC_WS_URL]) {
+    if (!value || !/^https?:\/\//.test(value)) continue;
+    const url = new URL(value);
+    connect.add(`${url.protocol === 'https:' ? 'wss' : 'ws'}://${url.host}`);
+    connect.add(url.origin); // Socket.IO falls back to HTTP long-polling
+  }
+  return [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob:",
+    "font-src 'self' data:",
+    `connect-src ${[...connect].join(' ')}`,
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+  ].join('; ');
+}
+
 const securityHeaders = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+  ...(process.env.NODE_ENV === 'production' ? [{ key: 'Content-Security-Policy', value: contentSecurityPolicy() }] : []),
 ];
 
 const nextConfig: NextConfig = {

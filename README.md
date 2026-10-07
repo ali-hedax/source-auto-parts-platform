@@ -36,6 +36,20 @@
 
 ## راه‌اندازی محلی (بدون Docker)
 
+**کوتاه‌ترین راه روی ویندوز** (پس از `pnpm install`، ساخت `.env` و `pnpm build`):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\local\start-local.ps1   # PostgreSQL محلی، API، worker و وب
+powershell -ExecutionPolicy Bypass -File scripts\local\stop-local.ps1    # توقف؛ داده‌ها می‌مانند
+```
+
+- فروشگاه: `http://localhost:3000/fa`
+- پنل: `http://localhost:3000/fa/staff/login`، با ایمیل و گذرواژهٔ مالک محلی از `.local-dev-credentials` (بیرون از git)
+
+این حالت توسعه است: پرداخت با شبیه‌ساز آزمایشی، کد ورود روی صفحه، و بدون اسکن فایل. لاگ‌ها در `.local-run\logs` هستند.
+
+مراحل جداگانه:
+
 ```bash
 pnpm install
 cp .env.example .env
@@ -112,6 +126,7 @@ Docker Compose با Caddy (HTTPS)، PostgreSQL، Redis، ClamAV، API، worker �
 - رازها فقط در `.env` یا مدیر رمز سرور؛ `.env` در git نیست و `.env.example` فقط نام متغیرها را دارد.
 - هیچ مدیر یا رمز پیش‌فرضی در seed نیست؛ اولین مالک فقط با فرمان `owner:bootstrap` ساخته می‌شود و TOTP برایش اجباری است.
 - در `APP_ENV=production` شبیه‌ساز پرداخت، پیامک توسعه، «بدون اسکن»، کوکی ناامن، آدرس http و OpenAPI عمومی باعث امتناع از اجرا می‌شوند.
+- صفحه‌های وب در build production سرآیند Content-Security-Policy دارند: اسکریپت فقط از همین سایت، بدون eval، بدون frame و بدون ارسال فرم به جای دیگر (`docs/DECISIONS.md` بخش ۲۰).
 
 
 ## هویت محصول و مخزن

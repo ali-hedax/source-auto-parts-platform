@@ -117,6 +117,19 @@ test.describe('layout, SEO and accessibility', () => {
     });
   }
 
+  // §15: "wide tables scroll inside their container" — in the staff panel too (preview data, signed in as owner).
+  for (const width of [360, 390]) {
+    test(`staff panel: no horizontal page scroll at ${width}px`, async ({ page, baseURL }) => {
+      await page.context().addCookies([{ name: 'hedax_fixture_role', value: 'staff', url: baseURL as string }]);
+      await page.setViewportSize({ width, height: 900 });
+      for (const path of ['/fa/admin', '/fa/admin/products', '/fa/admin/orders', '/fa/admin/sourcing', '/fa/admin/payments', '/en/admin/inventory']) {
+        await page.goto(path);
+        await expect(page.locator('main#main')).toBeVisible();
+        await noHorizontalScroll(page);
+      }
+    });
+  }
+
   // A30 / §15: the browser's text size at 200% (rem-based layout, so the root font size is what changes).
   test('text enlarged to 200%: no horizontal page scroll and the main control of each page stays reachable', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });

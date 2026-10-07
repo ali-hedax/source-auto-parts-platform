@@ -1,4 +1,5 @@
 import 'server-only';
+import { unstable_cache } from 'next/cache';
 import { cookies, headers } from 'next/headers';
 import { SESSION_COOKIE } from '@hedax/contracts/constants';
 import { ApiRequestError } from './errors';
@@ -20,17 +21,21 @@ export async function serverApi<T>(path: string, opts: { publicCache?: number } 
     if (res.status >= 400) throw new ApiRequestError(res.status, res.body as never);
     return res.body as T;
   }
-  const hasSession = jar.has(SESSION_COOKIE);
   const h = await headers();
-  const res = await fetch(`${apiInternalUrl()}${path}`, {
-    headers: {
-      Accept: 'application/json',
-      cookie: jar.toString(),
-      'x-forwarded-for': h.get('x-forwarded-for') ?? '',
-      'x-request-id': h.get('x-request-id') ?? '',
-    },
-    ...(opts.publicCache && !hasSession ? { next: { revalidate: opts.publicCache, tags: [PUBLIC_CACHE_TAG] } } : { cache: 'no-store' as const }),
-  });
+  const visitor = { 'x-forwarded-for': h.get('x-forwarded-for') ?? '', 'x-request-id': h.get('x-request-id') ?? '' };
+  if (opts.publicCache && !jar.has(SESSION_COOKIE)) {
+    // One shared copy per path for all anonymous visitors. Next's fetch cache keys on every
+    // request header, so sending the visitor's cookies and IP gave each visitor a private copy:
+    // it helped no one else and the cache grew with every new visitor. Anonymous public
+    // responses depend only on the path (currency is in the query); the visitor's IP still
+    // goes with a cache miss, for the per-IP search limit and the logs.
+    return unstable_cache(() => getJson<T>(path, visitor), ['hedax-public-api', path], { revalidate: opts.publicCache, tags: [PUBLIC_CACHE_TAG] })();
+  }
+  return getJson<T>(path, { ...visitor, cookie: jar.toString() });
+}
+
+async function getJson<T>(path: string, extraHeaders: Record<string, string>): Promise<T> {
+  const res = await fetch(`${apiInternalUrl()}${path}`, { headers: { Accept: 'application/json', ...extraHeaders }, cache: 'no-store' });
   const text = await res.text();
   const json = text ? (JSON.parse(text) as unknown) : null;
   if (!res.ok) throw new ApiRequestError(res.status, json as never);

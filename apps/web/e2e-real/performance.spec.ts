@@ -1,12 +1,15 @@
 import { writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { expect, test, type Browser } from '@playwright/test';
+import { expect, type Browser, type Page } from '@playwright/test';
+import { test, watchCsp } from './helpers';
 
 /**
- * Lab measurement of LCP and CLS for public pages (spec §15: "report real
+ * Lab measurement of LCP, CLS and INP for public pages (spec §15: "report real
  * results"), on a production build of the web app against the real API. Runs
- * only in the isolated runner's production mode (E2E_PERF=1):
+ * in the isolated runner's production mode (E2E_PERF=1):
  *   pnpm --filter @hedax/web e2e:real -- --perf
+ * or against a running stack, e.g. Docker behind Caddy (development sample data):
+ *   E2E_PERF=1 E2E_REAL_BASE_URL=https://localhost E2E_IGNORE_HTTPS_ERRORS=1 npx playwright test -c playwright.real.config.ts performance.spec.ts
  * Conditions: mobile viewport 390×844, CPU slowed 4×, network ~1.6 Mbps down /
  * 0.75 Mbps up with 150 ms latency (Lighthouse "slow 4G"-like), empty browser
  * cache, one warm-up request per page so server start-up is not measured.
@@ -38,7 +41,8 @@ const results: Array<Measurement & { page: string; path: string; filtersInServer
 let traceCount = 0;
 
 async function measure(browser: Browser, baseURL: string, url: string): Promise<Measurement> {
-  const context = await browser.newContext({ baseURL, viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+  const context = await browser.newContext({ baseURL, viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, ignoreHTTPSErrors: process.env.E2E_IGNORE_HTTPS_ERRORS === '1' });
+  await watchCsp(context);
   await context.addInitScript(() => {
     const w = window as unknown as { __lcp: number; __cls: number; __shifts: Shift[]; __lcpAll: Array<{ ms: number; element: string; size: number }>; __long: number[] };
     w.__lcp = 0;
@@ -144,11 +148,66 @@ for (const [name, url] of PAGES) {
   });
 }
 
+/**
+ * Lab INP (Interaction to Next Paint, target ≤ 200 ms): one real interaction per page on the
+ * hydrated page, same mobile context and CPU 4× (no network throttling: INP ends at the next
+ * paint, not when a request finishes). The Event Timing API gives each interaction's duration
+ * from input to the next paint; with one interaction per load, that duration is the page's INP.
+ */
+const INTERACTIONS: Array<{ name: string; path: string; act: (page: Page) => Promise<void> }> = [
+  { name: 'home: type in search', path: '/fa', act: (page) => page.getByRole('searchbox', { name: 'جست‌وجوی نام قطعه' }).pressSequentially('ف') },
+  { name: 'search: open filters', path: `/fa/parts?q=${encodeURIComponent('فیلتر')}`, act: (page) => page.getByRole('button', { name: /^فیلترها/ }).tap() },
+  { name: 'product: add to cart', path: '/fa/parts/demo-demo-0002', act: (page) => page.getByRole('button', { name: 'افزودن به سبد' }).tap() },
+];
+const inpSummaries: Array<{ interaction: string; path: string; samples: number[]; medianMs: number; events: string[] }> = [];
+
+async function measureInteraction(browser: Browser, baseURL: string, url: string, act: (page: Page) => Promise<void>): Promise<{ ms: number; events: string[] }> {
+  const context = await browser.newContext({ baseURL, viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, ignoreHTTPSErrors: process.env.E2E_IGNORE_HTTPS_ERRORS === '1' });
+  await watchCsp(context);
+  await context.addInitScript(() => {
+    const w = window as unknown as { __events: Array<{ name: string; ms: number; id: number }> };
+    w.__events = [];
+    new PerformanceObserver((list) => {
+      for (const e of list.getEntries() as Array<PerformanceEntry & { interactionId?: number }>) {
+        if (e.interactionId) w.__events.push({ name: e.name, ms: Math.round(e.duration), id: e.interactionId });
+      }
+    }).observe({ type: 'event', durationThreshold: 16, buffered: true } as PerformanceObserverInit);
+  });
+  const page = await context.newPage();
+  const cdp = await context.newCDPSession(page);
+  await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+  await page.goto(url, { waitUntil: 'load' });
+  await page.waitForLoadState('networkidle');
+  await page.waitForTimeout(1_500); // hydration and idle callbacks finished: a visitor's first tap
+  await act(page);
+  await page.waitForTimeout(1_500); // event timing entries are delivered after the next paint
+  const events = await page.evaluate(() => (window as unknown as { __events: Array<{ name: string; ms: number; id: number }> }).__events);
+  await context.close();
+  return { ms: Math.max(0, ...events.map((e) => e.ms)), events: events.map((e) => `${e.name} ${e.ms} ms`) };
+}
+
+for (const { name, path: url, act } of INTERACTIONS) {
+  test(`lab INP: ${name}`, async ({ browser, baseURL, request }) => {
+    test.setTimeout(60_000 + SAMPLES * 30_000);
+    await request.get(url); // warm-up, as for LCP
+    const runs: Array<{ ms: number; events: string[] }> = [];
+    for (let i = 0; i < SAMPLES; i++) runs.push(await measureInteraction(browser, baseURL as string, url, act));
+    const values = runs.map((r) => r.ms);
+    inpSummaries.push({ interaction: name, path: url, samples: values, medianMs: median(values), events: runs.flatMap((r) => r.events) });
+    // Interactions under 16 ms produce no entry at all; a missing button would fail in act().
+    expect(values.length).toBe(SAMPLES);
+  });
+}
+
 test.afterAll(() => {
   const out = process.env.E2E_PERF_OUT;
-  if (out && results.length) {
-    const conditions = 'production build; 390×844 mobile; CPU 4×; 1.6 Mbps/0.75 Mbps, 150 ms; cold browser cache';
-    writeFileSync(out, `${JSON.stringify({ measuredAt: new Date().toISOString(), conditions, summaries, samples: results }, null, 2)}\n`);
+  if (out && (results.length || inpSummaries.length)) {
+    const conditions = 'production build; 390×844 mobile; CPU 4×; LCP/CLS also 1.6 Mbps/0.75 Mbps, 150 ms; cold browser cache';
+    writeFileSync(out, `${JSON.stringify({ measuredAt: new Date().toISOString(), conditions, summaries, inp: inpSummaries, samples: results }, null, 2)}\n`);
+  }
+  for (const s of inpSummaries) {
+    process.stdout.write(`[perf] INP ${s.interaction.padEnd(22)} median of ${s.samples.length}: ${s.medianMs} ms (samples ${s.samples.join(', ')}; target ≤ 200 ms)\n`);
+    process.stdout.write(`[perf]   events: ${s.events.join(', ') || 'none over 16 ms'}\n`);
   }
   for (const s of summaries) {
     process.stdout.write(`[perf] ${s.page.padEnd(8)} median of ${s.samples}: LCP ${s.lcpMs.median} ms (range ${s.lcpMs.min}–${s.lcpMs.max}), FCP ${s.fcpMedianMs} ms, CLS max ${s.clsMax}\n`);
