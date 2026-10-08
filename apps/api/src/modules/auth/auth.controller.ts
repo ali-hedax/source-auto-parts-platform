@@ -1,7 +1,9 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Req, Res } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
-import { acceptInvitationSchema, otpRequestSchema, otpVerifySchema, staffLoginSchema, staffMfaSchema } from '@hedax/contracts';
+import {
+  acceptInvitationSchema, accountEmailSchema, accountNameSchema, accountPasswordSchema, otpRequestSchema, otpVerifySchema, staffLoginSchema, staffMfaSchema,
+} from '@hedax/contracts';
 import { z } from 'zod';
 import { CurrentActor, OptionalActor, Public } from '../../common/auth/decorators.js';
 import { SessionService } from '../../common/auth/session.service.js';
@@ -117,6 +119,38 @@ export class AuthController {
   me(@CurrentActor() actor: Actor, @Res({ passthrough: true }) res: Response) {
     res.setHeader('Cache-Control', 'private, no-store');
     return this.auth.me(actor);
+  }
+
+  /** Staff "my account": the signed-in staff member's own name. */
+  @Patch('me/name')
+  @ApiZodBody(accountNameSchema)
+  updateOwnName(@CurrentActor() actor: Actor, @Body(zod(accountNameSchema)) body: z.infer<typeof accountNameSchema>) {
+    return this.auth.updateOwnName(actor, body.fullName);
+  }
+
+  /** Current password + authenticator code; every session ends, so sign in again with the new e-mail. */
+  @Post('me/email')
+  @HttpCode(200)
+  @ApiZodBody(accountEmailSchema)
+  async changeOwnEmail(@CurrentActor() actor: Actor, @Body(zod(accountEmailSchema)) body: z.infer<typeof accountEmailSchema>, @Res({ passthrough: true }) res: Response) {
+    const result = await this.auth.changeOwnEmail(actor, body);
+    if (result.signedOut) this.signedOut(res);
+    return result;
+  }
+
+  /** Current password + authenticator code + a strong new password; every session ends. */
+  @Post('me/password')
+  @HttpCode(200)
+  @ApiZodBody(accountPasswordSchema)
+  async changeOwnPassword(@CurrentActor() actor: Actor, @Body(zod(accountPasswordSchema)) body: z.infer<typeof accountPasswordSchema>, @Res({ passthrough: true }) res: Response) {
+    const result = await this.auth.changeOwnPassword(actor, body);
+    this.signedOut(res);
+    return result;
+  }
+
+  private signedOut(res: Response): void {
+    this.sessions.clearCookies(res);
+    this.sessions.setCsrfCookie(res, 'anonymous');
   }
 
   @Get('auth/sessions')

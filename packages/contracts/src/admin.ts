@@ -31,15 +31,15 @@ export const staffInviteSchema = z.object({
   email: z.email().max(200),
   fullName: z.string().trim().min(2).max(120),
   roleIds: z.array(idSchema).min(1).max(10),
-  /** A current authenticator code of the acting owner; required when the owner role is granted. */
-  confirmCode: z.string().trim().regex(/^[0-9]{6}$/).optional(),
+  /** A current authenticator code of the acting owner (Persian digits accepted); required when the owner role is granted. */
+  confirmCode: z.string().trim().regex(/^[0-9۰-۹]{6}$/).optional(),
 });
 
 export const staffUpdateSchema = z.object({
   roleIds: z.array(idSchema).min(1).max(10).optional(),
   suspended: z.boolean().optional(),
   reason: optionalText(300),
-  confirmCode: z.string().trim().regex(/^[0-9]{6}$/).optional(),
+  confirmCode: z.string().trim().regex(/^[0-9۰-۹]{6}$/).optional(),
 });
 
 export const shippingMethodSchema = z.object({

@@ -4,7 +4,7 @@ import Image from 'next/image';
 import styles from '@/components/layout/brand.module.css';
 import type { MeView } from '@hedax/contracts';
 import {
-  BarChart3, Boxes, CalendarDays, ClipboardList, CreditCard, FileSpreadsheet, FileText, Gauge, History, Landmark, LogOut, MessageSquare,
+  BarChart3, Boxes, CalendarDays, CircleUser, ClipboardList, CreditCard, FileSpreadsheet, FileText, Gauge, History, Landmark, LogOut, MessageSquare,
   Package, Receipt, RotateCcw, ScrollText, Settings, ShieldCheck, Tags, Truck, Users, UserCog, Wallet,
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
@@ -48,7 +48,13 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const me = useApi<MeView>('/me');
   const groups: Array<{ title: string; items: NavItem[] }> = [
-    { title: '', items: [{ href: '/admin', label: t('dashboard'), icon: Gauge, perm: 'dashboard.view' }] },
+    {
+      title: '',
+      items: [
+        { href: '/admin', label: t('dashboard'), icon: Gauge, perm: 'dashboard.view' },
+        { href: '/admin/account', label: t('myAccount'), icon: CircleUser },
+      ],
+    },
     {
       title: t('products'),
       items: [

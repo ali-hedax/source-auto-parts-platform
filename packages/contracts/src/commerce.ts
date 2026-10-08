@@ -20,6 +20,20 @@ export const staffMfaSchema = z.object({
   // Digits typed on a Persian keyboard arrive as ۰–۹; the API converts them before checking.
   code: z.string().trim().regex(/^[0-9۰-۹]{6}$|^[A-Z0-9۰-۹]{4}-[A-Z0-9۰-۹]{4}$/),
 });
+// Staff "my account": the signed-in staff member changes their own name, e-mail or password.
+// E-mail and password changes need the current password and, when enrolled, an authenticator code.
+const authenticatorCode = z.string().trim().regex(/^[0-9۰-۹]{6}$/);
+export const accountNameSchema = z.object({ fullName: z.string().trim().min(2).max(120) });
+export const accountEmailSchema = z.object({
+  email: z.email().max(200),
+  currentPassword: z.string().min(1).max(256),
+  code: authenticatorCode.optional(),
+});
+export const accountPasswordSchema = z.object({
+  currentPassword: z.string().min(1).max(256),
+  newPassword: z.string().min(1).max(256),
+  code: authenticatorCode.optional(),
+});
 export const acceptInvitationSchema = z.object({
   token: z.string().min(20).max(200),
   fullName: z.string().trim().min(2).max(120),

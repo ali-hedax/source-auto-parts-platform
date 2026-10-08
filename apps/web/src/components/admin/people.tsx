@@ -130,7 +130,7 @@ export function StaffPage() {
             <Input id="inv-confirm" dir="ltr" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={confirmCode} onChange={(e) => setConfirmCode(e.target.value)} />
           </Field>
         ) : null}
-        <Button className="mt-3" onClick={() => void send()} disabled={!invite.email || !invite.fullName || !invite.roleIds.length || (grantsOwner && !/^[0-9]{6}$/.test(confirmCode.trim()))}>{t('admin.invite')}</Button>
+        <Button className="mt-3" onClick={() => void send()} disabled={!invite.email || !invite.fullName || !invite.roleIds.length || (grantsOwner && !/^[0-9۰-۹]{6}$/.test(confirmCode.trim()))}>{t('admin.invite')}</Button>
         {link ? <Alert tone="warning" className="mt-3" title={t('admin.inviteLink')}><p className="break-all"><Ltr>{link}</Ltr></p></Alert> : null}
       </Section>
     </div>

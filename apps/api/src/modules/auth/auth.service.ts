@@ -154,7 +154,65 @@ export class AuthService {
     const user = await this.prisma.user.findUniqueOrThrow({ where: { id: actor.userId }, select: { mfaSecretEnc: true } });
     if (!user.mfaSecretEnc) throw forbidden('MFA_CONFIRMATION_REQUIRED', 'Two-step verification is not set up for this account');
     await this.limits.hit(LIMITS.staffLoginPerEmail, `step-up:${actor.userId}`);
-    if (!(await this.checkTotp(actor.userId, user.mfaSecretEnc, code.trim()))) throw badRequest('MFA_CODE_INVALID', 'The code is not valid');
+    if (!(await this.checkTotp(actor.userId, user.mfaSecretEnc, toAsciiDigits(code.trim())))) throw badRequest('MFA_CODE_INVALID', 'The code is not valid');
+  }
+
+  // ---------------------------------------------------------------------------
+  // Staff: own account (name, e-mail, password)
+  // ---------------------------------------------------------------------------
+
+  async updateOwnName(actor: Actor, fullName: string): Promise<{ fullName: string }> {
+    if (actor.kind !== 'STAFF') throw forbidden();
+    await this.prisma.tx(async (tx) => {
+      const before = await tx.user.findUniqueOrThrow({ where: { id: actor.userId }, select: { fullName: true } });
+      await tx.user.update({ where: { id: actor.userId }, data: { fullName } });
+      await this.audit.record(tx, { action: 'account.name.changed', entityType: 'user', entityId: actor.userId, before: { fullName: before.fullName }, after: { fullName } });
+    });
+    return { fullName };
+  }
+
+  /** Needs the current password and, when enrolled, a fresh authenticator code. Ends every session.
+   *  No mail service is connected yet, so the new address cannot be confirmed by a link. */
+  async changeOwnEmail(actor: Actor, input: { email: string; currentPassword: string; code?: string | undefined }): Promise<{ signedOut: boolean }> {
+    const user = await this.checkOwnPassword(actor, input.currentPassword);
+    const email = input.email.trim().toLowerCase();
+    if (email === user.email) return { signedOut: false };
+    // Checked before the code is used, so a taken address does not burn the code.
+    if (await this.prisma.user.findUnique({ where: { email }, select: { id: true } })) throw conflict('EMAIL_IN_USE');
+    if (user.mfaEnabledAt) await this.confirmStepUp(actor, input.code);
+    await this.prisma.tx(async (tx) => {
+      if (await tx.user.findUnique({ where: { email }, select: { id: true } })) throw conflict('EMAIL_IN_USE');
+      await tx.user.update({ where: { id: user.id }, data: { email } });
+      await this.audit.record(tx, { action: 'account.email.changed', entityType: 'user', entityId: user.id, before: { email: user.email }, after: { email } });
+    });
+    await this.sessions.revokeAllForUser(user.id, 'EMAIL_CHANGED');
+    return { signedOut: true };
+  }
+
+  /** Needs the current password and, when enrolled, a fresh authenticator code. Ends every session. */
+  async changeOwnPassword(actor: Actor, input: { currentPassword: string; newPassword: string; code?: string | undefined }): Promise<{ signedOut: true }> {
+    const user = await this.checkOwnPassword(actor, input.currentPassword);
+    const problems = passwordProblems(input.newPassword, [user.email ?? '', user.fullName ?? ''].filter(Boolean));
+    if (problems.length) throw badRequest('WEAK_PASSWORD', 'Choose a stronger password', { problems });
+    if (user.mfaEnabledAt) await this.confirmStepUp(actor, input.code);
+    const passwordHash = await argon2.hash(input.newPassword, ARGON_OPTIONS);
+    await this.prisma.tx(async (tx) => {
+      await tx.user.update({ where: { id: user.id }, data: { passwordHash } });
+      // Records that the password changed, never the password or its hash.
+      await this.audit.record(tx, { action: 'account.password.changed', entityType: 'user', entityId: user.id });
+    });
+    await this.sessions.revokeAllForUser(user.id, 'PASSWORD_CHANGED');
+    return { signedOut: true };
+  }
+
+  /** Rate-limited check of the signed-in staff member's current password. */
+  private async checkOwnPassword(actor: Actor, currentPassword: string) {
+    if (actor.kind !== 'STAFF') throw forbidden();
+    await this.limits.hit(LIMITS.staffLoginPerEmail, `account:${actor.userId}`);
+    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: actor.userId } });
+    const valid = await argon2.verify(user.passwordHash ?? DUMMY_HASH, currentPassword).catch(() => false);
+    if (!valid) throw badRequest('CURRENT_PASSWORD_INVALID', 'The current password is incorrect');
+    return user;
   }
 
   private async checkTotp(userId: string, secretEnc: string, code: string): Promise<boolean> {

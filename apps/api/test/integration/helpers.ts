@@ -412,7 +412,7 @@ export async function loginOwner(t: TestApp): Promise<Client> {
   return c;
 }
 
-export type Staff = Client & { userId: string; email: string; password: string };
+export type Staff = Client & { userId: string; email: string; password: string; totpSecret?: string };
 
 /** Invites a staff member with the given system role(s) and signs them in (enrolling TOTP when the role requires it). */
 export async function inviteStaff(t: TestApp, owner: Client, roleKeys: string | string[]): Promise<Staff> {
@@ -435,7 +435,7 @@ export async function inviteStaff(t: TestApp, owner: Client, roleKeys: string | 
   if (acc.status !== 200) throw new Error(`accept failed ${acc.status} ${JSON.stringify(acc.body)}`);
   const login = await staff.post<{ status: string }>('/auth/staff/login', { email, password });
   if (login.status !== 200) throw new Error(`staff login failed ${login.status} ${JSON.stringify(login.body)}`);
-  if (login.body.status === 'MFA_ENROLLMENT_REQUIRED') await enrollTotp(staff);
+  if (login.body.status === 'MFA_ENROLLMENT_REQUIRED') staff.totpSecret = await enrollTotp(staff);
   const me = await staff.get<{ id: string }>('/me');
   staff.userId = me.body.id;
   staff.email = email;
