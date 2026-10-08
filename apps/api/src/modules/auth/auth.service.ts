@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import argon2 from 'argon2';
 import { generate as totpGenerate, generateSecret, generateURI, verify as totpVerify } from 'otplib';
 import type { MeView } from '@hedax/contracts';
-import { DomainError, maskPhone, normalizeIranMobile } from '@hedax/domain';
+import { DomainError, maskPhone, normalizeIranMobile, toAsciiDigits } from '@hedax/domain';
 import { OTP_POLICY, generateOtp, hashOtp, passwordProblems, randomToken, sha256Hex, verifyOtpHash } from '@hedax/domain/server';
 import { ENV, type Env } from '../../config/env.js';
 import { AuditService } from '../../common/audit.service.js';
@@ -172,7 +172,8 @@ export class AuthService {
     return true;
   }
 
-  async completeMfaLogin(challengeToken: string, code: string, meta: { ipHash: string | null; userAgent?: string }) {
+  async completeMfaLogin(challengeToken: string, codeInput: string, meta: { ipHash: string | null; userAgent?: string }) {
+    const code = toAsciiDigits(codeInput);
     await this.limits.hit(LIMITS.staffLoginPerIp, meta.ipHash);
     const challenge = await this.prisma.mfaChallenge.findUnique({ where: { tokenHash: sha256Hex(challengeToken) }, include: { user: true } });
     if (!challenge || challenge.purpose !== 'LOGIN' || challenge.consumedAt || challenge.expiresAt <= new Date() || challenge.attempts >= 5) {
@@ -232,7 +233,7 @@ export class AuthService {
     if (challenge.attempts >= 5) throw tooMany('MFA_ATTEMPTS_EXCEEDED');
     await this.prisma.mfaChallenge.update({ where: { id: challenge.id }, data: { attempts: { increment: 1 } } });
     const secret = this.crypto.decrypt(challenge.pendingSecretEnc);
-    const result = await totpVerify({ secret, token: code, epochTolerance: [30, 0] });
+    const result = await totpVerify({ secret, token: toAsciiDigits(code), epochTolerance: [30, 0] });
     if (!result.valid) throw badRequest('MFA_CODE_INVALID', 'The code is not valid');
 
     const recoveryCodes = Array.from({ length: 10 }, () => {

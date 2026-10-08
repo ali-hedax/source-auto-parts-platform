@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { composeSystemText, productListQuerySchema, quoteDraftSchema, sendMessageSchema, sourcingRequestCreateSchema, systemTextFor } from '../src/index.js';
+import { composeSystemText, productListQuerySchema, quoteDraftSchema, sendMessageSchema, sourcingRequestCreateSchema, staffMfaSchema, systemTextFor } from '../src/index.js';
 
 describe('API contracts', () => {
   it('accepts a list-file-only sourcing request for any brand (A03)', () => {
@@ -46,6 +46,14 @@ describe('API contracts', () => {
   it('defaults catalog query and rejects empty messages', () => {
     expect(productListQuerySchema.parse({})).toMatchObject({ sort: 'relevance', page: 1, pageSize: 24 });
     expect(sendMessageSchema.safeParse({ conversationId: '0192f3a0-0000-7000-8000-000000000001', clientMessageId: 'abcdefghijklmnop', body: '  ' }).success).toBe(false);
+  });
+
+  it('accepts a staff authenticator code typed with Persian digits', () => {
+    const challengeId = 'challenge-1234567890';
+    expect(staffMfaSchema.safeParse({ challengeId, code: '۱۲۳۴۵۶' }).success).toBe(true);
+    expect(staffMfaSchema.safeParse({ challengeId, code: '123456' }).success).toBe(true);
+    expect(staffMfaSchema.safeParse({ challengeId, code: 'AB۱۲-CD34' }).success).toBe(true);
+    expect(staffMfaSchema.safeParse({ challengeId, code: '۱۲۳۴۵' }).success).toBe(false);
   });
 
   it('stores system messages in both languages and shows each reader their own', () => {

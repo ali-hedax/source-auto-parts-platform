@@ -12,7 +12,7 @@ import { ApiZodBody, zod } from '../../common/zod.js';
 import { CartService } from '../cart/cart.service.js';
 import { AuthService } from './auth.service.js';
 
-const enrollConfirmSchema = z.object({ challengeId: z.string().min(10).max(200), code: z.string().regex(/^\d{6}$/) });
+const enrollConfirmSchema = z.object({ challengeId: z.string().min(10).max(200), code: z.string().trim().regex(/^[0-9۰-۹]{6}$/) });
 
 @ApiTags('auth')
 @Controller()

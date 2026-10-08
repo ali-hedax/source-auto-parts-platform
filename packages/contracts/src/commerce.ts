@@ -17,7 +17,8 @@ export const staffLoginSchema = z.object({
 });
 export const staffMfaSchema = z.object({
   challengeId: z.string().min(10).max(200),
-  code: z.string().trim().regex(/^\d{6}$|^[A-Z0-9]{4}-[A-Z0-9]{4}$/),
+  // Digits typed on a Persian keyboard arrive as ۰–۹; the API converts them before checking.
+  code: z.string().trim().regex(/^[0-9۰-۹]{6}$|^[A-Z0-9۰-۹]{4}-[A-Z0-9۰-۹]{4}$/),
 });
 export const acceptInvitationSchema = z.object({
   token: z.string().min(20).max(200),
