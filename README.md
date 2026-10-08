@@ -43,8 +43,15 @@ powershell -ExecutionPolicy Bypass -File scripts\local\start-local.ps1   # Postg
 powershell -ExecutionPolicy Bypass -File scripts\local\stop-local.ps1    # توقف؛ داده‌ها می‌مانند
 ```
 
-- فروشگاه: `http://localhost:3000/fa`
-- پنل: `http://localhost:3000/fa/staff/login`، با ایمیل و گذرواژهٔ مالک محلی از `.local-dev-credentials` (بیرون از git)
+- فروشگاه: `http://localhost:3000/fa` (انگلیسی: `http://localhost:3000/en`)
+- ورود پنل: `http://localhost:3000/fa/staff/login`، با ایمیل و گذرواژهٔ مالک محلی از `.local-dev-credentials` (بیرون از git)؛ در اولین ورود ثبت برنامهٔ احراز هویت (TOTP) الزامی است
+- صفحه‌های اصلی پنل پس از ورود:
+  - داشبورد: `http://localhost:3000/fa/admin`
+  - حساب من (تغییر نام، ایمیل و گذرواژه با گذرواژهٔ فعلی و کد احراز هویت): `http://localhost:3000/fa/admin/account`
+  - کارکنان و دعوت: `http://localhost:3000/fa/admin/staff`
+  - نقش‌ها و مجوزها: `http://localhost:3000/fa/admin/roles`
+
+این نشانی‌ها فقط روی رایانه‌ای کار می‌کنند که نسخهٔ محلی روی آن اجراست. نسخهٔ عمومی روی دامنه هنوز منتشر نشده است.
 
 این حالت توسعه است: پرداخت با شبیه‌ساز آزمایشی، کد ورود روی صفحه، و بدون اسکن فایل. لاگ‌ها در `.local-run\logs` هستند.
 
