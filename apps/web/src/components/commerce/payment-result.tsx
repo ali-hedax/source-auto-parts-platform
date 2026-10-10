@@ -7,7 +7,7 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { Button, ButtonLink } from '@/components/ui/button';
 import { DateTime, Money } from '@/components/ui/format';
-import { Alert, DefinitionList, Ltr, Spinner } from '@/components/ui/misc';
+import { Alert, Code, DefinitionList, Spinner } from '@/components/ui/misc';
 import { api, newIdempotencyKey } from '@/lib/api/client';
 import { errorText } from '@/lib/api/errors';
 
@@ -69,10 +69,10 @@ export function PaymentResultClient() {
 
   const orderHref = result.subject.kind === 'STOCK_ORDER' ? `/account/orders/${result.subject.id}` : `/account/procurements/${result.subject.id}`;
   const icon = {
-    SUCCEEDED: <CheckCircle2 aria-hidden className="size-12 text-success" />,
-    FAILED: <XCircle aria-hidden className="size-12 text-danger" />,
-    CANCELLED: <XCircle aria-hidden className="size-12 text-steel" />,
-    PENDING_VERIFICATION: <Clock aria-hidden className="size-12 text-warning" />,
+    SUCCEEDED: <span className="grid size-14 place-items-center rounded-full bg-success-soft"><CheckCircle2 aria-hidden className="size-8 text-success" /></span>,
+    FAILED: <span className="grid size-14 place-items-center rounded-full bg-danger-soft"><XCircle aria-hidden className="size-8 text-danger" /></span>,
+    CANCELLED: <span className="grid size-14 place-items-center rounded-full bg-canvas"><XCircle aria-hidden className="size-8 text-steel" /></span>,
+    PENDING_VERIFICATION: <span className="grid size-14 place-items-center rounded-full bg-warning-soft"><Clock aria-hidden className="size-8 text-warning" /></span>,
   }[result.status];
   const title =
     result.message === 'NEEDS_REVIEW' ? t('payment.needsReview')
@@ -82,20 +82,20 @@ export function PaymentResultClient() {
     : t('payment.checking');
 
   return (
-    <div className="card flex flex-col items-start gap-5 p-6" role="status" aria-live="polite">
-      {result.message === 'NEEDS_REVIEW' ? <ShieldAlert aria-hidden className="size-12 text-warning" /> : icon}
+    <div className="card flex flex-col items-start gap-5 p-6 sm:p-8" role="status" aria-live="polite">
+      {result.message === 'NEEDS_REVIEW' ? <span className="grid size-14 place-items-center rounded-full bg-warning-soft"><ShieldAlert aria-hidden className="size-8 text-warning" /></span> : icon}
       <h2 className="text-xl font-bold">{title}</h2>
       {result.status === 'PENDING_VERIFICATION' ? <p className="text-steel">{t('payment.checkingHint')}</p> : null}
       <DefinitionList
         items={[
-          { term: t('order.reference'), value: <Ltr>{result.subject.reference}</Ltr> },
+          { term: t('order.reference'), value: <Code>{result.subject.reference}</Code> },
           { term: t('payment.amount'), value: <Money value={result.amount} /> },
           ...(result.paidAt ? [{ term: t('payment.paidAt'), value: <DateTime iso={result.paidAt} /> }] : []),
-          ...(result.providerReference ? [{ term: t('payment.reference'), value: <Ltr>{result.providerReference}</Ltr> }] : []),
+          ...(result.providerReference ? [{ term: t('payment.reference'), value: <Code>{result.providerReference}</Code> }] : []),
         ]}
       />
       {retryError ? <Alert tone="danger" title={retryError} /> : null}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex w-full flex-wrap gap-2 border-t border-line-soft pt-5">
         {result.canRetry ? <Button onClick={retry} loading={retrying}>{t('payment.retry')}</Button> : null}
         <ButtonLink href={orderHref} variant={result.canRetry ? 'secondary' : 'primary'}>{t('payment.viewOrder')}</ButtonLink>
       </div>

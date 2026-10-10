@@ -10,7 +10,7 @@ export default async function CartPage({ params }: { params: Promise<{ locale: s
   setRequestLocale(locale);
   const t = await getTranslations();
   return (
-    <div className="container-page py-8">
+    <div className="page-canvas container-page py-8">
       <PageHeader title={t('cart.title')} />
       <CartClient />
     </div>

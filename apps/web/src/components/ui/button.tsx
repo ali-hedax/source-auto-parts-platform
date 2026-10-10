@@ -7,21 +7,22 @@ type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'onDark';
 type Size = 'md' | 'sm' | 'lg';
 
 const base =
-  'inline-flex items-center justify-center gap-2 rounded-[var(--radius-control)] font-semibold transition-colors duration-150 ease-[var(--ease-standard)] disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer select-none whitespace-nowrap';
+  'inline-flex items-center justify-center gap-2 rounded-[var(--radius-control)] font-semibold leading-tight transition-colors duration-150 ease-[var(--ease-standard)] disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer select-none whitespace-nowrap';
 
 const variants: Record<Variant, string> = {
   // action-blue (#2467A9) keeps ≥ 5.8:1 with white text; hover goes darker, never lighter.
   primary: 'bg-action text-white hover:bg-action-hover active:bg-carbon disabled:hover:bg-action',
-  secondary: 'border border-action bg-white text-action hover:bg-action-soft',
-  ghost: 'text-carbon hover:bg-silver/70',
+  // Neutral by design: blue is kept for the one main action on a screen (brand ratio ~15%).
+  secondary: 'border border-line-strong bg-white text-ink hover:border-ink hover:bg-surface active:bg-silver/60',
+  ghost: 'text-ink hover:bg-silver/60 active:bg-silver',
   danger: 'bg-danger text-white hover:bg-[#8f1c13]',
-  onDark: 'border border-silver/60 bg-transparent text-silver hover:bg-white/10',
+  onDark: 'border border-white/25 bg-transparent text-silver hover:border-white/50 hover:bg-white/10',
 };
 
 const sizes: Record<Size, string> = {
   sm: 'min-h-9 px-3 text-sm',
-  md: 'min-h-11 px-4 text-[0.95rem]',
-  lg: 'min-h-12 px-6 text-base',
+  md: 'min-h-11 px-4 text-[0.9375rem]',
+  lg: 'min-h-12 px-5 text-base',
 };
 
 export function buttonClass(variant: Variant = 'primary', size: Size = 'md', extra?: string): string {

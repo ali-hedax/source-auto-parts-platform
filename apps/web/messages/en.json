@@ -40,6 +40,7 @@
     "requestId": "Error reference: {id}",
     "page": "Page {page, number} of {total, number}",
     "results": "{count, plural, =0 {No results} one {# result} other {# results}}",
+    "partCount": "{count, plural, =0 {No published parts} one {# part} other {# parts}}",
     "englishFallback": "English name not provided",
     "sampleBanner": "Preview with SAMPLE data — nothing here is real and no purchase or payment happens.",
     "notConfigured": "Not configured yet",

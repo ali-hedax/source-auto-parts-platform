@@ -11,7 +11,7 @@ import { Async } from '@/components/ui/async';
 import { Dialog } from '@/components/ui/dialog';
 import { Checkbox, Field, Input, Select } from '@/components/ui/field';
 import { DateTime, Num } from '@/components/ui/format';
-import { Alert, Badge, EmptyState, Ltr, PageHeader, Section, TableScroll, td, th } from '@/components/ui/misc';
+import { Alert, Badge, Code, EmptyState, Ltr, PageHeader, Section, TableScroll, td, th } from '@/components/ui/misc';
 import { api, newIdempotencyKey, uploadWithProgress } from '@/lib/api/client';
 import { errorText, isApiError } from '@/lib/api/errors';
 import { typedNumber } from '@/lib/numbers';
@@ -39,7 +39,7 @@ export function InventoryPage() {
             <tbody>
               {data.items.map((r) => (
                 <tr key={r.productId}>
-                  <td className={td}><Ltr>{r.sku}</Ltr></td>
+                  <td className={td}><Code>{r.sku}</Code></td>
                   <td className={td}>{r.nameFa}</td>
                   <td className={td}><Num value={r.onHand} /></td>
                   <td className={td}><Num value={r.reserved} /></td>
@@ -116,7 +116,7 @@ function LedgerDialog({ row, onClose }: { row: InvRow; onClose: () => void }) {
         {(rows) => (
           <ul className="flex flex-col gap-2 text-sm">
             {rows.map((m) => (
-              <li key={m.id} className="rounded bg-surface p-2">
+              <li key={m.id} className="rounded-[var(--radius-control)] border border-line-soft bg-surface p-2">
                 <span className="font-semibold">{label('movement', m.type)}</span> · {label('movementReason', m.reason)}
                 <span className="block text-xs"><Ltr>Δ {m.onHandDelta} / {m.reservedDelta} → {m.onHandAfter} / {m.reservedAfter}</Ltr></span>
                 <span className="block text-xs text-steel"><DateTime iso={m.createdAt} /></span>
@@ -233,8 +233,8 @@ export function ImportsPage() {
     <>
       <PageHeader title={t('admin.imports')} actions={
         <div className="flex flex-wrap gap-2">
-          <a href="/api/v1/admin/imports/template" download className="inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-control)] border border-action px-4 font-semibold text-action hover:bg-action-soft"><Download aria-hidden className="size-4" />{t('admin.template')}</a>
-          <a href="/api/v1/admin/exports/products.xlsx" download className="inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-control)] border border-line px-4 font-semibold hover:bg-surface"><FileSpreadsheet aria-hidden className="size-4" />{t('admin.exportProducts')}</a>
+          <a href="/api/v1/admin/imports/template" download className="inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-control)] border border-line-strong bg-white px-4 text-sm font-semibold text-ink transition-colors hover:border-ink hover:bg-surface"><Download aria-hidden className="size-4" />{t('admin.template')}</a>
+          <a href="/api/v1/admin/exports/products.xlsx" download className="inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-control)] border border-line-strong bg-white px-4 text-sm font-semibold text-ink transition-colors hover:border-ink hover:bg-surface"><FileSpreadsheet aria-hidden className="size-4" />{t('admin.exportProducts')}</a>
         </div>
       } />
       <Section title={t('admin.uploadImport')} id="imp-upload">
@@ -245,8 +245,8 @@ export function ImportsPage() {
               <option value="CREATE_AND_UPDATE">{t('admin.mode_CREATE_AND_UPDATE')}</option>
             </Select>
           </Field>
-          <input id="imp-file" type="file" accept=".xlsx,.csv" className="sr-only" disabled={busy} onChange={(e) => void upload(e.target.files?.[0])} />
-          <label htmlFor="imp-file" className={`inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-[var(--radius-control)] bg-action px-4 font-semibold text-white hover:bg-action-hover ${busy ? 'pointer-events-none opacity-60' : ''}`}>
+          <input id="imp-file" type="file" accept=".xlsx,.csv" className="peer sr-only" disabled={busy} onChange={(e) => void upload(e.target.files?.[0])} />
+          <label htmlFor="imp-file" className={`inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-[var(--radius-control)] bg-action px-4 font-semibold text-white transition-colors hover:bg-action-hover peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-tech ${busy ? 'pointer-events-none opacity-60' : ''}`}>
             <Upload aria-hidden className="size-4" />{t('admin.uploadImport')}
           </label>
         </div>
@@ -298,7 +298,7 @@ export function ImportsPage() {
                 {preview.rows.map((r) => (
                   <tr key={r.rowNumber}>
                     <td className={td}><Num value={r.rowNumber} /></td>
-                    <td className={td}><Ltr>{r.sku ?? '—'}</Ltr></td>
+                    <td className={td}><Code>{r.sku ?? '—'}</Code></td>
                     <td className={td}><Badge tone={r.action === 'ERROR' ? 'danger' : 'info'}>{label('importAction', r.action)}</Badge></td>
                     <td className={td}>
                       {r.issues.map((i, k) => (

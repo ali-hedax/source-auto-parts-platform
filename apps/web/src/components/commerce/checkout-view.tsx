@@ -20,6 +20,7 @@ import { AddressForm, type AddressRow } from '@/components/account/address-form'
 export function CheckoutClient() {
   const t = useTranslations();
   const locale = useLocale() as 'fa' | 'en';
+  const digit = (n: number) => n.toLocaleString(locale === 'fa' ? 'fa-IR' : 'en-US');
   const [addresses, setAddresses] = useState<AddressRow[] | null>(null);
   const [addressId, setAddressId] = useState<string>('');
   const [shippingId, setShippingId] = useState<string>('');
@@ -113,19 +114,19 @@ export function CheckoutClient() {
   const canPay = current && !!grand && accepted && preview.blockers.length === 0;
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_24rem]">
-      <div className="flex flex-col gap-6">
-        <section aria-labelledby="addr-title" className="card p-5">
-          <h2 id="addr-title" className="mb-3 text-lg font-bold">{t('checkout.address')}</h2>
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
+      <div className="flex flex-col gap-4">
+        <section aria-labelledby="addr-title" className="card p-5 sm:p-6">
+          <h2 id="addr-title" className="mb-4 flex items-center gap-3 text-lg font-bold"><span aria-hidden className="num grid size-7 shrink-0 place-items-center rounded-full bg-carbon text-xs font-bold text-white">{digit(1)}</span>{t('checkout.address')}</h2>
           {addresses.length ? (
             <fieldset className="flex flex-col gap-2">
               <legend className="sr-only">{t('checkout.address')}</legend>
               {addresses.map((a) => (
-                <label key={a.id} className={`flex cursor-pointer gap-3 rounded-[var(--radius-control)] border p-3 ${addressId === a.id ? 'border-action bg-action-soft' : 'border-line'}`}>
+                <label key={a.id} className={`flex cursor-pointer gap-3 rounded-[var(--radius-card)] border p-3.5 transition-colors ${addressId === a.id ? 'border-action bg-action-soft ring-1 ring-action' : 'border-line hover:border-line-strong'}`}>
                   <input type="radio" name="address" value={a.id} checked={addressId === a.id} onChange={() => setAddressId(a.id)} className="mt-1 size-5 accent-[var(--color-action)]" />
                   <span>
                     <span className="block font-semibold">{a.recipientName} — {a.province}، {a.city}</span>
-                    <span className="block text-sm text-steel">{a.addressLine}</span>
+                    <span className="block text-sm leading-6 text-steel">{a.addressLine}</span>
                   </span>
                 </label>
               ))}
@@ -140,12 +141,12 @@ export function CheckoutClient() {
           )}
         </section>
 
-        <section aria-labelledby="ship-title" className="card p-5">
-          <h2 id="ship-title" className="mb-3 text-lg font-bold">{t('checkout.shipping')}</h2>
+        <section aria-labelledby="ship-title" className="card p-5 sm:p-6">
+          <h2 id="ship-title" className="mb-4 flex items-center gap-3 text-lg font-bold"><span aria-hidden className="num grid size-7 shrink-0 place-items-center rounded-full bg-carbon text-xs font-bold text-white">{digit(2)}</span>{t('checkout.shipping')}</h2>
           <fieldset className="flex flex-col gap-2">
             <legend className="sr-only">{t('checkout.shipping')}</legend>
             {preview.shippingOptions.map((o) => (
-              <label key={o.id} className={`flex cursor-pointer items-center justify-between gap-3 rounded-[var(--radius-control)] border p-3 ${shippingId === o.id ? 'border-action bg-action-soft' : 'border-line'}`}>
+              <label key={o.id} className={`flex cursor-pointer items-center justify-between gap-3 rounded-[var(--radius-card)] border p-3.5 transition-colors ${shippingId === o.id ? 'border-action bg-action-soft ring-1 ring-action' : 'border-line hover:border-line-strong'}`}>
                 <span className="flex items-center gap-3">
                   <input type="radio" name="shipping" value={o.id} checked={shippingId === o.id} onChange={() => setShippingId(o.id)} className="size-5 accent-[var(--color-action)]" />
                   <span>{locale === 'en' ? (o.name.en ?? o.name.fa) : o.name.fa}</span>
@@ -162,14 +163,14 @@ export function CheckoutClient() {
         </section>
       </div>
 
-      <aside className="card flex h-fit flex-col gap-3 p-5 lg:sticky lg:top-28" aria-labelledby="review-title" aria-busy={!current}>
-        <h2 id="review-title" className="text-lg font-bold">{t('checkout.review')}</h2>
+      <aside className="card flex h-fit flex-col gap-4 p-5 sm:p-6 lg:sticky lg:top-32" aria-labelledby="review-title" aria-busy={!current}>
+        <h2 id="review-title" className="flex items-center gap-3 text-lg font-bold"><span aria-hidden className="num grid size-7 shrink-0 place-items-center rounded-full bg-carbon text-xs font-bold text-white">{digit(3)}</span>{t('checkout.review')}</h2>
         {preview.totals ? (
-          <dl className="flex flex-col gap-2 text-sm">
+          <dl className="flex flex-col gap-2.5 border-y border-line-soft py-4 text-sm">
             <div className="flex justify-between gap-2"><dt>{t('checkout.items')}</dt><dd><Money value={preview.totals.itemsTotal} /></dd></div>
             <div className="flex justify-between gap-2"><dt>{t('checkout.shippingCost')}</dt><dd>{preview.totals.shipping ? <Money value={preview.totals.shipping} /> : t('price.inquiry')}</dd></div>
             <div className="flex justify-between gap-2"><dt>{t('checkout.tax')}</dt><dd>{preview.totals.taxConfigured ? <Money value={preview.totals.tax} /> : <span className="text-steel">{t('checkout.taxNotConfigured')}</span>}</dd></div>
-            <div className="mt-2 flex justify-between gap-2 border-t border-line pt-3 text-base font-bold"><dt>{t('checkout.grandTotal')}</dt><dd><Money value={preview.totals.grandTotal} /></dd></div>
+            <div className="mt-1 flex items-baseline justify-between gap-2 border-t border-line-soft pt-3 font-bold"><dt className="text-base">{t('checkout.grandTotal')}</dt><dd><Money value={preview.totals.grandTotal} className="text-xl" /></dd></div>
             {preview.totals.referenceAed ? <div className="flex justify-between gap-2 text-steel"><dt>{t('checkout.referenceAed')}</dt><dd><Money value={preview.totals.referenceAed} /></dd></div> : null}
           </dl>
         ) : null}
@@ -186,7 +187,7 @@ export function CheckoutClient() {
             label={<>{t('checkout.acceptTerms', { title: preview.policy.title })} <Link href="/terms" target="_blank" className="text-action underline">{t('checkout.readTerms')}</Link></>}
           />
         ) : null}
-        <p className="text-xs text-steel">{t('checkout.reservationNote', { minutes: preview.reservationMinutes })}</p>
+        <p className="text-xs leading-6 text-steel">{t('checkout.reservationNote', { minutes: preview.reservationMinutes })}</p>
         {error ? <Alert tone="danger" title={error} /> : null}
         <Button size="lg" disabled={!canPay} loading={paying} onClick={pay}>
           {paying ? t('checkout.starting') : grand ? t('checkout.pay', { amount: formatMoney(money('IRR', grand.amountMinor), locale) }) : t('checkout.review')}

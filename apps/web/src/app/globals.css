@@ -1,16 +1,19 @@
 @import 'tailwindcss';
 
 /*
- * HEDAX design tokens (design-system/MASTER.md).
+ * Source by HEDAX design tokens (design-system/MASTER.md).
  * Brand: Dark Carbon #1A202C · Tech Blue #3182CE · Metallic Silver #E2E8F0 · Steel Gray #4A5568.
  * Text-on-colour pairs are chosen for WCAG AA (≥4.5:1 for normal text):
  *  - action-blue #2467A9 + white ≈ 5.85:1 (Tech Blue + white is only ≈ 4.03:1 → accents/borders only)
  *  - tech-blue-light #63B3ED on carbon ≈ 7:1 for blue text on dark surfaces
- *  - steel #4A5568 on white ≈ 7.5:1 (secondary text on light surfaces only)
+ *  - steel #4A5568 on white ≈ 7.5:1, on canvas #F2F5F8 ≈ 6.9:1 (secondary text on light surfaces only)
+ *  - line-strong #8492A6 on white ≈ 3:1: the edge of every form control (WCAG 1.4.11)
  */
 @theme {
   --color-carbon: #1a202c;
   --color-carbon-2: #2d3748;
+  /* A raised surface on carbon (hero panel, header search well). */
+  --color-carbon-3: #232a37;
   --color-tech: #3182ce;
   --color-tech-light: #63b3ed;
   --color-action: #2467a9;
@@ -20,8 +23,11 @@
   --color-steel: #4a5568;
   --color-ink: #1a202c;
   --color-surface: #f7fafc;
+  /* Ground for lists and the admin: cards and tables sit on it as white sheets. */
+  --color-canvas: #f2f5f8;
   --color-line: #cbd5e0;
   --color-line-soft: #e2e8f0;
+  --color-line-strong: #8492a6;
   --color-success: #276749;
   --color-success-soft: #e6f4ea;
   --color-warning: #8a4b0f;
@@ -33,9 +39,16 @@
 
   --font-fa: 'Vazirmatn', 'Tahoma', system-ui, sans-serif;
   --font-en: 'Montserrat', 'Vazirmatn', system-ui, sans-serif;
+  /* Part codes, SKUs, references and VINs: the brand's Latin face with tabular figures. */
+  --font-code: 'Montserrat', 'Vazirmatn', system-ui, sans-serif;
 
-  --radius-control: 8px;
-  --radius-card: 12px;
+  /* Corners grow with the size of the thing: controls < cards < panels. */
+  --radius-control: 6px;
+  --radius-card: 8px;
+  --radius-panel: 12px;
+
+  /* The only elevation: things that float above the page (drawers, dialogs). */
+  --shadow-overlay: 0 20px 48px -20px rgb(26 32 44 / 0.45);
 
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
 }
@@ -44,7 +57,7 @@
   html {
     -webkit-text-size-adjust: 100%;
     /* Keeps focused controls clear of the sticky header (WCAG 2.4.11). */
-    scroll-padding-top: 5rem;
+    scroll-padding-top: 8rem;
   }
   html[lang='fa'] body {
     font-family: var(--font-fa);
@@ -60,6 +73,17 @@
     font-size: 1rem;
     text-rendering: optimizeLegibility;
   }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  html[lang='fa'] :is(h1, h2, h3) {
+    line-height: 1.5;
+  }
+  html[lang='en'] :is(h1, h2, h3) {
+    line-height: 1.3;
+  }
   :focus-visible {
     outline: 3px solid var(--color-tech);
     outline-offset: 2px;
@@ -70,6 +94,10 @@
   }
   a {
     color: inherit;
+  }
+  ::selection {
+    background: #cfe3f6;
+    color: var(--color-ink);
   }
   /* Codes, SKUs, VINs, e-mails and tracking numbers render LTR inside RTL text. */
   .ltr {
@@ -108,6 +136,56 @@
     border: 1px solid var(--color-line-soft);
     border-radius: var(--radius-card);
   }
+  /* A part code, SKU or reference, set like the number printed on a parts box label. */
+  .code {
+    font-family: var(--font-code);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+    direction: ltr;
+    unicode-bidi: isolate;
+    /* A code is read as one unit: it never breaks at its hyphens. */
+    white-space: nowrap;
+  }
+  /*
+   * The part label: the panel that identifies one part (product page, order lines).
+   * Its top-end corner carries the angled Tech Blue chip of the Source mark.
+   */
+  .part-label {
+    position: relative;
+    background: #fff;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+    border-start-end-radius: 0;
+  }
+  .part-label::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    inset-inline-end: -1px;
+    width: 1.125rem;
+    height: 1.125rem;
+    background: var(--color-tech);
+    clip-path: polygon(0 0, 100% 0, 100% 100%);
+  }
+  [dir='rtl'] .part-label::before {
+    clip-path: polygon(0 0, 100% 0, 0 100%);
+  }
+  /* Where a part photo is missing: a plain drawing-sheet grid, never a stand-in picture. */
+  .media-placeholder {
+    background-color: var(--color-surface);
+    background-image:
+      linear-gradient(color-mix(in srgb, var(--color-line) 40%, transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in srgb, var(--color-line) 40%, transparent) 1px, transparent 1px);
+    background-size: 1.25rem 1.25rem;
+    background-position: center;
+  }
+  /* A strip that scrolls sideways inside itself (tabs on phones) instead of widening the page. */
+  .scroll-strip {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+  }
   /* Blocks that start below the fold: the browser lays them out only when they come near the
      viewport. Laying out Persian text is the costliest step before the first paint on slow phones
      (measured, spec §15). Only an estimated height is reserved (remembered once rendered); the
@@ -130,12 +208,85 @@
   .skip-link:focus {
     top: 1rem;
   }
+  .prose-hedax {
+    line-height: 1.9;
+  }
   .prose-hedax p {
     margin-block: 0.75rem;
   }
   .prose-hedax h2 {
     font-size: 1.25rem;
     font-weight: 700;
-    margin-block: 1.5rem 0.5rem;
+    margin-block: 2rem 0.5rem;
   }
+  .prose-hedax ul,
+  .prose-hedax ol {
+    padding-inline-start: 1.25rem;
+    list-style: disc;
+  }
+  /* Drawers and dialogs: a short fade/slide that shows where the panel came from. */
+  .overlay-fade[data-state='open'] {
+    animation: overlay-in 160ms var(--ease-standard);
+  }
+  .drawer-start[data-state='open'] {
+    animation: drawer-in-start 200ms var(--ease-standard);
+  }
+  .dialog-pop[data-state='open'] {
+    animation: dialog-in 160ms var(--ease-standard);
+  }
+}
+
+@keyframes overlay-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes drawer-in-start {
+  from {
+    transform: translateX(var(--drawer-from, -100%));
+  }
+}
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+}
+[dir='rtl'] .drawer-start {
+  --drawer-from: 100%;
+}
+
+/* Phones and tablets: a wide table scrolls sideways inside its card while its first column (the code,
+   reference or name that identifies the row) stays pinned at the start edge. */
+@media (width < 64rem) {
+  .data-table > :is(thead, tbody, tfoot) > tr > :first-child {
+    position: sticky;
+    inset-inline-start: 0;
+    z-index: 1;
+    min-width: 8rem;
+    background-color: #fff;
+    border-inline-end: 1px solid var(--color-line-soft);
+  }
+  .data-table > thead > tr > :first-child {
+    background-color: var(--color-surface);
+  }
+  .data-table > tbody > tr:hover > :first-child {
+    background-color: var(--color-surface);
+  }
+}
+
+/* The home page has its own large search: on phones the header does not repeat it. */
+body:has(#hero-search) .header-search-mobile {
+  display: none;
+}
+
+/* Pages that list things (catalog, cart, account) sit on the canvas ground up to the footer. */
+main:has(> .page-canvas) {
+  background-color: var(--color-canvas);
+}
+
+/* The focus ring appears at once in its own colour (utility colour transitions would fade it in
+   from the text colour). Unlayered so it also applies to elements with transition utilities. */
+:focus-visible {
+  transition-duration: 0s;
 }

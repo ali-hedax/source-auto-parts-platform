@@ -12,7 +12,7 @@ import { Async } from '@/components/ui/async';
 import { ErrorSummary } from '@/components/ui/error-summary';
 import { Field, Input, Select, Textarea } from '@/components/ui/field';
 import { DateTime, Money, Num, useListSeparator } from '@/components/ui/format';
-import { Alert, Badge, DefinitionList, EmptyState, Ltr, PageHeader, Section, StatusBadge, TableScroll, td, th } from '@/components/ui/misc';
+import { Alert, Badge, Code, DefinitionList, EmptyState, Ltr, PageHeader, Section, StatusBadge, TableScroll, td, th } from '@/components/ui/misc';
 import { ChatThread } from '@/components/chat/chat-thread';
 import { Link } from '@/i18n/navigation';
 import { api } from '@/lib/api/client';
@@ -43,7 +43,7 @@ export function SourcingList() {
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id}>
-                  <td className={td}><Link href={`/admin/sourcing/${r.id}`} className="font-semibold text-action underline"><Ltr>{r.reference}</Ltr></Link>{r.urgency === 'URGENT' ? <Badge tone="danger" className="ms-1">{t('request.urgency_URGENT')}</Badge> : null}</td>
+                  <td className={td}><Link href={`/admin/sourcing/${r.id}`} className="font-semibold text-action underline underline-offset-4 hover:text-action-hover"><Code>{r.reference}</Code></Link>{r.urgency === 'URGENT' ? <Badge tone="danger" className="ms-1">{t('request.urgency_URGENT')}</Badge> : null}</td>
                   <td className={td}>{r.title}</td>
                   <td className={td}>{r.customer ?? '—'}</td>
                   <td className={td}>{r.assignee ?? '—'}</td>
@@ -87,10 +87,10 @@ export function QuotesList() {
               {rows.map((q) => (
                 <tr key={q.versionId}>
                   <td className={td}>
-                    <Link href={`/admin/quotes/${q.versionId}`} className="font-semibold text-action underline"><Ltr>{q.reference}</Ltr> — {t('quote.version', { n: q.versionNumber })}</Link>
+                    <Link href={`/admin/quotes/${q.versionId}`} className="font-semibold text-action underline underline-offset-4 hover:text-action-hover"><Code>{q.reference}</Code> — {t('quote.version', { n: q.versionNumber })}</Link>
                     {q.isCurrent ? null : <Badge className="ms-1">{l('نسخهٔ قدیمی', 'Older version')}</Badge>}
                   </td>
-                  <td className={td}><Link href={`/admin/sourcing/${q.request.id}`} className="text-action underline"><Ltr>{q.request.reference}</Ltr></Link></td>
+                  <td className={td}><Link href={`/admin/sourcing/${q.request.id}`} className="text-action underline"><Code>{q.request.reference}</Code></Link></td>
                   <td className={td}>{q.customer ?? '—'}</td>
                   <td className={td}><StatusBadge status={q.status} label={t(`status.${q.status}` as never)} /></td>
                   <td className={td}><Money value={q.totalPayableIrr} /></td>
@@ -124,7 +124,7 @@ export function SourcingWorkbench() {
     <Async state={state}>
       {(r) => (
         <div className="flex flex-col gap-6">
-          <PageHeader title={r.title} description={<Ltr>{r.reference}</Ltr>} actions={<StatusBadge status={r.status} label={t(`status.${r.status}` as never)} />} />
+          <PageHeader title={r.title} description={<Code>{r.reference}</Code>} actions={<StatusBadge status={r.status} label={t(`status.${r.status}` as never)} />} />
           {error ? <Alert tone="danger" title={error} /> : null}
           <div className="grid gap-6 xl:grid-cols-2">
             <Section title={t('common.details')} id="wb-details">
@@ -173,8 +173,8 @@ export function SourcingWorkbench() {
             <Section title={t('admin.quotes')} id="wb-quotes">
               <ul className="flex flex-col gap-2">
                 {r.quotes.map((q) => (
-                  <li key={q.versionId} className="flex flex-wrap items-center justify-between gap-2 rounded bg-surface p-3">
-                    <Link href={`/admin/quotes/${q.versionId}`} className="font-semibold text-action underline">{t('quote.version', { n: q.versionNumber })}</Link>
+                  <li key={q.versionId} className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-control)] border border-line-soft bg-surface px-3 py-2.5">
+                    <Link href={`/admin/quotes/${q.versionId}`} className="font-semibold text-action underline underline-offset-4 hover:text-action-hover">{t('quote.version', { n: q.versionNumber })}</Link>
                     <StatusBadge status={q.status} label={t(`status.${q.status}` as never)} />
                     <Money value={q.totalPayable} />
                   </li>
@@ -183,9 +183,12 @@ export function SourcingWorkbench() {
             </Section>
           ) : null}
           <QuoteEditor request={r} onSaved={() => void state.reload()} />
-          <div className="grid gap-6 xl:grid-cols-[2fr_1fr]">
-            <ChatThread conversationId={r.conversationId} staff />
-            <InternalNotes conversationId={r.conversationId} />
+          {/* Side by side only when this block itself is wide enough (container query: holds at large text sizes too). */}
+          <div className="@container">
+            <div className="grid gap-6 @4xl:grid-cols-[2fr_1fr]">
+              <ChatThread conversationId={r.conversationId} staff />
+              <InternalNotes conversationId={r.conversationId} />
+            </div>
           </div>
           <p className="sr-only">{l('میز کار درخواست', 'Request workbench')}</p>
         </div>
@@ -210,7 +213,7 @@ function InternalNotes({ conversationId }: { conversationId: string }) {
       <Async state={state}>
         {(rows) => (
           <ul className="mb-3 flex flex-col gap-2 text-sm">
-            {rows.map((n) => <li key={n.id} className="rounded border border-warning/30 bg-warning-soft p-2"><p className="whitespace-pre-wrap">{n.body}</p><p className="text-xs text-steel">{n.author}{sep}<DateTime iso={n.createdAt} /></p></li>)}
+            {rows.map((n) => <li key={n.id} className="rounded-[var(--radius-control)] border border-warning/30 bg-warning-soft p-2"><p className="whitespace-pre-wrap">{n.body}</p><p className="text-xs text-steel">{n.author}{sep}<DateTime iso={n.createdAt} /></p></li>)}
           </ul>
         )}
       </Async>
@@ -311,7 +314,7 @@ function QuoteEditor({ request, onSaved }: { request: StaffRequest; onSaved: () 
                 </Select>
               </Field>
               <div className="flex flex-wrap items-end gap-1">
-                {LEAD_PRESETS.map((p) => <button key={p.label[1]} type="button" className="min-h-9 cursor-pointer rounded border border-line px-2 text-xs hover:bg-surface" onClick={() => setItem(i, { leadMin: String(p.min), leadMax: String(p.max), leadUnit: p.unit, leadDayKind: 'CALENDAR' })}>{l(p.label[0], p.label[1])}</button>)}
+                {LEAD_PRESETS.map((p) => <button key={p.label[1]} type="button" className="min-h-9 cursor-pointer rounded-[var(--radius-control)] border border-line-strong bg-white px-2 text-xs hover:bg-surface" onClick={() => setItem(i, { leadMin: String(p.min), leadMax: String(p.max), leadUnit: p.unit, leadDayKind: 'CALENDAR' })}>{l(p.label[0], p.label[1])}</button>)}
               </div>
               <Field id={`qe-${i}-alt`} label={t('quote.alternative')} optionalLabel={t('common.optional')} className="md:col-span-4"><Input id={`qe-${i}-alt`} value={it.alternativeNote} onChange={(e) => setItem(i, { alternativeNote: e.target.value })} /></Field>
             </div>

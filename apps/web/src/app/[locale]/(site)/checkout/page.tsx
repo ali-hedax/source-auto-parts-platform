@@ -10,7 +10,7 @@ export default async function CheckoutPage({ params }: { params: Promise<{ local
   setRequestLocale(locale);
   const t = await getTranslations();
   return (
-    <div className="container-page py-8">
+    <div className="page-canvas container-page py-8">
       <PageHeader title={t('checkout.title')} />
       <CheckoutClient />
     </div>

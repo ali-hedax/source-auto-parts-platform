@@ -42,26 +42,33 @@ export function CatalogFilters({ categories, brands, current, showOrigin = true 
   }, [current.q]);
 
   const name = (n: { fa: string; en: string | null }) => (locale === 'en' ? (n.en ?? n.fa) : n.fa);
+  const clear = 'inline-flex min-h-11 cursor-pointer items-center rounded-[var(--radius-control)] px-2 text-sm font-semibold text-action hover:underline';
 
   return (
-    <section aria-labelledby="filters-title" className="card p-4" aria-busy={pending}>
-      <h2 id="filters-title" className="mb-4 hidden items-center gap-2 font-bold lg:flex">
-        <SlidersHorizontal aria-hidden className="size-5" />
-        {t('parts.filters')}
-      </h2>
+    <section aria-labelledby="filters-title" className="rounded-[var(--radius-card)] border border-line-soft bg-white" aria-busy={pending}>
+      <div className="hidden items-center justify-between gap-2 border-b border-line-soft px-4 py-2 lg:flex">
+        <h2 id="filters-title" className="flex items-center gap-2 font-bold">
+          <SlidersHorizontal aria-hidden className="size-5 text-steel" />
+          {t('parts.filters')}
+          {active ? <span className="grid h-5 min-w-5 place-items-center rounded-full bg-action px-1.5 text-xs font-bold text-white"><Num value={active} /></span> : null}
+        </h2>
+        <button type="button" className={clear} onClick={() => start(() => router.replace(pathname, { scroll: false }))}>
+          {t('parts.clearFilters')}
+        </button>
+      </div>
       <button
         type="button"
-        className="flex min-h-11 w-full cursor-pointer items-center gap-2 font-bold lg:hidden"
+        className="flex min-h-12 w-full cursor-pointer items-center gap-2 px-4 font-bold lg:hidden"
         aria-expanded={open}
         aria-controls="filters-body"
         onClick={() => setOpen((o) => !o)}
       >
         <SlidersHorizontal aria-hidden className="size-5" />
         {t('parts.filters')}
-        {active ? <span className="rounded-full bg-action px-2 text-xs text-white"><Num value={active} /></span> : null}
-        <ChevronDown aria-hidden className={`ms-auto size-5 transition-transform ${open ? 'rotate-180' : ''}`} />
+        {active ? <span className="grid h-5 min-w-5 place-items-center rounded-full bg-action px-1.5 text-xs font-bold text-white"><Num value={active} /></span> : null}
+        <ChevronDown aria-hidden className={`ms-auto size-5 text-steel transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
-      <div id="filters-body" className={`${open ? 'mt-4 flex' : 'hidden'} flex-col gap-4 lg:mt-0 lg:flex`}>
+      <div id="filters-body" className={`${open ? 'flex' : 'hidden'} flex-col gap-4 border-t border-line-soft p-4 lg:flex lg:border-t-0`}>
         <Field id="filter-q" label={t('search.label')} hint={t('search.hint')}>
           <Input
             id="filter-q"
@@ -125,7 +132,7 @@ export function CatalogFilters({ categories, brands, current, showOrigin = true 
         </Field>
         <button
           type="button"
-          className="min-h-11 cursor-pointer rounded border border-line text-sm font-semibold hover:bg-surface"
+          className="min-h-11 cursor-pointer rounded-[var(--radius-control)] border border-line-strong text-sm font-semibold transition-colors hover:border-ink hover:bg-surface lg:hidden"
           onClick={() => start(() => router.replace(pathname, { scroll: false }))}
         >
           {t('parts.clearFilters')}
