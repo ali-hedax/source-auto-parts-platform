@@ -20,14 +20,14 @@ export function ErrorSummary({ title, errors, generalError }: { title: string; e
   }, [signature, errors.length, generalError]);
   if (!errors.length && !generalError) return null;
   return (
-    <div ref={ref} tabIndex={-1} role="alert" aria-labelledby="error-summary-title" className="rounded-[var(--radius-card)] border-2 border-danger bg-danger-soft p-4">
+    <div ref={ref} tabIndex={-1} role="alert" aria-labelledby="error-summary-title" className="rounded-[var(--radius-card)] border border-danger/40 border-s-4 border-s-danger bg-danger-soft px-4 py-3.5 focus-visible:outline-offset-4">
       <h2 id="error-summary-title" className="flex items-center gap-2 font-bold text-danger">
         <AlertCircle aria-hidden className="size-5" />
         {title}
       </h2>
-      {generalError ? <p className="mt-2 text-ink">{generalError}</p> : null}
+      {generalError ? <p className="mt-1 leading-7 text-ink">{generalError}</p> : null}
       {errors.length ? (
-        <ul className="mt-2 list-disc space-y-1 ps-6">
+        <ul className="mt-2 list-disc space-y-1 ps-6 leading-7">
           {errors.map((e) => (
             <li key={e.fieldId}>
               <a

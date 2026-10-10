@@ -40,6 +40,7 @@
     "requestId": "کد پیگیری خطا: {id}",
     "page": "صفحهٔ {page, number} از {total, number}",
     "results": "{count, plural, =0 {نتیجه‌ای نیست} other {# نتیجه}}",
+    "partCount": "{count, plural, =0 {بدون قطعهٔ منتشرشده} other {# قطعه}}",
     "englishFallback": "نام انگلیسی ثبت نشده است",
     "sampleBanner": "پیش‌نمایش با دادهٔ آزمایشی — این اطلاعات واقعی نیست و خرید یا پرداختی انجام نمی‌شود.",
     "notConfigured": "هنوز تنظیم نشده است",

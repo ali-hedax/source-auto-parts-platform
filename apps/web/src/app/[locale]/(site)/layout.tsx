@@ -9,7 +9,7 @@ export default async function SiteLayout({ children, params }: { children: React
   return (
     <>
       <SiteHeader />
-      <main id="main" tabIndex={-1} className="focus:outline-none">
+      <main id="main" tabIndex={-1} className="pb-16 focus:outline-none">
         {children}
       </main>
       <SiteFooter />
