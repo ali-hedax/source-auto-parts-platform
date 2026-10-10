@@ -50,7 +50,7 @@ export function FxPage() {
       <Section title={t('admin.rateHistory')} id="fx-history">
         <Async state={state}>
           {(rows) => rows.length ? (
-            <ul className="flex flex-col gap-2">{rows.map((r) => <li key={r.id} className="flex flex-wrap justify-between gap-2 rounded bg-surface p-3"><span className="font-semibold">{formatDecimalString(r.irrPerAed, locale)} {l('ریال به‌ازای هر درهم', 'IRR per AED')}</span><span><DateTime iso={r.effectiveFrom} /></span><span className="text-sm text-steel">{r.createdBy} {r.note ? `— ${r.note}` : ''}</span></li>)}</ul>
+            <ul className="flex flex-col gap-2">{rows.map((r) => <li key={r.id} className="flex flex-wrap justify-between gap-2 rounded-[var(--radius-control)] border border-line-soft bg-surface px-3 py-2.5"><span className="font-semibold">{formatDecimalString(r.irrPerAed, locale)} {l('ریال به‌ازای هر درهم', 'IRR per AED')}</span><span><DateTime iso={r.effectiveFrom} /></span><span className="text-sm text-steel">{r.createdBy} {r.note ? `— ${r.note}` : ''}</span></li>)}</ul>
           ) : <EmptyState title={t('common.results', { count: 0 })} />}
         </Async>
       </Section>
