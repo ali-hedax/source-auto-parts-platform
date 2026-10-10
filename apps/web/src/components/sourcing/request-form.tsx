@@ -1,7 +1,7 @@
 'use client';
 
 import type { MeView, SourcingRequestView, VehicleBrandView } from '@hedax/contracts';
-import { CheckCircle2, Plus, Trash2 } from 'lucide-react';
+import { CheckCircle2, ChevronDown, Info, Package, Plus, Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -171,10 +171,10 @@ export function RequestForm({ brands }: { brands: VehicleBrandView[] }) {
 
   if (done) {
     return (
-      <div className="card flex flex-col items-start gap-4 p-6" role="status">
-        <CheckCircle2 aria-hidden className="size-10 text-success" />
+      <div className="card flex flex-col items-start gap-4 border-success/40 p-6 sm:p-8" role="status">
+        <span className="grid size-12 place-items-center rounded-full bg-success-soft text-success"><CheckCircle2 aria-hidden className="size-7" /></span>
         <h2 className="text-xl font-bold">{t('request.success', { reference: done.reference })}</h2>
-        <p className="text-steel">{t('request.successHint')}</p>
+        <p className="max-w-prose leading-7 text-steel">{t('request.successHint')}</p>
         <ButtonLink href={`/account/requests/${done.id}`}>{t('request.viewRequest')}</ButtonLink>
       </div>
     );
@@ -188,23 +188,23 @@ export function RequestForm({ brands }: { brands: VehicleBrandView[] }) {
       <ErrorSummary title={t('validation.summaryTitle')} errors={summary} generalError={generalError} />
       {me === null ? (
         <Alert tone="info" title={t('request.loginRequired')}>
-          <a href={loginHref} className="font-semibold text-action underline">{t('nav.login')}</a>
+          <a href={loginHref} className="font-semibold text-action underline underline-offset-4 hover:text-action-hover">{t('nav.login')}</a>
         </Alert>
       ) : null}
 
-      <div className="card flex flex-col gap-4 p-5">
+      <div className="card flex flex-col gap-4 p-5 sm:p-6">
         <Field id="req-title" label={t('request.requestTitle')} hint={t('request.requestTitleHint')} error={errors['req-title']} required>
           <Input id="req-title" value={draft.title} maxLength={200} invalid={!!errors['req-title']} aria-describedby="req-title-hint" onChange={(e) => set('title', e.target.value)} />
         </Field>
-        <p className="text-sm text-steel">{t('request.filesOnly')}</p>
+        <p className="flex gap-2 border-t border-line-soft pt-3 text-sm leading-6 text-steel"><Info aria-hidden className="mt-0.5 size-4 shrink-0" />{t('request.filesOnly')}</p>
       </div>
 
       <fieldset className="flex flex-col gap-4">
-        <legend className="mb-2 text-lg font-bold">{t('request.items')}</legend>
+        <legend className="mb-3 text-lg font-bold">{t('request.items')}</legend>
         {draft.items.map((it, i) => (
-          <div key={i} className="card flex flex-col gap-4 p-5">
-            <div className="flex items-center justify-between">
-              <h3 className="font-bold">{t('request.item', { n: i + 1 })}</h3>
+          <div key={i} className="card flex flex-col gap-4 p-5 sm:p-6">
+            <div className="-mt-1 flex min-h-11 items-center justify-between gap-3 border-b border-line-soft pb-3">
+              <h3 className="flex items-center gap-2 font-bold"><Package aria-hidden className="size-4 text-steel" />{t('request.item', { n: i + 1 })}</h3>
               {draft.items.length > 1 ? (
                 <Button variant="ghost" size="sm" onClick={() => set('items', draft.items.filter((_, j) => j !== i))} icon={<Trash2 aria-hidden className="size-4" />}>
                   {t('request.removeItem', { n: i + 1 })}
@@ -246,9 +246,9 @@ export function RequestForm({ brands }: { brands: VehicleBrandView[] }) {
                 </Select>
               </Field>
             </div>
-            <details>
-              <summary className="min-h-10 cursor-pointer text-sm font-semibold text-action">{t('request.partCode')} / {t('request.vin')} ({t('common.optional')})</summary>
-              <div className="mt-3 grid gap-4 md:grid-cols-2">
+            <details className="group rounded-[var(--radius-control)] border border-dashed border-line px-3">
+              <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-sm font-semibold text-action [&::-webkit-details-marker]:hidden"><ChevronDown aria-hidden className="size-4 transition-transform duration-200 group-open:rotate-180" />{t('request.partCode')} / {t('request.vin')} ({t('common.optional')})</summary>
+              <div className="grid gap-4 pb-4 pt-1 md:grid-cols-2">
                 <Field id={`item-${i}-code`} label={t('request.partCode')} optionalLabel={t('common.optional')}>
                   <Input id={`item-${i}-code`} dir="ltr" value={it.partCode} maxLength={64} onChange={(e) => setItem(i, { partCode: e.target.value })} />
                 </Field>
@@ -269,7 +269,7 @@ export function RequestForm({ brands }: { brands: VehicleBrandView[] }) {
         </div>
       </fieldset>
 
-      <div className="card flex flex-col gap-4 p-5">
+      <div className="card flex flex-col gap-4 p-5 sm:p-6">
         <FileUploader purpose="SOURCING_REQUEST" onChange={onFiles} id="req-files" label={t('request.files')} disabled={me === null} />
         <Field id="req-note" label={t('request.overallNote')} optionalLabel={t('common.optional')}>
           <Textarea id="req-note" value={draft.note} maxLength={3000} onChange={(e) => set('note', e.target.value)} />
@@ -291,8 +291,8 @@ export function RequestForm({ brands }: { brands: VehicleBrandView[] }) {
         <p className="text-xs text-steel">{t('request.delivery')}</p>
       </div>
 
-      <div className="flex flex-wrap items-center gap-4">
-        <Button type="submit" size="lg" loading={submitting} disabled={filesBusy || me === null}>
+      <div className="flex flex-wrap items-center gap-4 border-t border-line pt-6">
+        <Button type="submit" size="lg" className="min-w-48" loading={submitting} disabled={filesBusy || me === null}>
           {submitting ? t('request.submitting') : t('request.submit')}
         </Button>
         {savedNote ? <span className="text-sm text-steel" role="status">{t('request.draftSaved')}</span> : null}

@@ -46,13 +46,13 @@ export async function CatalogPage({
   const page = Number(params.page ?? 1) || 1;
   const query = params.q?.trim();
   return (
-    <div className="container-page py-8">
+    <div className="page-canvas container-page py-8">
       <PageHeader title={title} description={intro} />
-      <div className="grid gap-6 lg:grid-cols-[18rem_1fr]">
-        <aside>
+      <div className="grid gap-4 lg:grid-cols-[17rem_minmax(0,1fr)] lg:gap-6">
+        <aside className="lg:sticky lg:top-32 lg:max-h-[calc(100vh-9rem)] lg:self-start lg:overflow-y-auto">
           <CatalogFilters categories={categories} brands={brands} current={current} showOrigin={endpoint === '/catalog/products'} />
         </aside>
-        <div>
+        <div className="min-w-0">
           {!result ? (
             <Alert tone="warning" title={t('common.unavailable')} />
           ) : result.items.length === 0 ? (
@@ -70,10 +70,10 @@ export async function CatalogPage({
             )
           ) : (
             <>
-              <p className="mb-3 text-sm text-steel" aria-live="polite">
+              <p className="mb-3 text-sm font-medium text-steel" aria-live="polite">
                 {t('common.results', { count: result.total })}
               </p>
-              <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
                 {result.items.map((p, i) => (
                   <li key={p.id}><PartCard product={p} priority={i < 3} /></li>
                 ))}
@@ -82,9 +82,9 @@ export async function CatalogPage({
             </>
           )}
           {query && result && result.items.length > 0 ? (
-            <p className="mt-8 text-center text-sm text-steel">
+            <p className="mt-8 rounded-[var(--radius-card)] border border-line-soft bg-white px-4 py-3 text-center text-sm leading-7 text-steel">
               {t('search.noResultsHint')}{' '}
-              <a className="font-semibold text-action underline" href={`/${locale}/request-part?part=${encodeURIComponent(query)}`}>{t('search.requestThis')}</a>
+              <a className="font-semibold text-action underline underline-offset-4 hover:text-action-hover" href={`/${locale}/request-part?part=${encodeURIComponent(query)}`}>{t('search.requestThis')}</a>
             </p>
           ) : null}
         </div>

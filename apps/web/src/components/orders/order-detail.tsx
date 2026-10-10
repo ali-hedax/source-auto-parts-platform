@@ -7,7 +7,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { DateTime, Money } from '@/components/ui/format';
-import { Alert, DefinitionList, Ltr, PageHeader, Section, StatusBadge, TableScroll, td, th } from '@/components/ui/misc';
+import { Alert, Code, DefinitionList, Ltr, PageHeader, Section, StatusBadge, TableScroll, td, th } from '@/components/ui/misc';
 import { ChatThread } from '@/components/chat/chat-thread';
 import { api, newIdempotencyKey } from '@/lib/api/client';
 import { ReturnRequestButton } from './return-request';
@@ -15,11 +15,12 @@ import { ReturnRequestButton } from './return-request';
 export function Timeline({ events }: { events: OrderView['timeline'] }) {
   const t = useTranslations();
   return (
-    <ol className="relative flex flex-col gap-4 border-s-2 border-line ps-5">
+    <ol className="relative flex flex-col gap-5 border-s border-line ps-5">
       {events.map((e, i) => (
         <li key={i} className="relative">
-          <span aria-hidden className="absolute -start-[1.72rem] top-1.5 size-3 rounded-full border-2 border-white bg-action" />
-          <p className="font-semibold">
+          {/* The latest step is marked in Tech Blue; earlier ones are steel. */}
+          <span aria-hidden className={`absolute -start-[26.5px] top-2 size-3 rounded-full border-2 border-white ${i === events.length - 1 ? 'bg-tech ring-4 ring-action-soft' : 'bg-line-strong'}`} />
+          <p className="font-semibold leading-7">
             {e.toState
               ? (t.has(`status.${e.toState}`) ? t(`status.${e.toState}` as never) : e.toState)
               : (t.has(`timelineEvent.${e.type}`) ? t(`timelineEvent.${e.type}` as never) : e.type)}
@@ -49,7 +50,7 @@ export function OrderDetail({ order }: { order: OrderView }) {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title={<Ltr>{order.reference}</Ltr>}
+        title={<Code>{order.reference}</Code>}
         actions={
           <div className="flex flex-wrap gap-2">
             <StatusBadge status={order.status} label={t(`status.${order.status}` as never)} />
@@ -77,7 +78,7 @@ export function OrderDetail({ order }: { order: OrderView }) {
             <tr key={i}>
               <td className={td}>
                 <span className="font-semibold">{locale === 'en' ? (l.name.en ?? l.name.fa) : l.name.fa}</span>
-                {l.sku ? <span className="block text-xs text-steel"><Ltr>{l.sku}</Ltr></span> : null}
+                {l.sku ? <span className="block text-xs text-steel"><Code>{l.sku}</Code></span> : null}
               </td>
               <td className={td}>{t(`partType.${l.partType}` as never)} · {t(`condition.${l.condition}` as never)}</td>
               <td className={td}>{locale === 'fa' ? l.quantity.toLocaleString('fa-IR') : l.quantity}</td>
@@ -129,13 +130,13 @@ export function OrderDetail({ order }: { order: OrderView }) {
             <DefinitionList
               items={[
                 { term: t('checkout.shipping'), value: order.shipment.method },
-                ...(order.shipment.trackingCode ? [{ term: t('order.tracking'), value: <Ltr>{order.shipment.trackingCode}</Ltr> }] : []),
+                ...(order.shipment.trackingCode ? [{ term: t('order.tracking'), value: <Code>{order.shipment.trackingCode}</Code> }] : []),
                 ...(order.shipment.shippedAt ? [{ term: t('status.SHIPPED'), value: <DateTime iso={order.shipment.shippedAt} /> }] : []),
                 ...(order.shipment.deliveredAt ? [{ term: t('status.DELIVERED'), value: <DateTime iso={order.shipment.deliveredAt} /> }] : []),
               ]}
             />
             {order.shipment.trackingUrl ? (
-              <a href={order.shipment.trackingUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex min-h-11 items-center gap-1 font-semibold text-action underline">
+              <a href={order.shipment.trackingUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex min-h-11 items-center gap-1 font-semibold text-action underline underline-offset-4">
                 {t('order.trackingLink')} <ExternalLink aria-hidden className="size-4" />
               </a>
             ) : null}
@@ -146,10 +147,10 @@ export function OrderDetail({ order }: { order: OrderView }) {
         <Section title={t('order.receipt')} id="receipts">
           <ul className="flex flex-col gap-2">
             {order.receipts.map((r) => (
-              <li key={r.attemptId} className="flex flex-wrap justify-between gap-2 rounded bg-surface p-3">
+              <li key={r.attemptId} className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-control)] border border-line-soft bg-surface px-3 py-2.5">
                 <Money value={r.amount} className="font-semibold" />
                 <span className="text-sm text-steel"><DateTime iso={r.paidAt} /></span>
-                {r.providerReference ? <span className="text-sm">{t('payment.reference')}: <Ltr>{r.providerReference}</Ltr></span> : null}
+                {r.providerReference ? <span className="text-sm">{t('payment.reference')}: <Code>{r.providerReference}</Code></span> : null}
               </li>
             ))}
           </ul>

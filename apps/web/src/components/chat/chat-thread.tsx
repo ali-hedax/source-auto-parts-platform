@@ -183,7 +183,7 @@ export function ChatThread({ conversationId, quoteLinkBase = '/account/quotes', 
   }, []);
 
   const bubble = (mine: boolean, system: boolean) =>
-    system ? 'mx-auto bg-surface text-steel border border-line-soft' : mine ? 'ms-auto bg-action-soft border border-action/20' : 'me-auto bg-white border border-line';
+    system ? 'mx-auto bg-surface text-steel border border-dashed border-line text-sm' : mine ? 'ms-auto bg-action-soft border border-action/20 rounded-se-sm' : 'me-auto bg-white border border-line rounded-ss-sm';
 
   const rendered = useMemo(() => messages, [messages]);
 
@@ -195,7 +195,7 @@ export function ChatThread({ conversationId, quoteLinkBase = '/account/quotes', 
           <span className="flex items-center gap-1 text-sm text-warning" role="status"><WifiOff aria-hidden className="size-4" />{t('disconnected')}</span>
         ) : null}
       </header>
-      <div className="max-h-[32rem] min-h-64 overflow-y-auto p-4" aria-live="polite" aria-relevant="additions">
+      <div className="max-h-[32rem] min-h-64 overflow-y-auto bg-surface/60 p-4" aria-live="polite" aria-relevant="additions">
         {!loaded ? <Spinner label={t('title')} /> : null}
         {cursor ? (
           <div className="mb-3 text-center">
@@ -211,7 +211,7 @@ export function ChatThread({ conversationId, quoteLinkBase = '/account/quotes', 
               </p>
               {m.body ? <p className="whitespace-pre-wrap break-words">{m.sender.kind === 'SYSTEM' ? systemTextFor(m.body, locale === 'en' ? 'en' : 'fa') : m.body}</p> : null}
               {m.quoteCard ? (
-                <Link href={staff ? `/admin/quotes/${m.quoteCard.quoteVersionId}` : `${quoteLinkBase}/${m.quoteCard.quoteVersionId}`} className="mt-2 inline-flex min-h-11 items-center gap-2 rounded border border-action bg-white px-3 font-semibold text-action hover:bg-action-soft">
+                <Link href={staff ? `/admin/quotes/${m.quoteCard.quoteVersionId}` : `${quoteLinkBase}/${m.quoteCard.quoteVersionId}`} className="mt-2 inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-control)] border border-action bg-white px-3 font-semibold text-action hover:bg-action-soft">
                   <FileText aria-hidden className="size-4" />
                   {tq('cardInChat', { n: m.quoteCard.versionNumber })} — {tq('openCard')}
                 </Link>
@@ -263,10 +263,10 @@ export function ChatThread({ conversationId, quoteLinkBase = '/account/quotes', 
             if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) send();
           }}
           placeholder={t('placeholder')}
-          className="w-full rounded-[var(--radius-control)] border border-line px-3 py-2"
+          className="w-full rounded-[var(--radius-control)] border border-line-strong px-3 py-2.5 leading-7 placeholder:text-steel/80 hover:border-ink focus-visible:border-action"
         />
         <details>
-          <summary className="min-h-10 cursor-pointer text-sm font-semibold text-action">{t('attach')}</summary>
+          <summary className="inline-flex min-h-11 cursor-pointer items-center text-sm font-semibold text-action underline-offset-4 hover:underline">{t('attach')}</summary>
           <div className="mt-2"><FileUploader key={uploaderKey} purpose="MESSAGE" onChange={onFiles} id={`chat-files-${conversationId}`} /></div>
         </details>
         <div className="flex flex-wrap items-center justify-between gap-2">

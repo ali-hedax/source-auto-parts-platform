@@ -26,7 +26,7 @@ export async function PolicyPage({ kind, fallbackTitle, intro }: { kind: 'TERMS'
       <PageHeader title={title} />
       {intro ? <p className="mb-6 leading-8">{intro}</p> : null}
       {body ? (
-        <article className="prose-hedax card p-6 leading-8">
+        <article className="prose-hedax card p-6 sm:p-8">
           {body.split(/\n{1,}/).map((p, i) => <p key={i}>{p}</p>)}
         </article>
       ) : (
