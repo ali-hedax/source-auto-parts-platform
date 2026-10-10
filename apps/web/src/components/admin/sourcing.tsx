@@ -183,9 +183,12 @@ export function SourcingWorkbench() {
             </Section>
           ) : null}
           <QuoteEditor request={r} onSaved={() => void state.reload()} />
-          <div className="grid gap-6 xl:grid-cols-[2fr_1fr]">
-            <ChatThread conversationId={r.conversationId} staff />
-            <InternalNotes conversationId={r.conversationId} />
+          {/* Side by side only when this block itself is wide enough (container query: holds at large text sizes too). */}
+          <div className="@container">
+            <div className="grid gap-6 @4xl:grid-cols-[2fr_1fr]">
+              <ChatThread conversationId={r.conversationId} staff />
+              <InternalNotes conversationId={r.conversationId} />
+            </div>
           </div>
           <p className="sr-only">{l('میز کار درخواست', 'Request workbench')}</p>
         </div>

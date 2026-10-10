@@ -256,6 +256,25 @@
   --drawer-from: 100%;
 }
 
+/* Phones and tablets: a wide table scrolls sideways inside its card while its first column (the code,
+   reference or name that identifies the row) stays pinned at the start edge. */
+@media (width < 64rem) {
+  .data-table > :is(thead, tbody, tfoot) > tr > :first-child {
+    position: sticky;
+    inset-inline-start: 0;
+    z-index: 1;
+    min-width: 8rem;
+    background-color: #fff;
+    border-inline-end: 1px solid var(--color-line-soft);
+  }
+  .data-table > thead > tr > :first-child {
+    background-color: var(--color-surface);
+  }
+  .data-table > tbody > tr:hover > :first-child {
+    background-color: var(--color-surface);
+  }
+}
+
 /* The home page has its own large search: on phones the header does not repeat it. */
 body:has(#hero-search) .header-search-mobile {
   display: none;

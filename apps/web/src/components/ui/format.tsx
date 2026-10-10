@@ -16,7 +16,7 @@ export function Money({ value, className }: { value: MoneyDto | null | undefined
   const figure = <span className="num">{formatMinorNumber(amount.minor, amount.currency, locale)}</span>;
   const unit = <span className="text-[0.8em] font-medium opacity-80">{currencyLabel(amount.currency, locale)}</span>;
   return (
-    <bdi className={className} dir={locale === 'fa' ? 'rtl' : 'ltr'}>
+    <bdi className={`whitespace-nowrap ${className ?? ''}`} dir={locale === 'fa' ? 'rtl' : 'ltr'}>
       {locale === 'fa' ? <>{figure} {unit}</> : <>{unit} {figure}</>}
     </bdi>
   );

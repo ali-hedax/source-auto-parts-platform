@@ -60,6 +60,11 @@ export function RequestForm({ brands }: { brands: VehicleBrandView[] }) {
   const [done, setDone] = useState<SourcingRequestView | null>(null);
   const [savedNote, setSavedNote] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // The success panel replaces the long form: move focus (and the view, on phones) to it.
+  const successRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (done) successRef.current?.focus();
+  }, [done]);
 
   useEffect(() => {
     let initial: Draft | null = null;
@@ -171,7 +176,7 @@ export function RequestForm({ brands }: { brands: VehicleBrandView[] }) {
 
   if (done) {
     return (
-      <div className="card flex flex-col items-start gap-4 border-success/40 p-6 sm:p-8" role="status">
+      <div ref={successRef} tabIndex={-1} className="card flex flex-col items-start gap-4 border-success/40 p-6 focus:outline-none sm:p-8" role="status">
         <span className="grid size-12 place-items-center rounded-full bg-success-soft text-success"><CheckCircle2 aria-hidden className="size-7" /></span>
         <h2 className="text-xl font-bold">{t('request.success', { reference: done.reference })}</h2>
         <p className="max-w-prose leading-7 text-steel">{t('request.successHint')}</p>
