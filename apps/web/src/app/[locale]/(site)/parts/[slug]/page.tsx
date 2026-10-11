@@ -2,10 +2,10 @@ import type { ProductDetail } from '@hedax/contracts';
 import { minorToDecimalString } from '@hedax/domain';
 import { ChevronLeft, ChevronRight, ImageOff } from 'lucide-react';
 import type { Metadata } from 'next';
-import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { AddToCart } from '@/components/catalog/add-to-cart';
+import { ProductGallery } from '@/components/catalog/product-gallery';
 import { ButtonLink } from '@/components/ui/button';
 import { Price } from '@/components/ui/format';
 import { Alert, Badge, Code, DefinitionList, Ltr, StatusBadge } from '@/components/ui/misc';
@@ -85,16 +85,18 @@ export default async function ProductPage({ params }: { params: Promise<{ locale
       </nav>
       {/* Phones read in DOM order (photo, label, specification, description); from lg the description sits under the photo. */}
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:grid-rows-[auto_1fr] lg:gap-x-10">
-        <div className={`relative overflow-hidden rounded-[var(--radius-card)] border border-line-soft bg-white lg:col-start-1 lg:row-start-1 ${p.images[0] ? 'aspect-[4/3]' : 'aspect-[5/2] sm:aspect-[4/3]'}`}>
-          {p.images[0] ? (
-            <Image src={p.images[0].url} alt={text(p.images[0].alt) ?? name} fill priority sizes="(max-width: 1024px) 100vw, 50vw" className="object-contain p-6" />
-          ) : (
+        {p.images[0] ? (
+          <div className="lg:col-start-1 lg:row-start-1">
+            <ProductGallery images={p.images.map((img) => ({ url: img.url, alt: text(img.alt) || name }))} />
+          </div>
+        ) : (
+          <div className="relative aspect-[5/2] overflow-hidden rounded-[var(--radius-card)] border border-line-soft bg-white sm:aspect-[4/3] lg:col-start-1 lg:row-start-1">
             <div className="media-placeholder flex h-full flex-col items-center justify-center gap-2 text-steel">
               <ImageOff aria-hidden className="size-10" />
               <span className="text-sm font-medium">{t('parts.noImage')}</span>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         <div className="flex flex-col gap-6 lg:col-start-2 lg:row-span-2 lg:row-start-1">
           <div className="part-label p-5 sm:p-6">

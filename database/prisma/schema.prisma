@@ -278,6 +278,10 @@ enum ImportMode {
 }
 
 enum ImportJobStatus {
+  /// The worker is reading the sheets and the first rows (no mapping chosen yet).
+  INSPECTING
+  /// Sheets read; the person chooses sheet, header row, columns and units.
+  AWAITING_MAPPING
   QUEUED
   PARSING
   PREVIEW_READY
@@ -1741,6 +1745,8 @@ model ImportJob {
   status                  ImportJobStatus @default(QUEUED)
   mapping                 Json            @default("{}")
   options                 Json            @default("{}")
+  /// Sheets and first rows of the file, with the suggested header row and columns (inspection step).
+  outline                 Json?
   summary                 Json?
   planChecksum            String?         @map("plan_checksum") @db.Char(64)
   progress                Int             @default(0)
@@ -1769,6 +1775,8 @@ model ImportRow {
   issues                   Json            @default("[]")
   values                   Json?
   changes                  Json            @default("[]")
+  /// What the preview shows for the row (name, technical number, price and unit, stock), also for rows with errors.
+  display                  Json?
   expectedProductVersion   Int?            @map("expected_product_version")
   expectedInventoryVersion Int?            @map("expected_inventory_version")
   productId                String?         @map("product_id") @db.Uuid

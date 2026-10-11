@@ -99,7 +99,8 @@ describe('A22 — leading-zero SKU, duplicate rows and invalid data', () => {
     expect(preview.rows.find((r: any) => r.rowNumber === 2).sku).toBe(skuZero);
     expect(codes(3)).toContain('DUPLICATE_SKU_IN_FILE');
     expect(codes(4)).toContain('SKU_STORED_AS_NUMBER');
-    expect(codes(5)).toContain('UNKNOWN_CURRENCY');
+    // Toman is never assumed: a currency cell saying TOMAN needs the explicit toman → rial choice.
+    expect(codes(5)).toContain('TOMAN_NEEDS_CONVERSION');
     expect(codes(6)).toContain('NOT_A_WHOLE_NUMBER');
     expect(codes(7).some((c: string) => ['NEGATIVE_NOT_ALLOWED', 'INVALID_AMOUNT'].includes(c))).toBe(true);
     expect(codes(8)).toContain('UNKNOWN_CATEGORY');
@@ -126,12 +127,12 @@ describe('A22 — leading-zero SKU, duplicate rows and invalid data', () => {
     writeFileSync(path.join(samples, 'sample-row-errors.xlsx'), reportBytes);
     writeFileSync(path.join(samples, 'sample-import-with-errors.xlsx'), file);
     const rows = wb.worksheets[0]!.getSheetValues().filter(Boolean) as unknown[][];
-    expect(rows.some((r) => r[2] === skuZero && r[5] === 'DUPLICATE_SKU_IN_FILE' && String(r[6]).includes('بیش از یک بار'))).toBe(true);
-    expect(rows[0]?.slice(1)).toEqual(['ردیف', 'کد کالا', 'نوع', 'ستون', 'کد خطا', 'توضیح']);
+    expect(rows.some((r) => r[2] === skuZero && r[7] === 'DUPLICATE_SKU_IN_FILE' && String(r[8]).includes('بیش از یک بار'))).toBe(true);
+    expect(rows[0]?.slice(1)).toEqual(['ردیف', 'کد کالا', 'شماره فنی', 'نام قطعه', 'نوع', 'ستون', 'کد خطا', 'توضیح', 'جزئیات']);
     const reportEn = new ExcelJS.Workbook();
     await reportEn.xlsx.load(Buffer.from(await (await owner.raw('GET', `/admin/imports/${jobId}/errors.xlsx?locale=en`)).arrayBuffer()) as never);
     const rowsEn = reportEn.worksheets[0]!.getSheetValues().filter(Boolean) as unknown[][];
-    expect(rowsEn.some((r) => r[5] === 'DUPLICATE_SKU_IN_FILE' && String(r[6]).includes('more than once'))).toBe(true);
+    expect(rowsEn.some((r) => r[7] === 'DUPLICATE_SKU_IN_FILE' && String(r[8]).includes('more than once'))).toBe(true);
 
     // A clean file creates the product with the exact SKU, unpublished, with one stock entry.
     const clean = await startImport(await workbook([newRow(skuZero)]), 'CREATE_AND_UPDATE');

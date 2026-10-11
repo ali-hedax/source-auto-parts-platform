@@ -156,12 +156,29 @@ export const priceRuleSchema = z.object({
   validTo: z.iso.datetime().nullable().optional(),
 });
 
+/** Partial update of one product photo: only the fields sent change. */
 export const mediaUpdateSchema = z.object({
-  altFa: z.string().trim().min(2).max(200),
+  altFa: z.string().trim().min(2).max(200).optional(),
   altEn: z.string().trim().max(200).optional().nullable(),
-  sortOrder: z.number().int().min(0).max(100),
-  isPrimary: z.boolean(),
+  sortOrder: z.number().int().min(0).max(100).optional(),
+  isPrimary: z.literal(true).optional(),
 });
+
+/** The product's photos in their new order (every current photo exactly once). */
+export const mediaOrderSchema = z.object({
+  ids: z.array(idSchema).min(1).max(50),
+});
+
+export interface ProductMediaView {
+  id: string;
+  storageKey: string;
+  width: number;
+  height: number;
+  altFa: string;
+  altEn: string | null;
+  sortOrder: number;
+  isPrimary: boolean;
+}
 
 export interface AdminProductRow {
   id: string;

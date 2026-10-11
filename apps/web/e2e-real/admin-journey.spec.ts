@@ -23,7 +23,6 @@ test.skip(!ownerEmail || !ownerPassword, 'needs the isolated stack: pnpm --filte
 const stamp = String(Date.now()).slice(-6);
 const sku = `E2E-${stamp}`;
 const productName = `لنت ترمز جلو آزمایشی ${stamp}`;
-const photoAlt = 'نمای روبه‌روی لنت ترمز';
 const customerMobile = testMobile('09363', stamp);
 
 type State = Awaited<ReturnType<BrowserContext['storageState']>>;
@@ -90,10 +89,12 @@ test('owner creates, photographs, stocks and publishes a product that shoppers f
   await expect(page).toHaveURL(/\/fa\/admin\/products\/[0-9a-f-]{36}$/);
   productPath = new URL(page.url()).pathname;
 
-  await page.locator('#media-alt').fill(photoAlt);
-  await page.locator('#media-file').setInputFiles({ name: 'brake-pad.png', mimeType: 'image/png', buffer: await pngOf(page) });
-  const photo = page.getByRole('img', { name: photoAlt });
+  // The photo's alt text starts as the part's name; the first photo becomes the main photo.
+  await page.getByTestId('photo-input').setInputFiles({ name: 'brake-pad.png', mimeType: 'image/png', buffer: await pngOf(page) });
+  const photos = page.getByRole('region', { name: 'تصاویر' });
+  const photo = photos.getByRole('img', { name: productName });
   await expect(photo).toBeVisible();
+  await expect(photos.getByText('عکس اصلی')).toBeVisible();
   await expect.poll(() => photo.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
 
   await page.getByRole('button', { name: 'انتشار', exact: true }).click();
@@ -113,7 +114,7 @@ test('owner creates, photographs, stocks and publishes a product that shoppers f
   await shopper.goto(`/fa/parts?q=${encodeURIComponent(productName)}`);
   await shopper.getByRole('link', { name: productName }).first().click();
   await expect(shopper.getByRole('heading', { level: 1 })).toHaveText(productName);
-  const shown = shopper.getByRole('img', { name: photoAlt }).first();
+  const shown = shopper.getByRole('img', { name: productName }).first();
   await expect(shown).toBeVisible();
   await expect.poll(() => shown.evaluate((img: HTMLImageElement) => (img.complete ? img.naturalWidth : 0))).toBeGreaterThan(0);
   await expect(shopper.getByText('حداکثر ۵ عدد قابل سفارش است.')).toBeVisible();
@@ -244,13 +245,20 @@ test('owner updates price and stock with a spreadsheet: preview changes nothing,
 
   const csv = `sku,base_currency,base_price,on_hand\r\n${sku},IRR,4800000,9\r\n`;
   await owner.locator('#imp-file').setInputFiles({ name: 'price-update.csv', mimeType: 'text/csv', buffer: Buffer.from(csv, 'utf8') });
+  // Columns are recognized by their headers; what the stock number means is always the person's choice.
+  await expect(owner.locator('#imp-sku')).toBeVisible({ timeout: 60_000 });
+  const build = owner.getByRole('button', { name: 'ساخت پیش‌نمایش' });
+  await expect(build).toBeDisabled();
+  await owner.getByRole('radio', { name: /جایگزینی موجودی/ }).check();
+  await build.click();
   await expect(owner.getByText('پیش‌نمایش آماده است')).toBeVisible({ timeout: 60_000 });
   await expect(owner.getByText(/به‌روزرسانی: [1۱]/)).toBeVisible();
   await expect(owner.getByText(/خطا: [0۰]/)).toBeVisible();
   expect(await onHand(owner)).toBe(5);
   await reviewShot(owner, 'admin-import-preview-fa-desktop');
 
-  await owner.getByRole('button', { name: 'اعمال تغییرات' }).click();
+  await owner.getByRole('button', { name: 'ثبت تغییرات' }).click();
+  await owner.getByRole('dialog').getByRole('button', { name: 'بله، ثبت شود' }).click();
   await expect(owner.getByText('تغییرات اعمال شد')).toBeVisible({ timeout: 60_000 });
   expect(await onHand(owner)).toBe(9);
 
@@ -262,6 +270,56 @@ test('owner updates price and stock with a spreadsheet: preview changes nothing,
     await expect(owner.getByText('فایل در بررسی امنیتی رد شد.')).toBeVisible({ timeout: 120_000 });
     expect(await onHand(owner)).toBe(9);
   }
+});
+
+test('owner imports a supplier price list by technical number, applies only the valid rows and adds photos (§12)', async ({ browser, baseURL }) => {
+  const owner = await open(browser, baseURL, ownerState);
+  const code = (n: number) => `0${stamp}${n}0`;
+  const name = `واتر پمپ آزمایشی ${stamp}`;
+  // The supplier's own layout: technical number, title and a price in rial; no SKU, stock, brand or category columns.
+  const csv = ['کد فنی,عنوان,(ریال)قیمت', `${code(1)},${name},"15,900,000"`, `${code(2)},تسمه تایم آزمایشی ${stamp},"۲٬۴۰۰٬۰۰۰"`, `${code(3)},,"1,000"`].join('\r\n');
+  await owner.goto('/fa/admin/imports');
+  await owner.locator('#imp-file').setInputFiles({ name: 'supplier-price-list.csv', mimeType: 'text/csv', buffer: Buffer.from(`${csv}\r\n`, 'utf8') });
+  // The technical-number column becomes the product code; the unit comes from the header (and stays visible).
+  await expect(owner.locator('#imp-sku')).toHaveValue('0', { timeout: 60_000 });
+  await expect(owner.getByRole('radio', { name: 'ریال', exact: true })).toBeChecked();
+  await owner.locator('#imp-d-category').selectOption({ index: 1 });
+  await owner.locator('#imp-d-type').selectOption('GENUINE');
+  await owner.locator('#imp-d-condition').selectOption('NEW');
+  await owner.locator('#imp-d-origin').selectOption('DOMESTIC');
+  await owner.getByRole('button', { name: 'ساخت پیش‌نمایش' }).click();
+  await expect(owner.getByText('پیش‌نمایش آماده است')).toBeVisible({ timeout: 60_000 });
+  await expect(owner.getByText(/جدید: [2۲]/)).toBeVisible();
+  await expect(owner.getByText(/خطا: [1۱]/)).toBeVisible();
+  await expect(owner.getByRole('row').filter({ hasText: code(3) })).toContainText('این ستون الزامی است.');
+
+  // A row with an error is never dropped silently: applying needs the explicit "only valid rows" choice.
+  const apply = owner.getByRole('button', { name: 'ثبت تغییرات' });
+  await expect(apply).toBeDisabled();
+  await owner.getByRole('checkbox', { name: /ردیف بدون خطا ثبت شود/ }).check();
+  await apply.click();
+  await owner.getByRole('dialog').getByRole('button', { name: 'بله، ثبت شود' }).click();
+  await expect(owner.getByText('تغییرات ثبت شد')).toBeVisible({ timeout: 60_000 });
+  await reviewShot(owner, 'admin-import-result-fa-desktop');
+
+  await owner.getByRole('link', { name: 'مشاهدهٔ قطعات واردشده و افزودن عکس' }).click();
+  const row = owner.getByRole('row').filter({ hasText: code(1) });
+  await expect(row).toContainText(name);
+  await expect(row).toContainText('بدون عکس');
+  await row.getByRole('button', { name: 'افزودن عکس' }).click();
+  const dialog = owner.getByRole('dialog');
+  const png = await pngOf(owner);
+  await dialog.getByTestId('photo-input').setInputFiles([
+    { name: 'front.png', mimeType: 'image/png', buffer: png },
+    { name: 'side.png', mimeType: 'image/png', buffer: png },
+  ]);
+  await expect(dialog.getByRole('img', { name })).toHaveCount(2, { timeout: 60_000 });
+  await expect(dialog.getByText('عکس اصلی')).toHaveCount(1);
+  await dialog.getByRole('button', { name: 'انتخاب به‌عنوان اصلی' }).click();
+  await expect(dialog.getByRole('listitem').filter({ hasText: 'عکس اصلی' })).toContainText('۲');
+  await reviewShot(owner, 'admin-import-photos-fa-desktop');
+  await owner.keyboard.press('Escape');
+  await expect(row).toContainText('۲ عکس');
 });
 
 test('owner records a new exchange rate; the cached product page shows the new IRR amount at once (§9, §15)', async ({ browser, baseURL }) => {

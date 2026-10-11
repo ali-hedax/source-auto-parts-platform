@@ -104,10 +104,14 @@ export function PageHeader({ title, description, actions }: { title: ReactNode; 
   );
 }
 
-/** Wide tables scroll inside their own container, never the whole page (spec §15); below lg the first column stays pinned. */
+/**
+ * Wide tables scroll inside their own container, never the whole page (spec §15); below lg the first column stays pinned.
+ * `relative` makes the container the box of visually hidden (absolutely positioned) cell text, so that text is clipped
+ * with the table instead of widening the page.
+ */
 export function TableScroll({ caption, children }: { caption: string; children: ReactNode }) {
   return (
-    <div className="card overflow-x-auto" role="region" aria-label={caption} tabIndex={0}>
+    <div className="card relative overflow-x-auto" role="region" aria-label={caption} tabIndex={0}>
       <table className="data-table w-full min-w-[40rem] border-separate border-spacing-0 text-sm [&_tbody_tr:hover>td]:bg-surface [&_tbody_tr:last-child>td]:border-b-0">
         <caption className="sr-only">{caption}</caption>
         {children}

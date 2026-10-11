@@ -1,19 +1,16 @@
 'use client';
 
-import type { AttachmentView } from '@hedax/contracts';
-import { CLEARABLE_IMPORT_COLUMNS, describeImportCode, formatMoney, importColumnLabel, importFieldLabel, money } from '@hedax/domain';
-import { Download, FileSpreadsheet, Upload } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Async } from '@/components/ui/async';
 import { Dialog } from '@/components/ui/dialog';
 import { Checkbox, Field, Input, Select } from '@/components/ui/field';
 import { DateTime, Num } from '@/components/ui/format';
-import { Alert, Badge, Code, EmptyState, Ltr, PageHeader, Section, TableScroll, td, th } from '@/components/ui/misc';
-import { api, newIdempotencyKey, uploadWithProgress } from '@/lib/api/client';
-import { errorText, isApiError } from '@/lib/api/errors';
+import { Badge, Code, EmptyState, Ltr, PageHeader, Section, TableScroll, td, th } from '@/components/ui/misc';
+import { api } from '@/lib/api/client';
+import { errorText } from '@/lib/api/errors';
 import { typedNumber } from '@/lib/numbers';
 import { useApi } from '@/lib/use-api';
 import { useCodeLabel, useL } from './shell';
@@ -126,207 +123,6 @@ function LedgerDialog({ row, onClose }: { row: InvRow; onClose: () => void }) {
         )}
       </Async>
     </Dialog>
-  );
-}
-
-interface ImportPreview {
-  jobId: string; status: string; mode: string; progress: number; totalRows: number | null; failureReason: string | null;
-  summary: {
-    create: number; update: number; unchanged: number; error: number; warnings: number; canCommit: boolean; fileErrors: string[];
-    /** Template columns read from the file, and file columns that matched nothing (ignored). */
-    columns?: string[]; ignoredHeaders?: string[];
-  } | null;
-  planChecksum: string | null;
-  rows: Array<{ rowNumber: number; sku: string | null; action: string; issues: Array<{ column: string | null; code: string; severity: string }>; changes: ImportChange[] }>;
-}
-
-interface ImportChange { field: string; before: string | null; after: string | null; currency?: 'IRR' | 'AED' }
-
-/** A preview value in the reader's terms: money with its unit, localized choices and counts; text as typed. */
-function useChangeValue(): (change: ImportChange, value: string | null) => string {
-  const t = useTranslations();
-  const l = useL();
-  const locale = useLocale() as 'fa' | 'en';
-  const choice: Record<string, string> = { partType: 'partType', condition: 'condition', origin: 'origin' };
-  return (change, value) => {
-    if (value === null || value === '') return '—';
-    if (change.currency && /^-?\d+$/.test(value)) return formatMoney(money(change.currency, BigInt(value)), locale);
-    const ns = choice[change.field];
-    if (ns && t.has(`${ns}.${value}`)) return t(`${ns}.${value}` as never);
-    if (change.field === 'isActive') return value === 'true' ? l('فعال', 'Active') : l('غیرفعال', 'Inactive');
-    if (/^-?\d+$/.test(value) && ['onHand', 'lowStockThreshold'].includes(change.field)) return new Intl.NumberFormat(locale === 'fa' ? 'fa-IR' : 'en-US').format(Number(value));
-    return value;
-  };
-}
-
-/** Upload → validate & preview (no writes) → apply everything or nothing (spec §12). */
-export function ImportsPage() {
-  const t = useTranslations();
-  const l = useL();
-  const label = useCodeLabel();
-  const locale = useLocale() as 'fa' | 'en';
-  const changeValue = useChangeValue();
-  const [mode, setMode] = useState<'UPDATE_ONLY' | 'CREATE_AND_UPDATE'>('UPDATE_ONLY');
-  const [clear, setClear] = useState<string[]>([]);
-  const [jobId, setJobId] = useState<string | null>(null);
-  const [preview, setPreview] = useState<ImportPreview | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const idem = useRef(newIdempotencyKey());
-
-  useEffect(() => {
-    if (!jobId) return;
-    let timer: ReturnType<typeof setTimeout>;
-    // A request still in flight when the page is left (or a new file is chosen) must not poll on.
-    let stopped = false;
-    const poll = async () => {
-      const p = await api<ImportPreview>(`/admin/imports/${jobId}`).catch(() => null);
-      if (stopped) return;
-      if (p) setPreview(p);
-      if (!p || ['QUEUED', 'PARSING', 'COMMITTING'].includes(p.status)) timer = setTimeout(poll, 1500);
-    };
-    void poll();
-    return () => {
-      stopped = true;
-      clearTimeout(timer);
-    };
-  }, [jobId]);
-
-  const upload = async (file: File | undefined) => {
-    if (!file) return;
-    setMessage(null);
-    setBusy(true);
-    try {
-      const form = new FormData();
-      form.append('purpose', 'IMPORT');
-      form.append('files', file);
-      const [att] = await uploadWithProgress<AttachmentView[]>('/attachments', form, () => undefined).promise;
-      if (!att || att.status === 'REJECTED') throw new Error(att?.rejectReason ?? 'REJECTED');
-      let current = att;
-      for (let i = 0; i < 30 && current.status === 'SCANNING'; i += 1) {
-        await new Promise((r) => setTimeout(r, 1500));
-        current = await api<AttachmentView>(`/attachments/${att.id}`);
-      }
-      if (current.status !== 'READY') throw new Error(current.rejectReason ?? current.status);
-      idem.current = newIdempotencyKey();
-      const res = await api<{ jobId: string }>('/admin/imports', { method: 'POST', idempotencyKey: idem.current, body: { attachmentId: att.id, mode, clearWhenEmpty: clear, manufacturerBrandMapping: {} } });
-      setJobId(res.jobId);
-    } catch (e) {
-      setMessage(isApiError(e) ? errorText(t, e) : t.has(`files.rejected_${(e as Error).message}`) ? t(`files.rejected_${(e as Error).message}` as never) : t('files.rejected_default'));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const commit = async () => {
-    if (!preview?.planChecksum) return;
-    try {
-      await api(`/admin/imports/${preview.jobId}/commit`, { method: 'POST', body: { planChecksum: preview.planChecksum } });
-      setJobId(null);
-      setTimeout(() => setJobId(preview.jobId), 50);
-    } catch (e) {
-      setMessage(errorText(t, e));
-    }
-  };
-
-  return (
-    <>
-      <PageHeader title={t('admin.imports')} actions={
-        <div className="flex flex-wrap gap-2">
-          <a href="/api/v1/admin/imports/template" download className="inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-control)] border border-line-strong bg-white px-4 text-sm font-semibold text-ink transition-colors hover:border-ink hover:bg-surface"><Download aria-hidden className="size-4" />{t('admin.template')}</a>
-          <a href="/api/v1/admin/exports/products.xlsx" download className="inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-control)] border border-line-strong bg-white px-4 text-sm font-semibold text-ink transition-colors hover:border-ink hover:bg-surface"><FileSpreadsheet aria-hidden className="size-4" />{t('admin.exportProducts')}</a>
-        </div>
-      } />
-      <Section title={t('admin.uploadImport')} id="imp-upload">
-        <div className="flex flex-wrap items-end gap-4">
-          <Field id="imp-mode" label={t('admin.mode')}>
-            <Select id="imp-mode" value={mode} onChange={(e) => setMode(e.target.value as typeof mode)}>
-              <option value="UPDATE_ONLY">{t('admin.mode_UPDATE_ONLY')}</option>
-              <option value="CREATE_AND_UPDATE">{t('admin.mode_CREATE_AND_UPDATE')}</option>
-            </Select>
-          </Field>
-          <input id="imp-file" type="file" accept=".xlsx,.csv" className="peer sr-only" disabled={busy} onChange={(e) => void upload(e.target.files?.[0])} />
-          <label htmlFor="imp-file" className={`inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-[var(--radius-control)] bg-action px-4 font-semibold text-white transition-colors hover:bg-action-hover peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-tech ${busy ? 'pointer-events-none opacity-60' : ''}`}>
-            <Upload aria-hidden className="size-4" />{t('admin.uploadImport')}
-          </label>
-        </div>
-        <p className="mt-3 text-sm text-steel">{l('فقط XLSX یا CSV، حداکثر ۵۰۰۰ ردیف. سلول خالی در به‌روزرسانی یعنی «بدون تغییر». هیچ محصولی با فایل حذف نمی‌شود.', 'XLSX or CSV only, up to 5000 rows. Empty cells in update mean “no change”. The file never deletes products.')}</p>
-        <fieldset className="mt-3">
-          <legend className="text-sm font-semibold">{l('پاک‌کردن مقدار با سلول خالی (فقط کالاهای موجود)', 'Clear values with empty cells (existing products only)')}</legend>
-          <p className="text-xs text-steel">{l('فقط ستون‌هایی را انتخاب کنید که سلول خالی‌شان باید مقدار فعلی را پاک کند؛ بقیه بدون تغییر می‌مانند.', 'Choose only the columns whose empty cells should clear the current value; all others stay unchanged.')}</p>
-          <div className="flex flex-wrap gap-x-4">
-            {CLEARABLE_IMPORT_COLUMNS.map((c) => (
-              <Checkbox key={c} id={`imp-clear-${c}`} label={importColumnLabel(c, locale)} checked={clear.includes(c)}
-                onChange={(e) => setClear((list) => (e.target.checked ? [...list, c] : list.filter((x) => x !== c)))} />
-            ))}
-          </div>
-        </fieldset>
-        {message ? <Alert tone="danger" className="mt-3" title={message} /> : null}
-      </Section>
-      {preview ? (
-        <Section title={t('admin.preview')} id="imp-preview">
-          <p className="mb-3">{l('وضعیت', 'Status')}: <Badge>{label('importStatus', preview.status)}</Badge> {preview.failureReason ? <span className="text-danger">{describeImportCode(preview.failureReason, locale)}</span> : null}</p>
-          {['QUEUED', 'PARSING', 'COMMITTING'].includes(preview.status) ? (
-            <progress className="mb-3 w-full" max={100} value={preview.progress} aria-label={label('importStatus', preview.status)} />
-          ) : null}
-          {preview.summary?.columns?.length ? (
-            <p className="mb-2 text-sm">{l('ستون‌های خوانده‌شده', 'Columns read')}: {preview.summary.columns.map((c) => importColumnLabel(c, locale)).join(locale === 'fa' ? '، ' : ', ')}</p>
-          ) : null}
-          {preview.summary?.ignoredHeaders?.length ? (
-            <Alert tone="warning" className="mb-3" title={l('این ستون‌های فایل شناخته نشدند و وارد نمی‌شوند', 'These file columns were not recognized and are ignored')}>
-              <p><bdi>{preview.summary.ignoredHeaders.join(' · ')}</bdi></p>
-              <p className="text-sm">{l('اگر لازم‌اند، عنوانشان را مطابق قالب (فارسی یا کلید انگلیسی) بنویسید و دوباره بارگذاری کنید.', 'If they matter, rename them to the template headers (Persian or the English key) and upload again.')}</p>
-            </Alert>
-          ) : null}
-          {preview.summary?.fileErrors.length ? (
-            <Alert tone="danger" className="mb-3" title={t('admin.importFileErrors')}>
-              <ul className="list-disc ps-5">{preview.summary.fileErrors.map((code) => <li key={code}>{describeImportCode(code, locale)}</li>)}</ul>
-            </Alert>
-          ) : null}
-          {preview.summary ? (
-            <ul className="mb-4 flex flex-wrap gap-2">
-              <li><Badge tone="info">{t('admin.summaryCreate')}: <Num value={preview.summary.create} /></Badge></li>
-              <li><Badge tone="info">{t('admin.summaryUpdate')}: <Num value={preview.summary.update} /></Badge></li>
-              <li><Badge>{t('admin.summaryUnchanged')}: <Num value={preview.summary.unchanged} /></Badge></li>
-              <li><Badge tone={preview.summary.error ? 'danger' : 'success'}>{t('admin.summaryError')}: <Num value={preview.summary.error} /></Badge></li>
-            </ul>
-          ) : null}
-          {preview.rows.length ? (
-            <TableScroll caption={t('admin.preview')}>
-              <thead><tr><th className={th}>#</th><th className={th}>{t('admin.sku')}</th><th className={th}>{l('عملیات', 'Action')}</th><th className={th}>{l('تغییرات / خطاها', 'Changes / issues')}</th></tr></thead>
-              <tbody>
-                {preview.rows.map((r) => (
-                  <tr key={r.rowNumber}>
-                    <td className={td}><Num value={r.rowNumber} /></td>
-                    <td className={td}><Code>{r.sku ?? '—'}</Code></td>
-                    <td className={td}><Badge tone={r.action === 'ERROR' ? 'danger' : 'info'}>{label('importAction', r.action)}</Badge></td>
-                    <td className={td}>
-                      {r.issues.map((i, k) => (
-                        <span key={k} className={`block text-xs ${i.severity === 'error' ? 'text-danger' : 'text-warning'}`}>
-                          {i.column ? <strong>{importColumnLabel(i.column, locale)}: </strong> : null}{describeImportCode(i.code, locale)}
-                        </span>
-                      ))}
-                      {r.changes.map((c, k) => (
-                        <span key={k} className="block text-xs">
-                          <strong>{importFieldLabel(c.field, locale)}: </strong>
-                          <bdi>{changeValue(c, c.before)}</bdi> {locale === 'fa' ? '←' : '→'} <bdi>{changeValue(c, c.after)}</bdi>
-                        </span>
-                      ))}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </TableScroll>
-          ) : null}
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <a href={`/api/v1/admin/imports/${preview.jobId}/errors.xlsx?locale=${locale}`} download className="inline-flex min-h-11 items-center gap-2 font-semibold text-action underline"><Download aria-hidden className="size-4" />{t('admin.errorReport')}</a>
-            {preview.status === 'PREVIEW_READY' ? (
-              preview.summary?.canCommit ? <Button onClick={() => void commit()}>{t('admin.apply')}</Button> : <Alert tone="warning" title={t('admin.importBlocked')} />
-            ) : null}
-          </div>
-        </Section>
-      ) : null}
-    </>
   );
 }
 
