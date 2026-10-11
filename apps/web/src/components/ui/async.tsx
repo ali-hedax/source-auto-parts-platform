@@ -4,15 +4,25 @@ import { useLocale, useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { ButtonLink } from './button';
 import { Alert, Spinner } from './misc';
+import { usePathname } from '@/i18n/navigation';
 import type { ApiState } from '@/lib/use-api';
 
 /** Consistent loading / signed-out / forbidden / error / offline states for private views. */
 export function Async<T>({ state, children }: { state: ApiState<T>; children: (data: T) => ReactNode }) {
   const t = useTranslations();
   const locale = useLocale();
+  const pathname = usePathname();
   if (state.loading && !state.data) return <Spinner label={t('common.loading')} />;
   if (state.error) {
     if (state.error.status === 401) {
+      // The staff panel signs in with email and password; the mobile-code sign-in is for customers.
+      if (pathname === '/admin' || pathname.startsWith('/admin/')) {
+        return (
+          <Alert tone="info" title={t('errors.UNAUTHENTICATED')}>
+            <ButtonLink href="/staff/login" className="mt-2" size="sm">{t('auth.staffLogin')}</ButtonLink>
+          </Alert>
+        );
+      }
       const next = typeof window !== 'undefined' ? window.location.pathname : `/${locale}/account`;
       return (
         <Alert tone="info" title={t('errors.UNAUTHENTICATED')}>

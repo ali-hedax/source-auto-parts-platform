@@ -824,7 +824,11 @@ function CommitSection({ job: j, me, onDone }: { job: ImportJobView; me: MeView 
     <Section title={l('۴. ثبت', '4. Apply')} id="imp-commit">
       {applicable === 0 ? (
         <Alert tone="info" title={l('در این فایل چیزی برای ثبت نیست', 'Nothing to apply in this file')}>
-          <p>{s.error ? l('همهٔ ردیف‌ها خطا دارند؛ فایل را اصلاح و دوباره بارگذاری کنید یا تطبیق ستون‌ها را تغییر دهید.', 'Every row has an error; correct the file and upload it again, or change the mapping.') : l('همهٔ ردیف‌ها با اطلاعات فروشگاه یکی‌اند.', 'Every row already matches the shop.')}</p>
+          <p>
+            {!s.error ? l('همهٔ ردیف‌ها با اطلاعات فروشگاه یکی‌اند.', 'Every row already matches the shop.')
+              : !s.unchanged ? l('همهٔ ردیف‌ها خطا دارند؛ فایل را اصلاح و دوباره بارگذاری کنید یا تطبیق ستون‌ها را تغییر دهید.', 'Every row has an error; correct the file and upload it again, or change the mapping.')
+              : l(`${num(s.unchanged)} ردیف با اطلاعات فروشگاه یکی است و ${num(s.error)} ردیف خطا دارد؛ ردیف‌های خطادار را اصلاح و فایل را دوباره بارگذاری کنید یا تطبیق ستون‌ها را تغییر دهید.`, `${num(s.unchanged)} rows already match the shop and ${num(s.error)} rows have errors; correct those rows and upload the file again, or change the mapping.`)}
+          </p>
         </Alert>
       ) : (
         <>

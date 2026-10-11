@@ -198,6 +198,25 @@ test.describe('layout, SEO and accessibility', () => {
   });
 });
 
+test.describe('sign-in prompts when signed out', () => {
+  test('staff panel pages lead to the staff sign-in in the current language', async ({ page }) => {
+    await page.goto('/fa/admin/imports');
+    const fa = page.getByRole('link', { name: 'ورود کارکنان' });
+    await expect(fa).toHaveAttribute('href', '/fa/staff/login');
+    await expect(page.locator('a[href^="/fa/login"]')).toHaveCount(0);
+    await fa.click();
+    await expect(page).toHaveURL(/\/fa\/staff\/login$/);
+    await expect(page.getByRole('heading', { level: 1, name: 'ورود کارکنان' })).toBeVisible();
+    await page.goto('/en/admin/products');
+    await expect(page.getByRole('link', { name: 'Staff sign-in' })).toHaveAttribute('href', '/en/staff/login');
+  });
+
+  test('customer account pages keep the mobile-code sign-in', async ({ page }) => {
+    await page.goto('/fa/account/orders');
+    await expect(page.locator('a[href="/fa/login?next=%2Ffa%2Faccount%2Forders"]')).toHaveText('ورود / ثبت‌نام');
+  });
+});
+
 test.describe('admin preview', () => {
   test('dashboard shows an honest launch-readiness list', async ({ page, context }) => {
     await context.addCookies([{ name: 'hedax_fixture_role', value: 'staff', url: 'http://localhost:3100' }]);
