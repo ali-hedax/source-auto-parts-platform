@@ -47,7 +47,7 @@ pnpm install --frozen-lockfile
 cp .env.example .env
 ```
 
-Set unique development secrets and a local database connection in `.env`, then follow the complete [Persian setup guide](README.fa.md#راه‌اندازی-محلی-بدون-docker). Never reuse development credentials in production.
+Set unique development secrets and a local database connection in `.env`, then follow the [Persian setup guide](README.fa.md). Never reuse development credentials in production.
 
 ```bash
 pnpm db:generate
@@ -56,7 +56,7 @@ pnpm db:migrate:deploy
 pnpm db:seed:dev
 ```
 
-`db:seed:dev` is for a local development database only. Create the first owner through `owner:bootstrap` as documented in the setup guide; there is no default administrator password.
+`db:seed:dev` is for a local development database only. Create the first owner through `owner:bootstrap` as documented in the [deployment guide](docs/DEPLOYMENT.md); there is no default administrator password.
 
 | Local page | Address |
 | --- | --- |
