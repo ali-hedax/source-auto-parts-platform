@@ -167,6 +167,17 @@ describe('a supplier price list: technical number, title and a price in rial (no
     expect(plan.rows[0]?.action).toBe('CREATE');
     expect(plan.rows[1]?.issues.filter((i) => i.severity === 'error').map((i) => i.code)).toContain('NUMBER_PRECISION_LOST');
   });
+
+  it('does not create a second product when Excel dropped the leading zeros of an existing SKU (00123 → 123)', () => {
+    const row: RawRow = { ...newRow, sku: c(123, { isNumeric: true }) };
+    const plan = planImport([row], ctx({ zeroPaddedSkus: new Map([['123', '00123']]) }));
+    const issue = plan.rows[0]?.issues.find((i) => i.code === 'SKU_LEADING_ZEROS_LOST');
+    expect(issue).toMatchObject({ severity: 'error', detail: '00123' });
+    expect(plan.rows[0]?.action).toBe('ERROR');
+    expect(plan.summary.create).toBe(0);
+    // A numeric code with no zero-padded twin stays a new product with a warning.
+    expect(planImport([{ ...newRow, sku: c(456, { isNumeric: true }) }], ctx({ zeroPaddedSkus: new Map() })).rows[0]?.action).toBe('CREATE');
+  });
 });
 
 describe('prices: digits, separators and units', () => {

@@ -56,10 +56,10 @@ const HEADER_HELP_FA: Record<ImportColumn, { help: string; example: string }> = 
   category_code: { help: 'کد یا نام دسته، همان‌طور که در پنل ثبت شده است (الزامی برای کالای تازه، یا یک مقدار برای کل فایل در پنل)', example: 'BRAKE' },
   vehicle_brand_codes: { help: 'کد یا نام برندهای خودرو، جدا با ویرگول', example: 'IKCO, SAIPA' },
   vehicle_models: { help: 'خودروهای سازگار، جدا با ویرگول؛ فقط اضافه می‌شوند و چیزی حذف نمی‌شود', example: 'پژو ۲۰۶، سمند' },
-  part_type: { help: 'GENUINE / OEM / AFTERMARKET (یا: اصلی / او ای ام / افترمارکت)', example: 'GENUINE' },
-  condition: { help: 'NEW / USED / REFURBISHED (یا: نو / کارکرده / بازسازی شده). کالای کارکرده یا بازسازی‌شده بدون عکس واقعی منتشر نمی‌شود.', example: 'NEW' },
-  origin: { help: 'DOMESTIC / IMPORTED / UNKNOWN (یا: داخلی / وارداتی / نامشخص)', example: 'DOMESTIC' },
-  base_currency: { help: 'IRR (ریال) یا AED (درهم). اگر ستون ارز ندارید، واحد ستون قیمت را در پنل انتخاب کنید؛ تومان فقط با انتخاب صریح «تومان، تبدیل به ریال» پذیرفته می‌شود.', example: 'IRR' },
+  part_type: { help: 'اصلی / او ای ام / افترمارکت (کد انگلیسی هم پذیرفته است: GENUINE / OEM / AFTERMARKET). حدس زده نمی‌شود؛ اگر نمی‌دانید خالی بگذارید.', example: 'اصلی' },
+  condition: { help: 'نو / کارکرده / بازسازی شده (یا NEW / USED / REFURBISHED). کالای کارکرده یا بازسازی‌شده بدون عکس واقعی منتشر نمی‌شود.', example: 'نو' },
+  origin: { help: 'داخلی / وارداتی / نامشخص (یا DOMESTIC / IMPORTED / UNKNOWN)', example: 'داخلی' },
+  base_currency: { help: 'ریال یا درهم (یا IRR / AED). اگر ستون ارز ندارید، واحد ستون قیمت را در پنل انتخاب کنید؛ تومان فقط با انتخاب صریح «تومان، تبدیل به ریال» پذیرفته می‌شود.', example: 'ریال' },
   base_price: { help: 'قیمت پایه در همان ارز؛ ریال عدد صحیح، درهم حداکثر دو رقم اعشار. ارقام فارسی و جداکنندهٔ هزارگان مجازند.', example: '200,000,000' },
   on_hand: { help: 'تعداد موجودی. در پنل انتخاب می‌کنید که این عدد جایگزین موجودی فعلی شود (شمارش انبار) یا به آن اضافه شود (کالای رسیده). عدد صحیح.', example: '4' },
   unit: { help: 'واحد فروش (مثل عدد، جفت، دست)', example: 'عدد' },
@@ -69,6 +69,19 @@ const HEADER_HELP_FA: Record<ImportColumn, { help: string; example: string }> = 
   description_fa: { help: 'توضیحات و مشخصات فارسی', example: 'قطر ۱۵ میلی‌متر، به همراه توپی' },
   description_en: { help: 'توضیحات انگلیسی', example: '' },
   is_active: { help: '1 یا 0 (فعال بودن فروش)', example: '1' },
+};
+
+/** Columns of the operator template, with the headers operators use (all recognised on import). */
+const TEMPLATE_CORE: ReadonlyArray<readonly [ImportColumn, string]> = [
+  ['sku', 'کد کالا'], ['name_fa', 'نام قطعه'], ['category_code', 'کد دسته'], ['part_type', 'نوع قطعه'], ['condition', 'وضعیت فیزیکی'],
+  ['origin', 'منشا'], ['base_currency', 'ارز پایه'], ['base_price', 'قیمت پایه'], ['on_hand', 'موجودی'],
+];
+/** Drop-down values (Persian words the importer understands). */
+const TEMPLATE_CHOICES: Partial<Record<ImportColumn, readonly string[]>> = {
+  part_type: ['اصلی', 'او ای ام', 'افترمارکت'],
+  condition: ['نو', 'کارکرده', 'بازسازی شده'],
+  origin: ['داخلی', 'وارداتی', 'نامشخص'],
+  base_currency: ['ریال', 'درهم'],
 };
 
 const EMPTY_DEFAULTS: ImportSettings['defaults'] = {
@@ -133,28 +146,45 @@ export class ImportsService {
    * text, a help sheet and a separate sheet of examples (so the import sheet
    * itself never carries sample rows).
    */
+  /**
+   * Operator template: the nine columns operators fill, with Persian headers, Persian drop-down
+   * lists for the fixed values and the SKU column stored as text. The other columns are still
+   * accepted on import; the «راهنما» sheet lists them with their exact header.
+   */
   async template(): Promise<Buffer> {
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet('کالاها', { views: [{ rightToLeft: true, state: 'frozen', ySplit: 1 }] });
     const examples = wb.addWorksheet('نمونه', { views: [{ rightToLeft: true }] });
     for (const sheet of [ws, examples]) {
-      sheet.addRow(TEMPLATE_COLUMNS.map((c) => importColumnLabel(c, 'fa')));
+      sheet.addRow(TEMPLATE_CORE.map(([, label]) => label));
       sheet.getRow(1).font = { bold: true };
-      TEMPLATE_COLUMNS.forEach((c, i) => {
+      TEMPLATE_CORE.forEach(([c], i) => {
         const col = sheet.getColumn(i + 1);
-        col.width = c === 'name_fa' || c === 'description_fa' ? 40 : 18;
-        if (c === 'sku' || c === 'technical_number') col.numFmt = '@';
+        col.width = c === 'name_fa' ? 36 : 16;
+        if (c === 'sku') col.numFmt = '@';
+        const list = TEMPLATE_CHOICES[c];
+        if (list) {
+          const letter = col.letter;
+          // Range validation exists in ExcelJS at runtime but is missing from its type definitions.
+          (sheet as unknown as { dataValidations: { add(range: string, rule: ExcelJS.DataValidation): void } }).dataValidations.add(`${letter}2:${letter}${MAX_IMPORT_ROWS + 1}`, {
+            type: 'list', allowBlank: true, formulae: [`"${list.join(',')}"`],
+            showErrorMessage: true, errorTitle: 'مقدار نامعتبر', error: `یکی از این‌ها: ${list.join('، ')}`,
+          });
+        }
       });
     }
-    examples.addRow(TEMPLATE_COLUMNS.map((c) => HEADER_HELP_FA[c].example));
-    examples.addRow(TEMPLATE_COLUMNS.map((c) => ({ sku: 'TEST-SAMPLE-002', technical_number: '', name_fa: 'نمونهٔ درهمی (فقط نمونه)', name_en: 'AED sample', manufacturer_brand: '', category_code: 'FILTER', vehicle_brand_codes: 'TOYOTA', vehicle_models: '', part_type: 'OEM', condition: 'NEW', origin: 'IMPORTED', base_currency: 'AED', base_price: '45.50', on_hand: '2', unit: 'عدد', low_stock_threshold: '0', override_price_irr: '', override_price_aed: '', description_fa: '', description_en: '', is_active: '1' } as Record<ImportColumn, string>)[c]));
+    examples.addRow(['00123', 'فیلتر روغن پژو ۴۰۵ (فقط نمونه)', 'FILTER', 'اصلی', 'نو', 'داخلی', 'ریال', '1250000', '4']);
+    examples.addRow(['TEST-SAMPLE-002', 'لنت ترمز کارکرده (فقط نمونه)', 'BRAKE', 'افترمارکت', 'کارکرده', 'وارداتی', 'درهم', '45.50', '2']);
     const help = wb.addWorksheet('راهنما', { views: [{ rightToLeft: true }] });
     help.addRow(['عنوان ستون', 'کلید انگلیسی', 'توضیح', 'نمونه']);
     help.getRow(1).font = { bold: true };
-    for (const col of TEMPLATE_COLUMNS) help.addRow([importColumnLabel(col, 'fa'), col, HEADER_HELP_FA[col].help, HEADER_HELP_FA[col].example]);
+    for (const [col, label] of TEMPLATE_CORE) help.addRow([label, col, HEADER_HELP_FA[col].help, HEADER_HELP_FA[col].example]);
+    help.addRow([]);
+    help.addRow(['ستون‌های اختیاری', '', 'در صورت نیاز، با همین عنوان به شیت «کالاها» اضافه کنید:']);
+    for (const col of TEMPLATE_COLUMNS.filter((c) => !TEMPLATE_CORE.some(([k]) => k === c))) help.addRow([importColumnLabel(col, 'fa'), col, HEADER_HELP_FA[col].help, HEADER_HELP_FA[col].example]);
     help.addRow([]);
     for (const note of [
-      'کالاها را در شیت «کالاها» بنویسید؛ ستون‌هایی را که ندارید خالی بگذارید یا حذف کنید. ترتیب ستون‌ها مهم نیست و در پنل هم می‌توانید ستون‌ها را تطبیق دهید.',
+      'کالاها را در شیت «کالاها» بنویسید و نمونه‌ها را وارد نکنید. ترتیب ستون‌ها مهم نیست و در پنل هم می‌توانید ستون‌ها را تطبیق دهید.',
       'پیش از هر تغییری پیش‌نمایش نشان داده می‌شود؛ تا تأیید نکنید چیزی ثبت نمی‌شود. ردیف خطادار هرگز بی‌صدا حذف نمی‌شود.',
       'سلول خالی در کالای موجود یعنی «بدون تغییر». با فایل هیچ کالایی حذف نمی‌شود.',
       'کد کالا و شماره فنی را «متن» نگه دارید تا صفرهای ابتدایی حذف نشوند. اگر Excel عددی را گرد کرده باشد، پنل خطا می‌دهد و مقدار را حدس نمی‌زند.',
@@ -326,12 +356,14 @@ export class ImportsService {
 
       const codes = (col: 'sku' | 'technical_number') => rows.map((r) => (r[col]?.value === null || r[col]?.value === undefined ? '' : String(r[col]?.value).trim())).filter(Boolean);
       const skus = [...new Set(codes('sku'))];
-      const [existing, technicalNumbers, categories, brands, manufacturers] = await Promise.all([
+      const numericSkus = [...new Set(rows.filter((r) => r.sku?.isNumeric).map((r) => String(r.sku?.value).trim()).filter((s) => /^\d+$/.test(s)))];
+      const [existing, technicalNumbers, categories, brands, manufacturers, zeroPaddedSkus] = await Promise.all([
         this.loadExisting(skus),
         this.technicalIndex(codes('technical_number').length > 0),
         this.prisma.category.findMany({ where: { active: true }, select: { code: true, nameFa: true, nameEn: true } }),
         this.prisma.vehicleBrand.findMany({ where: { active: true }, select: { code: true, nameFa: true, nameEn: true } }),
         this.prisma.manufacturerBrand.findMany({ where: { active: true }, select: { id: true, normalizedName: true, nameFa: true, nameEn: true } }),
+        this.zeroPaddedMatches(numericSkus),
       ]);
       const names = <T extends { code: string; nameFa: string; nameEn: string | null }>(list: T[]) => {
         const map = new Map<string, string>();
@@ -367,6 +399,7 @@ export class ImportsService {
         priceUnit: settings.priceUnit,
         stockMode: settings.stockMode,
         technicalNumbers,
+        zeroPaddedSkus,
       }, sheet.rows.map((r) => r.rowNumber));
       const planChecksum = createHash('sha256').update(JSON.stringify(toJsonSafe({ rows: plan.rows.map(({ display: _d, ...r }) => r), mode: settings.mode, stockMode: settings.stockMode }))).digest('hex');
       const mappedIndexes = new Set(Object.values(mapping));
@@ -411,6 +444,20 @@ export class ImportsService {
       this.logger.warn(`import ${jobId} failed: ${e instanceof Error ? e.message : 'unknown'}`);
       await fail('UNREADABLE_FILE');
     }
+  }
+
+  /** Numeric SKU from the file → existing SKU with the same digits after leading zeros ("123" → "00123"). */
+  private async zeroPaddedMatches(numericSkus: string[]): Promise<Map<string, string>> {
+    const map = new Map<string, string>();
+    for (let i = 0; i < numericSkus.length; i += 500) {
+      const chunk = numericSkus.slice(i, i + 500);
+      const products = await this.prisma.product.findMany({ where: { OR: chunk.map((s) => ({ sku: { endsWith: s } })), sku: { startsWith: '0' } }, select: { sku: true } });
+      for (const s of chunk) {
+        const match = products.find((p) => p.sku !== s && /^0+\d+$/.test(p.sku) && p.sku.replace(/^0+/, '') === s.replace(/^0+/, ''));
+        if (match) map.set(s, match.sku);
+      }
+    }
+    return map;
   }
 
   private async loadExisting(skus: string[]): Promise<Map<string, ExistingProductSnapshot>> {

@@ -161,6 +161,11 @@ export interface ImportContext {
   stockMode?: StockMode;
   /** Normalized technical number → products that already carry it (any SKU). */
   technicalNumbers?: ReadonlyMap<string, ReadonlyArray<{ sku: string; manufacturerBrandId: string | null }>>;
+  /**
+   * SKU read from a numeric cell → an existing SKU with the same digits plus leading zeros
+   * (123 → "00123"). Such a row lost its zeros in Excel and must not create a second product.
+   */
+  zeroPaddedSkus?: ReadonlyMap<string, string>;
 }
 
 export interface ImportIssue {
@@ -554,6 +559,8 @@ function planRow(row: RawRow, rowNumber: number, ctx: ImportContext, skuCounts: 
 
   const existing = sku ? ctx.existing.get(sku) : undefined;
   const isCreate = !existing;
+  const paddedMatch = isCreate && skuNumber === 'NUMBER' && sku ? ctx.zeroPaddedSkus?.get(sku) : undefined;
+  if (paddedMatch) err('sku', 'SKU_LEADING_ZEROS_LOST', paddedMatch);
   if (isCreate && ctx.mode === 'UPDATE_ONLY' && sku) err('sku', 'SKU_NOT_FOUND_UPDATE_ONLY');
 
   const values: ParsedImportValues = { sku };
@@ -864,6 +871,7 @@ const IMPORT_CODE_TEXT: Readonly<Record<string, { fa: string; en: string }>> = {
     en: 'Needed to create a new product: add it to the file, or choose one value for all new products of this file in the mapping step.',
   },
   INVALID_SKU: { fa: 'کد کالا فقط حروف انگلیسی، عدد و نویسه‌های . _ - / می‌پذیرد (حداکثر ۶۴ نویسه).', en: 'SKU allows only Latin letters, digits and . _ - / (up to 64 characters).' },
+  SKU_LEADING_ZEROS_LOST: { fa: 'صفرهای ابتدای این کد کالا در Excel حذف شده و با کالای موجود در پنل یکی است؛ این ردیف کالای تازه نمی‌سازد. قالب ستون کد کالا را «متن» کنید و کد را کامل بنویسید.', en: 'Excel dropped this SKU’s leading zeros and it matches an existing product; this row will not create a new one. Format the SKU column as text and enter the full code.' },
   SKU_STORED_AS_NUMBER: { fa: 'کد کالا در فایل عددی ذخیره شده بود و ممکن است صفرهای ابتدایی‌اش حذف شده باشد؛ قالب ستون را «متن» کنید.', en: 'The SKU was stored as a number and may have lost leading zeros; format the column as text.' },
   TECHNICAL_NUMBER_STORED_AS_NUMBER: {
     fa: 'شماره فنی در فایل عددی ذخیره شده و ممکن است صفرهای ابتدایی‌اش حذف شده باشد؛ آن را با اصل مقایسه کنید و ستون را «متن» کنید.',

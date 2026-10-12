@@ -1,4 +1,5 @@
 import ExcelJS from 'exceljs';
+import JSZip from 'jszip';
 import type { ImportSheetOutline } from '@hedax/contracts';
 import type { RawCell } from '@hedax/domain';
 
@@ -52,9 +53,33 @@ function cellText(cell: RawCell): string {
   return cell.value === null ? '' : String(cell.value);
 }
 
+const SPREADSHEET_NS = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+const PARTS = /^xl\/(workbook|sharedStrings|styles|worksheets\/[^/]+)\.xml$/;
+
+/**
+ * Some exporters write SpreadsheetML with a namespace prefix (<x:worksheet xmlns:x="…">, <x:row>, <x:c>)
+ * instead of the default namespace. The XML means the same, but ExcelJS only understands unprefixed
+ * element names. Only the prefix bound to the SpreadsheetML namespace is removed; other prefixes stay.
+ */
+export async function unprefixSpreadsheetXml(bytes: Buffer): Promise<Buffer> {
+  const zip = await JSZip.loadAsync(bytes);
+  let changed = false;
+  for (const name of Object.keys(zip.files).filter((n) => PARTS.test(n))) {
+    const xml = await zip.file(name)!.async('string');
+    const prefix = new RegExp(`xmlns:([A-Za-z_][\\w.-]*)="${SPREADSHEET_NS.replace(/[.]/g, '\\.')}"`).exec(xml.slice(0, 2000))?.[1];
+    if (!prefix || /<[A-Za-z_][\w.-]*\s[^>]*xmlns="http:\/\/schemas\.openxmlformats\.org\/spreadsheetml\/2006\/main"/.test(xml.slice(0, 2000))) continue;
+    const out = xml
+      .replace(new RegExp(`xmlns:${prefix}="`), 'xmlns="')
+      .replace(new RegExp(`<(/?)${prefix}:`, 'g'), '<$1');
+    zip.file(name, out);
+    changed = true;
+  }
+  return changed ? Buffer.from(await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' })) : bytes;
+}
+
 async function loadWorkbook(bytes: Buffer): Promise<ExcelJS.Workbook> {
   const wb = new ExcelJS.Workbook();
-  await wb.xlsx.load(bytes as unknown as ArrayBuffer);
+  await wb.xlsx.load((await unprefixSpreadsheetXml(bytes)) as unknown as ArrayBuffer);
   return wb;
 }
 
