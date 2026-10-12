@@ -134,10 +134,13 @@ export function AdminShell({ children }: { children: ReactNode }) {
               <span className="hidden sm:inline">{tn('home')}</span>
               <span className="sr-only sm:hidden">{tn('home')}</span>
             </Link>
-            <button type="button" onClick={logout} className="inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-[var(--radius-control)] px-2.5 transition-colors hover:bg-white/10">
-              <LogOut aria-hidden className="size-4" />
-              <span className="sr-only sm:not-sr-only">{tn('logout')}</span>
-            </button>
+            {/* Sign-out only for a signed-in session; a signed-out visitor sees the staff sign-in prompt instead. */}
+            {me.data ? (
+              <button type="button" onClick={logout} className="inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-[var(--radius-control)] px-2.5 transition-colors hover:bg-white/10">
+                <LogOut aria-hidden className="size-4" />
+                <span className="sr-only sm:not-sr-only">{tn('logout')}</span>
+              </button>
+            ) : null}
           </div>
         </div>
       </header>
