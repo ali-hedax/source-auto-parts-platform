@@ -1,141 +1,105 @@
-# سورس | Source — محصولی از هداکس — فروشگاه قطعات خودرو و تأمین سفارشی
+<div align="center">
+<img src="apps/web/public/brand/source/logo-light.png" alt="Source by HEDAX" width="280">
 
-سامانهٔ دوزبانهٔ فارسی (راست‌چین، پیش‌فرض) و انگلیسی (چپ‌چین) با دو مسیر خرید:
+# Source by HEDAX
 
-1. **خرید قطعهٔ موجود:** کاتالوگ، جست‌وجوی فارسی، سبد، رزرو موجودی و پرداخت ریالی.
-2. **تأمین سفارشی برای هر برند:** درخواست، گفت‌وگو و فایل، پیش‌فاکتور نسخه‌دار، پذیرش، پرداخت تأییدشده در سرور، سپس مراحل تأمین و ارسال.
+**Auto parts commerce. Custom sourcing. One connected workflow.**
 
-قیمت پایه به ریال (IRR) یا درهم (AED) ثبت می‌شود؛ پرداخت همیشه ریالی است و «تومان» واحد ورود یا نمایش نیست.
+[فارسی](README.fa.md) · [Architecture](docs/ARCHITECTURE.md) · [Deployment](docs/DEPLOYMENT.md) · [Launch status](docs/DEPLOYMENT_STATUS.md)
 
-> **وضعیت:** نسخهٔ اول برای اجرای محلی با دادهٔ آزمایشی کامل است و آزمون‌های پذیرش را دارد. **آمادهٔ دریافت پول واقعی نیست:** اتصال درگاه زرین‌پال و پیامک کاوه‌نگار آماده است، ولی حساب پذیرندهٔ درگاه، کلید پیامک، دامنه، میزبان و متن‌های حقوقی هنوز تهیه یا تأیید نشده‌اند. فهرست کامل در [`docs/LAUNCH_CHECKLIST.md`](docs/LAUNCH_CHECKLIST.md) و وضعیت دقیق در [`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md) است.
+</div>
 
-## ساختار مخزن
+Source connects an auto parts storefront with custom sourcing, quotations, staff operations and fulfillment. It supports Persian (RTL) and English (LTR), with shared business rules across the web application, API and background workers.
 
-| مسیر | محتوا |
+> **Pre-launch — updated 12 October 2026.** Public release and live customer/payment acceptance are not yet confirmed. See the [deployment status](docs/DEPLOYMENT_STATUS.md) before using this system for real transactions.
+
+## Product workflows
+
+| Workflow | Capabilities |
 | --- | --- |
-| `apps/web` | Next.js 16 (App Router) + next-intl: فروشگاه، حساب مشتری، پنل مدیریت |
-| `apps/api` | NestJS 12: REST + WebSocket (Socket.IO)، Prisma 7، آزمون‌های یکپارچه |
-| `apps/worker` | کارهای پس‌زمینه (outbox → BullMQ) و رندر PDF پیش‌فاکتور |
-| `packages/domain` | منطق تجاری خالص و آزمون‌شده (پول، قیمت، جست‌وجو، وضعیت‌ها، زمان تأمین، فایل، Excel) |
-| `packages/contracts` | اسکیماهای Zod و قرارداد مشترک API |
-| `database/prisma` | مدل داده و migrationها |
-| `infra` | Docker Compose، Dockerfile، Caddy |
-| `docs` | معماری، تصمیم‌ها، راهنمای مدیر، استقرار، پشتیبان‌گیری، گزارش آزمون، چک‌لیست راه‌اندازی، OpenAPI، قالب import |
-| `design-system/MASTER.md` | توکن‌ها و قواعد سیستم طراحی برند |
+| Buy available parts | Catalog, Persian search, cart, inventory reservation, checkout and order fulfillment |
+| Request custom sourcing | Requests for any brand, conversation and file attachments, versioned quotations, acceptance and sourcing stages |
+| Operate the business | Staff roles, mandatory staff MFA, audit history, inventory imports/exports, returns and refunds |
+| Produce quotations | Persian and English PDFs, IRR settlement and AED reference pricing |
 
-## پیش‌نیازها
+These capabilities have local test coverage; live payment and SMS acceptance still require provider accounts and public-site validation. Test evidence is recorded in [TEST_REPORT.md](docs/TEST_REPORT.md).
 
-| مورد | نسخه/توضیح |
-| --- | --- |
-| Node.js | ۲۲٫۱۲ یا بالاتر (آزموده با ۲۶٫۸٫۲) |
-| pnpm | ۱۰٫۳۴٫۶ (`corepack enable`) |
-| PostgreSQL | ۱۸ با کدگذاری UTF-8 و locale یونیکد (برای جست‌وجوی فارسی). برای توسعه بدون نصب: `pnpm --filter @hedax/api db:local` |
-| Redis | ۸ — برای صف کارها، زمان‌بندی و چند نمونهٔ API؛ در production الزامی است. در توسعهٔ بدون Redis، worker را با `QUEUE_DRIVER=inline` اجرا کنید تا اسکن فایل، Excel، PDF و تطبیق پرداخت در همان فرایند worker انجام شوند |
-| ClamAV | الزامی در production (`MALWARE_SCANNER=clamav`) |
-| مرورگر Chromium/Edge/Chrome | برای PDF پیش‌فاکتور در worker (`PDF_BROWSER_CHANNEL` یا `PDF_BROWSER_EXECUTABLE`) |
+## Architecture
 
-## راه‌اندازی محلی (بدون Docker)
+| Layer | Technology | Location |
+| --- | --- | --- |
+| Storefront and administration | Next.js, React, next-intl | `apps/web` |
+| REST API and real-time messaging | NestJS, Socket.IO, Prisma | `apps/api` |
+| Jobs and PDF rendering | BullMQ, Playwright/Chromium | `apps/worker` |
+| Business rules | TypeScript | `packages/domain` |
+| Shared API contracts | Zod | `packages/contracts` |
+| Data and queues | PostgreSQL 18, Redis 8 | `database/prisma`, `infra` |
+| Upload scanning | ClamAV | `infra` |
+| Deployment | Docker Compose, Caddy | `infra` |
 
-**کوتاه‌ترین راه روی ویندوز** (پس از `pnpm install`، ساخت `.env` و `pnpm build`):
+## Local development
 
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts\local\start-local.ps1   # PostgreSQL محلی، API، worker و وب
-powershell -ExecutionPolicy Bypass -File scripts\local\stop-local.ps1    # توقف؛ داده‌ها می‌مانند
-```
-
-- فروشگاه: `http://localhost:3000/fa` (انگلیسی: `http://localhost:3000/en`)
-- ورود پنل: `http://localhost:3000/fa/staff/login`، با ایمیل و گذرواژهٔ مالک محلی از `.local-dev-credentials` (بیرون از git)؛ در اولین ورود ثبت برنامهٔ احراز هویت (TOTP) الزامی است
-- صفحه‌های اصلی پنل پس از ورود:
-  - داشبورد: `http://localhost:3000/fa/admin`
-  - حساب من (تغییر نام، ایمیل و گذرواژه با گذرواژهٔ فعلی و کد احراز هویت): `http://localhost:3000/fa/admin/account`
-  - کارکنان و دعوت: `http://localhost:3000/fa/admin/staff`
-  - نقش‌ها و مجوزها: `http://localhost:3000/fa/admin/roles`
-
-این نشانی‌ها فقط روی رایانه‌ای کار می‌کنند که نسخهٔ محلی روی آن اجراست. نسخهٔ عمومی روی دامنه هنوز منتشر نشده است.
-
-این حالت توسعه است: پرداخت با شبیه‌ساز آزمایشی، کد ورود روی صفحه، و بدون اسکن فایل. لاگ‌ها در `.local-run\logs` هستند.
-
-مراحل جداگانه:
+Use Node.js 24 (the Docker runtime) and pnpm 10.34.6. The package manifests accept Node.js 22.12 or later.
 
 ```bash
-pnpm install
+corepack enable
+pnpm install --frozen-lockfile
 cp .env.example .env
-# سه کلید تصادفی بسازید و در .env بگذارید (SESSION_SECRET، OTP_PEPPER، APP_ENCRYPTION_KEY):
-node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
-
-# PostgreSQL 18 محلی روی 127.0.0.1:55432 (پنجرهٔ جداگانه؛ Ctrl+C برای توقف)
-pnpm --filter @hedax/api db:local
-# در .env:  DATABASE_URL=postgresql://hedax:<LOCAL_PG_PASSWORD>@127.0.0.1:55432/hedax?schema=public
-
-pnpm db:generate          # کلاینت Prisma
-pnpm build                # همهٔ بسته‌ها
-pnpm db:migrate:deploy    # اعمال migrationها
-pnpm db:seed:dev          # دادهٔ نمونهٔ برچسب‌دار (DEMO-*، فقط توسعه)
-
-# ساخت اولین مالک (رمز فقط از متغیر محیطی یا prompt؛ ثبت TOTP در اولین ورود الزامی است)
-HEDAX_OWNER_PASSWORD='...' pnpm --filter @hedax/api owner:bootstrap -- --email owner@example.com --name "نام مالک"
-
-pnpm dev:api              # http://localhost:4000 (مستند OpenAPI در /api/docs وقتی OPENAPI_ENABLED=true)
-pnpm dev:web              # http://localhost:3000/fa — پنل: /fa/staff/login
-pnpm dev:worker           # با Redis؛ بدون Redis در .env بگذارید: QUEUE_DRIVER=inline (فقط توسعه)
 ```
 
-- **پیش‌نمایش رابط بدون پایگاه داده:** `pnpm dev:web:fixtures` (دادهٔ نمونهٔ برچسب‌دار؛ در build production مسدود است).
-- **چت زنده در توسعه:** `NEXT_PUBLIC_WS_URL=http://localhost:4000`؛ پشت reverse proxy: `same-origin`؛ مقدار `off` یعنی دریافت دوره‌ای پیام‌ها.
-- **کد OTP در توسعه:** با `SMS_PROVIDER=dev-log` کد در پاسخ API و لاگ توسعه برمی‌گردد؛ در production این حالت رد می‌شود.
-- **پرداخت آزمایشی:** `PAYMENT_PROVIDER=simulator` صفحهٔ «درگاه آزمایشی» با برچسب واضح می‌سازد؛ هیچ پولی جابه‌جا نمی‌شود و در production رد می‌شود.
-- **sandbox زرین‌پال:** `PAYMENT_PROVIDER=zarinpal` با `ZARINPAL_SANDBOX=true` و یک UUID دلخواه در `PAYMENT_MERCHANT_ID`، مشتری را به sandbox رسمی زرین‌پال می‌برد (بدون پول؛ در production رد می‌شود). آزمون مرورگری همین مسیر: `E2E_PAYMENT=zarinpal-sandbox pnpm --filter @hedax/web e2e:real`.
+Set unique development secrets and a local database connection in `.env`, then follow the complete [Persian setup guide](README.fa.md#راه‌اندازی-محلی-بدون-docker). Never reuse development credentials in production.
 
-## فرمان‌ها
+```bash
+pnpm db:generate
+pnpm build
+pnpm db:migrate:deploy
+pnpm db:seed:dev
+```
 
-| فرمان | کار |
+`db:seed:dev` is for a local development database only. Create the first owner through `owner:bootstrap` as documented in the setup guide; there is no default administrator password.
+
+| Local page | Address |
 | --- | --- |
-| `pnpm lint` | ESLint کل مخزن |
-| `pnpm typecheck` | بررسی نوع همهٔ بسته‌ها |
-| `pnpm build` | build همهٔ بسته‌ها |
-| `pnpm test` | آزمون‌های واحد (domain، contracts، api، worker) |
-| `pnpm --filter @hedax/api test:integration` | آزمون‌های یکپارچه روی PostgreSQL موقت (خودکار راه‌اندازی می‌شود؛ پیش از آن `pnpm --filter @hedax/api build`) |
-| `pnpm e2e` | آزمون‌های مرورگری وب با دادهٔ پیش‌نمایش و Edge (`PW_CHANNEL=chrome` برای Chrome) |
-| `pnpm --filter @hedax/web e2e:real` | آزمون‌های مرورگری روی پشتهٔ واقعی موقت: PostgreSQL موقت، API، worker (`QUEUE_DRIVER=inline`) و وب؛ مسیر مشتری و پنل مدیریت. پایگاه دادهٔ توسعه و `.env` دست نمی‌خورند (پیش از آن build مربوط به API و worker) |
-| `pnpm --filter @hedax/web e2e:real -- --perf` | اندازه‌گیری آزمایشگاهی LCP و CLS صفحه‌های اصلی، جست‌وجو و محصول روی build production همان پشتهٔ موقت. شرایط: موبایل، CPU چهار برابر کندتر، شبکهٔ ۱٫۶ مگابیت. میانهٔ چند بارگذاری گزارش می‌شود (`E2E_PERF_SAMPLES`؛ trace اختیاری با `E2E_PERF_TRACE_DIR`) |
-| `pnpm --filter @hedax/api openapi:export` | بازتولید `docs/api/openapi.json` |
+| Storefront | `http://localhost:3000/fa` |
+| Staff sign-in | `http://localhost:3000/fa/staff/login` |
+| Administration | `http://localhost:3000/fa/admin` |
 
-## استقرار
+On Windows, the existing `scripts/local/start-local.ps1` and `stop-local.ps1` manage the local stack. See [README.fa.md](README.fa.md) for prerequisites and commands.
 
-Docker Compose با Caddy (HTTPS)، PostgreSQL، Redis، ClamAV، API، worker و وب در [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) شرح داده شده است. پشتیبان‌گیری و بازیابی در [`docs/BACKUP_RESTORE.md`](docs/BACKUP_RESTORE.md) است. پیکربندی Docker روی رایانهٔ توسعه با Docker Desktop اجرا و آزموده شده است (آزمون پذیرش در حالت production و ۱۵ آزمون مرورگری؛ [`docs/TEST_REPORT.md`](docs/TEST_REPORT.md) بخش ۶). روی سرور هدف هنوز اجرا نشده است.
+## Quality checks
 
-**نسخهٔ محلی برای بررسی (Docker، حالت توسعه با دادهٔ نمونه):** فایل `.env.docker-dev` را مانند `.env.example` بسازید، با رازهای تصادفی، `APP_ENV=development`، `PAYMENT_PROVIDER=simulator`، `SMS_PROVIDER=dev-log`، `HEDAX_DOMAIN=localhost`، `PUBLIC_BASE_URL=https://localhost` و `ACME_EMAIL`. این فایل بیرون از git می‌ماند. سپس به این ترتیب اجرا کنید: migration (`run --rm tools`)، ساخت مالک (`owner:bootstrap`) و **پس از آن** `seed-dev`، و در پایان `up -d`. همه با `docker compose -p hedax-review -f infra/docker-compose.yml --env-file .env.docker-dev`. Caddy برای `localhost` گواهی محلی می‌دهد و مرورگر یک‌بار هشدار نشان می‌دهد.
+```bash
+pnpm lint
+pnpm typecheck
+pnpm test:unit
+```
 
-## قابلیت‌ها و اتصال‌ها
+The proposed GitHub Actions workflow runs lint, type checks and domain/contracts/API unit tests on pushes and pull requests. PDF/browser tests and database integration tests have separate setup requirements; see [CONTRIBUTING.md](CONTRIBUTING.md). A configured workflow is not a claim that a run has passed.
 
-| دسته | وضعیت |
+## Documentation
+
+| Guide | Purpose |
 | --- | --- |
-| کاتالوگ، جست‌وجوی فارسی، سبد، checkout، رزرو اتمیک، سفارش و ارسال | تکمیل و آزموده روی پایگاه دادهٔ واقعی |
-| درخواست تأمین هر برند، چت و فایل، پیش‌فاکتور نسخه‌دار با PDF فارسی/انگلیسی، تأمین | تکمیل و آزموده |
-| کارکنان، نقش‌ها، MFA، audit، Excel ورود/خروج، مرجوعی و استرداد | تکمیل و آزموده |
-| **اتصال‌های آزمایشی** | شبیه‌ساز درگاه پرداخت، پیامک توسعه (`dev-log`)، اسکنر «بدون اسکن» توسعه، صف درون‌فرایندی worker (`QUEUE_DRIVER=inline`) — همه در production رد می‌شوند |
-| **اتصال‌های واقعیِ آزموده** | PostgreSQL 18.4، Socket.IO، ذخیرهٔ فایل محلی، رندر PDF با Edge و با Chromium در Docker، Redis/BullMQ، ClamAV، Docker Compose و Caddy (روی Docker محلی) |
-| **آماده، در انتظار حساب مالک** | درگاه زرین‌پال (آزموده با sandbox رسمی زرین‌پال؛ نیازمند شناسهٔ مرچنت)، پیامک کاوه‌نگار (آزمون واحد و قالب درخواست؛ نیازمند کلید API و قالب تأییدشده) — `docs/DEPLOYMENT.md` بخش ۹ |
-| **آماده، در انتظار سرور** | پشتیبان خودکار رمزگذاری‌شده (`--profile backup`، `docs/BACKUP_RESTORE.md` بخش ۲٫۱) و دریافت امضای ضدویروس از mirror خصوصی (`infra/docker-compose.clamav-mirror.yml`)، هر دو آزموده روی Docker؛ سن امضای ضدویروس در readiness و داشبورد (آزمون واحد) |
-| **نوشته‌شده ولی اجرانشده** | ذخیره‌ساز S3؛ استقرار روی سرور هدف با دامنه و گواهی عمومی |
-| **موکول به بعد** | بیعانه/اقساط، رمزگشایی خودکار VIN، مدل سازگاری خودرو (طرح در `docs/FUTURE_CATALOG.md`) |
+| [Documentation index](docs/README.md) | Find the appropriate guide |
+| [Architecture](docs/ARCHITECTURE.md) | Module boundaries, data and workflows |
+| [Admin guide](docs/ADMIN_GUIDE.md) | Product and operational tasks |
+| [Deployment](docs/DEPLOYMENT.md) | Build, migrations, owner bootstrap and proxy setup |
+| [Deployment status](docs/DEPLOYMENT_STATUS.md) | Public release status and acceptance criteria |
+| [Backup and restore](docs/BACKUP_RESTORE.md) | Backup design and recovery procedures |
+| [Launch checklist](docs/LAUNCH_CHECKLIST.md) | Technical and business acceptance criteria |
+| [API specification](docs/api/openapi.json) | OpenAPI contract |
+| [Contributing](CONTRIBUTING.md) | Branches, validation and pull requests |
+| [Security](SECURITY.md) | Private vulnerability reporting and secret handling |
 
-## مستندات
+## Preview
 
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — مرز ماژول‌ها، مدل داده، جریان پرداخت و تأمین
-- [`docs/DECISIONS.md`](docs/DECISIONS.md) — پیش‌فرض‌ها، ارز تسویه، اولویت قیمت، قواعد زمانی
-- [`docs/ADMIN_GUIDE.md`](docs/ADMIN_GUIDE.md) — محصول، تصویر، موجودی، Excel، کارمند، قیمت، سفارش
-- [`docs/TEST_REPORT.md`](docs/TEST_REPORT.md) — نتیجهٔ واقعی آزمون‌های پذیرش
-- [`docs/api/openapi.json`](docs/api/openapi.json) — قرارداد API؛ [`docs/import/`](docs/import) — قالب import و نمونهٔ خطای سطری
+![Persian storefront — local test preview](docs/test-artifacts/ui/home-fa-desktop.png)
 
-## امنیت
+*Local test preview with demonstration data; this image is not evidence of a live public deployment.*
 
-- رازها فقط در `.env` یا مدیر رمز سرور؛ `.env` در git نیست و `.env.example` فقط نام متغیرها را دارد.
-- هیچ مدیر یا رمز پیش‌فرضی در seed نیست؛ اولین مالک فقط با فرمان `owner:bootstrap` ساخته می‌شود و TOTP برایش اجباری است.
-- در `APP_ENV=production` شبیه‌ساز پرداخت، پیامک توسعه، «بدون اسکن»، کوکی ناامن، آدرس http و OpenAPI عمومی باعث امتناع از اجرا می‌شوند.
-- صفحه‌های وب در build production سرآیند Content-Security-Policy دارند: اسکریپت فقط از همین سایت، بدون eval، بدون frame و بدون ارسال فرم به جای دیگر (`docs/DECISIONS.md` بخش ۲۰).
+## HEDAX projects
 
+- [HEDAX brand guide](https://github.com/ali-hedax/brand-guide-hedax) — brand identity and usage guidance.
+- [Dealership platform](https://github.com/ali-hedax/manage-dealership-platform) — dealership operations and analytics prototype.
 
-## هویت محصول و مخزن
-
-سورس / Source، محصولی از هداکس؛ امضای لوگو `by HEDAX`. [مخزن خصوصی Source](https://github.com/ali-hedax/source-auto-parts-platform)، شاخهٔ `main`. تغییر نام فقط برند نمایشی است؛ scopeهای `@hedax`، مسیرهای اجرا و تنظیمات داده/سرویس حفظ شده‌اند. جزئیات نصب دارایی‌ها، کنترل‌ها و کارهای قبلیِ جدا نگه‌داشته‌شده در [وضعیت پیاده‌سازی](IMPLEMENTATION_STATUS.md) ثبت شده است.
+Maintained by [Ali Hedayatshodeh / ali-hedax](https://github.com/ali-hedax). No open-source license is currently supplied; public visibility does not grant permission to redistribute the code or brand assets.
