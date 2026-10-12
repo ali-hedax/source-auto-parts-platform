@@ -44,3 +44,8 @@
 		format json
 	}
 }
+
+# The www alias needs its own DNS record and valid certificate.
+www.{$HEDAX_DOMAIN} {
+	redir https://{$HEDAX_DOMAIN}{uri} permanent
+}
