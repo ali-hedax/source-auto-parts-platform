@@ -2,6 +2,7 @@
 
 import { useLocale, useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
+import { usePathname } from '@/i18n/navigation';
 import { ButtonLink } from './button';
 import { Alert, Spinner } from './misc';
 import type { ApiState } from '@/lib/use-api';
@@ -10,13 +11,17 @@ import type { ApiState } from '@/lib/use-api';
 export function Async<T>({ state, children }: { state: ApiState<T>; children: (data: T) => ReactNode }) {
   const t = useTranslations();
   const locale = useLocale();
+  const pathname = usePathname();
   if (state.loading && !state.data) return <Spinner label={t('common.loading')} />;
   if (state.error) {
     if (state.error.status === 401) {
       const next = typeof window !== 'undefined' ? window.location.pathname : `/${locale}/account`;
+      const loginHref = pathname === '/admin' || pathname.startsWith('/admin/')
+        ? '/staff/login'
+        : `/login?next=${encodeURIComponent(next)}`;
       return (
         <Alert tone="info" title={t('errors.UNAUTHENTICATED')}>
-          <ButtonLink href={`/login?next=${encodeURIComponent(next)}`} className="mt-2" size="sm">{t('nav.login')}</ButtonLink>
+          <ButtonLink href={loginHref} className="mt-2" size="sm">{t('nav.login')}</ButtonLink>
         </Alert>
       );
     }
