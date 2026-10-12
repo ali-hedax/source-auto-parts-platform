@@ -204,6 +204,8 @@ test.describe('sign-in prompts when signed out', () => {
     const fa = page.getByRole('link', { name: 'ورود کارکنان' });
     await expect(fa).toHaveAttribute('href', '/fa/staff/login');
     await expect(page.locator('a[href^="/fa/login"]')).toHaveCount(0);
+    // Nobody is signed in, so the header offers no sign-out.
+    await expect(page.getByRole('button', { name: 'خروج' })).toHaveCount(0);
     await fa.click();
     await expect(page).toHaveURL(/\/fa\/staff\/login$/);
     await expect(page.getByRole('heading', { level: 1, name: 'ورود کارکنان' })).toBeVisible();
