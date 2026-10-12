@@ -5,7 +5,6 @@ import type { ReactNode } from 'react';
 import { usePathname } from '@/i18n/navigation';
 import { ButtonLink } from './button';
 import { Alert, Spinner } from './misc';
-import { usePathname } from '@/i18n/navigation';
 import type { ApiState } from '@/lib/use-api';
 
 /** Consistent loading / signed-out / forbidden / error / offline states for private views. */
@@ -25,12 +24,9 @@ export function Async<T>({ state, children }: { state: ApiState<T>; children: (d
         );
       }
       const next = typeof window !== 'undefined' ? window.location.pathname : `/${locale}/account`;
-      const loginHref = pathname === '/admin' || pathname.startsWith('/admin/')
-        ? '/staff/login'
-        : `/login?next=${encodeURIComponent(next)}`;
       return (
         <Alert tone="info" title={t('errors.UNAUTHENTICATED')}>
-          <ButtonLink href={loginHref} className="mt-2" size="sm">{t('nav.login')}</ButtonLink>
+          <ButtonLink href={`/login?next=${encodeURIComponent(next)}`} className="mt-2" size="sm">{t('nav.login')}</ButtonLink>
         </Alert>
       );
     }
