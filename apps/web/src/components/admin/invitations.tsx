@@ -9,6 +9,7 @@ import { DateTime } from '@/components/ui/format';
 import { Alert, Badge, EmptyState, Ltr, Section, TableScroll, td, th } from '@/components/ui/misc';
 import { api } from '@/lib/api/client';
 import { errorText } from '@/lib/api/errors';
+import { EraseConfirm } from './erase-confirm';
 import { useL } from './shell';
 
 const TONE: Record<StaffInvitationStatus, 'warning' | 'info' | 'danger' | 'success' | 'neutral'> = {
@@ -22,6 +23,7 @@ export function InvitationsSection({ invitations, mailConfigured, reload }: { in
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ text: string; link?: string } | null>(null);
   const [ownerResend, setOwnerResend] = useState<{ id: string; code: string } | null>(null);
+  const [erasing, setErasing] = useState<string | null>(null);
   const label: Record<StaffInvitationStatus, string> = {
     PENDING: mailConfigured ? l('در صف ارسال ایمیل', 'Queued for e-mail') : l('ایمیل تنظیم نشده', 'E-mail not configured'),
     SENT: l('ارسال شد (سرور ایمیل پذیرفت)', 'Sent (accepted by the mail server)'),
@@ -46,6 +48,11 @@ export function InvitationsSection({ invitations, mailConfigured, reload }: { in
     if (!window.confirm(l(`دعوت ${inv.email} لغو شود؟ لینک آن دیگر کار نمی‌کند.`, `Revoke the invitation for ${inv.email}? Its link will stop working.`))) return;
     await api(`/admin/staff/invitations/${inv.id}/revoke`, { method: 'POST', body: {} });
     setNotice({ text: l('دعوت لغو شد.', 'Invitation revoked.') });
+  });
+  const erase = (inv: StaffInvitationView, confirmCode: string) => act(async () => {
+    await api(`/admin/staff/invitations/${inv.id}/erase`, { method: 'POST', body: { confirmCode } });
+    setErasing(null);
+    setNotice({ text: l('دعوت به‌طور کامل حذف شد؛ نام و ایمیل در هیچ جای سایت نمانده است.', 'The invitation was erased; the name and e-mail no longer appear anywhere on the site.') });
   });
   const open = (s: StaffInvitationStatus) => s === 'PENDING' || s === 'SENT' || s === 'FAILED';
   return (
@@ -82,7 +89,10 @@ export function InvitationsSection({ invitations, mailConfigured, reload }: { in
                       )
                     ) : null}
                     {open(inv.status) ? <Button size="sm" variant="ghost" onClick={() => void revoke(inv)}>{l('لغو دعوت', 'Revoke')}</Button> : null}
+                    {/* An accepted invitation goes together with the staff account (table above). */}
+                    {inv.status !== 'ACCEPTED' ? <Button size="sm" variant="ghost" className="text-danger" onClick={() => setErasing(inv.id)}>{l('حذف کامل', 'Erase')}</Button> : null}
                   </div>
+                  {erasing === inv.id ? <EraseConfirm id={inv.id} title={l(`حذف کامل دعوت ${inv.fullName}`, `Erase the invitation for ${inv.fullName}`)} onConfirm={(code) => erase(inv, code)} onCancel={() => setErasing(null)} /> : null}
                   {ownerResend?.id === inv.id ? (
                     <div className="mt-2 flex items-end gap-2">
                       <Field id={`inv-resend-${inv.id}`} label={t('admin.ownerConfirmCode')} className="max-w-[12rem]">
