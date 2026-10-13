@@ -5,3 +5,4 @@ export * from './commerce.js';
 export * from './sourcing.js';
 export * from './messaging.js';
 export * from './admin.js';
+export * from './site-contact.js';

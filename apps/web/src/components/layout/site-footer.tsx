@@ -1,22 +1,12 @@
 import Image from 'next/image';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
-import { serverApiOptional } from '@/lib/api/server';
-import { Ltr } from '@/components/ui/misc';
+import { ContactDetails } from './contact-details';
 
-interface Contact {
-  phone: string | null;
-  email: string | null;
-  address: { fa: string | null; en: string | null };
-  workingHours: { fa: string | null; en: string | null };
-}
-
-/** Only owner-configured contact details are shown; nothing is assumed from brand documents (spec §17). */
+/** Contact details come only from the owner-approved config file (SITE_CONTACT); nothing is assumed (spec §17). */
 export async function SiteFooter() {
   const t = await getTranslations();
   const locale = (await getLocale()) as 'fa' | 'en';
-  const contact = await serverApiOptional<Contact>('/site/contact', { publicCache: 300 }).catch(() => null);
-  const hasContact = !!(contact?.phone || contact?.email || contact?.address[locale]);
   // Jalali year in Persian (e.g. ۱۴۰۵), Gregorian in English.
   const year = new Intl.DateTimeFormat(locale === 'fa' ? 'fa-IR-u-ca-persian' : 'en-GB', { year: 'numeric', timeZone: 'Asia/Tehran' })
     .format(new Date())
@@ -51,16 +41,7 @@ export async function SiteFooter() {
         </nav>
         <div>
           <p className="mb-3 font-bold text-white">{t('nav.contact')}</p>
-          {hasContact ? (
-            <ul className="space-y-1.5 leading-7">
-              {contact?.phone ? <li><Ltr>{contact.phone}</Ltr></li> : null}
-              {contact?.email ? <li><Ltr>{contact.email}</Ltr></li> : null}
-              {contact?.address[locale] ? <li>{contact.address[locale]}</li> : null}
-              {contact?.workingHours[locale] ? <li>{contact.workingHours[locale]}</li> : null}
-            </ul>
-          ) : (
-            <p className="leading-7 text-silver/90">{t('footer.contactPending')}</p>
-          )}
+          <ContactDetails locale={locale} variant="footer" linkClassName={link} />
           <Link href="/contact" className={`${link} mt-2 underline`}>
             {t('nav.contact')}
           </Link>

@@ -1,34 +1,27 @@
+import { SITE_CONTACT } from '@hedax/contracts/site-contact';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { ContactDetails } from '@/components/layout/contact-details';
 import { ButtonLink } from '@/components/ui/button';
-import { Alert, DefinitionList, Ltr, PageHeader } from '@/components/ui/misc';
-import { serverApiOptional } from '@/lib/api/server';
-
-interface Contact {
-  phone: string | null;
-  email: string | null;
-  address: { fa: string | null; en: string | null };
-  workingHours: { fa: string | null; en: string | null };
-}
+import { PageHeader } from '@/components/ui/misc';
 
 export default async function ContactPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations();
   const L = locale as 'fa' | 'en';
-  const c = await serverApiOptional<Contact>('/site/contact', { publicCache: 300 }).catch(() => null);
-  const items = [
-    ...(c?.phone ? [{ term: t('pages.phone'), value: <Ltr>{c.phone}</Ltr> }] : []),
-    ...(c?.email ? [{ term: t('account.email'), value: <Ltr>{c.email}</Ltr> }] : []),
-    ...(c?.address[L] ? [{ term: t('pages.address'), value: c.address[L] }] : []),
-    ...(c?.workingHours[L] ? [{ term: t('pages.hours'), value: c.workingHours[L] }] : []),
-  ];
   return (
     <div className="container-page max-w-3xl py-8">
-      <PageHeader title={t('pages.contactTitle')} description={t('pages.contactChat')} />
-      {items.length ? <div className="card p-6"><DefinitionList items={items} /></div> : <Alert tone="info" title={t('footer.contactPending')} />}
-      <div className="mt-6">
-        <ButtonLink href="/account/messages">{t('chat.openSupport')}</ButtonLink>
+      {/* The chat text and button follow SITE_CONTACT.supportChat (off until customer SMS sign-in works). */}
+      <PageHeader title={t('pages.contactTitle')} {...(SITE_CONTACT.supportChat.enabled ? { description: t('pages.contactChat') } : {})} />
+      <div className="card p-6">
+        <p className="mb-4 font-bold" dir="ltr" lang="en">{SITE_CONTACT.displayName}</p>
+        <ContactDetails locale={L} variant="page" linkClassName="text-action underline-offset-4 hover:underline" />
       </div>
+      {SITE_CONTACT.supportChat.enabled ? (
+        <div className="mt-6">
+          <ButtonLink href="/account/messages">{t('chat.openSupport')}</ButtonLink>
+        </div>
+      ) : null}
     </div>
   );
 }

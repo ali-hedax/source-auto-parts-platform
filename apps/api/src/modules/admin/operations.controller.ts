@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Inject, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import type { DashboardView } from '@hedax/contracts';
+import { SITE_CONTACT, type DashboardView } from '@hedax/contracts';
 import { maskPhone } from '@hedax/domain';
 import { z } from 'zod';
 import { ENV, type Env } from '../../config/env.js';
@@ -77,7 +77,8 @@ export class OperationsController {
       { key: 'domain', status: site.domain ? 'READY' : 'MISSING', note: site.domain ? '' : 'Domain not configured' },
       { key: 'terms_published', status: terms ? 'READY' : 'MISSING', note: terms ? '' : 'Publish terms of sale before selling' },
       { key: 'fx_rate', status: rate ? 'READY' : 'MISSING', note: rate ? '' : 'No AED rate recorded (AED prices show "inquiry")' },
-      { key: 'contact_info', status: site.contactPhone || site.contactEmail ? 'READY' : 'MISSING', note: '' },
+      // Contact details come from the shared config file (packages/contracts/src/site-contact.ts).
+      { key: 'contact_info', status: SITE_CONTACT.phone.href || SITE_CONTACT.email ? 'READY' : 'MISSING', note: '' },
     ];
     return {
       ordersNeedingAction,
