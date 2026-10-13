@@ -63,6 +63,14 @@ x-app-env: &app-env
   KAVENEGAR_API_KEY: ${KAVENEGAR_API_KEY:-}
   KAVENEGAR_OTP_TEMPLATE: ${KAVENEGAR_OTP_TEMPLATE:-}
   KAVENEGAR_SENDER: ${KAVENEGAR_SENDER:-}
+  # Outgoing e-mail (staff invitations). "smtp" needs SMTP_* and MAIL_FROM; TLS is always certificate-checked. See docs/DEPLOYMENT.md §10.
+  MAIL_PROVIDER: ${MAIL_PROVIDER:-none}
+  SMTP_HOST: ${SMTP_HOST:-}
+  SMTP_PORT: ${SMTP_PORT:-587}
+  SMTP_TLS: ${SMTP_TLS:-starttls}
+  SMTP_USER: ${SMTP_USER:-}
+  SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+  MAIL_FROM: ${MAIL_FROM:-}
 
 services:
   postgres:

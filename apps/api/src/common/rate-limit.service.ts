@@ -20,6 +20,10 @@ export const LIMITS = {
   searchPerIp: { bucket: 'search:ip', limit: 120, windowSeconds: 60 },
   chatPerUser: { bucket: 'chat:user', limit: 40, windowSeconds: 60 },
   sourcingPerUser: { bucket: 'sourcing:user', limit: 20, windowSeconds: 3600 },
+  invitePerActor: { bucket: 'invite:actor', limit: 30, windowSeconds: 3600 },
+  inviteResendPerInvitation: { bucket: 'invite-resend:invitation', limit: 5, windowSeconds: 3600 },
+  invitationAcceptPerIp: { bucket: 'invite-accept:ip', limit: 20, windowSeconds: 900 },
+  mailTestPerActor: { bucket: 'mail-test:actor', limit: 5, windowSeconds: 3600 },
 } as const satisfies Record<string, LimitRule>;
 
 /**

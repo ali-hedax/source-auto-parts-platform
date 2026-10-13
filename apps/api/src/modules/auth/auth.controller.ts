@@ -102,7 +102,7 @@ export class AuthController {
   @HttpCode(200)
   @ApiZodBody(acceptInvitationSchema)
   acceptInvitation(@Body(zod(acceptInvitationSchema)) body: z.infer<typeof acceptInvitationSchema>) {
-    return this.auth.acceptInvitation(body);
+    return this.auth.acceptInvitation(body, currentContext()?.ipHash ?? null);
   }
 
   @Public()

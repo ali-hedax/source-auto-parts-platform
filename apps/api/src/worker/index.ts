@@ -6,6 +6,7 @@ import { JsonLogger } from '../common/logger.js';
 import { loadEnv } from '../config/env.js';
 import { AttachmentsModule } from '../modules/attachments/attachments.module.js';
 import { ImportsModule } from '../modules/imports/imports.module.js';
+import { MailModule } from '../modules/mail/mail.module.js';
 import { NotificationsModule } from '../modules/notifications/notifications.module.js';
 import { OrdersModule } from '../modules/orders/orders.module.js';
 import { PaymentsModule } from '../modules/payments/payments.module.js';
@@ -19,7 +20,7 @@ import { OutboxDispatcher } from './outbox-dispatcher.js';
  * PDFs, reconciliation) never run inside a web request.
  */
 @Module({
-  imports: [CommonModule, PaymentsModule, OrdersModule, SourcingModule, AttachmentsModule, ImportsModule, NotificationsModule],
+  imports: [CommonModule, MailModule, PaymentsModule, OrdersModule, SourcingModule, AttachmentsModule, ImportsModule, NotificationsModule],
   providers: [OutboxDispatcher, QuoteDocumentService],
 })
 export class WorkerModule {}

@@ -106,7 +106,7 @@ export async function bootApp(): Promise<TestApp> {
 
 /** Services resolved from the running app (same instances the HTTP layer uses). */
 export async function services(t: TestApp) {
-  const [prisma, attachments, imports, payments, settlement, quotes, ctx, scanner] = await Promise.all([
+  const [prisma, attachments, imports, payments, settlement, quotes, ctx, scanner, mail, mailTransport] = await Promise.all([
     import('../../dist/common/prisma.service.js'),
     import('../../dist/modules/attachments/attachments.service.js'),
     import('../../dist/modules/imports/imports.service.js'),
@@ -115,6 +115,8 @@ export async function services(t: TestApp) {
     import('../../dist/modules/sourcing/quotes.service.js'),
     import('../../dist/common/request-context.js'),
     import('../../dist/common/storage/scanner.js'),
+    import('../../dist/modules/mail/mail.service.js'),
+    import('../../dist/modules/mail/mail.transport.js'),
   ]);
   return {
     prisma: t.get<any>(prisma.PrismaService),
@@ -124,6 +126,10 @@ export async function services(t: TestApp) {
     settlement: t.get<any>(settlement.StockOrderSettlement),
     quotes: t.get<any>(quotes.QuotesService),
     scanner: t.get<any>(scanner.SCANNER),
+    mail: t.get<any>(mail.MailService),
+    /** The in-memory transport of the test environment (MAIL_PROVIDER=memory): sent messages and failNext(). */
+    mailTransport: t.get<any>(mailTransport.MAIL_TRANSPORT),
+    MailSendError: mailTransport.MailSendError,
     runAsWorker: <T>(fn: () => Promise<T>) => ctx.runWithContext({ requestId: `test-worker-${Date.now().toString(36)}`, ipHash: null, actor: null }, fn),
   };
 }
@@ -148,6 +154,7 @@ export async function drainOutbox(s: Services, types: string[], aggregateId?: st
       else if (row.type === 'import.parse') await s.imports.parse(p.jobId);
       else if (row.type === 'import.commit') await s.imports.commit(p.jobId);
       else if (row.type === 'payment.reconcile') await s.payments.verify(p.attemptId, 'INQUIRY');
+      else if (row.type === 'email.send') await s.mail.deliver(p.emailId);
       else throw new Error(`drainOutbox: no handler for ${row.type}`);
     });
     await s.prisma.outboxEvent.update({ where: { id: row.id }, data: { status: 'DONE', processedAt: new Date(), attempts: { increment: 1 } } });

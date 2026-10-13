@@ -1,18 +1,18 @@
-import { Body, Controller, Get, Inject, Param, ParseUUIDPipe, Patch, Post, Put } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Put } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { roleSchema, staffInviteSchema, staffUpdateSchema } from '@hedax/contracts';
+import { roleSchema, staffInvitationResendSchema, staffInviteSchema, staffUpdateSchema } from '@hedax/contracts';
 import { PERMISSIONS, assertCanGrant, assertNotLastOwner } from '@hedax/domain';
-import { randomToken, sha256Hex } from '@hedax/domain/server';
 import type { z } from 'zod';
-import { ENV, type Env } from '../../config/env.js';
 import { AuditService } from '../../common/audit.service.js';
 import { CurrentActor, RequirePermissions } from '../../common/auth/decorators.js';
 import { SessionService } from '../../common/auth/session.service.js';
-import { badRequest, conflict, forbidden, notFound } from '../../common/errors.js';
+import { badRequest, forbidden, notFound } from '../../common/errors.js';
 import { PrismaService } from '../../common/prisma.service.js';
 import type { Actor } from '../../common/request-context.js';
 import { ApiZodBody, zod } from '../../common/zod.js';
 import { AuthService } from '../auth/auth.service.js';
+import { MailService } from '../mail/mail.service.js';
+import { InvitationsService } from './invitations.service.js';
 
 /**
  * Staff, roles and permissions (spec §13). Nobody can grant more than they
@@ -27,7 +27,8 @@ export class StaffController {
     private readonly sessions: SessionService,
     private readonly audit: AuditService,
     private readonly auth: AuthService,
-    @Inject(ENV) private readonly env: Env,
+    private readonly invitations: InvitationsService,
+    private readonly mail: MailService,
   ) {}
 
   @RequirePermissions('users.manage')
@@ -84,41 +85,37 @@ export class StaffController {
   @Get('staff')
   async staff() {
     const rows = await this.prisma.user.findMany({ where: { kind: 'STAFF' }, include: { roles: { include: { role: true } } }, orderBy: { createdAt: 'asc' } });
-    const invites = await this.prisma.staffInvitation.findMany({ where: { acceptedAt: null, revokedAt: null, expiresAt: { gt: new Date() } } });
     return {
       staff: rows.map((u) => ({
         id: u.id, email: u.email, fullName: u.fullName, status: u.status, mfaEnabled: !!u.mfaEnabledAt, lastLoginAt: u.lastLoginAt?.toISOString() ?? null,
         roles: u.roles.map((r) => ({ id: r.roleId, key: r.role.key, nameFa: r.role.nameFa, nameEn: r.role.nameEn })),
       })),
-      pendingInvitations: invites.map((i) => ({ id: i.id, email: i.email, fullName: i.fullName, expiresAt: i.expiresAt.toISOString() })),
+      invitations: await this.invitations.list(),
+      mailConfigured: this.mail.configured,
     };
   }
 
-  /**
-   * No e-mail service is configured in v1: the one-time link is returned once
-   * to the inviting owner, who shares it through a trusted channel.
-   */
+  /** Invitation by e-mail (queued for the worker) with the one-time link also returned once to the inviting staff member. */
   @RequirePermissions('users.manage')
   @Post('staff/invitations')
   @ApiZodBody(staffInviteSchema)
-  async invite(@CurrentActor() actor: Actor, @Body(zod(staffInviteSchema)) body: z.infer<typeof staffInviteSchema>) {
-    const roles = await this.prisma.role.findMany({ where: { id: { in: body.roleIds } }, include: { permissions: true } });
-    if (roles.length !== new Set(body.roleIds).size) throw badRequest('UNKNOWN_ROLE');
-    if (roles.some((r) => r.isOwner) && !actor.isOwner) throw forbidden('PERMISSION_ESCALATION');
-    assertCanGrant(actor.permissions, roles.flatMap((r) => r.permissions.map((p) => p.permissionKey)));
-    // A new owner is a separate, confirmed act (spec §13): a fresh authenticator code of the acting owner.
-    if (roles.some((r) => r.isOwner)) await this.auth.confirmStepUp(actor, body.confirmCode);
-    const email = body.email.toLowerCase();
-    if (await this.prisma.user.findUnique({ where: { email } })) throw conflict('EMAIL_IN_USE');
-    const token = randomToken(32);
-    const invitation = await this.prisma.tx(async (tx) => {
-      const inv = await tx.staffInvitation.create({
-        data: { email, fullName: body.fullName, tokenHash: sha256Hex(token), roleIds: body.roleIds, invitedById: actor.userId, expiresAt: new Date(Date.now() + 72 * 3_600_000) },
-      });
-      await this.audit.record(tx, { action: 'staff.invited', entityType: 'staff_invitation', entityId: inv.id, after: { email, roles: roles.map((r) => r.key) } });
-      return inv;
-    });
-    return { invitationId: invitation.id, acceptUrl: `${this.env.PUBLIC_BASE_URL.replace(/\/$/, '')}/fa/staff/invite?token=${token}`, expiresAt: invitation.expiresAt.toISOString() };
+  invite(@CurrentActor() actor: Actor, @Body(zod(staffInviteSchema)) body: z.infer<typeof staffInviteSchema>) {
+    return this.invitations.invite(actor, body);
+  }
+
+  @RequirePermissions('users.manage')
+  @Post('staff/invitations/:id/resend')
+  @HttpCode(200)
+  @ApiZodBody(staffInvitationResendSchema)
+  resend(@CurrentActor() actor: Actor, @Param('id', ParseUUIDPipe) id: string, @Body(zod(staffInvitationResendSchema)) body: z.infer<typeof staffInvitationResendSchema>) {
+    return this.invitations.resend(actor, id, body.confirmCode);
+  }
+
+  @RequirePermissions('users.manage')
+  @Post('staff/invitations/:id/revoke')
+  @HttpCode(200)
+  revoke(@CurrentActor() actor: Actor, @Param('id', ParseUUIDPipe) id: string) {
+    return this.invitations.revoke(actor, id);
   }
 
   @RequirePermissions('users.manage')

@@ -85,6 +85,21 @@ const schema = z
     /** Dedicated sender line for notification texts; without it only sign-in codes are sent by SMS. */
     KAVENEGAR_SENDER: z.preprocess(emptyAsUnset, z.string().regex(/^[0-9]{4,20}$/).optional()),
 
+    /**
+     * Outgoing e-mail (staff invitations, test message). "smtp": authenticated SMTP with TLS
+     * that is always certificate-checked; "dev-log": development only, logs recipient and subject;
+     * "memory": automated tests (refused in staging/production); "none": nothing is sent and the panel says so.
+     */
+    MAIL_PROVIDER: z.enum(['smtp', 'dev-log', 'memory', 'none']).default('none'),
+    SMTP_HOST: z.preprocess(emptyAsUnset, z.string().regex(/^[A-Za-z0-9.-]{3,253}$/).optional()),
+    SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(587),
+    /** "starttls": plain connection upgraded to TLS before login (port 587); "implicit": TLS from the first byte (port 465). Never unencrypted. */
+    SMTP_TLS: z.enum(['starttls', 'implicit']).default('starttls'),
+    SMTP_USER: z.preprocess(emptyAsUnset, z.string().min(1).max(200).optional()),
+    SMTP_PASSWORD: z.preprocess(emptyAsUnset, z.string().min(1).max(500).optional()),
+    /** Sender, e.g. "Source by HEDAX <info@sourcebyhedax.ir>". Fixed; user input never changes it. */
+    MAIL_FROM: z.preprocess(emptyAsUnset, z.string().regex(/^[^\r\n<>]{0,80}<?[^@\s<>\r\n]+@[^@\s<>\r\n]+>?$/).optional()),
+
     LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug']).default('info'),
     OPENAPI_ENABLED: bool.default(true),
   })
@@ -109,6 +124,11 @@ const schema = z
     if (env.SMS_PROVIDER === 'kavenegar') {
       guard(!env.KAVENEGAR_API_KEY, 'KAVENEGAR_API_KEY', 'KAVENEGAR_API_KEY is required when SMS_PROVIDER=kavenegar');
       guard(!env.KAVENEGAR_OTP_TEMPLATE, 'KAVENEGAR_OTP_TEMPLATE', 'KAVENEGAR_OTP_TEMPLATE (an approved verify template) is required when SMS_PROVIDER=kavenegar');
+    }
+    guard(prod && (env.MAIL_PROVIDER === 'dev-log' || env.MAIL_PROVIDER === 'memory'), 'MAIL_PROVIDER', 'Only "smtp" or "none" may be used in production');
+    guard(env.MAIL_PROVIDER === 'memory' && env.APP_ENV !== 'test' && env.APP_ENV !== 'development', 'MAIL_PROVIDER', 'The in-memory mail transport is for automated tests only');
+    if (env.MAIL_PROVIDER === 'smtp') {
+      for (const key of ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASSWORD', 'MAIL_FROM'] as const) guard(!env[key], key, `${key} is required when MAIL_PROVIDER=smtp`);
     }
     if (env.STORAGE_DRIVER === 's3') {
       for (const key of ['S3_ENDPOINT', 'S3_REGION', 'S3_PRIVATE_BUCKET', 'S3_PUBLIC_BUCKET', 'S3_ACCESS_KEY_ID', 'S3_SECRET_ACCESS_KEY'] as const) {

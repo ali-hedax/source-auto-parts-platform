@@ -1,5 +1,6 @@
 'use client';
 
+import type { StaffInvitationView } from '@hedax/contracts';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,7 @@ import { Alert, Badge, EmptyState, Ltr, PageHeader, Section, StatusBadge, TableS
 import { api } from '@/lib/api/client';
 import { errorText } from '@/lib/api/errors';
 import { useApi } from '@/lib/use-api';
+import { InvitationsSection } from './invitations';
 import { useCodeLabel, useL } from './shell';
 
 interface CustomerRow { id: string; fullName: string | null; mobile: string | null; status: string; customerType: string; groupStatus: string; requestedType: string | null; businessName: string | null; group: string | null; orders: number; requests: number; createdAt: string }
@@ -60,7 +62,7 @@ export function CustomersPage() {
 }
 
 interface RoleRow { id: string; key: string; nameFa: string; nameEn: string; isSystem: boolean; isOwner: boolean; requiresMfa: boolean; permissions: string[]; members: number }
-interface StaffData { staff: Array<{ id: string; email: string | null; fullName: string | null; status: string; mfaEnabled: boolean; lastLoginAt: string | null; roles: Array<{ id: string; key: string; nameFa: string; nameEn: string }> }>; pendingInvitations: Array<{ id: string; email: string; fullName: string; expiresAt: string }> }
+interface StaffData { staff: Array<{ id: string; email: string | null; fullName: string | null; status: string; mfaEnabled: boolean; lastLoginAt: string | null; roles: Array<{ id: string; key: string; nameFa: string; nameEn: string }> }>; invitations: StaffInvitationView[]; mailConfigured: boolean }
 
 export function StaffPage() {
   const t = useTranslations();
@@ -71,14 +73,14 @@ export function StaffPage() {
   const [confirmCode, setConfirmCode] = useState('');
   // Granting the owner role is confirmed with a current authenticator code (spec §13).
   const grantsOwner = (roles.data ?? []).some((r) => r.isOwner && invite.roleIds.includes(r.id));
-  const [link, setLink] = useState<string | null>(null);
+  const [sent, setSent] = useState<{ email: string; link: string; emailQueued: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fail = (e: unknown) => setError(errorText(t, e));
   const send = async () => {
     setError(null);
     try {
-      const res = await api<{ acceptUrl: string }>('/admin/staff/invitations', { method: 'POST', body: { ...invite, ...(grantsOwner ? { confirmCode: confirmCode.trim() } : {}) } });
-      setLink(res.acceptUrl);
+      const res = await api<{ acceptUrl: string; emailQueued: boolean }>('/admin/staff/invitations', { method: 'POST', body: { ...invite, ...(grantsOwner ? { confirmCode: confirmCode.trim() } : {}) } });
+      setSent({ email: invite.email, link: res.acceptUrl, emailQueued: res.emailQueued });
       setInvite({ email: '', fullName: '', roleIds: [] });
       setConfirmCode('');
       await state.reload();
@@ -111,6 +113,7 @@ export function StaffPage() {
           </TableScroll>
         )}
       </Async>
+      <Async state={state}>{(data) => <InvitationsSection invitations={data.invitations} mailConfigured={data.mailConfigured} reload={state.reload} />}</Async>
       <Section title={t('admin.invite')} id="invite">
         <div className="grid gap-3 md:grid-cols-2">
           <Field id="inv-email" label={t('auth.email')}><Input id="inv-email" type="email" dir="ltr" value={invite.email} onChange={(e) => setInvite({ ...invite, email: e.target.value })} /></Field>
@@ -131,7 +134,15 @@ export function StaffPage() {
           </Field>
         ) : null}
         <Button className="mt-3" onClick={() => void send()} disabled={!invite.email || !invite.fullName || !invite.roleIds.length || (grantsOwner && !/^[0-9۰-۹]{6}$/.test(confirmCode.trim()))}>{t('admin.invite')}</Button>
-        {link ? <Alert tone="warning" className="mt-3" title={t('admin.inviteLink')}><p className="break-all"><Ltr>{link}</Ltr></p></Alert> : null}
+        {sent ? (
+          sent.emailQueued ? (
+            <Alert tone="success" className="mt-3" title={l(`دعوت‌نامه برای ${sent.email} ثبت شد و در صف ارسال ایمیل است. وضعیت ارسال را در جدول «دعوت‌ها» ببینید.`, `The invitation for ${sent.email} is queued for e-mail. Follow its status under Invitations.`)}>
+              <details className="mt-1 text-sm"><summary className="cursor-pointer">{l('لینک دعوت (فقط اگر ایمیل نرسید)', 'Invitation link (only if the e-mail does not arrive)')}</summary><p className="break-all"><Ltr>{sent.link}</Ltr></p></details>
+            </Alert>
+          ) : (
+            <Alert tone="warning" className="mt-3" title={l('ایمیل سایت تنظیم نشده است؛ این لینک یک‌بارمصرف را خودتان از راهی امن بفرستید.', 'E-mail is not configured; share this one-time link through a trusted channel.')}><p className="break-all"><Ltr>{sent.link}</Ltr></p></Alert>
+          )
+        ) : null}
       </Section>
     </div>
   );

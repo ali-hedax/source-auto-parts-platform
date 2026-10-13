@@ -35,6 +35,32 @@ export const staffInviteSchema = z.object({
   confirmCode: z.string().trim().regex(/^[0-9۰-۹]{6}$/).optional(),
 });
 
+/** Resending replaces the link (the previous one stops working). Owner invitations need a fresh authenticator code. */
+export const staffInvitationResendSchema = z.object({
+  confirmCode: z.string().trim().regex(/^[0-9۰-۹]{6}$/).optional(),
+});
+
+/**
+ * PENDING: e-mail queued or not configured; SENT: accepted by the SMTP server (not proof of inbox delivery);
+ * FAILED: the e-mail could not be handed over; then ACCEPTED, EXPIRED or REVOKED.
+ */
+export type StaffInvitationStatus = 'PENDING' | 'SENT' | 'FAILED' | 'ACCEPTED' | 'EXPIRED' | 'REVOKED';
+
+export interface StaffInvitationView {
+  id: string;
+  email: string;
+  fullName: string;
+  roles: Array<{ id: string; nameFa: string; nameEn: string; isOwner: boolean }>;
+  status: StaffInvitationStatus;
+  createdAt: string;
+  expiresAt: string;
+  acceptedAt: string | null;
+  /** When the SMTP server accepted the latest invitation e-mail. */
+  sentAt: string | null;
+  /** Short, secret-free reason of the latest e-mail failure (e.g. "SMTP_AUTH_FAILED 535"). */
+  lastError: string | null;
+}
+
 export const staffUpdateSchema = z.object({
   roleIds: z.array(idSchema).min(1).max(10).optional(),
   suspended: z.boolean().optional(),

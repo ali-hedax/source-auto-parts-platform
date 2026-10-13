@@ -318,6 +318,15 @@ enum OutboxStatus {
   FAILED
 }
 
+/// SENT means the SMTP server accepted the message for delivery; it does not prove the recipient's inbox received it.
+enum EmailStatus {
+  QUEUED
+  SENDING
+  SENT
+  FAILED
+  CANCELLED
+}
+
 enum ActorKind {
   CUSTOMER
   STAFF
@@ -555,10 +564,38 @@ model StaffInvitation {
   revokedAt   DateTime? @map("revoked_at") @db.Timestamptz(3)
   createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
 
-  invitedBy User @relation(fields: [invitedById], references: [id], onDelete: Restrict)
+  invitedBy User           @relation(fields: [invitedById], references: [id], onDelete: Restrict)
+  emails    EmailMessage[]
 
   @@index([email])
   @@map("staff_invitation")
+}
+
+/// One outgoing e-mail, sent by the worker through the outbox. The invitation token is
+/// kept only encrypted (secretEnc) until the message reaches a final state, then cleared.
+model EmailMessage {
+  id            String      @id @default(uuid(7)) @db.Uuid
+  kind          String      @db.VarChar(40)
+  toAddress     String      @map("to_address") @db.VarChar(200)
+  subject       String      @db.VarChar(200)
+  payload       Json
+  secretEnc     String?     @map("secret_enc")
+  status        EmailStatus @default(QUEUED)
+  attempts      Int         @default(0)
+  lastError     String?     @map("last_error") @db.VarChar(300)
+  smtpMessageId String?     @map("smtp_message_id") @db.VarChar(300)
+  smtpResponse  String?     @map("smtp_response") @db.VarChar(300)
+  sentAt        DateTime?   @map("sent_at") @db.Timestamptz(3)
+  invitationId  String?     @map("invitation_id") @db.Uuid
+  createdById   String?     @map("created_by_id") @db.Uuid
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  invitation StaffInvitation? @relation(fields: [invitationId], references: [id], onDelete: SetNull)
+
+  @@index([invitationId, createdAt])
+  @@index([status, createdAt])
+  @@map("email_message")
 }
 
 /// One-time bootstrap token for creating the first owner (CLI only).
