@@ -336,7 +336,7 @@ export class AuthService {
         action: 'staff.invitation.accepted', entityType: 'user', entityId: user.id, actorKind: 'STAFF', actorId: user.id,
         after: { email: invitation.email, roles: roles.map((r) => r.key) },
       });
-      return { userId: user.id, requiresMfa: roles.some((r) => r.requiresMfa) };
+      return { userId: user.id, email: user.email, requiresMfa: roles.some((r) => r.requiresMfa) };
     });
   }
 

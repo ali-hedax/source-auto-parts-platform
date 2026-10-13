@@ -337,6 +337,7 @@
     "changeMobile": "Change number",
     "devCode": "Test code (development only): {code}",
     "staffLogin": "Staff sign-in",
+    "invitationAccepted": "Your account is ready. Sign in with this e-mail and the password you chose.",
     "email": "Email",
     "password": "Password",
     "signIn": "Sign in",

@@ -9,6 +9,8 @@ import { Field, Input } from '@/components/ui/field';
 import { api } from '@/lib/api/client';
 import { errorText, isApiError } from '@/lib/api/errors';
 
+export const INVITED_EMAIL_KEY = 'hedax.invitedEmail';
+
 export function AcceptInvitation() {
   const t = useTranslations();
   const locale = useLocale();
@@ -23,9 +25,11 @@ export function AcceptInvitation() {
     setBusy(true);
     setError(null);
     try {
-      await api('/auth/invitations/accept', { method: 'POST', body: { token, fullName: name, password } });
+      const res = await api<{ email: string }>('/auth/invitations/accept', { method: 'POST', body: { token, fullName: name, password } });
+      // The sign-in page fills the address in (kept out of the URL so it is not logged).
+      try { sessionStorage.setItem(INVITED_EMAIL_KEY, res.email); } catch { /* storage blocked: the address is typed by hand */ }
       // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- full reload so server components and the header pick up the new session
-      window.location.assign(`/${locale}/staff/login`);
+      window.location.assign(`/${locale}/staff/login?invited=1`);
     } catch (e) {
       setError(errorText(t, e));
       setUsed(isApiError(e) && e.code === 'INVITATION_ALREADY_ACCEPTED');

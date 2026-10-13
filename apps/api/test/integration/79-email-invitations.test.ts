@@ -72,7 +72,10 @@ describe('invitation e-mail', () => {
 
     // The link from the e-mail creates the account once; a second click is told to sign in.
     const token = new URL(/https?:\/\/\S+token=[A-Za-z0-9_-]+/.exec(mail.text)![0]).searchParams.get('token') as string;
-    expect((await accept(token)).status).toBe(200);
+    const accepted = await accept(token);
+    expect(accepted.status).toBe(200);
+    // The sign-in page is pre-filled with the invited address.
+    expect(accepted.body).toMatchObject({ email });
     const again = await accept(token);
     expect(again.status).toBe(409);
     expect(again.body.error.code).toBe('INVITATION_ALREADY_ACCEPTED');
