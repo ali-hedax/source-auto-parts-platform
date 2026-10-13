@@ -550,7 +550,6 @@
     "returns": "Returns & cancellations",
     "privacy": "Privacy",
     "terms": "Terms of sale",
-    "contactPending": "Contact details will be published at the official launch.",
     "rights": "© {year} HEDAX"
   },
   "pages": {
@@ -559,6 +558,9 @@
     "contactTitle": "Contact Source",
     "contactChat": "The fastest way to reach us is the on-site conversation.",
     "phone": "Phone",
+    "mobileWhatsapp": "Mobile & WhatsApp (UAE)",
+    "whatsapp": "Chat on WhatsApp",
+    "email": "Email",
     "address": "Address",
     "hours": "Support hours",
     "policyPending": "This text will be published once approved by the owner.",
