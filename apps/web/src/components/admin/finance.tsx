@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Async } from '@/components/ui/async';
 import { Field, Input } from '@/components/ui/field';
 import { DateTime, Money, Num, useListSeparator } from '@/components/ui/format';
-import { Alert, Badge, DefinitionList, EmptyState, Ltr, PageHeader, Section, StatusBadge, TableScroll, td, th } from '@/components/ui/misc';
+import { Alert, Badge, Code, DefinitionList, EmptyState, Ltr, PageHeader, Section, StatusBadge, TableScroll, td, th } from '@/components/ui/misc';
 import { api, newIdempotencyKey } from '@/lib/api/client';
 import { errorText, isApiError } from '@/lib/api/errors';
 import { useApi } from '@/lib/use-api';
@@ -37,8 +37,8 @@ export function PaymentsPage() {
             <tbody>
               {rows.map((a) => (
                 <tr key={a.id}>
-                  <td className={td}><Ltr>{a.reference}</Ltr></td>
-                  <td className={td}><Ltr>{a.subjectReference ?? '—'}</Ltr></td>
+                  <td className={td}><Code>{a.reference}</Code></td>
+                  <td className={td}><Code>{a.subjectReference ?? '—'}</Code></td>
                   <td className={td}>{a.customer ?? '—'}</td>
                   <td className={td}><Money value={a.amount} />{a.overpayment.amountMinor !== '0' ? <Badge tone="warning" className="ms-1">+<Money value={a.overpayment} /></Badge> : null}</td>
                   <td className={td}><StatusBadge status={a.status} label={t(`status.${a.status}` as never)} />{a.failureCode ? <span className="block text-xs text-steel">{label('paymentFailure', a.failureCode)}</span> : null}</td>
@@ -56,7 +56,7 @@ export function PaymentsPage() {
           {(rows) => rows.length ? (
             <ul className="flex flex-col gap-2">
               {rows.map((c) => (
-                <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 rounded bg-surface p-3 text-sm">
+                <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-control)] border border-line-soft bg-surface px-3 py-2.5 text-sm">
                   <span className="font-semibold">{label('caseKind', c.kind)}</span>
                   <StatusBadge status={c.status} label={t(`status.${c.status}` as never)} />
                   <Money value={c.amount} />
@@ -107,10 +107,10 @@ export function RefundsPage() {
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id}>
-                  <td className={td}><Ltr>{r.reference}</Ltr></td>
+                  <td className={td}><Code>{r.reference}</Code></td>
                   <td className={td}><Ltr>{r.payment}</Ltr></td>
                   <td className={td}><Money value={r.amount} /></td>
-                  <td className={td}><StatusBadge status={r.status} label={t(`status.${r.status}` as never)} />{r.manualReference ?? r.providerRefundReference ? <span className="block text-xs"><Ltr>{r.manualReference ?? r.providerRefundReference}</Ltr></span> : null}</td>
+                  <td className={td}><StatusBadge status={r.status} label={t(`status.${r.status}` as never)} />{r.manualReference ?? r.providerRefundReference ? <span className="block text-xs"><Code>{r.manualReference ?? r.providerRefundReference}</Code></span> : null}</td>
                   <td className={td}>{r.reason}</td>
                   <td className={td}>
                     <div className="flex flex-wrap gap-1">
@@ -123,7 +123,7 @@ export function RefundsPage() {
                       {['APPROVED', 'FAILED'].includes(r.status) ? (
                         <>
                           <label className="sr-only" htmlFor={`mref-${r.id}`}>{l('شمارهٔ پیگیری انتقال بانکی', 'Bank transfer reference')}</label>
-                          <input id={`mref-${r.id}`} dir="ltr" className="min-h-9 w-36 rounded border border-line px-2 text-sm" placeholder={l('مرجع بانکی', 'Bank ref')} value={manualRef[r.id] ?? ''} onChange={(e) => setManualRef({ ...manualRef, [r.id]: e.target.value })} />
+                          <input id={`mref-${r.id}`} dir="ltr" className="min-h-9 w-36 rounded-[var(--radius-control)] border border-line-strong px-2 text-sm" placeholder={l('مرجع بانکی', 'Bank ref')} value={manualRef[r.id] ?? ''} onChange={(e) => setManualRef({ ...manualRef, [r.id]: e.target.value })} />
                           <Button size="sm" onClick={() => void act(`/admin/refunds/${r.id}/execute`, manualRef[r.id] ? { manualReference: manualRef[r.id] } : {})}>{l('انجام استرداد', 'Execute')}</Button>
                         </>
                       ) : null}
@@ -197,7 +197,7 @@ export function AdminReturnsPage() {
             {rows.map((r) => (
               <li key={r.id} className="card flex flex-col gap-2 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="font-semibold"><Ltr>{r.reference}</Ltr> — {r.kind === 'RETURN' ? l('مرجوعی', 'Return') : l('لغو', 'Cancellation')} — {r.customer}</span>
+                  <span className="font-semibold"><Code>{r.reference}</Code> — {r.kind === 'RETURN' ? l('مرجوعی', 'Return') : l('لغو', 'Cancellation')} — {r.customer}</span>
                   <StatusBadge status={r.status} label={t(`status.${r.status}` as never)} />
                 </div>
                 <p className="text-sm">{r.reason}</p>
@@ -210,11 +210,11 @@ export function AdminReturnsPage() {
                 ) : null}
                 {r.refunds.length ? (
                   <ul className="text-sm">
-                    {r.refunds.map((f) => <li key={f.reference}>{l('استرداد', 'Refund')} <Ltr>{f.reference}</Ltr>: <Money value={f.amount} /> — {t(`status.${f.status}` as never)}</li>)}
+                    {r.refunds.map((f) => <li key={f.reference}>{l('استرداد', 'Refund')} <Code>{f.reference}</Code>: <Money value={f.amount} /> — {t(`status.${f.status}` as never)}</li>)}
                   </ul>
                 ) : null}
                 {refundDue(r) && r.payment ? (
-                  <div className="flex flex-wrap items-end gap-2 rounded bg-surface p-3">
+                  <div className="flex flex-wrap items-end gap-2 rounded-[var(--radius-control)] border border-line-soft bg-surface px-3 py-2.5">
                     <Field id={`rf-amount-${r.id}`} label={l('مبلغ استرداد (ریال)', 'Refund amount (IRR)')} hint={`${l('حداکثر', 'Up to')} ${formatMoney(money('IRR', r.payment.refundable.amountMinor), locale)}${sep}${l('پرداخت', 'Payment')} ${r.payment.reference}`}>
                       <Input id={`rf-amount-${r.id}`} dir="ltr" inputMode="numeric" value={amount[r.id] ?? minorToDecimalString(BigInt(r.suggestedRefund.amountMinor), 'IRR')} onChange={(e) => setAmount({ ...amount, [r.id]: e.target.value })} />
                     </Field>
@@ -282,7 +282,7 @@ export function ReportsPage() {
               </Section>
             </div>
             <Section title={t('admin.topItems')} id="rep-top">
-              <ul className="flex flex-col gap-1">{s.topItems.map((i) => <li key={i.sku} className="flex flex-wrap justify-between gap-2"><span><Ltr>{i.sku}</Ltr> — {i.name}</span><span><Num value={i.quantity} /> {l('عدد', 'pcs')}{sep}<Money value={i.revenue} /></span></li>)}</ul>
+              <ul className="flex flex-col gap-1">{s.topItems.map((i) => <li key={i.sku} className="flex flex-wrap justify-between gap-2"><span><Code>{i.sku}</Code> — {i.name}</span><span><Num value={i.quantity} /> {l('عدد', 'pcs')}{sep}<Money value={i.revenue} /></span></li>)}</ul>
             </Section>
           </div>
         )}

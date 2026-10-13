@@ -6,7 +6,7 @@ import { useParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { Async } from '@/components/ui/async';
 import { DateTime, Money, Num } from '@/components/ui/format';
-import { EmptyState, Ltr, PageHeader, Section, StatusBadge, TableScroll, td, th } from '@/components/ui/misc';
+import { Code, EmptyState, PageHeader, Section, StatusBadge, TableScroll, td, th } from '@/components/ui/misc';
 import { ChatThread } from '@/components/chat/chat-thread';
 import { OrderDetail } from '@/components/orders/order-detail';
 import { QuoteView } from '@/components/quotes/quote-view';
@@ -33,7 +33,7 @@ export function RequestDetailPage() {
     <Async state={state}>
       {(r) => (
         <div className="flex flex-col gap-6">
-          <PageHeader title={r.title} description={<Ltr>{r.reference}</Ltr>} actions={<StatusBadge status={r.status} label={t(`status.${r.status}` as never)} />} />
+          <PageHeader title={r.title} description={<Code>{r.reference}</Code>} actions={<StatusBadge status={r.status} label={t(`status.${r.status}` as never)} />} />
           {r.items.length ? (
             <TableScroll caption={t('request.items')}>
               <thead>
@@ -62,8 +62,8 @@ export function RequestDetailPage() {
             <Section title={t('account.quotes')} id="req-quotes">
               <ul className="flex flex-col gap-2">
                 {r.quotes.map((q) => (
-                  <li key={q.versionId} className="flex flex-wrap items-center justify-between gap-2 rounded bg-surface p-3">
-                    <Link href={`/account/quotes/${q.versionId}`} className="font-semibold text-action underline"><Ltr>{q.reference}</Ltr> — {t('quote.version', { n: q.versionNumber })}</Link>
+                  <li key={q.versionId} className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-control)] border border-line-soft bg-surface px-3 py-2.5">
+                    <Link href={`/account/quotes/${q.versionId}`} className="font-semibold text-action underline underline-offset-4 hover:text-action-hover"><Code>{q.reference}</Code> — {t('quote.version', { n: q.versionNumber })}</Link>
                     <StatusBadge status={q.status} label={t(`status.${q.status}` as never)} />
                     <Money value={q.totalPayable} />
                     <span className="text-sm text-steel">{t('quote.validUntil')}: <DateTime iso={q.validUntil} /></span>

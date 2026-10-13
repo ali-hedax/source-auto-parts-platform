@@ -3,6 +3,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags } from '@nestjs/swagger';
 import { memoryStorage } from 'multer';
 import {
+  mediaOrderSchema,
   mediaUpdateSchema,
   paginationQuerySchema,
   priceRuleSchema,
@@ -25,7 +26,8 @@ const listQuery = paginationQuerySchema.extend({
   archived: z.enum(['1', '0']).optional(),
 });
 const versionBody = z.object({ version: z.number().int().min(0) });
-const altBody = z.object({ altFa: z.string().trim().min(2).max(200), altEn: z.string().trim().max(200).optional() });
+/** Alt text is optional on upload: it defaults to the part's Persian name. */
+const altBody = z.object({ altFa: z.string().trim().min(2).max(200).optional(), altEn: z.string().trim().max(200).optional() });
 
 const taxonomySchema = z.object({
   code: z.string().regex(/^[A-Z0-9_]{2,40}$/),
@@ -100,6 +102,13 @@ export class AdminCatalogController {
     return this.svc.archive(id, body.version);
   }
 
+  @RequirePermissions('products.read')
+  @Get('products/:id/media')
+  media(@Param('id', ParseUUIDPipe) id: string) {
+    return this.svc.listMedia(id);
+  }
+
+  /** One JPG, PNG or WebP image (up to 20 MB) per request; checked, scanned and re-encoded on the server. */
   @RequirePermissions('products.write')
   @Post('products/:id/media')
   @UseInterceptors(FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: 20 * MB, files: 1 } }))
@@ -109,8 +118,16 @@ export class AdminCatalogController {
     @Body() rawBody: Record<string, unknown>,
   ) {
     if (!file) throw badRequest('FILE_REQUIRED');
-    const alt = altBody.parse(rawBody);
-    return this.svc.addMedia(id, file, alt);
+    const alt = altBody.safeParse(rawBody);
+    if (!alt.success) throw badRequest('VALIDATION_FAILED', 'Invalid alt text');
+    return this.svc.addMedia(id, file, alt.data);
+  }
+
+  @RequirePermissions('products.write')
+  @Put('products/:id/media/order')
+  @ApiZodBody(mediaOrderSchema)
+  reorderMedia(@Param('id', ParseUUIDPipe) id: string, @Body(zod(mediaOrderSchema)) body: z.infer<typeof mediaOrderSchema>) {
+    return this.svc.reorderMedia(id, body.ids);
   }
 
   @RequirePermissions('products.write')

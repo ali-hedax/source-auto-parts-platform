@@ -166,6 +166,29 @@ export class InventoryService {
   }
 
   /**
+   * Adds received units to the physical count (import "add to stock"). An
+   * increase never conflicts with reservations, so it applies to the count at
+   * this moment rather than the one seen in the preview; the ledger keeps the movement.
+   */
+  async addOnHand(
+    tx: Tx,
+    input: { productId: string; quantity: number; type: 'IMPORT_ADJUSTMENT' | 'RECEIPT'; reason: string; referenceType?: string | null; referenceId?: string | null; warehouseId?: string },
+  ): Promise<BalanceView> {
+    if (!Number.isSafeInteger(input.quantity) || input.quantity < 0) throw new DomainError('INVALID_QUANTITY');
+    const warehouseId = input.warehouseId ?? (await this.defaultWarehouseId(tx));
+    await this.ensureBalance(tx, input.productId, warehouseId);
+    const [locked] = await tx.$queryRaw<Array<{ on_hand: number }>>`
+      SELECT "on_hand" FROM "inventory_balance"
+       WHERE "product_id" = ${input.productId}::uuid AND "warehouse_id" = ${warehouseId}::uuid
+       FOR UPDATE`;
+    if (!locked) throw new DomainError('NOT_FOUND');
+    return this.setOnHand(tx, {
+      productId: input.productId, newOnHand: locked.on_hand + input.quantity, expectedVersion: null, type: input.type, reason: input.reason,
+      referenceType: input.referenceType ?? null, referenceId: input.referenceId ?? null, warehouseId,
+    });
+  }
+
+  /**
    * Sets the absolute physical count. Refuses on version conflict or when the
    * new count would drop below what is reserved (spec §6, §12).
    */

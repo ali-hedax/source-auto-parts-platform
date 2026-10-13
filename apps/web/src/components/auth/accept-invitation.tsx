@@ -30,7 +30,7 @@ export function AcceptInvitation() {
     }
   };
   return (
-    <form noValidate onSubmit={(e) => { e.preventDefault(); void submit(); }} className="card flex flex-col gap-4 p-6">
+    <form noValidate onSubmit={(e) => { e.preventDefault(); void submit(); }} className="flex flex-col gap-5 rounded-[var(--radius-panel)] border border-line-soft border-t-4 border-t-carbon bg-white p-6 sm:p-8">
       <ErrorSummary title={t('validation.summaryTitle')} errors={[]} generalError={error} />
       <Field id="inv-name" label={t('auth.fullName')} required>
         <Input id="inv-name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />

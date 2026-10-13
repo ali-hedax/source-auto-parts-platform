@@ -8,7 +8,7 @@ import { Async } from '@/components/ui/async';
 import { ErrorSummary } from '@/components/ui/error-summary';
 import { Field, Input, Select, Textarea } from '@/components/ui/field';
 import { DateTime, Money } from '@/components/ui/format';
-import { Alert, EmptyState, Ltr, PageHeader, Section, StatusBadge } from '@/components/ui/misc';
+import { Alert, Code, EmptyState, Ltr, PageHeader, Section, StatusBadge } from '@/components/ui/misc';
 import { FileUploader } from '@/components/files/file-uploader';
 import { Link } from '@/i18n/navigation';
 import { api } from '@/lib/api/client';
@@ -112,13 +112,13 @@ export function ReturnsPage() {
               {rows.map((r) => (
                 <li key={r.id} className="card flex flex-col gap-2 p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="font-semibold"><Ltr>{r.reference}</Ltr> — {r.kind === 'CANCEL' ? t('order.requestCancel') : t('order.requestReturn')}</span>
+                    <span className="font-semibold"><Code>{r.reference}</Code> — {r.kind === 'CANCEL' ? t('order.requestCancel') : t('order.requestReturn')}</span>
                     <StatusBadge status={r.status} label={t(`status.${r.status}` as never)} />
                   </div>
                   <p className="text-sm">{r.reason}</p>
                   {r.decisionReason ? <p className="text-sm text-steel">{r.decisionReason}</p> : null}
                   {r.refunds.map((f) => (
-                    <p key={f.reference} className="text-sm"><Ltr>{f.reference}</Ltr>: <Money value={f.amount} /> — {t(`status.${f.status}` as never)}</p>
+                    <p key={f.reference} className="text-sm"><Code>{f.reference}</Code>: <Money value={f.amount} /> — {t(`status.${f.status}` as never)}</p>
                   ))}
                 </li>
               ))}

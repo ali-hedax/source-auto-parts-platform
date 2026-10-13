@@ -3,6 +3,8 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { mapHeaders, planImport } from '@hedax/domain';
+import { readSheet } from '../../src/modules/imports/spreadsheet.js';
 import {
   type Client,
   type Services,
@@ -81,6 +83,19 @@ async function commit(jobId: string, planChecksum: string) {
 const product = (sku: string) => s.prisma.product.findUnique({ where: { sku }, include: { basePrice: true, inventory: true } });
 
 describe('A22 — leading-zero SKU, duplicate rows and invalid data', () => {
+  it('a numeric cell that lost the zeros of an existing SKU (00123 → 123) is an error, not a new product', async () => {
+    const digits = `9${String(Date.now()).slice(-6)}`;
+    const created = await startImport(await workbook([newRow(`00${digits}`)]), 'CREATE_AND_UPDATE');
+    expect(created.preview.summary.canCommit, JSON.stringify(created.preview.rows[0]?.issues)).toBe(true);
+    expect((await commit(created.jobId, created.preview.planChecksum)).job.status).toBe('COMMITTED');
+
+    const { preview } = await startImport(await workbook([newRow(Number(digits), { name_fa: 'همان کالا با کد عددی' })]), 'CREATE_AND_UPDATE');
+    const row = preview.rows[0];
+    expect(row.action).toBe('ERROR');
+    expect(row.issues).toEqual(expect.arrayContaining([expect.objectContaining({ code: 'SKU_LEADING_ZEROS_LOST', detail: `00${digits}` })]));
+    expect(await product(digits)).toBeNull();
+  });
+
   it('identifiers kept as text, row-level errors, nothing changes before confirmation', async () => {
     const skuZero = `00${run.slice(-5)}`;
     const file = await workbook([
@@ -99,7 +114,8 @@ describe('A22 — leading-zero SKU, duplicate rows and invalid data', () => {
     expect(preview.rows.find((r: any) => r.rowNumber === 2).sku).toBe(skuZero);
     expect(codes(3)).toContain('DUPLICATE_SKU_IN_FILE');
     expect(codes(4)).toContain('SKU_STORED_AS_NUMBER');
-    expect(codes(5)).toContain('UNKNOWN_CURRENCY');
+    // Toman is never assumed: a currency cell saying TOMAN needs the explicit toman → rial choice.
+    expect(codes(5)).toContain('TOMAN_NEEDS_CONVERSION');
     expect(codes(6)).toContain('NOT_A_WHOLE_NUMBER');
     expect(codes(7).some((c: string) => ['NEGATIVE_NOT_ALLOWED', 'INVALID_AMOUNT'].includes(c))).toBe(true);
     expect(codes(8)).toContain('UNKNOWN_CATEGORY');
@@ -121,17 +137,36 @@ describe('A22 — leading-zero SKU, duplicate rows and invalid data', () => {
     await wb.xlsx.load(reportBytes as never);
     const template = await owner.raw('GET', '/admin/imports/template');
     expect(template.status).toBe(200);
+    const templateBytes = Buffer.from(await template.arrayBuffer());
+    // The operator template: nine Persian headers the importer maps, SKU as text, Persian drop-downs,
+    // and its Persian sample rows parse without errors through the same reader and planner.
+    const blank = await readSheet(templateBytes, 'xlsx', { sheet: 0, headerRow: 1, maxRows: 10 });
+    expect(blank?.headers).toEqual(['کد کالا', 'نام قطعه', 'کد دسته', 'نوع قطعه', 'وضعیت فیزیکی', 'منشا', 'ارز پایه', 'قیمت پایه', 'موجودی']);
+    expect(Object.keys(mapHeaders(blank!.headers).mapping).sort()).toEqual(['base_currency', 'base_price', 'category_code', 'condition', 'name_fa', 'on_hand', 'origin', 'part_type', 'sku'].sort());
+    const templateWb = new ExcelJS.Workbook();
+    await templateWb.xlsx.load(templateBytes as never);
+    expect(templateWb.worksheets[0]!.getColumn(1).numFmt).toBe('@');
+    expect(JSON.stringify((templateWb.worksheets[0] as any).dataValidations.model)).toContain('بازسازی شده');
+    const sample = await readSheet(templateBytes, 'xlsx', { sheet: 1, headerRow: 1, maxRows: 10 });
+    const { mapping } = mapHeaders(sample!.headers);
+    const samplePlan = planImport(sample!.rows.map(({ cells }) => Object.fromEntries(Object.entries(mapping).map(([col, i]) => [col, cells[i as number]]))), {
+      mode: 'CREATE_AND_UPDATE', existing: new Map(), categoryCodes: new Set(['FILTER', 'BRAKE']), vehicleBrandCodes: new Set(), manufacturerBrands: new Map(), clearWhenEmpty: new Set(),
+    });
+    expect(samplePlan.rows.map((r) => [r.sku, r.action, r.values?.partType, r.values?.condition, r.values?.origin, r.values?.baseCurrency])).toEqual([
+      ['00123', 'CREATE', 'GENUINE', 'NEW', 'DOMESTIC', 'IRR'],
+      ['TEST-SAMPLE-002', 'CREATE', 'AFTERMARKET', 'USED', 'IMPORTED', 'AED'],
+    ]);
     mkdirSync(samples, { recursive: true });
-    writeFileSync(path.join(samples, 'hedax-products-template.xlsx'), Buffer.from(await template.arrayBuffer()));
+    writeFileSync(path.join(samples, 'hedax-products-template.xlsx'), templateBytes);
     writeFileSync(path.join(samples, 'sample-row-errors.xlsx'), reportBytes);
     writeFileSync(path.join(samples, 'sample-import-with-errors.xlsx'), file);
     const rows = wb.worksheets[0]!.getSheetValues().filter(Boolean) as unknown[][];
-    expect(rows.some((r) => r[2] === skuZero && r[5] === 'DUPLICATE_SKU_IN_FILE' && String(r[6]).includes('بیش از یک بار'))).toBe(true);
-    expect(rows[0]?.slice(1)).toEqual(['ردیف', 'کد کالا', 'نوع', 'ستون', 'کد خطا', 'توضیح']);
+    expect(rows.some((r) => r[2] === skuZero && r[7] === 'DUPLICATE_SKU_IN_FILE' && String(r[8]).includes('بیش از یک بار'))).toBe(true);
+    expect(rows[0]?.slice(1)).toEqual(['ردیف', 'کد کالا', 'شماره فنی', 'نام قطعه', 'نوع', 'ستون', 'کد خطا', 'توضیح', 'جزئیات']);
     const reportEn = new ExcelJS.Workbook();
     await reportEn.xlsx.load(Buffer.from(await (await owner.raw('GET', `/admin/imports/${jobId}/errors.xlsx?locale=en`)).arrayBuffer()) as never);
     const rowsEn = reportEn.worksheets[0]!.getSheetValues().filter(Boolean) as unknown[][];
-    expect(rowsEn.some((r) => r[5] === 'DUPLICATE_SKU_IN_FILE' && String(r[6]).includes('more than once'))).toBe(true);
+    expect(rowsEn.some((r) => r[7] === 'DUPLICATE_SKU_IN_FILE' && String(r[8]).includes('more than once'))).toBe(true);
 
     // A clean file creates the product with the exact SKU, unpublished, with one stock entry.
     const clean = await startImport(await workbook([newRow(skuZero)]), 'CREATE_AND_UPDATE');

@@ -28,31 +28,31 @@ export function AddToCart({ productId, max, name }: { productId: string; max: nu
   };
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center rounded-[var(--radius-control)] border border-line" role="group" aria-label={t('parts.quantity')}>
-          <button type="button" className="grid size-11 cursor-pointer place-items-center disabled:opacity-40" onClick={() => setQty((q) => Math.max(1, q - 1))} disabled={qty <= 1} aria-label={t('cart.decrease', { name })}>
+      <div className="flex flex-wrap items-stretch gap-3">
+        <div className="flex h-12 items-stretch overflow-hidden rounded-[var(--radius-control)] border border-line-strong bg-white" role="group" aria-label={t('parts.quantity')}>
+          <button type="button" className="grid w-11 cursor-pointer place-items-center transition-colors hover:bg-surface disabled:cursor-not-allowed disabled:opacity-40" onClick={() => setQty((q) => Math.max(1, q - 1))} disabled={qty <= 1} aria-label={t('cart.decrease', { name })}>
             <Minus aria-hidden className="size-4" />
           </button>
           <label htmlFor="qty" className="sr-only">{t('parts.quantity')}</label>
           <input
             id="qty"
             inputMode="numeric"
-            className="h-11 w-14 border-x border-line text-center font-semibold"
+            className="num w-14 border-x border-line text-center font-semibold"
             value={qty}
             onChange={(e) => {
               const n = typedNumber(e.target.value);
               if (Number.isInteger(n)) setQty(Math.min(Math.max(1, n), max));
             }}
           />
-          <button type="button" className="grid size-11 cursor-pointer place-items-center disabled:opacity-40" onClick={() => setQty((q) => Math.min(max, q + 1))} disabled={qty >= max} aria-label={t('cart.increase', { name })}>
+          <button type="button" className="grid w-11 cursor-pointer place-items-center transition-colors hover:bg-surface disabled:cursor-not-allowed disabled:opacity-40" onClick={() => setQty((q) => Math.min(max, q + 1))} disabled={qty >= max} aria-label={t('cart.increase', { name })}>
             <Plus aria-hidden className="size-4" />
           </button>
         </div>
-        <Button size="lg" onClick={add} loading={state === 'adding'} icon={<ShoppingCart aria-hidden className="size-5" />}>
+        <Button size="lg" className="min-w-48 flex-1 sm:flex-none" onClick={add} loading={state === 'adding'} icon={<ShoppingCart aria-hidden className="size-5" />}>
           {state === 'adding' ? t('parts.adding') : t('parts.addToCart')}
         </Button>
       </div>
-      <p className="text-sm text-steel">{t('parts.maxQuantity', { max })}</p>
+      <p className="text-[0.8125rem] text-steel">{t('parts.maxQuantity', { max })}</p>
       <div aria-live="polite">
         {state === 'added' ? (
           <Alert tone="success" title={t('parts.added')}>

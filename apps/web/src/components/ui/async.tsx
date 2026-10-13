@@ -15,13 +15,18 @@ export function Async<T>({ state, children }: { state: ApiState<T>; children: (d
   if (state.loading && !state.data) return <Spinner label={t('common.loading')} />;
   if (state.error) {
     if (state.error.status === 401) {
+      // The staff panel signs in with email and password; the mobile-code sign-in is for customers.
+      if (pathname === '/admin' || pathname.startsWith('/admin/')) {
+        return (
+          <Alert tone="info" title={t('errors.UNAUTHENTICATED')}>
+            <ButtonLink href="/staff/login" className="mt-2" size="sm">{t('auth.staffLogin')}</ButtonLink>
+          </Alert>
+        );
+      }
       const next = typeof window !== 'undefined' ? window.location.pathname : `/${locale}/account`;
-      const loginHref = pathname === '/admin' || pathname.startsWith('/admin/')
-        ? '/staff/login'
-        : `/login?next=${encodeURIComponent(next)}`;
       return (
         <Alert tone="info" title={t('errors.UNAUTHENTICATED')}>
-          <ButtonLink href={loginHref} className="mt-2" size="sm">{t('nav.login')}</ButtonLink>
+          <ButtonLink href={`/login?next=${encodeURIComponent(next)}`} className="mt-2" size="sm">{t('nav.login')}</ButtonLink>
         </Alert>
       );
     }

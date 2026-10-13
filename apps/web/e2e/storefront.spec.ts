@@ -198,6 +198,62 @@ test.describe('layout, SEO and accessibility', () => {
   });
 });
 
+test.describe('sign-in prompts when signed out', () => {
+  test('staff panel pages lead to the staff sign-in in the current language', async ({ page }) => {
+    await page.goto('/fa/admin/imports');
+    const fa = page.getByRole('link', { name: 'ورود کارکنان' });
+    await expect(fa).toHaveAttribute('href', '/fa/staff/login');
+    await expect(page.locator('a[href^="/fa/login"]')).toHaveCount(0);
+    // Nobody is signed in, so the header offers no sign-out.
+    await expect(page.getByRole('button', { name: 'خروج' })).toHaveCount(0);
+    await fa.click();
+    await expect(page).toHaveURL(/\/fa\/staff\/login$/);
+    await expect(page.getByRole('heading', { level: 1, name: 'ورود کارکنان' })).toBeVisible();
+    await page.goto('/en/admin/products');
+    await expect(page.getByRole('link', { name: 'Staff sign-in' })).toHaveAttribute('href', '/en/staff/login');
+  });
+
+  test('customer account pages keep the mobile-code sign-in', async ({ page }) => {
+    await page.goto('/fa/account/orders');
+    await expect(page.locator('a[href="/fa/login?next=%2Ffa%2Faccount%2Forders"]')).toHaveText('ورود / ثبت‌نام');
+  });
+});
+
+test.describe('contact details (one config file for footer and contact page)', () => {
+  const links = ['tel:+982536666669,119', 'tel:+971501441797', 'https://wa.me/971501441797', 'mailto:info@sourcebyhedax.ir'];
+
+  for (const [locale, phone, ext, mobile, hours] of [
+    ['fa', '۰۲۵-۳۶۶۶۶۶۶۹', '(داخلی ۱۱۹)', '+۹۷۱۵۰۱۴۴۱۷۹۷', 'پشتیبانی ۲۴ ساعته، ۷ روز هفته'],
+    ['en', '+98 25 3666 6669', '(Ext. 119)', '+971 50 144 1797', 'Customer support 24/7'],
+  ] as const) {
+    test(`${locale}: footer and contact page show the same approved details, numbers left-to-right`, async ({ page }) => {
+      for (const path of [`/${locale}/contact`, `/${locale}`]) {
+        await page.goto(path);
+        const scope = path.endsWith('/contact') ? page.locator('main') : page.getByTestId('footer-contact');
+        for (const href of links) await expect(scope.locator(`a[href="${href}"]`)).toHaveCount(1);
+        const phoneNumber = scope.locator('a[href="tel:+982536666669,119"] bdi');
+        await expect(phoneNumber).toHaveText(phone);
+        await expect(phoneNumber).toHaveAttribute('dir', 'ltr');
+        await expect(scope).toContainText(ext);
+        const mobileNumber = scope.locator('a[href="tel:+971501441797"] bdi');
+        await expect(mobileNumber).toHaveText(mobile);
+        await expect(mobileNumber).toHaveAttribute('dir', 'ltr');
+        await expect(scope.locator('a[href="mailto:info@sourcebyhedax.ir"] bdi')).toHaveAttribute('dir', 'ltr');
+        await expect(scope).toContainText(hours);
+        // Nothing unapproved: no address, map, social links or "published later" placeholder.
+        await expect(page.locator('a[href*="instagram"], a[href*="linkedin"], iframe[src*="map"]')).toHaveCount(0);
+        await expect(page.getByText(/نشانی|Address|پس از راه‌اندازی رسمی|published at the official launch/)).toHaveCount(0);
+      }
+      // Support chat is switched off in the config until customer SMS sign-in works.
+      await page.goto(`/${locale}/contact`);
+      await expect(page.locator('main a[href$="/account/messages"]')).toHaveCount(0);
+      await expect(page.getByText(/سریع‌ترین راه ارتباط|fastest way to reach us/)).toHaveCount(0);
+      // The WhatsApp link opens outside the site safely.
+      await expect(page.getByTestId('footer-contact').locator('a[href="https://wa.me/971501441797"]')).toHaveAttribute('rel', 'noopener noreferrer');
+    });
+  }
+});
+
 test.describe('admin preview', () => {
   test('dashboard shows an honest launch-readiness list', async ({ page, context }) => {
     await context.addCookies([{ name: 'hedax_fixture_role', value: 'staff', url: 'http://localhost:3100' }]);

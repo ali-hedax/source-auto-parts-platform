@@ -40,6 +40,7 @@
     "requestId": "Error reference: {id}",
     "page": "Page {page, number} of {total, number}",
     "results": "{count, plural, =0 {No results} one {# result} other {# results}}",
+    "partCount": "{count, plural, =0 {No published parts} one {# part} other {# parts}}",
     "englishFallback": "English name not provided",
     "sampleBanner": "Preview with SAMPLE data — nothing here is real and no purchase or payment happens.",
     "notConfigured": "Not configured yet",
@@ -143,7 +144,9 @@
     "outOfStockAction": "Request a similar part",
     "notPurchasable": "This part can't be purchased right now.",
     "maxQuantity": "You can order up to {max, number}.",
-    "claimNote": "Part type and condition are as recorded by HEDAX."
+    "claimNote": "Part type and condition are as recorded by HEDAX.",
+    "photos": "Part photos",
+    "photoN": "Photo {n}"
   },
   "availability": {
     "IN_STOCK": "In stock",
@@ -311,7 +314,13 @@
     "remove": "Remove file {name}",
     "retry": "Retry",
     "tooMany": "Too many files.",
-    "rejected_IMPORT_FORMAT_NOT_ALLOWED": "Only XLSX or CSV files can be imported."
+    "rejected_IMPORT_FORMAT_NOT_ALLOWED": "Only XLSX or CSV files can be imported.",
+    "rejected_ZIP_INVALID": "The file structure is damaged or unknown; save it again from Excel.",
+    "rejected_ZIP_LIMITS_EXCEEDED": "The file is too large when unpacked.",
+    "rejected_EMBEDDED_OBJECTS": "The file has embedded objects (such as ActiveX) and is not accepted; copy only the data into a new file.",
+    "rejected_EMPTY_FILE": "The file is empty.",
+    "rejected_MARKUP_CONTENT": "The CSV content is not valid.",
+    "rejected_INVALID_TEXT_ENCODING": "The CSV file must be saved as UTF-8."
   },
   "auth": {
     "loginTitle": "Sign in or sign up",
@@ -541,7 +550,6 @@
     "returns": "Returns & cancellations",
     "privacy": "Privacy",
     "terms": "Terms of sale",
-    "contactPending": "Contact details will be published at the official launch.",
     "rights": "© {year} HEDAX"
   },
   "pages": {
@@ -550,6 +558,9 @@
     "contactTitle": "Contact Source",
     "contactChat": "The fastest way to reach us is the on-site conversation.",
     "phone": "Phone",
+    "mobileWhatsapp": "Mobile & WhatsApp (UAE)",
+    "whatsapp": "Chat on WhatsApp",
+    "email": "Email",
     "address": "Address",
     "hours": "Support hours",
     "policyPending": "This text will be published once approved by the owner.",
@@ -677,10 +688,10 @@
     "importStatus_COMMITTED": "Changes applied",
     "importStatus_CONFLICT": "Conflict — nothing was applied",
     "importStatus_CANCELLED": "Cancelled",
-    "importAction_CREATE": "Create",
+    "importAction_CREATE": "New",
     "importAction_UPDATE": "Update",
     "importAction_UNCHANGED": "Unchanged",
-    "importAction_ERROR": "Error",
+    "importAction_ERROR": "Has errors",
     "importFileErrors": "File errors",
     "movement_RECEIPT": "Goods received",
     "movement_ADJUSTMENT": "Stock adjustment",
@@ -870,7 +881,11 @@
     "paymentFailure_CUSTOMER_CANCELLED": "Cancelled by the customer",
     "paymentFailure_PROVIDER_CREATE_FAILED": "The gateway could not start the payment",
     "paymentFailure_VERIFICATION_MISMATCH": "Gateway verification did not match the amount or merchant",
-    "paymentProvider_zarinpal": "Zarinpal"
+    "paymentProvider_zarinpal": "Zarinpal",
+    "importStatus_INSPECTING": "Reading the sheets",
+    "importStatus_AWAITING_MAPPING": "Waiting for column matching",
+    "auditAction_product_media_updated": "Product photo changed (main photo or alt text)",
+    "auditAction_product_media_reordered": "Product photos reordered"
   },
   "validation": {
     "summaryTitle": "Please fix the following",
@@ -1017,7 +1032,15 @@
     "ATTACHMENT_INVALID": "One of the files is missing, rejected or not yours.",
     "QUOTA_EXCEEDED": "Your file storage is full; delete older files.",
     "MFA_CONFIRMATION_REQUIRED": "To grant the owner role, enter your current authenticator code.",
-    "default": "Something went wrong."
+    "default": "Something went wrong.",
+    "IMPORT_BUSY": "This import is being processed or was already applied; refresh the page in a moment.",
+    "SKU_COLUMN_REQUIRED": "Choose the column that holds each product’s code.",
+    "SHEET_NOT_FOUND": "The chosen sheet is not in the file.",
+    "INVALID_COLUMN_MAPPING": "The column mapping is not valid; refresh the page and choose again.",
+    "REPEAT_ADD_NOT_CONFIRMED": "This same file was already added to stock once; if new goods arrived, confirm adding it again.",
+    "NOTHING_TO_APPLY": "There is nothing to apply in this file.",
+    "MEDIA_ORDER_MISMATCH": "The photos changed meanwhile; refresh the page and reorder again.",
+    "UNKNOWN_MANUFACTURER_BRAND": "This manufacturer brand does not exist."
   },
   "timelineEvent": {
     "CREATED_FROM_QUOTE": "Order created from the quote",

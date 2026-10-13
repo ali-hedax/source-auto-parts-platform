@@ -1,6 +1,7 @@
 'use client';
 
 import { SMS_NOTIFICATION_TYPES } from '@hedax/contracts/constants';
+import { SITE_CONTACT } from '@hedax/contracts/site-contact';
 import { formatDecimalString, formatIsoDateAsJalali, isoDateToJalali, parseDecimalAmount, parseJalaliDateToIso, toAsciiDigits } from '@hedax/domain';
 import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -8,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Async } from '@/components/ui/async';
 import { Checkbox, describedBy, Field, Input, Select, Textarea } from '@/components/ui/field';
 import { DateTime, Money, Num, useListSeparator } from '@/components/ui/format';
-import { Alert, Badge, EmptyState, Ltr, PageHeader, Section, TableScroll, td, th } from '@/components/ui/misc';
+import { Alert, Badge, DefinitionList, EmptyState, Ltr, PageHeader, Section, TableScroll, td, th } from '@/components/ui/misc';
 import { api } from '@/lib/api/client';
 import { errorText } from '@/lib/api/errors';
 import { typedNumber } from '@/lib/numbers';
@@ -50,7 +51,7 @@ export function FxPage() {
       <Section title={t('admin.rateHistory')} id="fx-history">
         <Async state={state}>
           {(rows) => rows.length ? (
-            <ul className="flex flex-col gap-2">{rows.map((r) => <li key={r.id} className="flex flex-wrap justify-between gap-2 rounded bg-surface p-3"><span className="font-semibold">{formatDecimalString(r.irrPerAed, locale)} {l('ریال به‌ازای هر درهم', 'IRR per AED')}</span><span><DateTime iso={r.effectiveFrom} /></span><span className="text-sm text-steel">{r.createdBy} {r.note ? `— ${r.note}` : ''}</span></li>)}</ul>
+            <ul className="flex flex-col gap-2">{rows.map((r) => <li key={r.id} className="flex flex-wrap justify-between gap-2 rounded-[var(--radius-control)] border border-line-soft bg-surface px-3 py-2.5"><span className="font-semibold">{formatDecimalString(r.irrPerAed, locale)} {l('ریال به‌ازای هر درهم', 'IRR per AED')}</span><span><DateTime iso={r.effectiveFrom} /></span><span className="text-sm text-steel">{r.createdBy} {r.note ? `— ${r.note}` : ''}</span></li>)}</ul>
           ) : <EmptyState title={t('common.results', { count: 0 })} />}
         </Async>
       </Section>
@@ -259,14 +260,16 @@ function SiteSettingsForm({ settings, reload }: { settings: SiteSettings; reload
   );
   return (
     <form noValidate onSubmit={(e) => { e.preventDefault(); void save(); }} className="flex flex-col gap-6">
-      <Section title={l('اطلاعات تماس (فقط اطلاعات تأییدشده)', 'Contact (approved details only)')} id="st-contact">
-        <div className="grid gap-3 md:grid-cols-2">
-          {text('contactPhone', t('pages.phone'), true)}
-          {text('contactEmail', t('account.email'), true)}
-          {text('contactAddressFa', `${t('pages.address')} (فارسی)`)}
-          {text('contactAddressEn', `${t('pages.address')} (English)`, true)}
-          {text('workingHoursFa', `${t('pages.hours')} (فارسی)`)}
-          {text('workingHoursEn', `${t('pages.hours')} (English)`, true)}
+      <Section title={l('اطلاعات تماس سایت', 'Site contact details')} id="st-contact">
+        {/* Single source: packages/contracts/src/site-contact.ts (footer, contact page and this view). */}
+        <p className="mb-3 text-sm text-steel">{l('این اطلاعات در فوتر و صفحهٔ «تماس با ما» نمایش داده می‌شود و از فایل تنظیمات کد خوانده می‌شود؛ تغییرش با به‌روزرسانی نسخهٔ سایت انجام می‌شود.', 'Shown in the footer and on the contact page; read from the site configuration file and changed with a site update.')}</p>
+        <DefinitionList items={[
+          { term: t('pages.phone'), value: <><Ltr>{SITE_CONTACT.phone.en.number}</Ltr> ({SITE_CONTACT.phone.en.extension})</> },
+          { term: t('pages.mobileWhatsapp'), value: <Ltr>{SITE_CONTACT.mobile.en}</Ltr> },
+          { term: t('pages.email'), value: <Ltr>{SITE_CONTACT.email}</Ltr> },
+          { term: t('pages.hours'), value: l(SITE_CONTACT.hours.fa, SITE_CONTACT.hours.en) },
+        ]} />
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
           {text('domain', l('دامنه', 'Domain'), true)}
         </div>
       </Section>

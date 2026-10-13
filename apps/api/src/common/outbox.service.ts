@@ -12,6 +12,7 @@ export type OutboxType =
   | 'quote.sent'
   | 'quote.pdf.render'
   | 'attachment.scan'
+  | 'import.inspect'
   | 'import.parse'
   | 'import.commit'
   | 'message.created';

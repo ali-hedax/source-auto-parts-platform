@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import sharp, { type OutputInfo } from 'sharp';
-import type { AdminProductRow, ProductUpsert } from '@hedax/contracts';
+import type { AdminProductRow, ProductMediaView, ProductUpsert } from '@hedax/contracts';
 import { DomainError, IMAGE_KINDS, buildSearchDocument, describePriceSource as describePrice, inspectFile, normalizeSearchText } from '@hedax/domain';
 import type { z } from 'zod';
 import type { mediaUpdateSchema, priceRuleSchema } from '@hedax/contracts';
@@ -83,7 +83,7 @@ export class AdminCatalogService {
       include: {
         translations: true,
         vehicleBrands: true,
-        media: { where: { deletedAt: null }, orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }] },
+        media: { where: { deletedAt: null }, orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }] },
         basePrice: true,
         priceRules: { orderBy: [{ customerGroupId: 'asc' }, { minQty: 'asc' }] },
         inventory: { where: { warehouseId } },
@@ -297,11 +297,27 @@ export class AdminCatalogService {
     });
   }
 
+  /** The product's photos in display order: sort order, the main one marked. */
+  async listMedia(productId: string): Promise<ProductMediaView[]> {
+    const media = await this.prisma.productMedia.findMany({ where: { productId, deletedAt: null }, orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }] });
+    return media.map((m) => ({ id: m.id, storageKey: m.storageKey, width: m.width, height: m.height, altFa: m.altFa, altEn: m.altEn, sortOrder: m.sortOrder, isPrimary: m.isPrimary }));
+  }
+
+  /** Serializes photo changes of one product (parallel uploads would otherwise both become the main photo). */
+  private async lockProduct(tx: Tx, productId: string): Promise<{ nameFa: string } | null> {
+    const [row] = await tx.$queryRaw<Array<{ id: string }>>`SELECT "id" FROM "product" WHERE "id" = ${productId}::uuid FOR UPDATE`;
+    if (!row) return null;
+    const fa = await tx.productTranslation.findUnique({ where: { productId_locale: { productId, locale: 'fa' } }, select: { name: true } });
+    return { nameFa: fa?.name ?? '' };
+  }
+
   /**
    * Product image upload: bytes are inspected, scanned, re-encoded to WebP
    * (EXIF stripped, orientation applied), then written to the PUBLIC store.
+   * Linked by the product's id; a failed upload never touches the product's data.
    */
-  async addMedia(productId: string, file: { originalname: string; buffer: Buffer }, alt: { altFa: string; altEn?: string | null }) {
+  async addMedia(productId: string, file: { originalname: string; buffer: Buffer }, alt: { altFa?: string | undefined; altEn?: string | null | undefined }) {
+    if (!(await this.prisma.product.findUnique({ where: { id: productId }, select: { id: true } }))) throw notFound();
     const inspection = inspectFile(file.originalname, new Uint8Array(file.buffer));
     if (inspection.verdict !== 'ACCEPT' || !inspection.kind || !IMAGE_KINDS.includes(inspection.kind)) {
       throw badRequest('INVALID_IMAGE', 'Only JPG, PNG or WebP images are accepted', { reason: inspection.reason ?? 'NOT_AN_IMAGE' });
@@ -321,51 +337,87 @@ export class AdminCatalogService {
     }
     const key = `products/${productId}/${randomUUID()}.webp`;
     await this.storage.putPublic(key, output, 'image/webp');
-    return this.prisma.tx(async (tx) => {
-      const product = await tx.product.findUnique({ where: { id: productId }, include: { media: { where: { deletedAt: null } } } });
-      if (!product) throw notFound();
-      const media = await tx.productMedia.create({
-        data: {
-          productId,
-          storageKey: key,
-          width: info.width,
-          height: info.height,
-          mime: 'image/webp',
-          sizeBytes: output.length,
-          altFa: alt.altFa,
-          altEn: alt.altEn ?? null,
-          sortOrder: product.media.length,
-          isPrimary: product.media.length === 0,
-        },
+    try {
+      return await this.prisma.tx(async (tx) => {
+        const product = await this.lockProduct(tx, productId);
+        if (!product) throw notFound();
+        const current = await tx.productMedia.aggregate({ where: { productId, deletedAt: null }, _count: true, _max: { sortOrder: true } });
+        const media = await tx.productMedia.create({
+          data: {
+            productId,
+            storageKey: key,
+            width: info.width,
+            height: info.height,
+            mime: 'image/webp',
+            sizeBytes: output.length,
+            // Alt text defaults to the part's name; it can be changed later.
+            altFa: (alt.altFa?.trim() || product.nameFa || 'تصویر قطعه').slice(0, 200),
+            altEn: alt.altEn ?? null,
+            sortOrder: current._count === 0 ? 0 : (current._max.sortOrder ?? 0) + 1,
+            isPrimary: current._count === 0,
+          },
+        });
+        await tx.product.update({ where: { id: productId }, data: { version: { increment: 1 } } });
+        await this.audit.record(tx, { action: 'product.media.added', entityType: 'product', entityId: productId, after: { mediaId: media.id } });
+        return { id: media.id, width: media.width, height: media.height, isPrimary: media.isPrimary };
       });
-      await tx.product.update({ where: { id: productId }, data: { version: { increment: 1 } } });
-      await this.audit.record(tx, { action: 'product.media.added', entityType: 'product', entityId: productId, after: { mediaId: media.id } });
-      return { id: media.id, width: media.width, height: media.height };
-    });
+    } catch (e) {
+      await this.storage.deletePublic(key).catch(() => undefined);
+      throw e;
+    }
   }
 
+  /** Changes only what is sent: alt text, or making this the main photo (the previous main one stays in the gallery). */
   async updateMedia(productId: string, mediaId: string, input: z.infer<typeof mediaUpdateSchema>) {
     return this.prisma.tx(async (tx) => {
+      if (!(await this.lockProduct(tx, productId))) throw notFound();
       const media = await tx.productMedia.findFirst({ where: { id: mediaId, productId, deletedAt: null } });
       if (!media) throw notFound();
-      if (input.isPrimary) await tx.productMedia.updateMany({ where: { productId, isPrimary: true }, data: { isPrimary: false } });
+      if (input.isPrimary) await tx.productMedia.updateMany({ where: { productId, isPrimary: true, id: { not: mediaId } }, data: { isPrimary: false } });
       await tx.productMedia.update({
         where: { id: mediaId },
-        data: { altFa: input.altFa, altEn: input.altEn ?? null, sortOrder: input.sortOrder, isPrimary: input.isPrimary },
+        data: {
+          ...(input.altFa !== undefined ? { altFa: input.altFa } : {}),
+          ...(input.altEn !== undefined ? { altEn: input.altEn } : {}),
+          ...(input.sortOrder !== undefined ? { sortOrder: input.sortOrder } : {}),
+          ...(input.isPrimary ? { isPrimary: true } : {}),
+        },
       });
+      await this.audit.record(tx, { action: 'product.media.updated', entityType: 'product', entityId: productId, before: { isPrimary: media.isPrimary, altFa: media.altFa }, after: { mediaId, ...input } });
       return { id: mediaId };
     });
   }
 
-  async removeMedia(productId: string, mediaId: string) {
+  /** New order of all current photos of the product (each exactly once). */
+  async reorderMedia(productId: string, ids: string[]) {
     return this.prisma.tx(async (tx) => {
+      if (!(await this.lockProduct(tx, productId))) throw notFound();
+      const media = await tx.productMedia.findMany({ where: { productId, deletedAt: null }, select: { id: true } });
+      if (ids.length !== media.length || new Set(ids).size !== ids.length || !media.every((m) => ids.includes(m.id))) {
+        throw badRequest('MEDIA_ORDER_MISMATCH', 'Send every current photo of the product exactly once');
+      }
+      for (const [i, id] of ids.entries()) await tx.productMedia.update({ where: { id }, data: { sortOrder: i } });
+      await this.audit.record(tx, { action: 'product.media.reordered', entityType: 'product', entityId: productId, after: { order: ids } });
+      return { ids };
+    });
+  }
+
+  /** Removes a photo; when it was the main one, the next photo in order becomes the main photo. */
+  async removeMedia(productId: string, mediaId: string) {
+    const removed = await this.prisma.tx(async (tx) => {
+      if (!(await this.lockProduct(tx, productId))) throw notFound();
       const media = await tx.productMedia.findFirst({ where: { id: mediaId, productId, deletedAt: null } });
       if (!media) throw notFound();
       await tx.productMedia.update({ where: { id: mediaId }, data: { deletedAt: new Date(), isPrimary: false } });
-      await this.audit.record(tx, { action: 'product.media.removed', entityType: 'product', entityId: productId, after: { mediaId } });
-      await this.storage.deletePublic(media.storageKey).catch(() => undefined);
-      return { id: mediaId };
+      const rest = await tx.productMedia.findMany({ where: { productId, deletedAt: null }, orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }], select: { id: true, isPrimary: true } });
+      for (const [i, m] of rest.entries()) {
+        await tx.productMedia.update({ where: { id: m.id }, data: { sortOrder: i, ...(media.isPrimary && i === 0 ? { isPrimary: true } : {}) } });
+      }
+      await this.audit.record(tx, { action: 'product.media.removed', entityType: 'product', entityId: productId, after: { mediaId, newPrimary: media.isPrimary ? (rest[0]?.id ?? null) : undefined } });
+      return media;
     });
+    await this.storage.deletePublic(removed.storageKey).catch(() => undefined);
+    return { id: mediaId };
   }
 
   async addPriceRule(productId: string, input: z.infer<typeof priceRuleSchema>, actorId: string) {

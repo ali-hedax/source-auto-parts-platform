@@ -70,11 +70,153 @@ export const importStartSchema = z.object({
   manufacturerBrandMapping: z.record(z.string(), idSchema).default({}),
 });
 
+/** Step 1 of the panel's import: read the sheets and first rows of an uploaded (scanned) file. */
+export const importInspectSchema = z.object({
+  attachmentId: idSchema,
+});
+
+const importDefaultsSchema = z.object({
+  categoryCode: z.string().max(40).nullable().default(null),
+  partType: z.enum(['GENUINE', 'OEM', 'AFTERMARKET']).nullable().default(null),
+  condition: z.enum(['NEW', 'USED', 'REFURBISHED']).nullable().default(null),
+  origin: z.enum(['DOMESTIC', 'IMPORTED', 'UNKNOWN']).nullable().default(null),
+  manufacturerBrandId: idSchema.nullable().default(null),
+  vehicleBrandCodes: z.array(z.string().max(40)).max(20).default([]),
+  unit: z.string().trim().max(30).nullable().default(null),
+  /** First stock of new products when the file has no stock column (null: they start at zero). */
+  initialOnHand: z.number().int().min(0).max(1_000_000).nullable().default(null),
+});
+
+/**
+ * Step 2: how to read the file. Column indexes are 0-based positions in the
+ * header row; values for the whole file apply only to new products and only
+ * where the row's own cell is empty.
+ */
+export const importSettingsSchema = z.object({
+  sheet: z.number().int().min(0).max(100),
+  /** Spreadsheet row number (1-based) of the header row. */
+  headerRow: z.number().int().min(1).max(1000),
+  columns: z.record(z.string().max(40), z.number().int().min(0).max(199)),
+  mode: z.enum(['UPDATE_ONLY', 'CREATE_AND_UPDATE']),
+  /** Unit of the price column when a row has no currency cell. TOMAN is converted to rial (×10). */
+  priceUnit: z.enum(['IRR', 'TOMAN', 'AED']).nullable(),
+  /** SET: the file has the counted stock. ADD: the file has received quantities added to the current stock. */
+  stockMode: z.enum(['SET', 'ADD']),
+  defaults: importDefaultsSchema.default(importDefaultsSchema.parse({})),
+  clearWhenEmpty: z.array(z.string().max(40)).max(20).default([]),
+});
+export type ImportSettings = z.infer<typeof importSettingsSchema>;
+
 export const importCommitSchema = z.object({
   jobId: idSchema,
   /** Checksum of the previewed plan; commit is refused if the plan changed. */
   planChecksum: z.string().length(64),
+  /** Apply only the rows without errors; the others stay listed as not applied (never dropped silently). */
+  skipErrorRows: z.boolean().default(false),
+  /** The same file was already added to stock (ADD); add it once more anyway. */
+  confirmRepeatAdd: z.boolean().default(false),
 });
+
+export const importRowFilterSchema = z.enum(['all', 'errors', 'create', 'update', 'unchanged', 'warnings']);
+
+export interface ImportSheetOutline {
+  index: number;
+  name: string;
+  hidden: boolean;
+  rowCount: number;
+  columnCount: number;
+  /** The first rows as text (header candidates and samples), with their spreadsheet row numbers. */
+  rows: Array<{ rowNumber: number; cells: string[] }>;
+}
+
+export interface ImportOutline {
+  sheets: ImportSheetOutline[];
+  suggestion: { sheet: number; headerRow: number; columns: Record<string, number>; priceUnit: 'IRR' | 'TOMAN' | 'AED' | null };
+}
+
+export interface ImportRowView {
+  rowNumber: number;
+  sku: string | null;
+  action: 'CREATE' | 'UPDATE' | 'UNCHANGED' | 'ERROR';
+  issues: Array<{ column: string | null; code: string; severity: 'error' | 'warning'; detail?: string }>;
+  changes: Array<{ field: string; before: string | null; after: string | null; currency?: 'IRR' | 'AED'; delta?: number }>;
+  display: {
+    name: string | null;
+    technicalNumber: string | null;
+    brand: string | null;
+    price: { amountMinor: string; currency: 'IRR' | 'AED'; fromToman: boolean } | { text: string } | null;
+    stock: { mode: 'SET' | 'ADD'; quantity: number | null; before: number | null; after: number | null } | { text: string } | null;
+    defaults: string[];
+  } | null;
+  productId: string | null;
+  applied: boolean;
+}
+
+export interface ImportSummaryView {
+  create: number;
+  update: number;
+  unchanged: number;
+  error: number;
+  warnings: number;
+  fileErrors: string[];
+  canCommit: boolean;
+  canCommitValid?: boolean;
+  requiredPermissions?: string[];
+  columns?: string[];
+  ignoredHeaders?: string[];
+  /** The most common row issues of the whole file: how many rows each affects and in which columns. */
+  topIssues?: Array<{ code: string; severity: 'error' | 'warning'; rows: number; columns: string[] }>;
+  /** After commit: what was applied. */
+  result?: { created: number; updated: number; unchanged: number; skipped: number };
+}
+
+export interface ImportJobView {
+  jobId: string;
+  status: 'INSPECTING' | 'AWAITING_MAPPING' | 'QUEUED' | 'PARSING' | 'PREVIEW_READY' | 'FAILED' | 'COMMITTING' | 'COMMITTED' | 'CONFLICT' | 'CANCELLED';
+  mode: 'UPDATE_ONLY' | 'CREATE_AND_UPDATE';
+  progress: number;
+  totalRows: number | null;
+  failureReason: string | null;
+  filename: string | null;
+  createdAt: string;
+  committedAt: string | null;
+  outline: ImportOutline | null;
+  settings: ImportSettings | null;
+  summary: ImportSummaryView | null;
+  planChecksum: string | null;
+  /** When this exact file was already added to stock (ADD) by an earlier import. */
+  repeatAdd: { jobId: string; committedAt: string } | null;
+  rows: ImportRowView[];
+  rowsTotal: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface ImportJobListItem {
+  jobId: string;
+  status: ImportJobView['status'];
+  filename: string | null;
+  createdAt: string;
+  committedAt: string | null;
+  summary: Pick<ImportSummaryView, 'create' | 'update' | 'unchanged' | 'error'> | null;
+}
+
+export interface ImportedProductView {
+  productId: string;
+  rowNumber: number;
+  action: 'CREATE' | 'UPDATE';
+  sku: string;
+  nameFa: string;
+  nameEn: string | null;
+  technicalNumbers: string[];
+  brand: string | null;
+  condition: 'NEW' | 'USED' | 'REFURBISHED';
+  published: boolean;
+  photoCount: number;
+  primaryPhoto: { storageKey: string; width: number; height: number; alt: string } | null;
+  /** Used or refurbished parts are published only with a real photo of the item (publish rule). */
+  photoRequiredToPublish: boolean;
+}
 
 export const siteSettingsSchema = z.object({
   contactPhone: optionalText(40),

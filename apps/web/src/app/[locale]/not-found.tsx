@@ -1,3 +1,4 @@
+import { SearchX } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { SiteHeader } from '@/components/layout/site-header';
@@ -13,8 +14,9 @@ export default async function NotFound() {
   return (
     <>
       <SiteHeader />
-      <main id="main" tabIndex={-1} className="focus:outline-none">
-        <div className="container-page max-w-3xl py-12">
+      <main id="main" tabIndex={-1} className="pb-16 focus:outline-none">
+        <div className="container-page max-w-3xl py-12 md:py-16">
+          <span className="mb-5 grid size-14 place-items-center rounded-full bg-canvas text-steel"><SearchX aria-hidden className="size-7" /></span>
           <PageHeader title={t('common.notFound')} description={t('pages.notFoundHint')} />
           <div className="flex flex-wrap gap-3">
             <ButtonLink href="/parts">{t('nav.parts')}</ButtonLink>

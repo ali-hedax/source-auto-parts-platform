@@ -80,7 +80,7 @@ export function OtpLogin() {
 
   const fieldId = step === 'mobile' ? 'login-mobile' : 'login-code';
   return (
-    <form noValidate onSubmit={(e) => { e.preventDefault(); void (step === 'mobile' ? request() : verify()); }} className="card flex flex-col gap-4 p-6">
+    <form noValidate onSubmit={(e) => { e.preventDefault(); void (step === 'mobile' ? request() : verify()); }} className="flex flex-col gap-5 rounded-[var(--radius-panel)] border border-line-soft bg-white p-6 sm:p-8">
       <ErrorSummary title={t('validation.summaryTitle')} errors={fieldError ? [{ fieldId, message: fieldError }] : []} generalError={error} />
       {step === 'mobile' ? (
         <Field id="login-mobile" label={t('auth.mobile')} hint={t('auth.mobileHint')} error={fieldError ?? undefined} required>
@@ -99,10 +99,10 @@ export function OtpLogin() {
       </Button>
       {step === 'code' ? (
         <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-          <button type="button" className="min-h-11 cursor-pointer text-action underline disabled:text-steel disabled:no-underline" disabled={cooldown > 0 || busy} onClick={() => void request()}>
+          <button type="button" className="min-h-11 cursor-pointer font-semibold text-action underline-offset-4 hover:underline disabled:cursor-not-allowed disabled:font-normal disabled:text-steel disabled:no-underline" disabled={cooldown > 0 || busy} onClick={() => void request()}>
             {cooldown > 0 ? t('auth.resendIn', { seconds: cooldown }) : t('auth.resend')}
           </button>
-          <button type="button" className="min-h-11 cursor-pointer text-action underline" onClick={() => { setStep('mobile'); setCode(''); setDevCode(null); }}>
+          <button type="button" className="min-h-11 cursor-pointer font-semibold text-action underline-offset-4 hover:underline" onClick={() => { setStep('mobile'); setCode(''); setDevCode(null); }}>
             {t('auth.changeMobile')}
           </button>
         </div>

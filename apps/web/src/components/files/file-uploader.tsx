@@ -113,10 +113,10 @@ export function FileUploader({
         onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
         onDragLeave={() => setDragging(false)}
         onDrop={(e) => { e.preventDefault(); setDragging(false); add(e.dataTransfer.files); }}
-        className={`flex flex-wrap items-center gap-3 rounded-[var(--radius-card)] border-2 border-dashed p-4 ${dragging ? 'border-action bg-action-soft' : 'border-line'}`}
+        className={`flex flex-wrap items-center gap-3 rounded-[var(--radius-card)] border border-dashed p-4 transition-colors ${dragging ? 'border-action bg-action-soft' : 'border-line-strong bg-surface/70'}`}
       >
-        <input ref={input} id={id} type="file" multiple accept={ACCEPT} className="sr-only" aria-describedby={`${id}-limits`} disabled={disabled} onChange={(e) => add(e.target.files)} />
-        <label htmlFor={id} className={`inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-[var(--radius-control)] border border-action px-4 font-semibold text-action hover:bg-action-soft ${disabled ? 'pointer-events-none opacity-60' : ''}`}>
+        <input ref={input} id={id} type="file" multiple accept={ACCEPT} className="peer sr-only" aria-describedby={`${id}-limits`} disabled={disabled} onChange={(e) => add(e.target.files)} />
+        <label htmlFor={id} className={`inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-[var(--radius-control)] border border-line-strong bg-white px-4 text-sm font-semibold text-ink transition-colors hover:border-ink peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-tech ${disabled ? 'pointer-events-none opacity-60' : ''}`}>
           <Paperclip aria-hidden className="size-4" />
           {t('choose')}
         </label>
@@ -140,11 +140,11 @@ export function FileUploader({
                 </div>
                 {i.state === 'error' ? (
                   <button type="button" onClick={() => { setItems((prev) => prev.map((p) => (p.key === i.key ? { ...p, state: 'uploading', error: null, progress: 0 } : p))); upload(i); }}
-                    className="grid size-11 cursor-pointer place-items-center rounded hover:bg-silver" aria-label={t('retry')}>
+                    className="grid size-11 cursor-pointer place-items-center rounded-[var(--radius-control)] text-steel hover:bg-silver/60 hover:text-ink" aria-label={t('retry')}>
                     <RotateCcw aria-hidden className="size-4" />
                   </button>
                 ) : null}
-                <button type="button" onClick={() => setItems((prev) => prev.filter((p) => p.key !== i.key))} className="grid size-11 cursor-pointer place-items-center rounded hover:bg-silver" aria-label={t('remove', { name: i.file.name })}>
+                <button type="button" onClick={() => setItems((prev) => prev.filter((p) => p.key !== i.key))} className="grid size-11 cursor-pointer place-items-center rounded-[var(--radius-control)] text-steel hover:bg-silver/60 hover:text-ink" aria-label={t('remove', { name: i.file.name })}>
                   <X aria-hidden className="size-4" />
                 </button>
               </li>

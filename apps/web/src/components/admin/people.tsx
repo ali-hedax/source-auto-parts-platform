@@ -141,7 +141,7 @@ export function StaffPage() {
 function PermissionLabel({ permission }: { permission: string }) {
   const label = useCodeLabel();
   const text = label('perm', permission.replaceAll('.', '_'));
-  return <>{text === permission.replaceAll('.', '_') ? <Ltr>{permission}</Ltr> : <>{text} <span className="text-xs text-steel"><Ltr>{permission}</Ltr></span></>}</>;
+  return <>{text === permission.replaceAll('.', '_') ? <Ltr>{permission}</Ltr> : <>{text} <span className="text-xs text-steel [overflow-wrap:anywhere]"><Ltr>{permission}</Ltr></span></>}</>;
 }
 
 export function RolesPage() {

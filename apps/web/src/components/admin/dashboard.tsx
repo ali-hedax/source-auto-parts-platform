@@ -26,20 +26,24 @@ export function AdminDashboard() {
           ];
           return (
             <div className="flex flex-col gap-6">
-              <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+              {/* One strip of counters, each opening the list it counts; work waiting is marked in Tech Blue. */}
+              <ul className="grid grid-cols-2 overflow-hidden rounded-[var(--radius-card)] border border-line-soft bg-line-soft [gap:1px] md:grid-cols-3 xl:grid-cols-6">
                 {tiles.map((tile) => (
-                  <li key={tile.label}>
-                    <Link href={tile.href} className="card flex h-full flex-col gap-1 p-4 hover:border-tech">
-                      <span className="text-sm text-steel">{tile.label}</span>
-                      <span className="text-2xl font-bold"><Num value={tile.value} /></span>
+                  <li key={tile.label} className="bg-white">
+                    <Link href={tile.href} className="group flex h-full flex-col justify-between gap-3 p-4 transition-colors hover:bg-surface focus-visible:outline-offset-[-3px] lg:p-5">
+                      <span className="text-sm font-medium leading-6 text-steel group-hover:text-ink">{tile.label}</span>
+                      <span className="flex items-center gap-2">
+                        {tile.value > 0 ? <span aria-hidden className="size-2 rounded-full bg-tech" /> : null}
+                        <span className={`text-[1.75rem] font-bold leading-none ${tile.value > 0 ? 'text-ink' : 'text-steel'}`}><Num value={tile.value} /></span>
+                      </span>
                     </Link>
                   </li>
                 ))}
               </ul>
               <Section title={t('launchReadiness')} id="readiness">
-                <ul className="grid gap-2 md:grid-cols-2">
+                <ul className="grid md:grid-cols-2 md:gap-x-8">
                   {d.launchReadiness.map((r) => (
-                    <li key={r.key} className="flex items-center justify-between gap-2 rounded bg-surface p-3">
+                    <li key={r.key} className="flex min-h-12 flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-line-soft py-2.5">
                       <span>{t.has(`ready_${r.key}`) ? t(`ready_${r.key}` as never) : r.key}</span>
                       <Badge tone={r.status === 'READY' ? 'success' : r.status === 'SIMULATED' || r.status === 'ATTENTION' ? 'warning' : 'danger'}>{t(`readiness_${r.status}`)}</Badge>
                     </li>

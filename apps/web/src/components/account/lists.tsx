@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { ButtonLink } from '@/components/ui/button';
 import { Async } from '@/components/ui/async';
 import { DateTime, Money } from '@/components/ui/format';
-import { EmptyState, Ltr, PageHeader, StatusBadge, TableScroll, td, th } from '@/components/ui/misc';
+import { Code, EmptyState, PageHeader, StatusBadge, TableScroll, td, th } from '@/components/ui/misc';
 import { Link } from '@/i18n/navigation';
 import { useApi } from '@/lib/use-api';
 
@@ -35,7 +35,7 @@ export function OrdersList() {
               <tbody>
                 {rows.map((o) => (
                   <tr key={o.id}>
-                    <td className={td}><Link href={`/account/orders/${o.id}`} className="font-semibold text-action underline"><Ltr>{o.reference}</Ltr></Link></td>
+                    <td className={td}><Link href={`/account/orders/${o.id}`} className="font-semibold text-action underline underline-offset-4 hover:text-action-hover"><Code>{o.reference}</Code></Link></td>
                     <td className={td}><DateTime iso={o.createdAt} withTime={false} /></td>
                     <td className={td}><StatusBadge status={o.status} label={t(`status.${o.status}` as never)} /></td>
                     <td className={td}><StatusBadge status={o.paymentStatus} label={t(`status.${o.paymentStatus}` as never)} /></td>
@@ -74,7 +74,7 @@ export function ProcurementsList() {
               <tbody>
                 {rows.map((p) => (
                   <tr key={p.id}>
-                    <td className={td}><Link href={`/account/procurements/${p.id}`} className="font-semibold text-action underline"><Ltr>{p.reference}</Ltr></Link></td>
+                    <td className={td}><Link href={`/account/procurements/${p.id}`} className="font-semibold text-action underline underline-offset-4 hover:text-action-hover"><Code>{p.reference}</Code></Link></td>
                     <td className={td}><StatusBadge status={p.status} label={t(`status.${p.status}` as never)} /></td>
                     <td className={td}><DateTime iso={p.promisedReadyAt} withTime={false} /></td>
                     <td className={td}><Money value={p.total} /></td>
@@ -112,7 +112,7 @@ export function RequestsList() {
               <tbody>
                 {rows.map((r) => (
                   <tr key={r.id}>
-                    <td className={td}><Link href={`/account/requests/${r.id}`} className="font-semibold text-action underline"><Ltr>{r.reference}</Ltr></Link></td>
+                    <td className={td}><Link href={`/account/requests/${r.id}`} className="font-semibold text-action underline underline-offset-4 hover:text-action-hover"><Code>{r.reference}</Code></Link></td>
                     <td className={td}>{r.title}</td>
                     <td className={td}><StatusBadge status={r.status} label={t(`status.${r.status}` as never)} /></td>
                     <td className={td}><DateTime iso={r.createdAt} withTime={false} /></td>

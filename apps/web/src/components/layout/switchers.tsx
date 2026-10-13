@@ -1,6 +1,6 @@
 'use client';
 
-import { Languages } from 'lucide-react';
+import { ChevronDown, Languages } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useTransition } from 'react';
@@ -22,7 +22,7 @@ export function LocaleSwitcher() {
       lang={target}
       disabled={pending}
       onClick={() => start(() => router.replace(`${pathname}${search.size ? `?${search.toString()}` : ''}`, { locale: target }))}
-      className="inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center gap-1 rounded px-2 text-sm font-semibold hover:bg-white/10"
+      className="inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center gap-1 rounded-[var(--radius-control)] px-2 text-sm font-semibold transition-colors hover:bg-white/10"
       aria-label={`${t('language')}: ${target === 'en' ? 'English' : 'فارسی'}`}
     >
       <Languages aria-hidden className="size-4" />
@@ -37,7 +37,7 @@ export function CurrencySwitcher({ initial }: { initial: 'IRR' | 'AED' }) {
   const tp = useTranslations('price');
   const router = useNextRouter();
   return (
-    <label className="inline-flex min-h-11 items-center gap-1 text-sm">
+    <label className="relative inline-flex min-h-11 items-center text-sm">
       <span className="sr-only">{t('currency')}</span>
       <select
         defaultValue={initial}
@@ -45,11 +45,12 @@ export function CurrencySwitcher({ initial }: { initial: 'IRR' | 'AED' }) {
           document.cookie = `hedax_currency=${e.target.value}; path=/; max-age=31536000; samesite=lax`;
           router.refresh();
         }}
-        className="min-h-9 cursor-pointer rounded border border-carbon-2 bg-carbon px-2 font-semibold text-silver"
+        className="min-h-9 cursor-pointer appearance-none rounded-[var(--radius-control)] border border-white/20 bg-carbon ps-2.5 pe-7 font-semibold text-silver transition-colors hover:border-white/45"
       >
         <option value="IRR">{tp('IRR')}</option>
         <option value="AED">{tp('AED')}</option>
       </select>
+      <ChevronDown aria-hidden className="pointer-events-none absolute end-2 size-3.5 text-silver/80" />
     </label>
   );
 }

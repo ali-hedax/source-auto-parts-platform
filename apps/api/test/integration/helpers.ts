@@ -144,6 +144,7 @@ export async function drainOutbox(s: Services, types: string[], aggregateId?: st
     const p = row.payload as Record<string, string>;
     await s.runAsWorker(async () => {
       if (row.type === 'attachment.scan') await s.attachments.scan(p.attachmentId);
+      else if (row.type === 'import.inspect') await s.imports.inspectJob(p.jobId);
       else if (row.type === 'import.parse') await s.imports.parse(p.jobId);
       else if (row.type === 'import.commit') await s.imports.commit(p.jobId);
       else if (row.type === 'payment.reconcile') await s.payments.verify(p.attemptId, 'INQUIRY');

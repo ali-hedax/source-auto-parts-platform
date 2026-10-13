@@ -53,9 +53,9 @@ export function StaffLogin() {
 
   if (step.kind === 'codes') {
     return (
-      <div className="card flex flex-col gap-4 p-6">
+      <div className="flex flex-col gap-4 rounded-[var(--radius-panel)] border border-line-soft border-t-4 border-t-carbon bg-white p-6 sm:p-8">
         <Alert tone="warning" title={t('auth.recoveryCodes')}>
-          <ul className="mt-2 grid grid-cols-2 gap-2 font-mono">{step.codes.map((c) => <li key={c}><Ltr>{c}</Ltr></li>)}</ul>
+          <ul className="mt-2 grid grid-cols-2 gap-2 font-mono text-[0.9375rem]">{step.codes.map((c) => <li key={c}><Ltr>{c}</Ltr></li>)}</ul>
         </Alert>
         <Button onClick={done}>{t('common.next')}</Button>
       </div>
@@ -63,7 +63,7 @@ export function StaffLogin() {
   }
 
   return (
-    <form noValidate onSubmit={(e) => { e.preventDefault(); void submit(); }} className="card flex flex-col gap-4 p-6">
+    <form noValidate onSubmit={(e) => { e.preventDefault(); void submit(); }} className="flex flex-col gap-5 rounded-[var(--radius-panel)] border border-line-soft border-t-4 border-t-carbon bg-white p-6 sm:p-8">
       <ErrorSummary title={t('validation.summaryTitle')} errors={[]} generalError={error} />
       {step.kind === 'password' ? (
         <>
@@ -77,9 +77,9 @@ export function StaffLogin() {
       ) : (
         <>
           <h2 className="text-lg font-bold">{step.kind === 'mfa' ? t('auth.mfaTitle') : t('auth.mfaEnrollTitle')}</h2>
-          <p className="text-steel">{step.kind === 'mfa' ? t('auth.mfaHint') : t('auth.mfaEnrollHint')}</p>
+          <p className="-mt-2 leading-7 text-steel">{step.kind === 'mfa' ? t('auth.mfaHint') : t('auth.mfaEnrollHint')}</p>
           {step.kind === 'enroll' ? (
-            <div className="rounded-[var(--radius-control)] bg-surface p-3">
+            <div className="rounded-[var(--radius-control)] border border-line-soft bg-surface p-3">
               <p className="text-sm text-steel">{t('auth.mfaSecret')}</p>
               <p className="break-all font-mono text-lg font-bold"><Ltr>{step.secret}</Ltr></p>
             </div>

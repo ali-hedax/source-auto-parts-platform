@@ -78,6 +78,7 @@ export class OutboxDispatcher implements OnModuleDestroy {
       lastRedisError = '';
     });
     this.register('attachment.scan', async (p) => this.attachments.scan(String(p.attachmentId)));
+    this.register('import.inspect', async (p) => this.imports.inspectJob(String(p.jobId)));
     this.register('import.parse', async (p) => this.imports.parse(String(p.jobId)));
     this.register('import.commit', async (p) => this.imports.commit(String(p.jobId)));
     this.register('payment.reconcile', async (p) => void (await this.payments.verify(String(p.attemptId), 'INQUIRY')));

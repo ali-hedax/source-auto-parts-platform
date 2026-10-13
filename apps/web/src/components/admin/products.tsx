@@ -2,21 +2,22 @@
 
 import type { AdminProductRow, MoneyDto } from '@hedax/contracts';
 import { minorToDecimalString, parseDecimalAmount } from '@hedax/domain';
-import { ImagePlus, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Button, ButtonLink } from '@/components/ui/button';
 import { Async } from '@/components/ui/async';
 import { ErrorSummary } from '@/components/ui/error-summary';
 import { Checkbox, Field, Input, Select, Textarea } from '@/components/ui/field';
 import { Money, Num, useListSeparator } from '@/components/ui/format';
-import { Alert, Badge, EmptyState, Ltr, PageHeader, Section, TableScroll, td, th } from '@/components/ui/misc';
+import { Alert, Badge, Code, EmptyState, PageHeader, Section, TableScroll, td, th } from '@/components/ui/misc';
 import { Link, useRouter } from '@/i18n/navigation';
-import { api, uploadWithProgress } from '@/lib/api/client';
+import { api } from '@/lib/api/client';
 import { errorText, isApiError } from '@/lib/api/errors';
 import { typedNumber } from '@/lib/numbers';
 import { useApi } from '@/lib/use-api';
+import { ProductPhotoManager } from './product-photos';
 import { useL, usePriceSourceLabel } from './shell';
 
 interface Taxonomy {
@@ -56,7 +57,7 @@ export function ProductsList() {
             <tbody>
               {data.items.map((p) => (
                 <tr key={p.id}>
-                  <td className={td}><Link href={`/admin/products/${p.id}`} className="font-semibold text-action underline"><Ltr>{p.sku}</Ltr></Link></td>
+                  <td className={td}><Link href={`/admin/products/${p.id}`} className="font-semibold text-action underline underline-offset-4 hover:text-action-hover"><Code>{p.sku}</Code></Link></td>
                   <td className={td}>{p.nameFa}{p.nameEn ? <span className="block text-xs text-steel">{p.nameEn}</span> : null}</td>
                   <td className={td}><Money value={p.basePrice} /></td>
                   <td className={td}><span className="text-xs">{priceSource(p.priceSource)}</span></td>
@@ -184,7 +185,7 @@ function ProductEditor({ taxonomy, product, reload }: { taxonomy: Taxonomy; prod
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title={product ? <Ltr>{product.sku}</Ltr> : t('admin.newProduct')}
+        title={product ? <Code>{product.sku}</Code> : t('admin.newProduct')}
         actions={product ? (
           <div className="flex flex-wrap gap-2">
             {product.archived ? <Badge tone="danger">{t('admin.archived')}</Badge> : product.published
@@ -288,46 +289,11 @@ function ProductEditor({ taxonomy, product, reload }: { taxonomy: Taxonomy; prod
 }
 
 function MediaManager({ product, reload }: { product: AdminProduct; reload?: () => Promise<void> }) {
-  const t = useTranslations();
   const l = useL();
-  const [alt, setAlt] = useState('');
-  const [progress, setProgress] = useState<number | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const upload = (file: File | undefined) => {
-    if (!file) return;
-    if (alt.trim().length < 2) { setError(l('متن جایگزین تصویر را وارد کنید.', 'Enter the image alt text.')); return; }
-    const form = new FormData();
-    form.append('altFa', alt.trim());
-    form.append('file', file);
-    setError(null);
-    setProgress(0);
-    uploadWithProgress(`/admin/products/${product.id}/media`, form, setProgress).promise
-      .then(async () => { setProgress(null); setAlt(''); await reload?.(); })
-      .catch((e) => { setProgress(null); setError(errorText(t, e)); });
-  };
+  const onChange = useCallback(() => void reload?.(), [reload]);
   return (
     <Section title={l('تصاویر', 'Images')} id="pf-media">
-      {product.media.length ? (
-        <ul className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-          {product.media.map((m) => (
-            <li key={m.id} className="rounded border border-line p-2 text-xs">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={`/media/${m.storageKey}`} alt={m.altFa} width={m.width} height={m.height} className="aspect-[4/3] w-full object-contain" loading="lazy" />
-              <p className="mt-1">{m.altFa}{m.isPrimary ? <Badge tone="info" className="ms-1">{l('اصلی', 'Primary')}</Badge> : null}</p>
-            </li>
-          ))}
-        </ul>
-      ) : null}
-      <div className="flex flex-wrap items-end gap-3">
-        <Field id="media-alt" label={l('متن جایگزین (فارسی)', 'Alt text (Persian)')} className="min-w-64 flex-1"><Input id="media-alt" value={alt} onChange={(e) => setAlt(e.target.value)} /></Field>
-        <input id="media-file" type="file" accept=".jpg,.jpeg,.png,.webp" className="sr-only" onChange={(e) => upload(e.target.files?.[0])} />
-        <label htmlFor="media-file" className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-[var(--radius-control)] border border-action px-4 font-semibold text-action hover:bg-action-soft">
-          <ImagePlus aria-hidden className="size-4" />{l('بارگذاری تصویر', 'Upload image')}
-        </label>
-      </div>
-      {progress !== null ? <progress className="mt-2 w-full" max={1} value={progress} /> : null}
-      {error ? <p role="alert" className="mt-2 text-sm text-danger">{error}</p> : null}
-      <p className="mt-2 text-xs text-steel">{l('تصویر پس از بررسی امنیتی به WebP تبدیل و اطلاعات EXIF حذف می‌شود.', 'Images are security-checked, converted to WebP and stripped of EXIF data.')}</p>
+      <ProductPhotoManager productId={product.id} productName={product.nameFa} onChange={onChange} />
     </Section>
   );
 }
@@ -361,7 +327,7 @@ function PriceRules({ product, groups, reload }: { product: AdminProduct; groups
       {product.priceRules.length ? (
         <ul className="mb-4 flex flex-col gap-2">
           {product.priceRules.map((rule) => (
-            <li key={rule.id} className="flex flex-wrap items-center justify-between gap-2 rounded bg-surface p-3 text-sm">
+            <li key={rule.id} className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-control)] border border-line-soft bg-surface px-3 py-2.5 text-sm">
               <span>{groupName(rule.customerGroupId)}{sep}{l('تعداد', 'Qty')} <Num value={rule.minQty} />–{rule.maxQty == null ? '∞' : <Num value={rule.maxQty} />}{sep}<Money value={rule.base} />{rule.manualIrr ? <>{sep}{l('ریال دستی', 'Manual IRR')}: <Money value={{ currency: 'IRR', amountMinor: rule.manualIrr }} /></> : null}</span>
               {rule.active ? <Button size="sm" variant="ghost" onClick={() => void remove(rule.id)}>{t('common.remove')}</Button> : <Badge>{l('غیرفعال', 'Inactive')}</Badge>}
             </li>

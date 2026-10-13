@@ -40,6 +40,7 @@
     "requestId": "کد پیگیری خطا: {id}",
     "page": "صفحهٔ {page, number} از {total, number}",
     "results": "{count, plural, =0 {نتیجه‌ای نیست} other {# نتیجه}}",
+    "partCount": "{count, plural, =0 {بدون قطعهٔ منتشرشده} other {# قطعه}}",
     "englishFallback": "نام انگلیسی ثبت نشده است",
     "sampleBanner": "پیش‌نمایش با دادهٔ آزمایشی — این اطلاعات واقعی نیست و خرید یا پرداختی انجام نمی‌شود.",
     "notConfigured": "هنوز تنظیم نشده است",
@@ -143,7 +144,9 @@
     "outOfStockAction": "درخواست تأمین مشابه",
     "notPurchasable": "این قطعه فعلاً قابل خرید نیست.",
     "maxQuantity": "حداکثر {max, number} عدد قابل سفارش است.",
-    "claimNote": "نوع قطعه و وضعیت بر اساس اطلاعات ثبت‌شده توسط هداکس است."
+    "claimNote": "نوع قطعه و وضعیت بر اساس اطلاعات ثبت‌شده توسط هداکس است.",
+    "photos": "عکس‌های قطعه",
+    "photoN": "عکس {n}"
   },
   "availability": {
     "IN_STOCK": "موجود",
@@ -311,7 +314,13 @@
     "remove": "حذف فایل {name}",
     "retry": "تلاش دوباره",
     "tooMany": "تعداد فایل‌ها بیش از حد مجاز است.",
-    "rejected_IMPORT_FORMAT_NOT_ALLOWED": "برای ورود گروهی فقط فایل XLSX یا CSV پذیرفته می‌شود."
+    "rejected_IMPORT_FORMAT_NOT_ALLOWED": "برای ورود گروهی فقط فایل XLSX یا CSV پذیرفته می‌شود.",
+    "rejected_ZIP_INVALID": "ساختار فایل خراب یا ناشناخته است؛ آن را دوباره از Excel ذخیره کنید.",
+    "rejected_ZIP_LIMITS_EXCEEDED": "حجم بازشدهٔ فایل بیش از حد مجاز است.",
+    "rejected_EMBEDDED_OBJECTS": "فایل شیء جاسازی‌شده (مثل ActiveX) دارد و پذیرفته نمی‌شود؛ فقط داده‌ها را در فایل تازه‌ای کپی کنید.",
+    "rejected_EMPTY_FILE": "فایل خالی است.",
+    "rejected_MARKUP_CONTENT": "محتوای فایل CSV معتبر نیست.",
+    "rejected_INVALID_TEXT_ENCODING": "فایل CSV باید با کدگذاری UTF-8 ذخیره شده باشد."
   },
   "auth": {
     "loginTitle": "ورود یا ثبت‌نام",
@@ -541,7 +550,6 @@
     "returns": "مرجوعی و لغو",
     "privacy": "حریم خصوصی",
     "terms": "شرایط فروش",
-    "contactPending": "اطلاعات تماس پس از راه‌اندازی رسمی منتشر می‌شود.",
     "rights": "© {year} هداکس"
   },
   "pages": {
@@ -550,6 +558,9 @@
     "contactTitle": "تماس با سورس",
     "contactChat": "سریع‌ترین راه ارتباط، گفت‌وگو در سایت است.",
     "phone": "تلفن",
+    "mobileWhatsapp": "موبایل و واتس‌اپ (امارات)",
+    "whatsapp": "گفت‌وگو در واتس‌اپ",
+    "email": "ایمیل",
     "address": "نشانی",
     "hours": "ساعات پاسخ‌گویی",
     "policyPending": "متن این بخش پس از تأیید مالک منتشر می‌شود.",
@@ -677,10 +688,10 @@
     "importStatus_COMMITTED": "تغییرات اعمال شد",
     "importStatus_CONFLICT": "تضاد؛ هیچ تغییری اعمال نشد",
     "importStatus_CANCELLED": "لغو شد",
-    "importAction_CREATE": "ایجاد",
+    "importAction_CREATE": "جدید",
     "importAction_UPDATE": "به‌روزرسانی",
     "importAction_UNCHANGED": "بدون تغییر",
-    "importAction_ERROR": "خطا",
+    "importAction_ERROR": "دارای خطا",
     "importFileErrors": "خطای کل فایل",
     "movement_RECEIPT": "ورود کالا",
     "movement_ADJUSTMENT": "اصلاح موجودی",
@@ -870,7 +881,11 @@
     "paymentFailure_CUSTOMER_CANCELLED": "مشتری پرداخت را لغو کرد",
     "paymentFailure_PROVIDER_CREATE_FAILED": "درگاه نتوانست پرداخت را آغاز کند",
     "paymentFailure_VERIFICATION_MISMATCH": "تأیید درگاه با مبلغ یا پذیرنده نخواند",
-    "paymentProvider_zarinpal": "زرین‌پال"
+    "paymentProvider_zarinpal": "زرین‌پال",
+    "importStatus_INSPECTING": "در حال خواندن شیت‌ها",
+    "importStatus_AWAITING_MAPPING": "منتظر تطبیق ستون‌ها",
+    "auditAction_product_media_updated": "تغییر عکس محصول (عکس اصلی یا متن جایگزین)",
+    "auditAction_product_media_reordered": "تغییر ترتیب عکس‌های محصول"
   },
   "validation": {
     "summaryTitle": "لطفاً موارد زیر را اصلاح کنید",
@@ -1017,7 +1032,15 @@
     "ATTACHMENT_INVALID": "یکی از فایل‌ها پیدا نشد، رد شده یا متعلق به شما نیست.",
     "QUOTA_EXCEEDED": "فضای فایل‌های شما پر شده است؛ فایل‌های قدیمی را حذف کنید.",
     "MFA_CONFIRMATION_REQUIRED": "برای اعطای نقش مالک، کد فعلی برنامهٔ احراز هویت خود را وارد کنید.",
-    "default": "خطایی رخ داد."
+    "default": "خطایی رخ داد.",
+    "IMPORT_BUSY": "این واردکردن در حال پردازش است یا قبلاً ثبت شده است؛ چند لحظه بعد صفحه را تازه کنید.",
+    "SKU_COLUMN_REQUIRED": "ستونی را که کد هر کالا در آن است انتخاب کنید.",
+    "SHEET_NOT_FOUND": "شیت انتخاب‌شده در فایل نیست.",
+    "INVALID_COLUMN_MAPPING": "تطبیق ستون‌ها معتبر نیست؛ صفحه را تازه کنید و دوباره انتخاب کنید.",
+    "REPEAT_ADD_NOT_CONFIRMED": "همین فایل قبلاً یک بار به موجودی افزوده شده است؛ اگر کالای تازه رسیده، افزودن دوباره را تأیید کنید.",
+    "NOTHING_TO_APPLY": "در این فایل تغییری برای ثبت نیست.",
+    "MEDIA_ORDER_MISMATCH": "فهرست عکس‌ها در این فاصله تغییر کرده است؛ صفحه را تازه کنید و دوباره مرتب کنید.",
+    "UNKNOWN_MANUFACTURER_BRAND": "این برند سازنده در پنل ثبت نشده است."
   },
   "timelineEvent": {
     "CREATED_FROM_QUOTE": "سفارش از پیش‌فاکتور ثبت شد",

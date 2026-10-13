@@ -1,16 +1,23 @@
 'use client';
 
 import type { MoneyDto, PriceView } from '@hedax/contracts';
-import { formatDateTime, formatMoney, money, toPersianDigits } from '@hedax/domain';
+import { currencyLabel, formatDateTime, formatMinorNumber, money, toPersianDigits } from '@hedax/domain';
 import { useLocale, useTranslations } from 'next-intl';
 
-/** Money is always rendered from the string minor-unit contract with its explicit unit. */
+/**
+ * Money is always rendered from the string minor-unit contract with its explicit unit.
+ * The figure carries the weight; the unit stays beside it in the reading order of the
+ * language («۱۸٬۵۰۰٬۰۰۰ ریال», "IRR 18,500,000"), slightly smaller so long amounts scan.
+ */
 export function Money({ value, className }: { value: MoneyDto | null | undefined; className?: string }) {
   const locale = useLocale() as 'fa' | 'en';
   if (!value) return <span className={className}>—</span>;
+  const amount = money(value.currency, value.amountMinor);
+  const figure = <span className="num">{formatMinorNumber(amount.minor, amount.currency, locale)}</span>;
+  const unit = <span className="text-[0.8em] font-medium opacity-80">{currencyLabel(amount.currency, locale)}</span>;
   return (
-    <bdi className={className} dir={locale === 'fa' ? 'rtl' : 'ltr'}>
-      <span className="num">{formatMoney(money(value.currency, value.amountMinor), locale)}</span>
+    <bdi className={`whitespace-nowrap ${className ?? ''}`} dir={locale === 'fa' ? 'rtl' : 'ltr'}>
+      {locale === 'fa' ? <>{figure} {unit}</> : <>{unit} {figure}</>}
     </bdi>
   );
 }
@@ -18,14 +25,14 @@ export function Money({ value, className }: { value: MoneyDto | null | undefined
 export function Price({ price, size = 'md' }: { price: PriceView; size?: 'md' | 'lg' }) {
   const t = useTranslations('price');
   if (price.kind === 'inquiry') {
-    return <span className="text-sm font-semibold text-steel">{price.reason === 'NO_VALID_FX_RATE' ? t('inquiryNoRate') : t('inquiry')}</span>;
+    return <span className="text-sm font-semibold leading-6 text-steel">{price.reason === 'NO_VALID_FX_RATE' ? t('inquiryNoRate') : t('inquiry')}</span>;
   }
   return (
-    <span className="flex flex-col">
-      <Money value={price.display} className={size === 'lg' ? 'text-2xl font-bold' : 'text-lg font-bold'} />
+    <span className="flex flex-col gap-0.5">
+      <Money value={price.display} className={size === 'lg' ? 'text-[1.75rem] font-bold leading-tight' : 'text-lg font-bold leading-7'} />
       {price.displayIsReference ? (
-        <span className="text-xs text-steel">
-          {t('referenceHint')}: <Money value={price.payable} />
+        <span className="text-xs leading-5 text-steel">
+          {t('referenceHint')}: <Money value={price.payable} className="font-semibold text-ink" />
         </span>
       ) : null}
     </span>

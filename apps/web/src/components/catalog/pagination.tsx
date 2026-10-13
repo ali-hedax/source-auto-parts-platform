@@ -14,7 +14,7 @@ export async function Pagination({ pathname, params, page, pageSize, total }: { 
   const Prev = locale === 'fa' ? ChevronRight : ChevronLeft;
   const Next = locale === 'fa' ? ChevronLeft : ChevronRight;
   const label = t('page', { page, total: pages });
-  const link = 'inline-flex min-h-11 items-center gap-1 rounded border border-line px-4 font-semibold hover:bg-surface';
+  const link = 'inline-flex min-h-11 items-center gap-1.5 rounded-[var(--radius-control)] border border-line-strong bg-white px-4 text-sm font-semibold transition-colors hover:border-ink hover:bg-surface';
   return (
     <nav aria-label={label} className="mt-8 flex items-center justify-center gap-3">
       {page > 1 ? (
@@ -23,7 +23,7 @@ export async function Pagination({ pathname, params, page, pageSize, total }: { 
           {t('previous')}
         </Link>
       ) : null}
-      <span aria-current="page" className="text-sm text-steel">{label}</span>
+      <span aria-current="page" className="num px-2 text-sm font-medium text-steel">{label}</span>
       {page < pages ? (
         <Link href={href(page + 1)} className={link} rel="next">
           {t('next')}

@@ -17,7 +17,7 @@ export default function ErrorPage({ error, reset }: { error: Error & { digest?: 
   }, []);
   return (
     <main id="main" tabIndex={-1} className="focus:outline-none">
-      <div className="container-page max-w-3xl py-12">
+      <div className="container-page max-w-3xl py-12 md:py-16">
         <h1 ref={heading} tabIndex={-1} className="text-2xl font-bold leading-tight text-ink focus:outline-none md:text-3xl">
           {t('common.genericError')}
         </h1>

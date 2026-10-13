@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Async } from '@/components/ui/async';
 import { Field, Input, Select } from '@/components/ui/field';
 import { DateTime, Money, Num } from '@/components/ui/format';
-import { Alert, Badge, DefinitionList, EmptyState, Ltr, PageHeader, Section, StatusBadge, TableScroll, td, th } from '@/components/ui/misc';
+import { Alert, Badge, Code, DefinitionList, EmptyState, Ltr, PageHeader, Section, StatusBadge, TableScroll, td, th } from '@/components/ui/misc';
 import { OrderDetail } from '@/components/orders/order-detail';
 import { Link } from '@/i18n/navigation';
 import { api } from '@/lib/api/client';
@@ -40,7 +40,7 @@ export function AdminOrdersList() {
             <tbody>
               {rows.map((o) => (
                 <tr key={o.id}>
-                  <td className={td}><Link href={`/admin/orders/${o.id}`} className="font-semibold text-action underline"><Ltr>{o.reference}</Ltr></Link></td>
+                  <td className={td}><Link href={`/admin/orders/${o.id}`} className="font-semibold text-action underline underline-offset-4 hover:text-action-hover"><Code>{o.reference}</Code></Link></td>
                   <td className={td}>{o.customer ?? '—'}</td>
                   <td className={td}><StatusBadge status={o.status} label={t(`status.${o.status}` as never)} /></td>
                   <td className={td}><StatusBadge status={o.paymentStatus} label={t(`status.${o.paymentStatus}` as never)} /></td>
@@ -144,7 +144,7 @@ export function AdminProcurementsList() {
             <tbody>
               {rows.map((p) => (
                 <tr key={p.id}>
-                  <td className={td}><Link href={`/admin/procurements/${p.id}`} className="font-semibold text-action underline"><Ltr>{p.reference}</Ltr></Link>{p.delayed ? <Badge tone="danger" className="ms-1">{t('admin.delayed')}</Badge> : null}</td>
+                  <td className={td}><Link href={`/admin/procurements/${p.id}`} className="font-semibold text-action underline underline-offset-4 hover:text-action-hover"><Code>{p.reference}</Code></Link>{p.delayed ? <Badge tone="danger" className="ms-1">{t('admin.delayed')}</Badge> : null}</td>
                   <td className={td}>{p.customer ?? '—'}</td>
                   <td className={td}>{p.assignee ?? '—'}</td>
                   <td className={td}><StatusBadge status={p.status} label={t(`status.${p.status}` as never)} /></td>
@@ -204,7 +204,7 @@ export function AdminProcurementPage() {
                     <td className={td}><Num value={i.quantity} /></td>
                     <td className={td}>
                       <label className="sr-only" htmlFor={`pi-${i.id}`}>{t('order.status')}</label>
-                      <select id={`pi-${i.id}`} className="min-h-9 rounded border border-line px-2" value={i.status} onChange={(e) => void setItemStatus(i.id, e.target.value)}>
+                      <select id={`pi-${i.id}`} className="min-h-9 rounded-[var(--radius-control)] border border-line-strong bg-white px-2" value={i.status} onChange={(e) => void setItemStatus(i.id, e.target.value)}>
                         {['PENDING', 'SOURCING', 'PURCHASED', 'RECEIVED', 'UNAVAILABLE'].map((s) => <option key={s} value={s}>{label('procItem', s)}</option>)}
                       </select>
                     </td>

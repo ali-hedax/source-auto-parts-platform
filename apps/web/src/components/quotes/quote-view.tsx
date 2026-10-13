@@ -79,7 +79,6 @@ export function QuoteView({ quote, onChange }: { quote: QuoteVersionView; onChan
       <TableScroll caption={t('quote.items')}>
         <thead>
           <tr>
-            {open ? <th className={th}>{t('quote.include')}</th> : null}
             <th className={th}>{t('cart.item')}</th>
             <th className={th}>{t('quote.type')}</th>
             <th className={th}>{t('quote.compatibility')}</th>
@@ -92,22 +91,24 @@ export function QuoteView({ quote, onChange }: { quote: QuoteVersionView; onChan
         <tbody>
           {quote.items.map((i) => (
             <tr key={i.id} className={i.availability === 'UNAVAILABLE' ? 'text-steel' : ''}>
-              {open ? (
-                <td className={td}>
-                  {i.availability === 'AVAILABLE' ? (
+              {/* The item cell is the one pinned on phones, so it also holds the include checkbox of an open quote. */}
+              <td className={`${td} max-lg:min-w-44`}>
+                <div className="flex items-start gap-1">
+                  {open && i.availability === 'AVAILABLE' ? (
                     <Checkbox
                       id={`inc-${i.id}`}
+                      className="-my-2.5 -ms-1 shrink-0 px-1"
                       label={<span className="sr-only">{t('quote.include')}: {i.description}</span>}
                       checked={included.has(i.id)}
                       onChange={(e) => setIncluded((s) => { const n = new Set(s); if (e.target.checked) n.add(i.id); else n.delete(i.id); return n; })}
                     />
                   ) : null}
-                </td>
-              ) : null}
-              <td className={td}>
-                <span className="font-semibold">{i.description}</span>
-                {i.manufacturer ? <span className="block text-xs">{t('quote.manufacturer')}: {i.manufacturer}</span> : null}
-                {i.alternativeNote ? <span className="mt-1 block text-xs text-warning">{t('quote.alternative')}: {i.alternativeNote}</span> : null}
+                  <div className="min-w-0">
+                    <span className="font-semibold">{i.description}</span>
+                    {i.manufacturer ? <span className="block text-xs">{t('quote.manufacturer')}: {i.manufacturer}</span> : null}
+                    {i.alternativeNote ? <span className="mt-1 block text-xs text-warning">{t('quote.alternative')}: {i.alternativeNote}</span> : null}
+                  </div>
+                </div>
               </td>
               <td className={td}>{t(`partType.${i.partType}` as never)} / {t(`condition.${i.condition}` as never)}</td>
               <td className={td}><Badge tone={i.compatibility === 'CONFIRMED' ? 'success' : 'warning'}>{t(`quote.compat_${i.compatibility}` as never)}</Badge></td>
