@@ -244,6 +244,10 @@ test.describe('contact details (one config file for footer and contact page)', (
         await expect(page.locator('a[href*="instagram"], a[href*="linkedin"], iframe[src*="map"]')).toHaveCount(0);
         await expect(page.getByText(/نشانی|Address|پس از راه‌اندازی رسمی|published at the official launch/)).toHaveCount(0);
       }
+      // Support chat is switched off in the config until customer SMS sign-in works.
+      await page.goto(`/${locale}/contact`);
+      await expect(page.locator('main a[href$="/account/messages"]')).toHaveCount(0);
+      await expect(page.getByText(/سریع‌ترین راه ارتباط|fastest way to reach us/)).toHaveCount(0);
       // The WhatsApp link opens outside the site safely.
       await expect(page.getByTestId('footer-contact').locator('a[href="https://wa.me/971501441797"]')).toHaveAttribute('rel', 'noopener noreferrer');
     });

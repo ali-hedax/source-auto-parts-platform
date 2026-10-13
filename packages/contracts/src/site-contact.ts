@@ -24,6 +24,11 @@ export const SITE_CONTACT = {
     fa: 'پشتیبانی ۲۴ ساعته، ۷ روز هفته',
     en: 'Customer support 24/7',
   },
+  /**
+   * On-site support chat on the contact page («سریع‌ترین راه ارتباط، گفت‌وگو…» and the «پشتیبانی» button).
+   * Off until customer SMS sign-in works: the chat needs a signed-in customer. Set to true to show it again.
+   */
+  supportChat: { enabled: false },
 } as const;
 
 export type SiteContact = typeof SITE_CONTACT;
