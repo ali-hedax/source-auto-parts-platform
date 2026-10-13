@@ -6,7 +6,15 @@ This public page describes release readiness, not private infrastructure or secu
 
 ## Public availability
 
-A live public release has not yet been confirmed. Until public acceptance is complete, do not describe the website as live or accept real customer transactions based solely on the local test preview.
+The public site is reachable at <https://sourcebyhedax.ir/fa>. Checked from outside on 12 October 2026: Persian and English storefront pages and the staff sign-in page load over HTTPS with a valid certificate; `http://` and `www.` redirect to the main address; Content-Security-Policy, HSTS and frame protection headers are present.
+
+This is a **pre-launch** site, not a store open for business:
+
+- customer sign-in by SMS code and online payment are **not connected** yet, so customers cannot sign in or pay;
+- business policies, shipping, tax and exchange-rate data still need the owner's approval;
+- the remaining acceptance items below have not been verified on the public deployment.
+
+Do not accept real customer orders until every item below is done.
 
 ## Release acceptance
 

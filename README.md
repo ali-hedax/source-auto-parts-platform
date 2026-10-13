@@ -11,7 +11,7 @@
 
 Source connects an auto parts storefront with custom sourcing, quotations, staff operations and fulfillment. It supports Persian (RTL) and English (LTR), with shared business rules across the web application, API and background workers.
 
-> **Pre-launch — updated 12 October 2026.** Public release and live customer/payment acceptance are not yet confirmed. See the [deployment status](docs/DEPLOYMENT_STATUS.md) before using this system for real transactions.
+> **Pre-launch — updated 12 October 2026.** The public site is online at <https://sourcebyhedax.ir/fa>, but customer SMS sign-in and online payment are not connected yet, so it does not take real orders. See the [deployment status](docs/DEPLOYMENT_STATUS.md).
 
 ## Product workflows
 
