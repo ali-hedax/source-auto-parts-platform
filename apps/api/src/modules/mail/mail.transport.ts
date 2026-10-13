@@ -47,7 +47,8 @@ export function classifyMailError(e: unknown): MailSendError {
   const response = typeof err.responseCode === 'number' ? err.responseCode : null;
   const label = response ? `${code} ${response}` : code;
   if (code === 'EAUTH' || code === 'ENOAUTH') return new MailSendError('PERMANENT', `SMTP_AUTH_FAILED${response ? ` ${response}` : ''}`);
-  if (code === 'ETLS' || (code === 'ESOCKET' && /certificate|self[- ]signed|hostname/i.test(String((e as Error)?.message)))) return new MailSendError('PERMANENT', 'SMTP_TLS_FAILED');
+  const command = (e as { command?: string } | null)?.command;
+  if (code === 'ETLS' || command === 'STARTTLS' || (code === 'ESOCKET' && /certificate|self[- ]signed|hostname|tls/i.test(String((e as Error)?.message)))) return new MailSendError('PERMANENT', 'SMTP_TLS_FAILED');
   if (response !== null && response >= 500) return new MailSendError('PERMANENT', `SMTP_REJECTED ${label}`);
   return new MailSendError('TRANSIENT', `SMTP_TEMPORARY ${label}`);
 }

@@ -12,6 +12,8 @@ function plainSmtpServer(): Promise<{ port: number; commands: string[]; close: (
       for (const line of buf.toString('utf8').split('\r\n').filter(Boolean)) {
         commands.push(line.split(' ')[0]!.toUpperCase());
         if (/^EHLO/i.test(line)) socket.write('250-fake.test\r\n250 AUTH PLAIN LOGIN\r\n');
+        // Like a real server without TLS support: the upgrade is refused (the client must not go on in clear).
+        else if (/^STARTTLS/i.test(line)) socket.write('454 4.7.0 TLS not available\r\n');
         else if (/^QUIT/i.test(line)) socket.end('221 bye\r\n');
         else socket.write('250 ok\r\n');
       }
@@ -38,7 +40,8 @@ describe('SMTP transport security', () => {
     expect(transport.tlsPolicy).toMatchObject({ requireTLS: true, rejectUnauthorized: true, secure: false });
     const error = await transport.send({ id: '0192f3a0-0000-7000-8000-000000000001', to: 'someone@example.test', subject: 's', html: '<p>x</p>', text: 'x' }).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(MailSendError);
-    expect((error as MailSendError).kind).toBe('PERMANENT');
+    expect(error).toMatchObject({ kind: 'PERMANENT', code: 'SMTP_TLS_FAILED' });
+    expect(srv.commands).toContain('STARTTLS');
     expect(srv.commands).not.toContain('AUTH');
     expect(srv.commands).not.toContain('MAIL');
   });
