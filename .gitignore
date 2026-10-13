@@ -31,3 +31,16 @@ brand guide hedax/
 
 # Database dumps and file archives (docs/BACKUP_RESTORE.md) contain customer data: never commit them.
 backups/
+# Keys, certificates and encrypted backups (age) never belong in the repository.
+*.pem
+*.key
+*.p12
+*.pfx
+*.age
+id_rsa*
+id_ed25519*
+*.dump
+*.sql.gz
+*.backup
+*.sqlite
+*.sqlite3
