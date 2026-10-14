@@ -100,6 +100,12 @@ const schema = z
     /** Sender, e.g. "Source by HEDAX <info@sourcebyhedax.ir>". Fixed; user input never changes it. */
     MAIL_FROM: z.preprocess(emptyAsUnset, z.string().regex(/^[^\r\n<>]{0,80}<?[^@\s<>\r\n]+@[^@\s<>\r\n]+>?$/).optional()),
 
+    // Messenger bots are disabled unless token + independent webhook secret are both configured.
+    TELEGRAM_BOT_TOKEN: z.preprocess(emptyAsUnset, z.string().min(20).optional()),
+    TELEGRAM_WEBHOOK_SECRET: z.preprocess(emptyAsUnset, z.string().min(32).optional()),
+    BALE_BOT_TOKEN: z.preprocess(emptyAsUnset, z.string().min(20).optional()),
+    BALE_WEBHOOK_SECRET: z.preprocess(emptyAsUnset, z.string().min(32).optional()),
+
     LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug']).default('info'),
     OPENAPI_ENABLED: bool.default(true),
   })
