@@ -1,23 +1,28 @@
 import type { VehicleBrandView } from '@hedax/contracts';
+import { localize } from '@hedax/contracts/constants';
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Suspense } from 'react';
 import { PageHeader } from '@/components/ui/misc';
 import { RequestForm } from '@/components/sourcing/request-form';
 import { serverApi } from '@/lib/api/server';
+import { getSiteContent, seoMetadata } from '@/lib/site-content';
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale });
-  return { title: t('request.title'), alternates: { canonical: `/${locale}/request-part`, languages: { fa: '/fa/request-part', en: '/en/request-part' } } };
+  return { ...seoMetadata(await getSiteContent(), 'requestPart', locale, t('request.title')), alternates: { canonical: `/${locale}/request-part`, languages: { fa: '/fa/request-part', en: '/en/request-part' } } };
 }
 
 export default async function RequestPartPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations();
-  const brands = await serverApi<VehicleBrandView[]>('/catalog/vehicle-brands', { publicCache: 300 }).catch(() => []);
-  const steps = [t('home.step1'), t('home.step2'), t('home.step3'), t('home.step4')];
+  const [brands, content] = await Promise.all([serverApi<VehicleBrandView[]>('/catalog/vehicle-brands', { publicCache: 300 }).catch(() => []), getSiteContent()]);
+  // The same process steps as on the home page (site content → home page → first section).
+  const hero = content?.home.sections.find((s) => s.type === 'hero');
+  const processTitle = hero?.type === 'hero' ? localize(hero.processTitle, locale) : '';
+  const steps = hero?.type === 'hero' ? hero.steps.map((s) => localize(s.title, locale)) : [];
   return (
     <div className="page-canvas container-page py-8">
       <div className="grid gap-8 lg:grid-cols-[minmax(0,50rem)_17rem] lg:justify-between">
@@ -28,19 +33,19 @@ export default async function RequestPartPage({ params }: { params: Promise<{ lo
           </Suspense>
         </div>
         {/* What happens after submitting, kept beside the form on wide screens (the intro says it in short on phones). */}
-        <aside aria-labelledby="request-steps-title" className="hidden lg:block">
+        {steps.length ? <aside aria-labelledby="request-steps-title" className="hidden lg:block">
           <div className="sticky top-32 rounded-[var(--radius-card)] border border-line-soft bg-white p-5">
-            <h2 id="request-steps-title" className="mb-4 font-bold">{t('home.processTitle')}</h2>
+            <h2 id="request-steps-title" className="mb-4 font-bold">{processTitle}</h2>
             <ol className="flex flex-col gap-3">
               {steps.map((s, i) => (
-                <li key={s} className="flex items-start gap-3 text-sm leading-6">
+                <li key={`${i}-${s}`} className="flex items-start gap-3 text-sm leading-6">
                   <span aria-hidden className="num grid size-6 shrink-0 place-items-center rounded-full bg-carbon text-xs font-bold text-white">{(i + 1).toLocaleString(locale === 'fa' ? 'fa-IR' : 'en-US')}</span>
                   {s}
                 </li>
               ))}
             </ol>
           </div>
-        </aside>
+        </aside> : null}
       </div>
     </div>
   );

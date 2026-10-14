@@ -17,6 +17,7 @@ import { OrdersModule } from './modules/orders/orders.module.js';
 import { PaymentsModule } from './modules/payments/payments.module.js';
 import { PricingModule } from './modules/pricing/pricing.module.js';
 import { SettingsModule } from './modules/settings/settings.module.js';
+import { ContentModule } from './modules/content/content.module.js';
 import { SourcingModule } from './modules/sourcing/sourcing.module.js';
 
 @Module({
@@ -30,6 +31,7 @@ import { SourcingModule } from './modules/sourcing/sourcing.module.js';
     AuthModule,
     AccountModule,
     SettingsModule,
+    ContentModule,
     PaymentsModule,
     OrdersModule,
     AttachmentsModule,

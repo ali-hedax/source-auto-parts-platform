@@ -130,6 +130,27 @@ test.describe('layout, SEO and accessibility', () => {
     });
   }
 
+  // Site content panel on a phone: every section opens, fields fit the screen, saving stays in reach.
+  test('site content panel: every section opens on a phone without horizontal scroll', async ({ page, baseURL }) => {
+    await page.context().addCookies([{ name: 'hedax_fixture_role', value: 'staff', url: baseURL as string }]);
+    await page.setViewportSize({ width: 360, height: 900 });
+    for (const section of ['', '/general', '/contact', '/social', '/home', '/pages', '/faq', '/announcement', '/seo']) {
+      await page.goto(`/fa/admin/content${section}`);
+      await expect(page.locator('main#main h1')).toBeVisible();
+      await noHorizontalScroll(page);
+    }
+    // The contact form shows today's numbers, each with its own fields.
+    await page.goto('/fa/admin/content/contact');
+    await expect(page.locator('#p0-number')).toHaveValue('+98 25 3666 6669');
+    await expect(page.locator('#p1-number')).toHaveValue('+971 50 144 1797');
+    await expect(page.getByRole('button', { name: 'ذخیره' })).toBeInViewport();
+    // A built-in page opens in the editor with its address locked.
+    await page.goto('/fa/admin/content/pages/fixture-page-about');
+    await expect(page.locator('#pg-title-fa')).toHaveValue('دربارهٔ سورس');
+    await expect(page.locator('#pg-slug')).toHaveCount(0);
+    await noHorizontalScroll(page);
+  });
+
   // A30 / §15: the browser's text size at 200% (rem-based layout, so the root font size is what changes).
   test('text enlarged to 200%: no horizontal page scroll and the main control of each page stays reachable', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
@@ -219,7 +240,7 @@ test.describe('sign-in prompts when signed out', () => {
   });
 });
 
-test.describe('contact details (one config file for footer and contact page)', () => {
+test.describe('contact details (site content → contact, same in footer and contact page)', () => {
   const links = ['tel:+982536666669,119', 'tel:+971501441797', 'https://wa.me/971501441797', 'mailto:info@sourcebyhedax.ir'];
 
   for (const [locale, phone, ext, mobile, hours] of [

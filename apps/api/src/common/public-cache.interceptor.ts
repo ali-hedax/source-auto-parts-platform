@@ -3,8 +3,8 @@ import type { Request } from 'express';
 import { type Observable, tap } from 'rxjs';
 import { PublicCacheService } from './public-cache.service.js';
 
-/** Writes that change what anonymous visitors see: catalog, prices, stock, rates, policies, contact. */
-const AFFECTS_PUBLIC = /^\/api\/v1\/(admin\/(products|inventory|exchange-rates|policies|settings|categories|vehicle-brands|manufacturer-brands|orders|returns)|checkout|payments)(\/|$|\?)/;
+/** Writes that change what anonymous visitors see: catalog, prices, stock, rates, policies, site content. */
+const AFFECTS_PUBLIC = /^\/api\/v1\/(admin\/(products|inventory|exchange-rates|policies|settings|content|categories|vehicle-brands|manufacturer-brands|orders|returns)|checkout|payments)(\/|$|\?)/;
 /** Reads that can settle a payment (and so consume stock): the payment result page re-checks the gateway. */
 const SETTLING_READ = /^\/api\/v1\/payments\/attempts\//;
 

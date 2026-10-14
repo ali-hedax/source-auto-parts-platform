@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Inject, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { SITE_CONTACT, type DashboardView } from '@hedax/contracts';
+import { contactContentSchema, type DashboardView } from '@hedax/contracts';
 import { maskPhone } from '@hedax/domain';
 import { z } from 'zod';
 import { ENV, type Env } from '../../config/env.js';
@@ -57,6 +57,9 @@ export class OperationsController {
       this.prisma.exchangeRate.findFirst({ where: { effectiveFrom: { lte: now } }, orderBy: { effectiveFrom: 'desc' } }),
     ]);
     const site = await this.settings.site();
+    const contactRow = await this.prisma.siteSetting.findUnique({ where: { key: 'content.contact' } });
+    const contact = contactContentSchema.safeParse(contactRow?.value);
+    const contactReady = contact.success && (contact.data.phones.length > 0 || contact.data.email !== '');
     const storageOk = await this.storage.ping().catch(() => false);
     const sandbox = this.env.PAYMENT_PROVIDER === 'zarinpal' && this.env.ZARINPAL_SANDBOX;
     const testPayments = !!this.registry.simulator() || sandbox;
@@ -77,8 +80,8 @@ export class OperationsController {
       { key: 'domain', status: site.domain ? 'READY' : 'MISSING', note: site.domain ? '' : 'Domain not configured' },
       { key: 'terms_published', status: terms ? 'READY' : 'MISSING', note: terms ? '' : 'Publish terms of sale before selling' },
       { key: 'fx_rate', status: rate ? 'READY' : 'MISSING', note: rate ? '' : 'No AED rate recorded (AED prices show "inquiry")' },
-      // Contact details come from the shared config file (packages/contracts/src/site-contact.ts).
-      { key: 'contact_info', status: SITE_CONTACT.phone.href || SITE_CONTACT.email ? 'READY' : 'MISSING', note: '' },
+      // Contact details are edited in the panel (site content → contact).
+      { key: 'contact_info', status: contactReady ? 'READY' : 'MISSING', note: contactReady ? '' : 'Add a phone number or e-mail under site content → contact' },
     ];
     return {
       ordersNeedingAction,
