@@ -95,21 +95,21 @@ $COMPOSE exec api node -e "fetch('http://127.0.0.1:4000/health/ready').then(r=>r
 - موارد ۴ و ۵ (PDF پیش‌فاکتور و چت زنده) در حالت توسعه روی همین ایمیج‌ها با کل آزمون مرورگری پاس شدند. حالت production ورود مشتری و پرداخت ندارد (`SMS_PROVIDER` و `PAYMENT_PROVIDER` برابر `none`).
 - **روی سرور هدف هنوز اجرا نشده است.**
 
-**به‌روزرسانی امضای ClamAV:** از شبکهٔ محیط ساخت، CDN رسمی ClamAV درخواست `freshclam` را با خطای ۴۰۳ رد کرد («Blocked by CDN»، منطقهٔ مسدود). ClamAV با پایگاه امضای همراه ایمیج اجرا شد، ولی این پایگاه کهنه می‌شود. پیش از راه‌اندازی یکی از این راه‌ها لازم است:
+**به‌روزرسانی امضای ClamAV (فعال از ۲۰۲۶-۱۰-۱۴):** CDN رسمی ClamAV درخواست `freshclam` را از ایران با خطای ۴۰۳ رد می‌کند («Blocked by CDN»). برای همین امضاها از یک mirror خصوصی می‌آیند:
 
-- mirror خصوصی، مثلاً با ابزار رسمی `cvdupdate` روی سروری بیرون از منطقهٔ مسدود؛
-- یا سرور در منطقه‌ای که مسدود نیست.
+1. **مخزن خصوصی** [`ali-hedax/clamav-mirror`](https://github.com/ali-hedax/clamav-mirror) هر ۶ ساعت (دقیقهٔ ۱۷) با ابزار رسمی Cisco Talos یعنی `cvdupdate`، روی سرور GitHub بیرون از ایران، `main.cvd`، `daily.cvd`، `bytecode.cvd` و فایل‌های `.cvd.sign` را می‌گیرد. سپس آن‌ها را بدون تغییر و همراه `SHA256SUMS` در release ‏`signatures` می‌گذارد. نسخهٔ workflow در [`infra/clamav/mirror-workflow.yml`](../infra/clamav/mirror-workflow.yml) است.
+2. **سرور** با cron (`/etc/cron.d/hedax-clamav-sync`، دقیقهٔ ۴۰ هر ۶ ساعت) اسکریپت [`infra/clamav/hedax-clamav-sync`](../infra/clamav/hedax-clamav-sync) را اجرا می‌کند. نسخهٔ نصب‌شده در `/usr/local/sbin/hedax-clamav-sync` است. اسکریپت:
+   - فایل‌ها را با یک توکن **فقط‌خواندنی** محدود به همان مخزن دانلود می‌کند. توکن در `/root/.config/hedax/clamav-mirror.token` با مجوز 600 است و هرگز چاپ نمی‌شود.
+   - `SHA256SUMS` را بررسی می‌کند.
+   - امضای دیجیتال ClamAV را با `sigtool --info` می‌سنجد و باید «Verification OK» باشد.
+   - فقط نسخهٔ جدیدتر را در volume ‏`hedax_clamavdb` نصب می‌کند و `clamd` را RELOAD می‌کند.
+   - گزارش کار در `/var/log/hedax-clamav-sync.log` نوشته می‌شود.
+3. **اجرای دستی بدون توکن:** فایل‌های release را در یک پوشه روی سرور بگذارید و `hedax-clamav-sync <پوشه>` را اجرا کنید.
+4. **بررسی:** در `/api/v1/health/ready` باید `scannerSignatures` برابر `fresh` باشد. `echo VERSION | nc 127.0.0.1 3310` داخل کانتینر clamav نسخهٔ daily را نشان می‌دهد.
 
-**اتصال به mirror خصوصی:** نشانی mirror را در `CLAMAV_PRIVATE_MIRROR` بگذارید و فایل افزودنی `infra/docker-compose.clamav-mirror.yml` را بعد از فایل اصلی بیاورید:
-
-```bash
-docker compose -f infra/docker-compose.yml -f infra/docker-compose.clamav-mirror.yml --env-file .env up -d clamav
-```
-
-- این فایل `PrivateMirror` را در `freshclam.conf` ایمیج رسمی تنظیم می‌کند. این تنظیم جای `DatabaseMirror` را می‌گیرد.
-- mirror فقط باید فایل‌های `main`، `daily` و `bytecode` (`.cvd` یا `.cld`) و فایل‌های `.sign` آن‌ها را بدون تغییر سرو کند. این فایل‌ها امضای ClamAV دارند و freshclam هر کدام را پیش از استفاده آزمایش می‌کند.
-- **آزموده (۲۰۲۶-۱۰-۰۵):** یک freshclam با پایگاه خالی، هر سه پایگاه را از یک mirror آزمایشی محلی دریافت کرد. این mirror همان فایل‌های امضاشدهٔ volume را سرو می‌کرد. هر سه با «Database test passed» پذیرفته شدند. یک mirror واقعی بیرون از منطقهٔ مسدود هنوز تهیه نشده است.
-- اسکریپت راه‌اندازی ایمیج برای نشانی‌های دارای `/` پیام `sed: bad option in substitution expression` چاپ می‌کند. این پیام بی‌اثر است و تنظیم درست به انتهای `freshclam.conf` افزوده می‌شود.
+- **آزموده روی سرور (۲۰۲۶-۱۰-۱۴):** daily از ۲۸۱۵۰ به ۲۸۱۵۳ رسید (۳٬۶۲۸٬۱۶۹ امضا) و readiness برابر `fresh` شد. فایل EICAR هم با `clamdscan` و هم از مسیر INSTREAM ‏API (همان مسیر اسکن آپلودها) «FOUND» شد و فایل سالم «OK».
+- **freshclam داخل کانتینر:** هنوز تلاش می‌کند و خطای CDN را در لاگ می‌نویسد. این خطا بی‌اثر است.
+- **فایل افزودنی `infra/docker-compose.clamav-mirror.yml`:** برای حالتی است که mirror با HTTP سرو شود؛ در این روش لازم نیست.
 
 **پایش سن امضاها:** readiness (`/health/ready`) علاوه بر در دسترس بودن اسکنر، سن پایگاه امضا را هم گزارش می‌کند:
 
