@@ -791,7 +791,7 @@
     "perm_fx_manage": "Record exchange rates",
     "perm_shipping_manage": "Configure shipping methods and costs",
     "perm_settings_manage": "Edit site settings and policies",
-    "perm_content_manage": "Edit public content pages",
+    "perm_content_manage": "Edit site content (texts, images, contact, FAQ, pages, SEO)",
     "perm_reports_read": "View sales and operations reports",
     "perm_reports_financial": "View financial reports (collections and refunds)",
     "perm_audit_read": "Read the audit log",

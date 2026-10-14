@@ -41,7 +41,7 @@ export const PERMISSIONS = {
   'fx.manage': 'Record exchange rates',
   'shipping.manage': 'Configure shipping methods and costs',
   'settings.manage': 'Edit site settings and policies',
-  'content.manage': 'Edit public content pages',
+  'content.manage': 'Edit public site content: texts, images, contact, FAQ, pages, SEO',
   'reports.read': 'View sales and operations reports',
   'reports.financial': 'View financial collection/refund reports',
   'audit.read': 'Read audit log',
@@ -61,8 +61,14 @@ export interface RoleDefinition {
   isOwner: boolean;
 }
 
+/** Managing people and roles stays with the owner. */
+const OWNER_ONLY: readonly Permission[] = ['users.manage', 'roles.manage'];
+
 export const DEFAULT_ROLES: readonly RoleDefinition[] = [
   { key: 'owner', nameFa: 'مالک', nameEn: 'Owner', permissions: ALL_PERMISSIONS, requiresMfa: true, isOwner: true },
+  // Runs the whole site and its content, but cannot add, suspend or erase staff or change roles.
+  // Two-step verification is required because the role includes payments and refunds.
+  { key: 'manager', nameFa: 'مدیر', nameEn: 'Manager', permissions: ALL_PERMISSIONS.filter((p) => !OWNER_ONLY.includes(p)), requiresMfa: true, isOwner: false },
   {
     key: 'sales_manager', nameFa: 'مدیر فروش', nameEn: 'Sales manager', requiresMfa: false, isOwner: false,
     permissions: [

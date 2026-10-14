@@ -129,6 +129,16 @@ describe('RBAC (§13, A18)', () => {
     expect(conversationScope(support)).toBe('ASSIGNED');
   });
 
+  it('manager runs everything except staff and roles, with two-step verification', () => {
+    const manager = DEFAULT_ROLES.find((r) => r.key === 'manager')!;
+    const granted = new Set<string>(manager.permissions);
+    expect(granted.has('users.manage')).toBe(false);
+    expect(granted.has('roles.manage')).toBe(false);
+    for (const p of ['content.manage', 'settings.manage', 'products.write', 'prices.write', 'payments.refund', 'audit.read'] as const) expect(granted.has(p)).toBe(true);
+    expect(granted.size).toBe(ALL_PERMISSIONS.length - 2);
+    expect(manager).toMatchObject({ requiresMfa: true, isOwner: false });
+  });
+
   it('prevents granting permissions the actor does not hold', () => {
     const sales = new Set<string>(DEFAULT_ROLES.find((r) => r.key === 'sales_manager')!.permissions);
     expect(() => assertCanGrant(sales, ['quotes.publish'])).not.toThrow();
