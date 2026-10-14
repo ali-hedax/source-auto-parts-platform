@@ -1914,6 +1914,48 @@ model SiteSetting {
   @@map("site_setting")
 }
 
+/// Frequently asked questions on the home page (panel → site content → FAQ). Ordered by sortOrder.
+model FaqItem {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  questionFa  String   @map("question_fa") @db.VarChar(200)
+  questionEn  String   @default("") @map("question_en") @db.VarChar(200)
+  answerFa    String   @map("answer_fa")
+  answerEn    String   @default("") @map("answer_en")
+  visible     Boolean  @default(true)
+  sortOrder   Int      @default(0) @map("sort_order")
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([sortOrder])
+  @@map("faq_item")
+}
+
+/// Editable text pages: "about", the help topics' introductions, and pages the owner adds.
+/// System pages keep their address and cannot be deleted. Bodies are plain text with light
+/// formatting (headings, lists, bold, links), never HTML.
+model ContentPage {
+  id               String   @id @default(uuid(7)) @db.Uuid
+  slug             String   @unique @db.VarChar(60)
+  isSystem         Boolean  @default(false) @map("is_system")
+  titleFa          String   @map("title_fa") @db.VarChar(120)
+  titleEn          String   @default("") @map("title_en") @db.VarChar(120)
+  bodyFa           String   @default("") @map("body_fa")
+  bodyEn           String   @default("") @map("body_en")
+  published        Boolean  @default(false)
+  showInFooter     Boolean  @default(false) @map("show_in_footer")
+  seoTitleFa       String   @default("") @map("seo_title_fa") @db.VarChar(70)
+  seoTitleEn       String   @default("") @map("seo_title_en") @db.VarChar(70)
+  seoDescriptionFa String   @default("") @map("seo_description_fa") @db.VarChar(170)
+  seoDescriptionEn String   @default("") @map("seo_description_en") @db.VarChar(170)
+  sortOrder        Int      @default(0) @map("sort_order")
+  updatedById      String?  @map("updated_by_id") @db.Uuid
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("content_page")
+}
+
 model PolicyVersion {
   id          String       @id @default(uuid(7)) @db.Uuid
   kind        PolicyKind
