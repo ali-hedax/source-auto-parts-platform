@@ -48,6 +48,9 @@ const securityHeaders = [
   ...(process.env.NODE_ENV === 'production' ? [{ key: 'Content-Security-Policy', value: contentSecurityPolicy() }] : []),
 ];
 
+// Standalone image optimization uses Caddy's storage-independent media route.
+const mediaOrigin = process.env.NEXT_OUTPUT === 'standalone' ? (process.env.PUBLIC_BASE_URL ?? apiOrigin).replace(/\/$/, '') : apiOrigin;
+
 const nextConfig: NextConfig = {
   // Container images (infra/docker/Dockerfile) build a self-contained server; local `next start` is unchanged.
   ...(process.env.NEXT_OUTPUT === 'standalone' ? { output: 'standalone' as const, outputFileTracingRoot: path.resolve(process.cwd(), '../..') } : {}),
@@ -65,7 +68,7 @@ const nextConfig: NextConfig = {
   },
   async rewrites() {
     // In production the reverse proxy serves /api/v1, /media and the WebSocket directly.
-    return dataSource === 'api' ? [{ source: '/media/:path*', destination: `${apiOrigin}/media/:path*` }] : [];
+    return dataSource === 'api' ? [{ source: '/media/:path*', destination: `${mediaOrigin}/media/:path*` }] : [];
   },
 };
 
