@@ -1,0 +1,65 @@
+name: ClamAV signatures
+
+# Fetches the official ClamAV signature databases with Cisco Talos' own tool (cvdupdate) from a
+# GitHub runner (outside the region the ClamAV CDN blocks) and publishes them, unchanged, as
+# assets of the "signatures" release of this private repository. The Source by HEDAX server
+# downloads them with a read-only token; ClamAV verifies each file's digital signature itself,
+# so a modified file is refused.
+on:
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: signatures
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Keeping the database between runs means only changed files are downloaded from the CDN.
+      - name: Restore previous database
+        uses: actions/cache/restore@v4
+        with:
+          path: db
+          key: cvd-${{ github.run_id }}
+          restore-keys: cvd-
+
+      - name: Download from the official ClamAV CDN
+        run: |
+          pip install --quiet cvdupdate
+          cvd config set --dbdir "$PWD/db"
+          cvd update
+          ls -la db
+
+      - name: Save database
+        uses: actions/cache/save@v4
+        with:
+          path: db
+          key: cvd-${{ github.run_id }}
+
+      - name: Publish as release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          cd db
+          ls main.cvd daily.cvd bytecode.cvd >/dev/null
+          sha256sum *.cvd *.cvd.sign > SHA256SUMS
+          gh release view signatures >/dev/null 2>&1 || gh release create signatures --title 'ClamAV signatures' --notes 'Official ClamAV databases (main, daily, bytecode), refreshed every 6 hours. Files are unchanged; ClamAV verifies their signatures.'
+          gh release upload signatures main.cvd daily.cvd bytecode.cvd *.cvd.sign SHA256SUMS --clobber
+          # Only the current .sign file of each database is kept.
+          for old in $(gh release view signatures --json assets --jq '.assets[].name' | grep '.cvd.sign$'); do [ -e "$old" ] || gh release delete-asset signatures "$old" --yes; done
+          {
+            echo "### ClamAV signatures"
+            for f in main daily bytecode; do echo "- $f: $(sha256sum $f.cvd | cut -c1-16) ($(stat -c %s $f.cvd) bytes)"; done
+          } >> "$GITHUB_STEP_SUMMARY"

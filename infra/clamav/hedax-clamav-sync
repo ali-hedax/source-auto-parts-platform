@@ -1,0 +1,85 @@
+#!/bin/bash
+# Source by HEDAX — ClamAV signature update from the private mirror (github.com/ali-hedax/clamav-mirror).
+# The official ClamAV CDN refuses freshclam from Iran; a GitHub job fetches the official databases
+# and publishes them unchanged as assets of the "signatures" release.
+#
+#   hedax-clamav-sync              download with the read-only token, verify, install, reload clamd
+#   hedax-clamav-sync <directory>  install files already copied to <directory> (manual run)
+#
+# A database is installed only if ClamAV's own digital signature verifies (sigtool) and its version
+# is newer than the installed one. Nothing secret is printed; the token stays in a root-only file.
+set -Eeuo pipefail
+
+TOKEN_FILE=/root/.config/hedax/clamav-mirror.token
+RELEASE_API=https://api.github.com/repos/ali-hedax/clamav-mirror/releases/tags/signatures
+CTR=hedax-clamav-1
+DBDIR=/var/lib/clamav
+LOG=/var/log/hedax-clamav-sync.log
+
+log() { printf '%s %s\n' "$(date -u +%FT%TZ)" "$*" | tee -a "$LOG"; }
+WORK=$(mktemp -d /tmp/hedax-clamav.XXXXXX)
+trap 'rm -rf "$WORK"' EXIT
+
+if [ $# -ge 1 ]; then
+  cp "$1"/* "$WORK"/
+else
+  [ -r "$TOKEN_FILE" ] || { log "ERROR token file missing: $TOKEN_FILE"; exit 1; }
+  auth="Authorization: Bearer $(tr -d '\r\n' < "$TOKEN_FILE")"
+  curl -fsS --max-time 60 -H "$auth" -H 'Accept: application/vnd.github+json' "$RELEASE_API" -o "$WORK/release.json"
+  python3 - "$WORK/release.json" > "$WORK/assets.txt" <<'PY'
+import json, sys
+for a in json.load(open(sys.argv[1]))['assets']:
+    print(a['id'], a['name'])
+PY
+  while read -r id name; do
+    case "$name" in *.cvd|*.cvd.sign|SHA256SUMS) ;; *) continue ;; esac
+    curl -fsSL --max-time 600 -H "$auth" -H 'Accept: application/octet-stream' \
+      "https://api.github.com/repos/ali-hedax/clamav-mirror/releases/assets/$id" -o "$WORK/$name"
+  done < "$WORK/assets.txt"
+  rm -f "$WORK/release.json" "$WORK/assets.txt"
+fi
+
+cd "$WORK"
+[ -f SHA256SUMS ] && sha256sum --quiet -c SHA256SUMS || { log "ERROR checksum mismatch or SHA256SUMS missing"; exit 1; }
+
+version() { docker exec "$CTR" sigtool --info "$1" 2>/dev/null | awk -F': ' '/^Version:/ {print $2; exit}'; }
+installed=0
+newdaily=
+docker exec -u 0 "$CTR" mkdir -p "$DBDIR/.incoming"
+for db in main daily bytecode; do
+  [ -f "$db.cvd" ] || continue
+  docker cp "$db.cvd" "$CTR:$DBDIR/.incoming/$db.cvd" >/dev/null
+  info=$(docker exec "$CTR" sigtool --info "$DBDIR/.incoming/$db.cvd" 2>&1 || true)
+  if ! grep -q 'Verification OK' <<<"$info"; then
+    log "REFUSED $db.cvd: ClamAV signature did not verify"
+    docker exec -u 0 "$CTR" rm -f "$DBDIR/.incoming/$db.cvd"
+    continue
+  fi
+  new=$(awk -F': ' '/^Version:/ {print $2; exit}' <<<"$info")
+  cur=0
+  for f in "$DBDIR/$db.cvd" "$DBDIR/$db.cld"; do v=$(version "$f" || true); [ -n "$v" ] && [ "$v" -gt "$cur" ] && cur=$v; done
+  if [ "$new" -le "$cur" ]; then
+    log "kept $db $cur (mirror has $new)"
+    docker exec -u 0 "$CTR" rm -f "$DBDIR/.incoming/$db.cvd"
+    continue
+  fi
+  sign="$db-$new.cvd.sign"
+  [ -f "$sign" ] && docker cp "$sign" "$CTR:$DBDIR/$sign" >/dev/null
+  docker exec -u 0 "$CTR" sh -c "chown clamav:clamav '$DBDIR/.incoming/$db.cvd' && mv -f '$DBDIR/.incoming/$db.cvd' '$DBDIR/$db.cvd' && rm -f '$DBDIR/$db.cld' && chown clamav:clamav '$DBDIR'/$db-*.cvd.sign 2>/dev/null; for s in '$DBDIR'/$db-*.cvd.sign; do [ \"\$s\" = '$DBDIR/$sign' ] || rm -f \"\$s\"; done; true"
+  log "installed $db $cur -> $new"
+  [ "$db" = daily ] && newdaily=$new
+  installed=1
+done
+
+if [ "$installed" = 1 ]; then
+  docker exec "$CTR" sh -c 'echo RELOAD | nc -w 30 127.0.0.1 3310' >/dev/null 2>&1 || docker exec "$CTR" clamdscan --reload >/dev/null
+  # Loading takes about half a minute; wait until clamd reports the new daily version.
+  for _ in $(seq 1 24); do
+    now=$(docker exec "$CTR" sh -c 'echo VERSION | nc -w 5 127.0.0.1 3310' 2>/dev/null || true)
+    { [ -z "$newdaily" ] || grep -q "/$newdaily/" <<<"$now"; } && break
+    sleep 5
+  done
+  log "clamd now: $now"
+else
+  log "up to date"
+fi
