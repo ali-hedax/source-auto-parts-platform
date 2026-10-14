@@ -40,6 +40,11 @@ export const staffInvitationResendSchema = z.object({
   confirmCode: z.string().trim().regex(/^[0-9۰-۹]{6}$/).optional(),
 });
 
+/** Erasing a staff member or an invitation cannot be undone, so it always needs a current authenticator code. */
+export const staffEraseSchema = z.object({
+  confirmCode: z.string().trim().regex(/^[0-9۰-۹]{6}$/),
+});
+
 /**
  * PENDING: e-mail queued or not configured; SENT: accepted by the SMTP server (not proof of inbox delivery);
  * FAILED: the e-mail could not be handed over; then ACCEPTED, EXPIRED or REVOKED.

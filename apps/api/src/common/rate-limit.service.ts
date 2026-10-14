@@ -21,6 +21,7 @@ export const LIMITS = {
   chatPerUser: { bucket: 'chat:user', limit: 40, windowSeconds: 60 },
   sourcingPerUser: { bucket: 'sourcing:user', limit: 20, windowSeconds: 3600 },
   invitePerActor: { bucket: 'invite:actor', limit: 30, windowSeconds: 3600 },
+  staffErasePerActor: { bucket: 'staff-erase:actor', limit: 20, windowSeconds: 3600 },
   inviteResendPerInvitation: { bucket: 'invite-resend:invitation', limit: 5, windowSeconds: 3600 },
   invitationAcceptPerIp: { bucket: 'invite-accept:ip', limit: 20, windowSeconds: 900 },
   mailTestPerActor: { bucket: 'mail-test:actor', limit: 5, windowSeconds: 3600 },

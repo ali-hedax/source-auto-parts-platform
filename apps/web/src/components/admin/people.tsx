@@ -11,6 +11,7 @@ import { Alert, Badge, EmptyState, Ltr, PageHeader, Section, StatusBadge, TableS
 import { api } from '@/lib/api/client';
 import { errorText } from '@/lib/api/errors';
 import { useApi } from '@/lib/use-api';
+import { EraseConfirm } from './erase-confirm';
 import { InvitationsSection } from './invitations';
 import { useCodeLabel, useL } from './shell';
 
@@ -62,7 +63,7 @@ export function CustomersPage() {
 }
 
 interface RoleRow { id: string; key: string; nameFa: string; nameEn: string; isSystem: boolean; isOwner: boolean; requiresMfa: boolean; permissions: string[]; members: number }
-interface StaffData { staff: Array<{ id: string; email: string | null; fullName: string | null; status: string; mfaEnabled: boolean; lastLoginAt: string | null; roles: Array<{ id: string; key: string; nameFa: string; nameEn: string }> }>; invitations: StaffInvitationView[]; mailConfigured: boolean }
+interface StaffData { staff: Array<{ id: string; email: string | null; fullName: string | null; status: string; mfaEnabled: boolean; lastLoginAt: string | null; roles: Array<{ id: string; key: string; nameFa: string; nameEn: string; isOwner: boolean }>; canErase: boolean }>; invitations: StaffInvitationView[]; mailConfigured: boolean }
 
 export function StaffPage() {
   const t = useTranslations();
@@ -86,6 +87,18 @@ export function StaffPage() {
       await state.reload();
     } catch (e) { fail(e); }
   };
+  const [erasing, setErasing] = useState<string | null>(null);
+  const [erased, setErased] = useState(false);
+  const erase = async (id: string, confirmCode: string) => {
+    setError(null);
+    setErased(false);
+    try {
+      await api(`/admin/staff/${id}/erase`, { method: 'POST', body: { confirmCode } });
+      setErasing(null);
+      setErased(true);
+      await state.reload();
+    } catch (e) { fail(e); }
+  };
   const toggleSuspend = async (id: string, suspended: boolean) => {
     setError(null);
     try { await api(`/admin/staff/${id}`, { method: 'PATCH', body: { suspended, reason: suspended ? 'suspended by admin' : 'reactivated' } }); await state.reload(); } catch (e) { fail(e); }
@@ -94,6 +107,7 @@ export function StaffPage() {
     <div className="flex flex-col gap-6">
       <PageHeader title={t('admin.staff')} description={l('تغییر نقش یا تعلیق، همهٔ نشست‌ها و اتصال‌های زندهٔ آن کارمند را فوراً قطع می‌کند. آخرین مالک قابل حذف یا تعلیق نیست.', 'Role changes or suspension end all sessions and live connections immediately. The last owner cannot be removed or suspended.')} />
       {error ? <Alert tone="danger" title={error} /> : null}
+      {erased ? <Alert tone="success" title={l('کارمند به‌طور کامل حذف شد؛ نام و ایمیل او در هیچ جای سایت نمانده است.', 'The staff member was erased; their name and e-mail no longer appear anywhere on the site.')} /> : null}
       <Async state={state}>
         {(data) => (
           <TableScroll caption={t('admin.staff')}>
@@ -106,7 +120,13 @@ export function StaffPage() {
                   <td className={td}>{s.roles.map((r) => l(r.nameFa, r.nameEn)).join('، ')}</td>
                   <td className={td}>{s.mfaEnabled ? <Badge tone="success">✓</Badge> : <Badge tone="warning">—</Badge>}</td>
                   <td className={td}><StatusBadge status={s.status} label={t(`status.${s.status}` as never)} /></td>
-                  <td className={td}><Button size="sm" variant="ghost" onClick={() => void toggleSuspend(s.id, s.status === 'ACTIVE')}>{s.status === 'ACTIVE' ? t('admin.suspend') : t('admin.reactivate')}</Button></td>
+                  <td className={td}>
+                    <div className="flex flex-wrap gap-1">
+                      <Button size="sm" variant="ghost" onClick={() => void toggleSuspend(s.id, s.status === 'ACTIVE')}>{s.status === 'ACTIVE' ? t('admin.suspend') : t('admin.reactivate')}</Button>
+                      {s.canErase ? <Button size="sm" variant="ghost" className="text-danger" onClick={() => setErasing(s.id)}>{l('حذف کامل', 'Erase')}</Button> : null}
+                    </div>
+                    {erasing === s.id ? <EraseConfirm id={s.id} title={l(`حذف کامل ${s.fullName ?? s.email ?? ''}`, `Erase ${s.fullName ?? s.email ?? ''}`)} onConfirm={(code) => erase(s.id, code)} onCancel={() => setErasing(null)} /> : null}
+                  </td>
                 </tr>
               ))}
             </tbody>
