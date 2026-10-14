@@ -1,10 +1,10 @@
 # HEDAX reverse proxy (Caddy 2): automatic HTTPS for {$HEDAX_DOMAIN}.
-# STATUS: run locally with Docker on 2026-10-04 (HEDAX_DOMAIN=localhost: Caddy's local CA);
-# public certificates on the target server are not yet tested (see docs/DEPLOYMENT.md).
+# Production S3 media routing verified on sourcebyhedax.ir on 2026-10-14.
+# This production configuration expects the existing public media bucket (products/ and content/ readable).
 #
 #   /api/*    → NestJS API (REST, uploads, payment callbacks, chat WebSocket at /api/v1/ws)
-#   /media/*  → API (public product images when STORAGE_DRIVER=local; with S3 set
-#               PUBLIC_MEDIA_BASE_URL to the public bucket and this route is unused)
+#   /media/*  → public S3 images (products/ product photos, content/ site-content images);
+#               every other prefix and the private bucket stay private (authenticated API routes).
 #   else      → Next.js web (storefront + admin)
 # /health/* is intentionally not routed: probes run inside the Docker network.
 
@@ -23,8 +23,14 @@
 		reverse_proxy api:4000
 	}
 
-	handle /media/* {
-		reverse_proxy api:4000
+	handle_path /media/* {
+		reverse_proxy https://sourcebyhedax-media.s3.ir-central1.arvanstorage.ir {
+			header_up Host sourcebyhedax-media.s3.ir-central1.arvanstorage.ir
+			header_up -Cookie
+			header_up -Authorization
+			header_up -Referer
+			header_up -X-Forwarded-*
+		}
 	}
 
 	handle {
