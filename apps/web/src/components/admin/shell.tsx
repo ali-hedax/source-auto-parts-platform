@@ -39,7 +39,10 @@ export function usePriceSourceLabel(): (source: string) => string {
   };
 }
 
+/** `perm` is a permission key, or OWNER_ONLY for links only owners see (checked by the API too). */
 interface NavItem { href: string; label: string; icon: typeof Gauge; perm?: string }
+const OWNER_ONLY = '@owner';
+const navPermissions = (me: { permissions: string[]; isOwner: boolean }) => (me.isOwner ? [...me.permissions, OWNER_ONLY] : me.permissions);
 interface NavGroup { title: string; items: NavItem[] }
 
 export function AdminShell({ children }: { children: ReactNode }) {
@@ -87,7 +90,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
       title: t('customers'),
       items: [
         { href: '/admin/customers', label: t('customers'), icon: Users, perm: 'customers.read' },
-        { href: '/admin/staff', label: t('staff'), icon: UserCog, perm: 'users.manage' },
+        { href: '/admin/staff', label: t('staff'), icon: UserCog, perm: OWNER_ONLY },
         { href: '/admin/roles', label: t('roles'), icon: ShieldCheck, perm: 'users.manage' },
       ],
     },
@@ -115,7 +118,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-canvas">
       <header className="on-dark sticky top-0 z-40 bg-carbon text-silver">
         <div className="flex h-14 items-center gap-2 px-3 sm:gap-3 md:px-5">
-          {me.data?.kind === 'STAFF' ? <AdminDrawer groups={groups} permissions={me.data.permissions} pathname={pathname} title={t('title')} /> : null}
+          {me.data?.kind === 'STAFF' ? <AdminDrawer groups={groups} permissions={navPermissions(me.data)} pathname={pathname} title={t('title')} /> : null}
           <Link href="/admin" className="flex shrink-0 items-center gap-3 rounded-[var(--radius-control)] p-1">
             <Image src="/brand/source/logo-dark.png" width={600} height={191} unoptimized alt={alt} className="hidden h-8 w-auto sm:block" />
             <Image src="/brand/source/icon-64.png" width={64} height={64} unoptimized alt={alt} className="size-8 sm:hidden" />
@@ -152,7 +155,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-[16rem_minmax(0,1fr)]">
               <nav aria-label={t('title')} className="hidden border-e border-line-soft bg-white lg:sticky lg:top-14 lg:block lg:h-[calc(100vh-3.5rem)] lg:overflow-y-auto">
-                <AdminNavList groups={groups} permissions={user.permissions} pathname={pathname} />
+                <AdminNavList groups={groups} permissions={navPermissions(user)} pathname={pathname} />
               </nav>
               <main id="main" tabIndex={-1} className="min-w-0 px-4 py-5 focus:outline-none md:px-6 md:py-6 lg:px-8 lg:py-8">{children}</main>
             </div>

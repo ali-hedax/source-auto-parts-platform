@@ -325,18 +325,21 @@ describe('A18 — support agent attempts price or role changes', () => {
     }
     expect((await owner.get(`/admin/products/${p.id}`)).body.basePrice.amountMinor).toBe('2000000');
 
-    // Delegated user management cannot escalate beyond its own permissions or touch owners.
+    // Staff management is the owner's alone: even a role holding users.manage is refused (owner decision 2026-10-14).
     const custom = await owner.post('/admin/roles', { key: `people_${run}`.slice(0, 40), nameFa: 'مدیر کارکنان', nameEn: 'People admin', permissions: ['dashboard.view', 'users.manage'] });
     expect(custom.status).toBe(201);
     const people = await inviteStaff(t, owner, `people_${run}`.slice(0, 40));
     const finance = roles.body.find((r: any) => r.key === 'finance');
-    const escalate = await people.post('/admin/staff/invitations', { email: `f${run}@hedax.test`, fullName: 'مالی جدید', roleIds: [finance.id] });
-    expect(escalate.status).toBe(422);
-    expect(escalate.body.error.code).toBe('PERMISSION_ESCALATION');
-    const makeOwner = await people.post('/admin/staff/invitations', { email: `o${run}@hedax.test`, fullName: 'مالک جدید', roleIds: [ownerRole.id] });
-    expect(makeOwner.status).toBe(403);
-    expect((await people.patch(`/admin/staff/${me.body.id}`, { suspended: true })).body.error.code).toBe('OWNER_PROTECTED');
-    expect((await people.patch(`/admin/staff/${people.userId}`, { roleIds: [finance.id] })).body.error.code).toBe('SELF_EDIT');
+    for (const res of [
+      await people.get('/admin/staff'),
+      await people.post('/admin/staff/invitations', { email: `f${run}@hedax.test`, fullName: 'مالی جدید', roleIds: [finance.id] }),
+      await people.post('/admin/staff/invitations', { email: `o${run}@hedax.test`, fullName: 'مالک جدید', roleIds: [ownerRole.id] }),
+      await people.patch(`/admin/staff/${me.body.id}`, { suspended: true }),
+      await people.patch(`/admin/staff/${people.userId}`, { roleIds: [finance.id] }),
+    ]) {
+      expect(res.status).toBe(403);
+      expect(res.body.error.code).toBe('OWNER_ONLY');
+    }
     expect((await owner.patch(`/admin/staff/${me.body.id}`, { suspended: true })).body.error.code).toBe('SELF_EDIT');
   });
 });

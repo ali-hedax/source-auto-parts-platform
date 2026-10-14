@@ -51,6 +51,8 @@ export interface MeView {
   customerType: CustomerType | null;
   customerGroup: { id: string; name: string; status: 'PENDING' | 'APPROVED' | 'REJECTED' } | null;
   permissions: string[];
+  /** Staff holding the owner role (staff management is theirs only). */
+  isOwner: boolean;
   mfaEnabled: boolean;
   preferredLocale: 'fa' | 'en';
   unreadNotifications: number;

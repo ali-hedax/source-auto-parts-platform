@@ -366,6 +366,7 @@ export class AuthService {
           ? { id: profile.customerGroup.id, name: user.preferredLocale === 'en' ? profile.customerGroup.nameEn : profile.customerGroup.nameFa, status: profile.groupStatus as 'PENDING' | 'APPROVED' | 'REJECTED' }
           : null,
       permissions: [...actor.permissions].sort(),
+      isOwner: actor.kind === 'STAFF' && actor.isOwner,
       mfaEnabled: !!user.mfaEnabledAt,
       preferredLocale: user.preferredLocale,
       unreadNotifications,

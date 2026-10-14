@@ -89,6 +89,7 @@ export class StaffController {
   @RequirePermissions('users.manage')
   @Get('staff')
   async staff(@CurrentActor() actor: Actor) {
+    assertOwner(actor);
     // Erased accounts keep only an anonymous row for history; they are not listed.
     const rows = await this.prisma.user.findMany({ where: { kind: 'STAFF', status: { not: 'DELETED' } }, include: { roles: { include: { role: true } } }, orderBy: { createdAt: 'asc' } });
     const staff: StaffMemberView[] = rows.map((u) => ({
@@ -107,6 +108,7 @@ export class StaffController {
   @Post('staff/invitations')
   @ApiZodBody(staffInviteSchema)
   invite(@CurrentActor() actor: Actor, @Body(zod(staffInviteSchema)) body: z.infer<typeof staffInviteSchema>) {
+    assertOwner(actor);
     return this.invitations.invite(actor, body);
   }
 
@@ -115,6 +117,7 @@ export class StaffController {
   @Patch('staff/invitations/:id')
   @ApiZodBody(staffInvitationUpdateSchema)
   updateInvitation(@CurrentActor() actor: Actor, @Param('id', ParseUUIDPipe) id: string, @Body(zod(staffInvitationUpdateSchema)) body: z.infer<typeof staffInvitationUpdateSchema>) {
+    assertOwner(actor);
     return this.invitations.update(actor, id, body);
   }
 
@@ -123,6 +126,7 @@ export class StaffController {
   @HttpCode(200)
   @ApiZodBody(staffInvitationResendSchema)
   resend(@CurrentActor() actor: Actor, @Param('id', ParseUUIDPipe) id: string, @Body(zod(staffInvitationResendSchema)) body: z.infer<typeof staffInvitationResendSchema>) {
+    assertOwner(actor);
     return this.invitations.resend(actor, id, body.confirmCode);
   }
 
@@ -130,6 +134,7 @@ export class StaffController {
   @Post('staff/invitations/:id/revoke')
   @HttpCode(200)
   revoke(@CurrentActor() actor: Actor, @Param('id', ParseUUIDPipe) id: string) {
+    assertOwner(actor);
     return this.invitations.revoke(actor, id);
   }
 
@@ -139,6 +144,7 @@ export class StaffController {
   @HttpCode(200)
   @ApiZodBody(staffEraseSchema)
   eraseInvitation(@CurrentActor() actor: Actor, @Param('id', ParseUUIDPipe) id: string, @Body(zod(staffEraseSchema)) body: z.infer<typeof staffEraseSchema>) {
+    assertOwner(actor);
     return this.erasure.eraseInvitation(actor, id, body.confirmCode);
   }
 
@@ -148,6 +154,7 @@ export class StaffController {
   @HttpCode(200)
   @ApiZodBody(staffEraseSchema)
   eraseStaff(@CurrentActor() actor: Actor, @Param('id', ParseUUIDPipe) id: string, @Body(zod(staffEraseSchema)) body: z.infer<typeof staffEraseSchema>) {
+    assertOwner(actor);
     return this.erasure.eraseStaff(actor, id, body.confirmCode);
   }
 
@@ -160,6 +167,7 @@ export class StaffController {
   @HttpCode(200)
   @ApiZodBody(staffMfaResetSchema)
   async resetMfa(@CurrentActor() actor: Actor, @Param('id', ParseUUIDPipe) id: string, @Body(zod(staffMfaResetSchema)) body: z.infer<typeof staffMfaResetSchema>) {
+    assertOwner(actor);
     if (id === actor.userId) throw forbidden('SELF_EDIT', 'Reset your own authenticator from your account page');
     const target = await this.prisma.user.findFirst({ where: { id, kind: 'STAFF', status: { not: 'DELETED' } }, select: { id: true, mfaEnabledAt: true } });
     if (!target) throw notFound();
@@ -183,6 +191,7 @@ export class StaffController {
   @Patch('staff/:id')
   @ApiZodBody(staffUpdateSchema)
   async update(@CurrentActor() actor: Actor, @Param('id', ParseUUIDPipe) id: string, @Body(zod(staffUpdateSchema)) body: z.infer<typeof staffUpdateSchema>) {
+    assertOwner(actor);
     if (id === actor.userId) throw forbidden('SELF_EDIT', 'You cannot change your own roles or status');
     await this.prisma.tx(async (tx) => {
       const target = await tx.user.findFirst({ where: { id, kind: 'STAFF', status: { not: 'DELETED' } }, include: { roles: { include: { role: { include: { permissions: true } } } } } });
@@ -229,3 +238,7 @@ export class StaffController {
   }
 }
 
+/** Staff management is the owner's alone, checked on every request (not only hidden in the panel). */
+function assertOwner(actor: Actor): void {
+  if (!actor.isOwner) throw forbidden('OWNER_ONLY', 'Only an owner can manage staff');
+}
