@@ -147,7 +147,7 @@ export function ContentHomePage() {
                   return (
                     <li key={sec.id} className={`card ${hasError ? 'border-danger' : ''}`}>
                       <div className="flex flex-wrap items-center gap-2 p-3 sm:p-4">
-                        <button type="button" className="min-h-11 flex-1 cursor-pointer text-start font-bold" aria-expanded={open === sec.id} onClick={() => setOpen(open === sec.id ? null : sec.id)}>
+                        <button type="button" className="min-h-11 basis-full cursor-pointer text-start font-bold sm:basis-auto sm:flex-1" aria-expanded={open === sec.id} onClick={() => setOpen(open === sec.id ? null : sec.id)}>
                           <span className="num me-2 text-steel">{i + 1}.</span>{title}
                         </button>
                         {sec.visible ? <Badge tone="success">{l('نمایش', 'Shown')}</Badge> : <Badge tone="neutral">{l('مخفی', 'Hidden')}</Badge>}

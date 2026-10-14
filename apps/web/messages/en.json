@@ -1,9 +1,4 @@
 {
-  "meta": {
-    "siteTitle": "Source | Auto parts & custom sourcing",
-    "siteDescription": "Buy in-stock auto parts or request sourcing for any brand, with price and lead time confirmed before you pay.",
-    "tagline": "Pioneering Intelligence & Trade."
-  },
   "common": {
     "brand": "Source",
     "skipToContent": "Skip to main content",
@@ -74,35 +69,6 @@
     "noResults": "No in-stock part matches “{query}”.",
     "noResultsHint": "We can source it for you. Submit a request with this title.",
     "requestThis": "Request sourcing for this part"
-  },
-  "home": {
-    "heroTitle": "Find the part you need — and we'll source it when it isn't on the shelf.",
-    "heroText": "Browse in-stock parts with photos, specs and prices. Can't find it? Request sourcing for any brand; price and lead time are confirmed before you pay.",
-    "primaryCta": "Search in-stock parts",
-    "secondaryCta": "Request a part",
-    "brandsTitle": "Brands in stock",
-    "otherBrands": "Other brands",
-    "otherBrandsHint": "Request sourcing for any other brand",
-    "featuredTitle": "In-stock parts",
-    "categoriesTitle": "Categories",
-    "processTitle": "How custom sourcing works",
-    "step1": "Submit a request",
-    "step1Text": "Send the part name, vehicle and, if you can, a photo or file.",
-    "step2": "Review, price & lead time",
-    "step2Text": "An expert reviews it and issues a quote with price and lead time.",
-    "step3": "Accept & pay",
-    "step3Text": "Sourcing starts only after you accept the quote and the payment is verified.",
-    "step4": "Sourcing & delivery",
-    "step4Text": "Follow progress in your account and the conversation.",
-    "contactTitle": "Contact Source",
-    "faqTitle": "Frequently asked questions",
-    "faq1q": "Which currency are prices shown in?",
-    "faq1a": "Prices are shown in Iranian rial (IRR) or UAE dirham (AED). Online payment settles the final amount in IRR, which you always see before paying.",
-    "faq2q": "What if my part is not in stock?",
-    "faq2a": "Submit a sourcing request. You'll receive a quote with price and lead time; nothing is sourced until you pay.",
-    "faq3q": "Do I need a VIN to submit a request?",
-    "faq3a": "No. VIN and part code are optional and only help our experts review the request.",
-    "emptyCatalog": "No parts have been published yet."
   },
   "parts": {
     "title": "In-stock parts",
@@ -542,7 +508,6 @@
     "openSupport": "Support"
   },
   "footer": {
-    "about": "Source — precise, fast and smart auto-parts sourcing.",
     "links": "Quick links",
     "help": "Help",
     "buying": "Buying guide",
@@ -550,27 +515,21 @@
     "shipping": "Shipping",
     "returns": "Returns & cancellations",
     "privacy": "Privacy",
-    "terms": "Terms of sale",
-    "rights": "© {year} HEDAX"
+    "terms": "Terms of sale"
   },
   "pages": {
-    "aboutTitle": "About Source",
-    "aboutBody": "Source works with a mission of “precise, fast and smart sourcing” of auto parts: selling in-stock parts with transparent specifications, and sourcing parts for any brand with price and lead time confirmed before payment.",
     "contactTitle": "Contact Source",
     "contactChat": "The fastest way to reach us is the on-site conversation.",
-    "phone": "Phone",
-    "mobileWhatsapp": "Mobile & WhatsApp (UAE)",
     "whatsapp": "Chat on WhatsApp",
     "email": "Email",
     "address": "Address",
     "hours": "Support hours",
     "policyPending": "This text will be published once approved by the owner.",
-    "buyingTitle": "Buying guide",
-    "buyingBody": "Search for an in-stock part, check its specs, type and condition, and add it to your cart. After signing in with your mobile, choose an address and shipping method and see the final IRR amount before paying. Stock is reserved for you for a limited time once payment starts.",
-    "sourcingTitle": "Custom sourcing process",
-    "sourcingBody": "Submit a request with the part name, vehicle and, if possible, a photo or file. An expert asks questions in the conversation and issues an official quote with items, price and lead time. Every change creates a new quote version. After you accept and the payment is verified, sourcing starts and progress shows in your account.",
     "notFoundHint": "The address may be wrong, or this part is no longer published. Search the parts in stock or send a sourcing request for any brand.",
-    "errorHint": "This problem has been logged on our side. Please try again; if it continues, contact support."
+    "errorHint": "This problem has been logged on our side. Please try again; if it continues, contact support.",
+    "extension": "Ext.",
+    "viewOnMap": "View on map",
+    "social": "Follow us"
   },
   "admin": {
     "title": "Admin panel",
@@ -1081,5 +1040,15 @@
     "RETURN_REQUESTED": "Return requested",
     "RETURN_APPROVED": "Return approved",
     "RETURN_REJECTED": "Return rejected"
+  },
+  "social": {
+    "instagram": "Instagram",
+    "linkedin": "LinkedIn",
+    "telegram": "Telegram",
+    "x": "X",
+    "whatsapp": "WhatsApp",
+    "youtube": "YouTube",
+    "aparat": "Aparat",
+    "other": "Link"
   }
 }

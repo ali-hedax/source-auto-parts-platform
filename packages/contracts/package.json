@@ -14,10 +14,6 @@
     "./constants": {
       "types": "./dist/constants.d.ts",
       "default": "./dist/constants.js"
-    },
-    "./site-contact": {
-      "types": "./dist/site-contact.d.ts",
-      "default": "./dist/site-contact.js"
     }
   },
   "scripts": {

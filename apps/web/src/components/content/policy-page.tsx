@@ -1,4 +1,5 @@
 import { getLocale, getTranslations } from 'next-intl/server';
+import type { ReactNode } from 'react';
 import { Alert, PageHeader } from '@/components/ui/misc';
 import { serverApiOptional } from '@/lib/api/server';
 
@@ -15,7 +16,7 @@ interface PolicyView {
  * Until the owner publishes one, a "pending" notice is shown — no legal
  * numbers or commitments are invented (spec §17).
  */
-export async function PolicyPage({ kind, fallbackTitle, intro }: { kind: 'TERMS' | 'PRIVACY' | 'RETURNS' | 'SHIPPING' | 'SOURCING' | 'WARRANTY'; fallbackTitle: string; intro?: string }) {
+export async function PolicyPage({ kind, fallbackTitle, intro }: { kind: 'TERMS' | 'PRIVACY' | 'RETURNS' | 'SHIPPING' | 'SOURCING' | 'WARRANTY'; fallbackTitle: string; intro?: ReactNode }) {
   const t = await getTranslations('pages');
   const locale = (await getLocale()) as 'fa' | 'en';
   const policy = await serverApiOptional<PolicyView>(`/site/policies/${kind.toLowerCase()}`, { publicCache: 300 }).catch(() => null);
@@ -24,7 +25,7 @@ export async function PolicyPage({ kind, fallbackTitle, intro }: { kind: 'TERMS'
   return (
     <div className="container-page max-w-3xl py-8">
       <PageHeader title={title} />
-      {intro ? <p className="mb-6 leading-8">{intro}</p> : null}
+      {intro ? <div className="mb-6">{intro}</div> : null}
       {body ? (
         <article className="prose-hedax card p-6 sm:p-8">
           {body.split(/\n{1,}/).map((p, i) => <p key={i}>{p}</p>)}

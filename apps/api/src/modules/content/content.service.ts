@@ -128,7 +128,8 @@ export class ContentService {
       brand: sections.brand.value,
       contact: sections.contact.value,
       social: { links: sections.social.value.links.filter((l) => l.visible && l.url) },
-      home: { sections: sections.home.value.sections.filter((s) => s.visible) },
+      // Hidden sections are sent too (other pages reuse their texts); the home page skips them.
+      home: sections.home.value,
       announcement: sections.announcement.value,
       seo: sections.seo.value,
       faq: faq.map((f) => ({ id: f.id, question: { fa: f.questionFa, en: f.questionEn }, answer: { fa: f.answerFa, en: f.answerEn } })),

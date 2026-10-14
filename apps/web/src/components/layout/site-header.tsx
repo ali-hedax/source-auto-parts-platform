@@ -1,8 +1,10 @@
+import { localize } from '@hedax/contracts/constants';
 import Image from 'next/image';
 import { Search } from 'lucide-react';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 import { displayCurrency } from '@/lib/preferences';
+import { DEFAULT_LOGO, getSiteContent } from '@/lib/site-content';
 import { AccountLink, CartLink } from './header-client';
 import { HeaderNav } from './header-nav';
 import { Suspense } from 'react';
@@ -14,19 +16,21 @@ export async function SiteHeader() {
   const t = await getTranslations();
   const locale = await getLocale();
   const currency = await displayCurrency();
+  const brand = (await getSiteContent())?.brand;
   const nav = [
     { href: '/parts', label: t('nav.parts') },
     { href: '/imported-parts', label: t('nav.imported') },
     { href: '/brands', label: t('nav.brands') },
     { href: '/request-part', label: t('nav.requestPart') },
   ] as const;
-  const alt = locale === 'fa' ? 'سورس — محصولی از هداکس' : 'Source by HEDAX';
+  // Logo, its alt text and the site title come from site content → general.
+  const alt = localize(brand?.logoAlt, locale) || localize(brand?.siteName, locale);
   return (
     <header className="on-dark sticky top-0 z-40 bg-carbon text-silver">
       <div className="container-page flex h-16 items-center gap-1 sm:gap-3 lg:gap-6">
         <MobileNav items={nav.map((n) => ({ href: n.href, label: n.label }))} />
-        <Link href="/" className="flex shrink-0 items-center rounded-[var(--radius-control)] p-1" aria-label={t('meta.siteTitle')}>
-          <Image src="/brand/source/logo-dark.png" width={600} height={191} unoptimized alt={alt} className="hidden h-10 w-auto sm:block" />
+        <Link href="/" className="flex shrink-0 items-center rounded-[var(--radius-control)] p-1" aria-label={localize(brand?.siteTitle, locale) || alt}>
+          <Image src={brand?.logoUrl || DEFAULT_LOGO} width={600} height={191} unoptimized alt={alt} className="hidden h-10 w-auto sm:block" />
           <Image src="/brand/source/icon-64.png" width={64} height={64} unoptimized alt={alt} className="size-9 sm:hidden" />
         </Link>
         <form action={`/${locale}/parts`} method="get" role="search" className="hidden min-w-0 flex-1 md:flex">

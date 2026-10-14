@@ -90,7 +90,7 @@ export function ContentFaqPage() {
             {items.map((item, i) => (
               <li key={item.id} className="card">
                 <div className="flex flex-wrap items-center gap-2 p-3 sm:p-4">
-                  <button type="button" className="min-h-11 flex-1 cursor-pointer text-start font-semibold leading-7" aria-expanded={open === item.id} onClick={() => setOpen(open === item.id ? null : item.id)}>
+                  <button type="button" className="min-h-11 basis-full cursor-pointer text-start font-semibold leading-7 sm:basis-auto sm:flex-1" aria-expanded={open === item.id} onClick={() => setOpen(open === item.id ? null : item.id)}>
                     <span className="num me-2 text-steel">{i + 1}.</span>{item.question.fa}
                   </button>
                   {item.visible ? null : <Badge tone="neutral">{l('مخفی', 'Hidden')}</Badge>}

@@ -112,14 +112,14 @@ describe('site content', () => {
     expect(pub.address.fa).toBe('قم، خیابان نمونه');
   });
 
-  it('home page sections can be reordered and hidden; hidden ones are not sent to visitors', async () => {
+  it('home page sections can be reordered and hidden', async () => {
     const home = (await sections(manager)).home!;
     const reordered = [...home.value.sections].reverse().map((sec: any) => (sec.type === 'brands' ? { ...sec, visible: false } : sec));
     reordered.push({ id: 'note', type: 'text', visible: true, title: { fa: 'چرا سورس؟', en: '' }, body: { fa: 'متن آزمایشی', en: '' }, imageUrl: '', button: { label: { fa: '', en: '' }, href: '' } });
     const res = await save(manager, 'home', home.version, { sections: reordered });
     expect(res.status, JSON.stringify(res.body)).toBe(200);
-    const pub = (await new Client(t).get<any>('/site/content')).body.home.sections.map((x: any) => x.type);
-    expect(pub).toEqual(['faq', 'featured', 'hero', 'text']);
+    const pub = (await new Client(t).get<any>('/site/content')).body.home.sections.map((x: any) => `${x.type}:${x.visible}`);
+    expect(pub).toEqual(['faq:true', 'featured:true', 'brands:false', 'hero:true', 'text:true']);
     // Built-in blocks exist once.
     const dup = await save(manager, 'home', res.body.version, { sections: [...reordered, { ...reordered[0], id: 'faq-2' }] });
     expect(dup.status).toBe(400);

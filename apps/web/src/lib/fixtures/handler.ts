@@ -1,4 +1,4 @@
-import type { CartView, MeView, PriceView, ProductCard, ProductDetail, SearchResult } from '@hedax/contracts';
+import type { CartView, ContentPageView, ContentSections, FaqItemView, MeView, PriceView, ProductCard, ProductDetail, SearchResult, SiteContentView } from '@hedax/contracts';
 import { ALL_PERMISSIONS, DEFAULT_ROLES, type PriceTier, compactSearchText, displayUnitPrice, money, normalizeSearchText, resolveUnitPrice, searchTokens } from '@hedax/domain';
 import {
   FIXTURE_RATE,
@@ -13,6 +13,7 @@ import {
   fixtureRequest,
   type FixtureProduct,
 } from './data';
+import siteContentJson from './site-content.json';
 
 export interface FixtureResponse {
   status: number;
@@ -23,6 +24,20 @@ export interface FixtureResponse {
 const ROLE_COOKIE = 'hedax_fixture_role';
 const CART_COOKIE = 'hedax_fixture_cart';
 const carts = new Map<string, Map<string, number>>();
+
+// Preview copy of the content migration's initial values (database/prisma/migrations/20261014120000_site_content).
+const fixtureContent = siteContentJson as unknown as { sections: ContentSections; faq: Array<Omit<FaqItemView, 'updatedAt'>>; pages: Array<Omit<ContentPageView, 'updatedAt'>> };
+const FIXTURE_CONTENT_DATE = '2026-10-14T09:00:00.000Z';
+const fixturePageView = (p: Omit<ContentPageView, 'updatedAt'>): ContentPageView => ({ ...p, updatedAt: FIXTURE_CONTENT_DATE });
+function fixtureSiteContent(): SiteContentView {
+  const s = fixtureContent.sections;
+  return {
+    ...s,
+    social: { links: s.social.links.filter((x) => x.visible && x.url) },
+    faq: fixtureContent.faq.filter((f) => f.visible).map((f) => ({ id: f.id, question: f.question, answer: f.answer })),
+    footerPages: fixtureContent.pages.filter((p) => p.published && p.showInFooter).map((p) => ({ slug: p.slug, title: p.title })),
+  };
+}
 
 const ok = (body: unknown, cookies?: Record<string, string>): FixtureResponse => ({ status: 200, body, ...(cookies ? { cookies } : {}) });
 const err = (status: number, code: string, message = code): FixtureResponse => ({ status, body: { error: { code, message, requestId: 'fixture' } } });
@@ -162,6 +177,11 @@ export async function handleFixture(method: string, pathWithQuery: string, rawBo
   if (route === 'GET /catalog/sitemap') return ok(fixtureProducts.map((p) => ({ slug: p.slug, updatedAt: '2026-09-29T10:00:00.000Z' })));
   if (route === 'GET /exchange-rates/current') return ok({ irrPerAed: FIXTURE_RATE.irrPerAed, effectiveFrom: FIXTURE_RATE.effectiveFrom });
   if (route === 'GET /site/contact') return ok({ phone: null, email: null, address: { fa: null, en: null }, workingHours: { fa: null, en: null } });
+  if (route === 'GET /site/content') return ok(fixtureSiteContent());
+  if ((m = /^GET \/site\/pages\/([a-z0-9-]+)$/.exec(route))) {
+    const page = fixtureContent.pages.find((x) => x.slug === m![1] && x.published);
+    return page ? ok({ slug: page.slug, title: page.title, body: page.body, seoTitle: page.seoTitle, seoDescription: page.seoDescription, updatedAt: FIXTURE_CONTENT_DATE }) : err(404, 'PAGE_NOT_FOUND');
+  }
   if ((m = /^GET \/site\/policies\/(\w+)$/.exec(route))) {
     if (m[1]?.toUpperCase() !== 'TERMS') return err(404, 'POLICY_NOT_PUBLISHED');
     return ok({ id: fixtureQuote.terms.policyVersionId, kind: 'TERMS', version: 1, title: { fa: 'شرایط فروش (نسخهٔ آزمایشی)', en: 'Terms of sale (placeholder)' }, body: { fa: fixtureQuote.terms.body, en: 'Placeholder text for the development preview.' }, publishedAt: null });
@@ -293,6 +313,13 @@ export async function handleFixture(method: string, pathWithQuery: string, rawBo
     if (path === '/admin/refunds' || path === '/admin/returns' || path === '/admin/audit') return ok([]);
     if (path === '/admin/customers') return ok([{ id: 'fixture-customer', fullName: 'مشتری نمونه', mobile: '+98912***0000', status: 'ACTIVE', customerType: 'CONSUMER', groupStatus: 'PENDING', requestedType: 'WORKSHOP', businessName: 'تعمیرگاه نمونه', group: null, orders: 2, requests: 1, createdAt: fixtureOrders[0]!.createdAt }]);
     if (path === '/admin/staff') return ok({ staff: [{ id: 'fixture-staff', email: 'owner@example.test', fullName: 'مالک نمونه', status: 'ACTIVE', mfaEnabled: true, lastLoginAt: new Date().toISOString(), roles: [{ id: 'r-owner', key: 'owner', nameFa: 'مالک', nameEn: 'Owner', isOwner: true }], canErase: false }, { id: 'fixture-staff-2', email: 'catalog@example.test', fullName: 'کارمند کاتالوگ', status: 'ACTIVE', mfaEnabled: false, lastLoginAt: null, roles: [{ id: 'r-catalog', key: 'catalog_warehouse', nameFa: 'کاتالوگ و انبار', nameEn: 'Catalog & warehouse', isOwner: false }], canErase: true }], invitations: [{ id: 'fixture-invitation', email: 'support@example.test', fullName: 'کارمند نمونه', roles: [{ id: 'r-support', nameFa: 'پشتیبانی', nameEn: 'Support', isOwner: false }], status: 'SENT', createdAt: new Date().toISOString(), expiresAt: new Date(Date.now() + 72 * 3_600_000).toISOString(), acceptedAt: null, sentAt: new Date().toISOString(), lastError: null }], mailConfigured: true });
+    if (path === '/admin/content') return ok(Object.fromEntries(Object.entries(fixtureContent.sections).map(([k, v]) => [k, { value: v, version: 1, updatedAt: FIXTURE_CONTENT_DATE }])));
+    if (path === '/admin/content/faq') return ok(fixtureContent.faq.map((f): FaqItemView => ({ id: f.id, question: f.question, answer: f.answer, visible: f.visible, sortOrder: f.sortOrder, updatedAt: FIXTURE_CONTENT_DATE })));
+    if (path === '/admin/content/pages') return ok(fixtureContent.pages.map(fixturePageView));
+    if ((m = /^\/admin\/content\/pages\/(.+)$/.exec(path))) {
+      const page = fixtureContent.pages.find((x) => x.id === m![1]);
+      return page ? ok(fixturePageView(page)) : err(404, 'NOT_FOUND');
+    }
     if (path === '/admin/mail/status') return ok({ provider: 'dev-log', configured: true, from: 'info@example.test', lastTest: null });
     if (path === '/admin/roles') return ok(DEFAULT_ROLES.map((r) => ({ id: `r-${r.key}`, key: r.key, nameFa: r.nameFa, nameEn: r.nameEn, isSystem: true, isOwner: r.isOwner, requiresMfa: r.requiresMfa, permissions: [...r.permissions], members: r.isOwner ? 1 : 0, version: 0 })));
     if (path === '/admin/exchange-rates') return ok([{ id: FIXTURE_RATE.id, irrPerAed: FIXTURE_RATE.irrPerAed, effectiveFrom: FIXTURE_RATE.effectiveFrom, note: 'نرخ نمونه — نرخ بازار نیست', createdBy: 'مالک نمونه', createdAt: FIXTURE_RATE.effectiveFrom }]);

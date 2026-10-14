@@ -8,6 +8,7 @@ import '@fontsource/montserrat/400.css';
 import '@fontsource/montserrat/600.css';
 import '@fontsource/montserrat/700.css';
 import '../globals.css';
+import { localize } from '@hedax/contracts/constants';
 import type { Metadata, Viewport } from 'next';
 import { notFound } from 'next/navigation';
 import { hasLocale, NextIntlClientProvider } from 'next-intl';
@@ -15,6 +16,7 @@ import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server
 import type { ReactNode } from 'react';
 import { routing } from '@/i18n/routing';
 import { dataSource, publicSiteUrl } from '@/lib/config';
+import { getSiteContent } from '@/lib/site-content';
 import { FixtureBanner } from '@/components/layout/fixture-banner';
 
 export function generateStaticParams() {
@@ -23,11 +25,20 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: 'meta' });
+  // Site title, name, description, browser icon and share image: site content → general / SEO.
+  const content = await getSiteContent();
+  const siteTitle = localize(content?.brand.siteTitle, locale) || 'Source';
+  const siteName = localize(content?.brand.siteName, locale) || 'Source';
+  const description = localize(content?.seo.defaultDescription, locale);
+  const shareImage = content?.seo.defaultImageUrl;
+  const favicon = content?.brand.faviconUrl;
   return {
     metadataBase: new URL(publicSiteUrl()),
-    title: { default: t('siteTitle'), template: `%s | ${locale === 'fa' ? 'سورس' : 'Source'}` },
-    description: t('siteDescription'),
+    title: { default: siteTitle, template: `%s | ${siteName}` },
+    ...(description ? { description } : {}),
+    // An uploaded icon replaces the built-in app/favicon.ico and app/icon.png.
+    ...(favicon ? { icons: { icon: favicon, apple: favicon } } : {}),
+    openGraph: { siteName, ...(shareImage ? { images: [shareImage] } : {}) },
     alternates: { languages: { fa: '/fa', en: '/en', 'x-default': '/fa' } },
     // The development preview must never be indexed.
     ...(dataSource() === 'fixtures' ? { robots: { index: false, follow: false } } : {}),

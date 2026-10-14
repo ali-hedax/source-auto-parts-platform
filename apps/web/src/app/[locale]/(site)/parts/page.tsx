@@ -1,11 +1,12 @@
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { CatalogPage } from '@/components/catalog/catalog-page';
+import { getSiteContent, seoMetadata } from '@/lib/site-content';
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale });
-  return { title: t('parts.title'), alternates: { canonical: `/${locale}/parts`, languages: { fa: '/fa/parts', en: '/en/parts' } } };
+  return { ...seoMetadata(await getSiteContent(), 'parts', locale, t('parts.title')), alternates: { canonical: `/${locale}/parts`, languages: { fa: '/fa/parts', en: '/en/parts' } } };
 }
 
 export default async function PartsPage({ params, searchParams }: { params: Promise<{ locale: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
