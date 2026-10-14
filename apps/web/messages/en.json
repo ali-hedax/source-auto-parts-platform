@@ -813,7 +813,7 @@
     "auditAction_sourcing_assigned": "Sourcing request assigned",
     "auditAction_staff_invited": "Staff member invited",
     "auditAction_staff_invitation_accepted": "Staff invitation accepted",
-    "auditAction_staff_updated": "Staff roles or status changed",
+    "auditAction_staff_updated": "Staff member edited (name, phone, roles or status)",
     "auditAction_vehicle_brand_created": "Vehicle brand created",
     "auditAction_vehicle_brand_updated": "Vehicle brand edited",
     "auditEntity_product": "Product",
@@ -863,7 +863,9 @@
     "auditEntity_content": "Site content",
     "auditEntity_faq_item": "FAQ question",
     "auditEntity_content_page": "Text page",
-    "auditEntity_content_image": "Site image"
+    "auditEntity_content_image": "Site image",
+    "auditAction_staff_invitation_updated": "Staff invitation edited",
+    "auditAction_staff_mfa_reset": "Staff authenticator reset"
   },
   "validation": {
     "summaryTitle": "Please fix the following",
@@ -920,7 +922,7 @@
     "WEAK_PASSWORD": "The password is too weak; use at least 12 characters and avoid common phrases.",
     "INVITATION_PENDING": "An invitation for this e-mail is still open; resend or revoke it under Invitations.",
     "INVITATION_ALREADY_ACCEPTED": "This invitation was already used and the account exists; sign in on the staff sign-in page.",
-    "INVITATION_REVOKED": "This invitation was revoked; ask the site manager for a new one.",
+    "INVITATION_REVOKED": "This invitation was revoked.",
     "INVITATION_EXPIRED": "This invitation has expired; ask the site manager to resend it.",
     "MAIL_NOT_CONFIGURED": "Site e-mail is not configured yet.",
     "CURRENT_PASSWORD_INVALID": "The current password is incorrect.",
@@ -1009,7 +1011,7 @@
     "ERASE_ACCOUNT_INSTEAD": "This person already has an account; erase them from the staff table instead.",
     "OWNER_ROLE_LOCKED": "The owner role cannot be edited.",
     "PERMISSION_ESCALATION": "You cannot grant permissions you do not have.",
-    "SELF_EDIT": "You cannot change your own roles or status.",
+    "SELF_EDIT": "You cannot change your own roles or status; change your name and password under My account.",
     "SELF_ROLE_EDIT": "You cannot change your own role.",
     "UNKNOWN_PERMISSION": "Unknown permission.",
     "UNKNOWN_ROLE": "Unknown role.",
@@ -1029,7 +1031,8 @@
     "PAGE_PROTECTED": "This built-in page cannot be deleted or moved; you can unpublish it.",
     "SLUG_IN_USE": "Another page already uses this address.",
     "ORDER_MISMATCH": "The list changed; reload the page and reorder again.",
-    "PAGE_NOT_FOUND": "This page does not exist or is not published."
+    "PAGE_NOT_FOUND": "This page does not exist or is not published.",
+    "OWNER_ONLY": "Only an owner can manage staff."
   },
   "timelineEvent": {
     "CREATED_FROM_QUOTE": "Order created from the quote",

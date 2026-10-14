@@ -1,18 +1,15 @@
 'use client';
 
-import type { StaffInvitationView } from '@hedax/contracts';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Async } from '@/components/ui/async';
 import { Checkbox, Field, Input } from '@/components/ui/field';
-import { DateTime, Num } from '@/components/ui/format';
-import { Alert, Badge, EmptyState, Ltr, PageHeader, Section, StatusBadge, TableScroll, td, th } from '@/components/ui/misc';
+import { Num } from '@/components/ui/format';
+import { Alert, Badge, EmptyState, Ltr, PageHeader, Section, TableScroll, td, th } from '@/components/ui/misc';
 import { api } from '@/lib/api/client';
 import { errorText } from '@/lib/api/errors';
 import { useApi } from '@/lib/use-api';
-import { EraseConfirm } from './erase-confirm';
-import { InvitationsSection } from './invitations';
 import { useCodeLabel, useL } from './shell';
 
 interface CustomerRow { id: string; fullName: string | null; mobile: string | null; status: string; customerType: string; groupStatus: string; requestedType: string | null; businessName: string | null; group: string | null; orders: number; requests: number; createdAt: string }
@@ -63,112 +60,6 @@ export function CustomersPage() {
 }
 
 interface RoleRow { id: string; key: string; nameFa: string; nameEn: string; isSystem: boolean; isOwner: boolean; requiresMfa: boolean; permissions: string[]; members: number }
-interface StaffData { staff: Array<{ id: string; email: string | null; fullName: string | null; status: string; mfaEnabled: boolean; lastLoginAt: string | null; roles: Array<{ id: string; key: string; nameFa: string; nameEn: string; isOwner: boolean }>; canErase: boolean }>; invitations: StaffInvitationView[]; mailConfigured: boolean }
-
-export function StaffPage() {
-  const t = useTranslations();
-  const l = useL();
-  const state = useApi<StaffData>('/admin/staff');
-  const roles = useApi<RoleRow[]>('/admin/roles');
-  const [invite, setInvite] = useState({ email: '', fullName: '', roleIds: [] as string[] });
-  const [confirmCode, setConfirmCode] = useState('');
-  // Granting the owner role is confirmed with a current authenticator code (spec §13).
-  const grantsOwner = (roles.data ?? []).some((r) => r.isOwner && invite.roleIds.includes(r.id));
-  const [sent, setSent] = useState<{ email: string; link: string; emailQueued: boolean } | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const fail = (e: unknown) => setError(errorText(t, e));
-  const send = async () => {
-    setError(null);
-    try {
-      const res = await api<{ acceptUrl: string; emailQueued: boolean }>('/admin/staff/invitations', { method: 'POST', body: { ...invite, ...(grantsOwner ? { confirmCode: confirmCode.trim() } : {}) } });
-      setSent({ email: invite.email, link: res.acceptUrl, emailQueued: res.emailQueued });
-      setInvite({ email: '', fullName: '', roleIds: [] });
-      setConfirmCode('');
-      await state.reload();
-    } catch (e) { fail(e); }
-  };
-  const [erasing, setErasing] = useState<string | null>(null);
-  const [erased, setErased] = useState(false);
-  const erase = async (id: string, confirmCode: string) => {
-    setError(null);
-    setErased(false);
-    try {
-      await api(`/admin/staff/${id}/erase`, { method: 'POST', body: { confirmCode } });
-      setErasing(null);
-      setErased(true);
-      await state.reload();
-    } catch (e) { fail(e); }
-  };
-  const toggleSuspend = async (id: string, suspended: boolean) => {
-    setError(null);
-    try { await api(`/admin/staff/${id}`, { method: 'PATCH', body: { suspended, reason: suspended ? 'suspended by admin' : 'reactivated' } }); await state.reload(); } catch (e) { fail(e); }
-  };
-  return (
-    <div className="flex flex-col gap-6">
-      <PageHeader title={t('admin.staff')} description={l('تغییر نقش یا تعلیق، همهٔ نشست‌ها و اتصال‌های زندهٔ آن کارمند را فوراً قطع می‌کند. آخرین مالک قابل حذف یا تعلیق نیست.', 'Role changes or suspension end all sessions and live connections immediately. The last owner cannot be removed or suspended.')} />
-      {error ? <Alert tone="danger" title={error} /> : null}
-      {erased ? <Alert tone="success" title={l('کارمند به‌طور کامل حذف شد؛ نام و ایمیل او در هیچ جای سایت نمانده است.', 'The staff member was erased; their name and e-mail no longer appear anywhere on the site.')} /> : null}
-      <Async state={state}>
-        {(data) => (
-          <TableScroll caption={t('admin.staff')}>
-            <thead><tr><th className={th}>{t('auth.fullName')}</th><th className={th}>{t('auth.email')}</th><th className={th}>{t('admin.roles')}</th><th className={th}>MFA</th><th className={th}>{t('order.status')}</th><th className={th} /></tr></thead>
-            <tbody>
-              {data.staff.map((s) => (
-                <tr key={s.id}>
-                  <td className={td}>{s.fullName}<span className="block text-xs text-steel"><DateTime iso={s.lastLoginAt} /></span></td>
-                  <td className={td}><Ltr>{s.email}</Ltr></td>
-                  <td className={td}>{s.roles.map((r) => l(r.nameFa, r.nameEn)).join('، ')}</td>
-                  <td className={td}>{s.mfaEnabled ? <Badge tone="success">✓</Badge> : <Badge tone="warning">—</Badge>}</td>
-                  <td className={td}><StatusBadge status={s.status} label={t(`status.${s.status}` as never)} /></td>
-                  <td className={td}>
-                    <div className="flex flex-wrap gap-1">
-                      <Button size="sm" variant="ghost" onClick={() => void toggleSuspend(s.id, s.status === 'ACTIVE')}>{s.status === 'ACTIVE' ? t('admin.suspend') : t('admin.reactivate')}</Button>
-                      {s.canErase ? <Button size="sm" variant="ghost" className="text-danger" onClick={() => setErasing(s.id)}>{l('حذف کامل', 'Erase')}</Button> : null}
-                    </div>
-                    {erasing === s.id ? <EraseConfirm id={s.id} title={l(`حذف کامل ${s.fullName ?? s.email ?? ''}`, `Erase ${s.fullName ?? s.email ?? ''}`)} onConfirm={(code) => erase(s.id, code)} onCancel={() => setErasing(null)} /> : null}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </TableScroll>
-        )}
-      </Async>
-      <Async state={state}>{(data) => <InvitationsSection invitations={data.invitations} mailConfigured={data.mailConfigured} reload={state.reload} />}</Async>
-      <Section title={t('admin.invite')} id="invite">
-        <div className="grid gap-3 md:grid-cols-2">
-          <Field id="inv-email" label={t('auth.email')}><Input id="inv-email" type="email" dir="ltr" value={invite.email} onChange={(e) => setInvite({ ...invite, email: e.target.value })} /></Field>
-          <Field id="inv-name" label={t('auth.fullName')}><Input id="inv-name" value={invite.fullName} onChange={(e) => setInvite({ ...invite, fullName: e.target.value })} /></Field>
-        </div>
-        <fieldset className="mt-3">
-          <legend className="text-sm font-semibold">{t('admin.roles')}</legend>
-          <div className="flex flex-wrap gap-x-4">
-            {(roles.data ?? []).map((r) => (
-              <Checkbox key={r.id} id={`inv-role-${r.id}`} label={l(r.nameFa, r.nameEn)} checked={invite.roleIds.includes(r.id)}
-                onChange={(e) => setInvite({ ...invite, roleIds: e.target.checked ? [...invite.roleIds, r.id] : invite.roleIds.filter((x) => x !== r.id) })} />
-            ))}
-          </div>
-        </fieldset>
-        {grantsOwner ? (
-          <Field id="inv-confirm" label={t('admin.ownerConfirmCode')} hint={t('admin.ownerConfirmHint')} className="mt-3 max-w-xs" required>
-            <Input id="inv-confirm" dir="ltr" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={confirmCode} onChange={(e) => setConfirmCode(e.target.value)} />
-          </Field>
-        ) : null}
-        <Button className="mt-3" onClick={() => void send()} disabled={!invite.email || !invite.fullName || !invite.roleIds.length || (grantsOwner && !/^[0-9۰-۹]{6}$/.test(confirmCode.trim()))}>{t('admin.invite')}</Button>
-        {sent ? (
-          sent.emailQueued ? (
-            <Alert tone="success" className="mt-3" title={l(`دعوت‌نامه برای ${sent.email} ثبت شد و در صف ارسال ایمیل است. وضعیت ارسال را در جدول «دعوت‌ها» ببینید.`, `The invitation for ${sent.email} is queued for e-mail. Follow its status under Invitations.`)}>
-              <details className="mt-1 text-sm"><summary className="cursor-pointer">{l('لینک دعوت (فقط اگر ایمیل نرسید)', 'Invitation link (only if the e-mail does not arrive)')}</summary><p className="break-all"><Ltr>{sent.link}</Ltr></p></details>
-            </Alert>
-          ) : (
-            <Alert tone="warning" className="mt-3" title={l('ایمیل سایت تنظیم نشده است؛ این لینک یک‌بارمصرف را خودتان از راهی امن بفرستید.', 'E-mail is not configured; share this one-time link through a trusted channel.')}><p className="break-all"><Ltr>{sent.link}</Ltr></p></Alert>
-          )
-        ) : null}
-      </Section>
-    </div>
-  );
-}
-
-/** A permission in words (the technical key stays visible, small and LTR, for support). */
 function PermissionLabel({ permission }: { permission: string }) {
   const label = useCodeLabel();
   const text = label('perm', permission.replaceAll('.', '_'));
