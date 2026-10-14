@@ -10,6 +10,7 @@ export const PERMISSIONS = {
   'products.read': 'View products including unpublished',
   'products.write': 'Create/edit/archive products, media, categories, brands',
   'products.publish': 'Publish or unpublish products',
+  'vehicles.manage': 'Manage vehicles, vehicle categories and models (fitment)',
   'prices.write': 'Change product prices and price rules',
   'costs.read': 'See supplier cost and margin',
   'inventory.read': 'View stock balances and ledger',

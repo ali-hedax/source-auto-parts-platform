@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import sharp, { type OutputInfo } from 'sharp';
 import type { AdminProductRow, ProductMediaView, ProductUpsert } from '@hedax/contracts';
-import { DomainError, IMAGE_KINDS, buildSearchDocument, describePriceSource as describePrice, inspectFile, normalizeSearchText } from '@hedax/domain';
+import { DomainError, IMAGE_KINDS, describePriceSource as describePrice, inspectFile, normalizeSearchText } from '@hedax/domain';
 import type { z } from 'zod';
 import type { mediaUpdateSchema, priceRuleSchema } from '@hedax/contracts';
 import { AuditService } from '../../common/audit.service.js';
@@ -12,7 +12,9 @@ import { SCANNER, type MalwareScanner } from '../../common/storage/scanner.js';
 import { STORAGE, type StorageDriver } from '../../common/storage/storage.js';
 import { InventoryService } from '../inventory/inventory.service.js';
 import { PricingService } from '../pricing/pricing.service.js';
+import { rebuildProductSearch } from './product-search.js';
 import { UnitsService, fromSteps, toSteps, unitRef } from './units.service.js';
+import { VehiclesService } from './vehicles.service.js';
 
 export function slugify(input: string): string {
   return input
@@ -31,6 +33,7 @@ export class AdminCatalogService {
     private readonly pricing: PricingService,
     private readonly audit: AuditService,
     private readonly units: UnitsService,
+    private readonly vehicles: VehiclesService,
     @Inject(STORAGE) private readonly storage: StorageDriver,
     @Inject(SCANNER) private readonly scanner: MalwareScanner,
   ) {}
@@ -87,6 +90,7 @@ export class AdminCatalogService {
       include: {
         translations: true,
         vehicleBrands: true,
+        vehicles: { include: { vehicle: true, model: true } },
         salesUnit: true,
         media: { where: { deletedAt: null }, orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }] },
         basePrice: true,
@@ -115,6 +119,7 @@ export class AdminCatalogService {
       categoryId: p.categoryId,
       manufacturerBrandId: p.manufacturerBrandId,
       vehicleBrandIds: p.vehicleBrands.map((v) => v.vehicleBrandId),
+      vehicles: p.vehicles.map((v) => ({ vehicleId: v.vehicleId, modelId: v.modelId, vehicleName: v.vehicle.name, modelName: v.model?.name ?? null })),
       partType: p.partType,
       condition: p.condition,
       origin: p.origin,
@@ -160,13 +165,7 @@ export class AdminCatalogService {
   }
 
   private async rebuildSearch(tx: Tx, productId: string): Promise<void> {
-    const p = await tx.product.findUniqueOrThrow({ where: { id: productId }, include: { translations: true } });
-    const doc = buildSearchDocument([
-      ...p.translations.flatMap((t) => [t.name, ...t.aliases]),
-      p.sku,
-      ...p.oemCodes,
-    ]);
-    await tx.product.update({ where: { id: productId }, data: { searchText: doc.text, searchCompact: doc.compact } });
+    await rebuildProductSearch(tx, productId);
   }
 
   private async uniqueSlug(tx: Tx, wanted: string, excludeId?: string): Promise<string> {
@@ -262,13 +261,14 @@ export class AdminCatalogService {
       if (input.vehicleBrandIds.length) {
         await tx.productVehicleBrand.createMany({ data: [...new Set(input.vehicleBrandIds)].map((vehicleBrandId) => ({ productId, vehicleBrandId })) });
       }
+      await this.vehicles.setProductVehicles(tx, productId, input.vehicles);
       await this.rebuildSearch(tx, productId);
       await this.audit.record(tx, {
         action: id ? 'product.updated' : 'product.created',
         entityType: 'product',
         entityId: productId,
         before,
-        after: { sku: input.sku, price: priceData, unit: unit.name },
+        after: { sku: input.sku, price: priceData, unit: unit.name, vehicles: input.vehicles.length },
       });
       const fresh = await tx.product.findUniqueOrThrow({ where: { id: productId }, select: { version: true } });
       return { id: productId, version: fresh.version };

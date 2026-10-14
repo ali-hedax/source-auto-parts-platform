@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { type Currency, type LocalizedText, type MoneyDto, amountMinorSchema, currencySchema, idSchema, skuSchema, slugSchema } from './common.js';
+import { type FitmentView, productVehicleSchema } from './vehicles.js';
 
 export const PART_TYPE_VALUES = ['GENUINE', 'OEM', 'AFTERMARKET'] as const;
 export const CONDITION_VALUES = ['NEW', 'USED', 'REFURBISHED'] as const;
@@ -17,6 +18,10 @@ export const PRODUCT_SORTS = ['relevance', 'newest', 'price_asc', 'price_desc', 
 export const productListQuerySchema = z.object({
   q: z.string().trim().max(120).optional(),
   brand: z.string().max(64).optional(), // vehicle brand slug
+  /** Vehicle slug (/cars/[slug]): parts for the whole vehicle and for any of its models. */
+  vehicle: z.string().max(80).optional(),
+  /** With `vehicle`: one model's slug; parts for that model plus parts for the whole vehicle. */
+  model: z.string().max(80).optional(),
   category: z.string().max(64).optional(),
   partType: partTypeSchema.optional(),
   condition: conditionSchema.optional(),
@@ -117,6 +122,8 @@ export interface ProductCard {
 export interface ProductDetail extends ProductCard {
   description: LocalizedText | null;
   technicalNotes: LocalizedText | null;
+  /** «مناسب برای:» chips under the photo (vehicles and models). */
+  fitments: FitmentView[];
   packQuantity: number;
   countryOfManufacture: string | null;
   warranty: LocalizedText | null;
@@ -168,6 +175,8 @@ export const productUpsertSchema = z.object({
   categoryId: idSchema,
   manufacturerBrandId: idSchema.optional().nullable(),
   vehicleBrandIds: z.array(idSchema).max(20).default([]),
+  /** «کاربرد در خودرو»: whole vehicles (modelId null) and/or specific models. */
+  vehicles: z.array(productVehicleSchema).max(100).default([]),
   partType: partTypeSchema,
   condition: conditionSchema,
   origin: originSchema,

@@ -14,6 +14,7 @@ import {
   type FixtureProduct,
 } from './data';
 import siteContentJson from './site-content.json';
+import { fixtureAdminFitment, fixtureAdminVehicles, fixtureFitmentViews, fixtureFits, fixturePublicVehicles, fixtureVehicleOptions } from './vehicles';
 
 export interface FixtureResponse {
   status: number;
@@ -118,13 +119,15 @@ function detail(p: FixtureProduct, display: 'IRR' | 'AED'): ProductDetail {
   return {
     ...card(p, display),
     description: p.descriptionFa ? { fa: p.descriptionFa, en: p.descriptionEn ?? null } : null,
-    technicalNotes: null, packQuantity: 1, countryOfManufacture: null, warranty: null, oemCodes: [], specs: [], images: [],
+    technicalNotes: null, fitments: fixtureFitmentViews(p.sku), packQuantity: 1, countryOfManufacture: null, warranty: null, oemCodes: [], specs: [], images: [],
     maxOrderQuantity: Math.max(0, Math.min(p.onHand - p.reserved, 999)), updatedAt: '2026-09-29T10:00:00.000Z',
   };
 }
 
 function matches(p: FixtureProduct, q: string): boolean {
-  const doc = normalizeSearchText([p.fa, p.en ?? '', ...p.aliases, p.sku].join(' '));
+  // Like the API: names, aliases, SKU and the vehicles the part fits («لنت دنا»).
+  const fits = fixtureFitmentViews(p.sku).flatMap((f) => [f.vehicle.name.fa, f.vehicle.name.en ?? '', f.model ? `${f.vehicle.name.fa} ${f.model.name.fa}` : '']);
+  const doc = normalizeSearchText([p.fa, p.en ?? '', ...p.aliases, p.sku, ...fits].join(' '));
   const tokens = searchTokens(q);
   return (tokens.length > 0 && tokens.every((t) => doc.includes(t))) || doc.replace(/ /g, '').includes(compactSearchText(q));
 }
@@ -136,6 +139,8 @@ function list(params: URLSearchParams, forceImported: boolean): SearchResult {
   if (q) items = items.filter((p) => matches(p, q));
   const brand = params.get('brand');
   if (brand) items = items.filter((p) => fixtureBrands.find((b) => b.slug === brand && p.brands.includes(b.code)));
+  const vehicle = params.get('vehicle');
+  if (vehicle) items = items.filter((p) => fixtureFits(p.sku, vehicle, params.get('model')));
   const category = params.get('category');
   if (category) items = items.filter((p) => fixtureCategories.find((c) => c.slug === category)?.code === p.category);
   for (const key of ['partType', 'condition', 'origin'] as const) {
@@ -217,6 +222,11 @@ export async function handleFixture(method: string, pathWithQuery: string, rawBo
   }
   if (route === 'GET /catalog/categories') return ok(fixtureCategories);
   if (route === 'GET /catalog/vehicle-brands') return ok(fixtureBrands);
+  if (route === 'GET /catalog/vehicles') return ok(fixturePublicVehicles());
+  if ((m = /^GET \/catalog\/vehicles\/([^/]+)$/.exec(route))) {
+    const v = fixturePublicVehicles().find((x) => x.slug === decodeURIComponent(m![1] ?? ''));
+    return v ? ok(v) : err(404, 'NOT_FOUND');
+  }
   if (route === 'GET /catalog/sitemap') return ok(fixtureProducts.map((p) => ({ slug: p.slug, updatedAt: '2026-09-29T10:00:00.000Z' })));
   if (route === 'GET /exchange-rates/current') return ok({ irrPerAed: FIXTURE_RATE.irrPerAed, effectiveFrom: FIXTURE_RATE.effectiveFrom });
   if (route === 'GET /site/contact') return ok({ phone: null, email: null, address: { fa: null, en: null }, workingHours: { fa: null, en: null } });
@@ -339,6 +349,22 @@ export async function handleFixture(method: string, pathWithQuery: string, rawBo
       return ok({ page: 1, pageSize: 50, total: fixtureProducts.length, items: fixtureProducts.map((p, i) => ({ productId: p.id, sku: p.sku, nameFa: p.fa, unit: FIXTURE_UNIT, onHand: p.onHand, reserved: p.reserved, available: p.onHand - p.reserved, lowStockThreshold: 2, isLow: p.onHand - p.reserved <= 2, version: i, updatedAt: '2026-09-29T10:00:00.000Z' })) });
     }
     if (path === '/admin/units') return ok(FIXTURE_UNITS);
+    if (path === '/admin/vehicles') return ok(fixtureAdminVehicles());
+    if (path === '/admin/vehicles/options') return ok(fixtureVehicleOptions());
+    if ((m = /^\/admin\/products\/([^/]+)$/.exec(path))) {
+      const p = fixtureProducts.find((x) => x.id === m![1]);
+      if (!p) return err(404, 'NOT_FOUND');
+      return ok({
+        id: p.id, sku: p.sku, slug: p.slug, nameFa: p.fa, nameEn: p.en, aliases: p.aliases, descriptionFa: p.descriptionFa ?? null, descriptionEn: p.descriptionEn ?? null,
+        warrantyFa: null, warrantyEn: null, categoryId: `cat-${Math.max(0, fixtureCategories.findIndex((c) => c.code === p.category))}`, manufacturerBrandId: null,
+        vehicleBrandIds: fixtureBrands.flatMap((b, i) => (p.brands.includes(b.code) ? [`vb-${i}`] : [])), vehicles: fixtureAdminFitment(p.sku),
+        partType: p.partType, condition: p.condition, origin: p.origin, countryOfManufacture: null, unitId: 'unit-piece', unit: { id: 'unit-piece', ...FIXTURE_UNIT, active: true },
+        packQuantity: 1, oemCodes: [], specs: [], published: p.published, archived: !!p.archived, isSellable: true, version: 1,
+        basePrice: { currency: p.currency, amountMinor: p.price.toString(), manualIrr: p.manualIrr?.toString() ?? null, manualAed: null },
+        priceExplanation: { source: p.currency === 'AED' ? 'PUBLIC:CONVERTED_FROM_AED' : 'PUBLIC:BASE_IRR', unitPayableIrr: null, warnings: [] },
+        priceRules: [], inventory: { onHand: p.onHand, reserved: p.reserved, version: 1, lowStockThreshold: 2 }, media: [],
+      });
+    }
     if (path === '/admin/taxonomy') return ok({ categories: fixtureCategories.map((c, i) => ({ id: `cat-${i}`, code: c.code, slug: c.slug, nameFa: c.name.fa, nameEn: c.name.en, active: true })), vehicleBrands: fixtureBrands.map((b, i) => ({ id: `vb-${i}`, code: b.code, slug: b.slug, nameFa: b.name.fa, nameEn: b.name.en, isFeatured: true, active: true })), manufacturers: [], units: FIXTURE_UNITS, customerGroups: [{ id: 'g1', key: 'workshop', nameFa: 'تعمیرگاه / مشتری تجاری', nameEn: 'Workshop / business' }, { id: 'g2', key: 'wholesale', nameFa: 'عمده‌فروش', nameEn: 'Wholesaler' }] });
     if (path === '/admin/sourcing-requests') return ok([{ id: fixtureRequest.id, reference: fixtureRequest.reference, title: fixtureRequest.title, status: fixtureRequest.status, urgency: 'NORMAL', customer: 'مشتری نمونه', assignee: 'کارشناس', itemCount: 2, createdAt: fixtureRequest.createdAt, version: 3 }]);
     if (path === `/admin/sourcing-requests/${fixtureRequest.id}`) return ok({ ...fixtureRequest, version: 3, customer: { id: 'fixture-customer', fullName: 'مشتری نمونه' }, note: null, delivery: { province: 'تهران', city: 'تهران' }, itemsDetail: [], files: [] });

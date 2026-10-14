@@ -5,6 +5,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { AddToCart } from '@/components/catalog/add-to-cart';
+import { FitmentChips } from '@/components/catalog/fitment-chips';
 import { ProductGallery } from '@/components/catalog/product-gallery';
 import { ButtonLink } from '@/components/ui/button';
 import { Price } from '@/components/ui/format';
@@ -47,6 +48,14 @@ export default async function ProductPage({ params }: { params: Promise<{ locale
     ? {
         '@context': 'https://schema.org', '@type': 'Product', name, sku: p.sku,
         ...(p.primaryImage ? { image: `${publicSiteUrl()}${p.primaryImage.url}` } : {}),
+        // Vehicle fitment: the part is a spare part for these vehicles (schema.org isAccessoryOrSparePartFor).
+        ...(p.fitments.length ? {
+          isAccessoryOrSparePartFor: p.fitments.map((f) => ({
+            '@type': 'Vehicle',
+            name: f.model ? `${text(f.vehicle.name)} ${text(f.model.name)}` : text(f.vehicle.name),
+            url: `${publicSiteUrl()}/${L}/cars/${f.vehicle.slug}`,
+          })),
+        } : {}),
         offers: {
           '@type': 'Offer', priceCurrency: 'IRR', price: minorToDecimalString(BigInt(p.price.payable.amountMinor), 'IRR'),
           availability: p.availability === 'OUT_OF_STOCK' ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock',
@@ -85,18 +94,20 @@ export default async function ProductPage({ params }: { params: Promise<{ locale
       </nav>
       {/* Phones read in DOM order (photo, label, specification, description); from lg the description sits under the photo. */}
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:grid-rows-[auto_1fr] lg:gap-x-10">
-        {p.images[0] ? (
-          <div className="lg:col-start-1 lg:row-start-1">
+        {/* Photo, then «مناسب برای:» right under it. */}
+        <div className="flex flex-col gap-4 lg:col-start-1 lg:row-start-1">
+          {p.images[0] ? (
             <ProductGallery images={p.images.map((img) => ({ url: img.url, alt: text(img.alt) || name }))} />
-          </div>
-        ) : (
-          <div className="relative aspect-[5/2] overflow-hidden rounded-[var(--radius-card)] border border-line-soft bg-white sm:aspect-[4/3] lg:col-start-1 lg:row-start-1">
-            <div className="media-placeholder flex h-full flex-col items-center justify-center gap-2 text-steel">
-              <ImageOff aria-hidden className="size-10" />
-              <span className="text-sm font-medium">{t('parts.noImage')}</span>
+          ) : (
+            <div className="relative aspect-[5/2] overflow-hidden rounded-[var(--radius-card)] border border-line-soft bg-white sm:aspect-[4/3]">
+              <div className="media-placeholder flex h-full flex-col items-center justify-center gap-2 text-steel">
+                <ImageOff aria-hidden className="size-10" />
+                <span className="text-sm font-medium">{t('parts.noImage')}</span>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+          <FitmentChips fitments={p.fitments} locale={L} />
+        </div>
 
         <div className="flex flex-col gap-6 lg:col-start-2 lg:row-span-2 lg:row-start-1">
           <div className="part-label p-5 sm:p-6">

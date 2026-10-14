@@ -1,15 +1,16 @@
-import type { CategoryView, SearchResult, VehicleBrandView } from '@hedax/contracts';
+import type { CategoryView, SearchResult, VehicleBrandView, VehiclePublicView } from '@hedax/contracts';
 import { SearchX } from 'lucide-react';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { ButtonLink } from '@/components/ui/button';
 import { Alert, EmptyState, PageHeader } from '@/components/ui/misc';
+import { Link } from '@/i18n/navigation';
 import { serverApi } from '@/lib/api/server';
 import { displayCurrency } from '@/lib/preferences';
 import { CatalogFilters } from './filters';
 import { Pagination } from './pagination';
 import { PartCard } from './part-card';
 
-const KEYS = ['q', 'brand', 'category', 'partType', 'condition', 'origin', 'inStock', 'sort', 'page'] as const;
+const KEYS = ['q', 'vehicle', 'model', 'brand', 'category', 'partType', 'condition', 'origin', 'inStock', 'sort', 'page'] as const;
 
 export async function CatalogPage({
   searchParams,
@@ -18,6 +19,7 @@ export async function CatalogPage({
   title,
   intro,
   fixedBrand,
+  fixedVehicle,
 }: {
   searchParams: Record<string, string | string[] | undefined>;
   endpoint: '/catalog/products' | '/catalog/imported-products';
@@ -25,6 +27,8 @@ export async function CatalogPage({
   title: string;
   intro?: string;
   fixedBrand?: string;
+  /** Vehicle page (/cars/[slug]): parts for this vehicle and its models; `?model=` narrows to one model. */
+  fixedVehicle?: VehiclePublicView;
 }) {
   const t = await getTranslations();
   const locale = await getLocale();
@@ -37,20 +41,38 @@ export async function CatalogPage({
   // What the URL says; a brand page's fixed brand is not a filter value.
   const current = { ...params };
   if (fixedBrand) params.brand = fixedBrand;
+  if (fixedVehicle) params.vehicle = fixedVehicle.slug;
+  if (!params.vehicle) params.model = undefined;
   const qs = new URLSearchParams(Object.entries({ ...params, currency, pageSize: '24' }).filter((e): e is [string, string] => !!e[1]));
-  const [result, categories, brands] = await Promise.all([
+  const [result, categories, brands, vehicles] = await Promise.all([
     serverApi<SearchResult>(`${endpoint}?${qs.toString()}`, { publicCache: 60 }).catch(() => null),
     serverApi<CategoryView[]>('/catalog/categories', { publicCache: 300 }).catch(() => []),
     serverApi<VehicleBrandView[]>('/catalog/vehicle-brands', { publicCache: 300 }).catch(() => []),
+    serverApi<VehiclePublicView[]>('/catalog/vehicles', { publicCache: 300 }).catch(() => []),
   ]);
+  const name = (n: { fa: string; en: string | null }) => (locale === 'en' ? (n.en ?? n.fa) : n.fa);
   const page = Number(params.page ?? 1) || 1;
   const query = params.q?.trim();
   return (
     <div className="page-canvas container-page py-8">
       <PageHeader title={title} description={intro} />
+      {fixedVehicle && fixedVehicle.models.length ? (
+        <nav aria-label={t('parts.vehicleModel')} className="-mt-2 mb-5 flex flex-wrap items-center gap-2" data-testid="vehicle-models">
+          <span className="text-sm font-semibold text-steel">{t('parts.vehicleModel')}:</span>
+          {[{ slug: '', label: t('parts.allModels') }, ...fixedVehicle.models.map((m) => ({ slug: m.slug, label: name(m.name) }))].map((m) => {
+            const on = (params.model ?? '') === m.slug;
+            return (
+              <Link key={m.slug || 'all'} href={m.slug ? `${pathname}?model=${encodeURIComponent(m.slug)}` : pathname} aria-current={on ? 'page' : undefined}
+                className={`inline-flex min-h-9 items-center rounded-full border px-3 text-sm font-medium transition-colors ${on ? 'border-action bg-action text-white' : 'border-line-strong bg-white hover:border-action hover:text-action'}`}>
+                {m.label}
+              </Link>
+            );
+          })}
+        </nav>
+      ) : null}
       <div className="grid gap-4 lg:grid-cols-[17rem_minmax(0,1fr)] lg:gap-6">
         <aside className="lg:sticky lg:top-32 lg:max-h-[calc(100vh-9rem)] lg:self-start lg:overflow-y-auto">
-          <CatalogFilters categories={categories} brands={brands} current={current} showOrigin={endpoint === '/catalog/products'} />
+          <CatalogFilters categories={categories} brands={brands} vehicles={vehicles} {...(fixedVehicle ? { fixedVehicle } : {})} current={current} showOrigin={endpoint === '/catalog/products'} />
         </aside>
         <div className="min-w-0">
           {!result ? (
@@ -78,7 +100,7 @@ export async function CatalogPage({
                   <li key={p.id}><PartCard product={p} priority={i < 3} /></li>
                 ))}
               </ul>
-              <Pagination pathname={pathname} params={{ ...params, brand: fixedBrand ? undefined : params.brand }} page={page} pageSize={result.pageSize} total={result.total} />
+              <Pagination pathname={pathname} params={{ ...params, brand: fixedBrand ? undefined : params.brand, vehicle: fixedVehicle ? undefined : params.vehicle }} page={page} pageSize={result.pageSize} total={result.total} />
             </>
           )}
           {query && result && result.items.length > 0 ? (

@@ -1,6 +1,6 @@
 'use client';
 
-import type { AdminProductRow, MoneyDto, UnitRef, UnitView } from '@hedax/contracts';
+import type { AdminProductRow, MoneyDto, UnitRef, UnitView, VehicleOption } from '@hedax/contracts';
 import { formatQuantity, isValidQuantity, minorToDecimalString, parseDecimalAmount } from '@hedax/domain';
 import { Plus } from 'lucide-react';
 import { useParams, useSearchParams } from 'next/navigation';
@@ -19,6 +19,7 @@ import { typedNumber } from '@/lib/numbers';
 import { useApi } from '@/lib/use-api';
 import { ProductPhotoManager } from './product-photos';
 import { useL, usePriceSourceLabel } from './shell';
+import { type FitmentValue, VehiclePicker } from './vehicle-picker';
 
 interface Taxonomy {
   categories: Array<{ id: string; code: string; nameFa: string; nameEn: string | null }>;
@@ -78,14 +79,15 @@ export function ProductsList() {
 
 interface ProductForm {
   sku: string; slug: string; nameFa: string; nameEn: string; aliases: string; descriptionFa: string; descriptionEn: string;
-  categoryId: string; manufacturerBrandId: string; vehicleBrandIds: string[]; partType: string; condition: string; origin: string;
+  categoryId: string; manufacturerBrandId: string; vehicleBrandIds: string[]; vehicles: FitmentValue[]; partType: string; condition: string; origin: string;
   countryOfManufacture: string; warrantyFa: string; warrantyEn: string; unitId: string; packQuantity: string; oemCodes: string;
   baseCurrency: 'IRR' | 'AED'; basePrice: string; manualIrr: string; manualAed: string; lowStockThreshold: string; isSellable: boolean;
 }
 
 interface AdminProduct {
   id: string; sku: string; slug: string; nameFa: string; nameEn: string | null; aliases: string[]; descriptionFa: string | null; descriptionEn: string | null;
-  warrantyFa: string | null; warrantyEn: string | null; categoryId: string; manufacturerBrandId: string | null; vehicleBrandIds: string[]; partType: string; condition: string; origin: string;
+  warrantyFa: string | null; warrantyEn: string | null; categoryId: string; manufacturerBrandId: string | null; vehicleBrandIds: string[];
+  vehicles: Array<{ vehicleId: string; modelId: string | null }>; partType: string; condition: string; origin: string;
   countryOfManufacture: string | null; unitId: string; unit: UnitRef & { id: string; active: boolean }; packQuantity: number; oemCodes: string[]; published: boolean; archived: boolean; isSellable: boolean; version: number;
   basePrice: { currency: 'IRR' | 'AED'; amountMinor: string; manualIrr: string | null; manualAed: string | null } | null;
   priceExplanation: { source: string; unitPayableIrr: string | null; warnings: string[] };
@@ -97,7 +99,7 @@ interface AdminProduct {
 const toForm = (p: AdminProduct | undefined, units: UnitView[]): ProductForm => ({
   sku: p?.sku ?? '', slug: p?.slug ?? '', nameFa: p?.nameFa ?? '', nameEn: p?.nameEn ?? '', aliases: (p?.aliases ?? []).join('، '),
   descriptionFa: p?.descriptionFa ?? '', descriptionEn: p?.descriptionEn ?? '', categoryId: p?.categoryId ?? '', manufacturerBrandId: p?.manufacturerBrandId ?? '',
-  vehicleBrandIds: p?.vehicleBrandIds ?? [], partType: p?.partType ?? 'GENUINE', condition: p?.condition ?? 'NEW', origin: p?.origin ?? 'DOMESTIC',
+  vehicleBrandIds: p?.vehicleBrandIds ?? [], vehicles: (p?.vehicles ?? []).map((v) => ({ vehicleId: v.vehicleId, modelId: v.modelId })), partType: p?.partType ?? 'GENUINE', condition: p?.condition ?? 'NEW', origin: p?.origin ?? 'DOMESTIC',
   countryOfManufacture: p?.countryOfManufacture ?? '', warrantyFa: p?.warrantyFa ?? '', warrantyEn: p?.warrantyEn ?? '',
   // New products start with «عدد» (the first active unit when it is missing); the field is required.
   unitId: p?.unitId ?? (units.find((u) => u.active && u.name === 'عدد') ?? units.find((u) => u.active))?.id ?? '',
@@ -126,6 +128,7 @@ function ProductEditor({ taxonomy, product, reload }: { taxonomy: Taxonomy; prod
   const priceSource = usePriceSourceLabel();
   const router = useRouter();
   const [f, setF] = useState<ProductForm>(toForm(product, taxonomy.units));
+  const vehicleOptions = useApi<VehicleOption[]>('/admin/vehicles/options');
   // Active units, plus the product's own unit when it was deactivated later.
   const unitOptions = taxonomy.units.filter((u) => u.active || u.id === product?.unitId);
   const selectedUnit = taxonomy.units.find((u) => u.id === f.unitId);
@@ -166,7 +169,7 @@ function ProductEditor({ taxonomy, product, reload }: { taxonomy: Taxonomy; prod
       const body = {
         sku: f.sku.trim(), ...(f.slug ? { slug: f.slug } : {}), nameFa: f.nameFa.trim(), nameEn: f.nameEn.trim() || null,
         aliases: f.aliases.split(/[،,]/).map((s) => s.trim()).filter(Boolean), descriptionFa: f.descriptionFa || null, descriptionEn: f.descriptionEn || null,
-        categoryId: f.categoryId, manufacturerBrandId: f.manufacturerBrandId || null, vehicleBrandIds: f.vehicleBrandIds, partType: f.partType, condition: f.condition,
+        categoryId: f.categoryId, manufacturerBrandId: f.manufacturerBrandId || null, vehicleBrandIds: f.vehicleBrandIds, vehicles: f.vehicles, partType: f.partType, condition: f.condition,
         origin: f.origin, countryOfManufacture: f.countryOfManufacture || null, warrantyFa: f.warrantyFa || null, warrantyEn: f.warrantyEn || null, unitId: f.unitId,
         packQuantity: typedNumber(f.packQuantity) || 1, oemCodes: f.oemCodes.split(',').map((s) => s.trim()).filter(Boolean), specs: [],
         basePrice: { currency: f.baseCurrency, amountMinor: baseMinor }, manualPriceIrr: manualIrr, manualPriceAed: manualAed,
@@ -262,6 +265,9 @@ function ProductEditor({ taxonomy, product, reload }: { taxonomy: Taxonomy; prod
             </Field>
             <Field id="pf-pack" label={t('parts.pack')}><Input id="pf-pack" inputMode="numeric" value={f.packQuantity} onChange={(e) => set('packQuantity', e.target.value)} /></Field>
             <Field id="pf-oem" label={t('parts.oemCodes')} hint={l('فقط کدهای مستند؛ موتور کاتالوگ فنی در این نسخه نیست.', 'Only documented codes; no technical catalog engine in this version.')} optionalLabel={t('common.optional')}><Input id="pf-oem" dir="ltr" value={f.oemCodes} onChange={(e) => set('oemCodes', e.target.value)} /></Field>
+          </div>
+          <div className="mt-6 border-t border-line-soft pt-4">
+            <VehiclePicker id="pf-vehicles" value={f.vehicles} onChange={(v) => set('vehicles', v)} options={vehicleOptions.data ?? []} onOptionsChanged={vehicleOptions.reload} />
           </div>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <Field id="pf-descfa" label={`${t('parts.description')} (فارسی)`} optionalLabel={t('common.optional')}><Textarea id="pf-descfa" value={f.descriptionFa} onChange={(e) => set('descriptionFa', e.target.value)} /></Field>

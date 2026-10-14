@@ -17,7 +17,6 @@ import {
   type RawRow,
   type StockMode,
   TEMPLATE_COLUMNS,
-  buildSearchDocument,
   describeImportCode,
   importColumnLabel,
   mapHeaders,
@@ -36,6 +35,7 @@ import { Prisma, PrismaService, type Tx } from '../../common/prisma.service.js';
 import type { Actor } from '../../common/request-context.js';
 import { STORAGE, type StorageDriver } from '../../common/storage/storage.js';
 import { toJsonSafe } from '../../common/serialize.js';
+import { rebuildProductSearch } from '../catalog/product-search.js';
 import { UnitsService } from '../catalog/units.service.js';
 import { InventoryService } from '../inventory/inventory.service.js';
 import { slugify } from '../catalog/admin-catalog.service.js';
@@ -769,9 +769,7 @@ export class ImportsService {
       });
     }
     if (v.lowStockThreshold !== undefined) await tx.inventoryBalance.updateMany({ where: { productId: productId as string }, data: { lowStockThreshold: v.lowStockThreshold } });
-    const p = await tx.product.findUniqueOrThrow({ where: { id: productId as string }, include: { translations: true } });
-    const doc = buildSearchDocument([...p.translations.flatMap((t) => [t.name, ...t.aliases]), p.sku, ...p.oemCodes]);
-    await tx.product.update({ where: { id: p.id }, data: { searchText: doc.text, searchCompact: doc.compact } });
+    await rebuildProductSearch(tx, productId as string);
   }
 
   /**

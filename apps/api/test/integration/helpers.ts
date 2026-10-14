@@ -542,7 +542,7 @@ export async function taxonomy(owner: Client) {
 /** Creates and publishes a NEW product with stock through the admin API; returns ids. */
 export async function createProduct(
   owner: Client,
-  opts: { sku: string; nameFa: string; priceIrr?: bigint; priceAed?: bigint; onHand: number; vehicleBrandCodes?: string[]; category?: string; unit?: string },
+  opts: { sku: string; nameFa: string; priceIrr?: bigint; priceAed?: bigint; onHand: number; vehicleBrandCodes?: string[]; category?: string; unit?: string; vehicles?: Array<{ vehicleId: string; modelId: string | null }> },
 ): Promise<{ id: string; slug: string }> {
   const tax = await taxonomy(owner);
   const categoryId = tax.categories.find((c) => c.code === (opts.category ?? 'BRAKE'))?.id;
@@ -555,6 +555,7 @@ export async function createProduct(
     categoryId,
     vehicleBrandIds,
     unitId,
+    vehicles: opts.vehicles ?? [],
     partType: 'AFTERMARKET',
     condition: 'NEW',
     origin: opts.priceAed !== undefined ? 'IMPORTED' : 'DOMESTIC',
