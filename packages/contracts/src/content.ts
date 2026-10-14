@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { idSchema } from './common.js';
+import { SOCIAL_NETWORKS, type Localized } from './constants.js';
 
 /**
  * Editable site content (admin panel → «محتوای سایت»). Everything a visitor reads that is not
@@ -8,20 +9,9 @@ import { idSchema } from './common.js';
  * in both languages; an empty English text falls back to the Persian one on the English site.
  */
 
-export interface Localized {
-  fa: string;
-  en: string;
-}
-
 export const localizedSchema = (max: number) => z.object({ fa: z.string().trim().max(max), en: z.string().trim().max(max) });
 /** The Persian text is required (the site's main language); English stays optional. */
 export const localizedRequiredSchema = (max: number) => z.object({ fa: z.string().trim().min(1).max(max), en: z.string().trim().max(max) });
-
-/** Text in the visitor's language; English falls back to Persian when it was left empty. */
-export function localize(text: Localized | null | undefined, locale: string): string {
-  if (!text) return '';
-  return locale === 'en' ? text.en || text.fa : text.fa;
-}
 
 /** A link target: a page of this site (/parts), an http(s) address, mailto: or tel:. Empty = no link. */
 export const contentLinkSchema = z
@@ -99,9 +89,6 @@ export type ContactContent = z.infer<typeof contactContentSchema>;
 
 // ---- Social ----
 
-export const SOCIAL_NETWORKS = ['instagram', 'linkedin', 'telegram', 'x', 'whatsapp', 'youtube', 'aparat', 'other'] as const;
-export type SocialNetwork = (typeof SOCIAL_NETWORKS)[number];
-
 export const socialContentSchema = z.object({
   links: z
     .array(z.object({ network: z.enum(SOCIAL_NETWORKS), label: localizedSchema(40), url: externalUrlSchema, visible: z.boolean() }))
@@ -174,9 +161,6 @@ export type AnnouncementContent = z.infer<typeof announcementContentSchema>;
 
 // ---- SEO ----
 
-export const SEO_PAGES = ['home', 'parts', 'brands', 'imported', 'requestPart', 'contact'] as const;
-export type SeoPage = (typeof SEO_PAGES)[number];
-
 const seoEntrySchema = z.object({ title: localizedSchema(70), description: localizedSchema(170), imageUrl: contentImageSchema });
 export type SeoEntry = z.infer<typeof seoEntrySchema>;
 
@@ -235,9 +219,6 @@ export interface FaqItemView {
 
 // ---- Text pages ----
 
-/** Built-in pages: they cannot be deleted and keep their address. */
-export const SYSTEM_PAGE_SLUGS = ['about', 'help-buying', 'help-sourcing', 'help-shipping', 'help-returns'] as const;
-
 export const contentPageSchema = z.object({
   slug: z.string().trim().min(2).max(60).regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, { message: 'INVALID_SLUG' }),
   title: localizedRequiredSchema(120),
@@ -278,6 +259,3 @@ export interface PublicContentPage {
   seoDescription: Localized;
   updatedAt: string;
 }
-
-export const CONTENT_IMAGE_PURPOSES = ['image', 'logo', 'favicon'] as const;
-export type ContentImagePurpose = (typeof CONTENT_IMAGE_PURPOSES)[number];

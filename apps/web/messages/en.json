@@ -594,7 +594,7 @@
     "settings": "Settings",
     "fx": "Exchange rate",
     "shipping": "Shipping methods",
-    "policies": "Policies & content",
+    "policies": "Policies",
     "calendar": "Business calendar",
     "reports": "Reports",
     "audit": "Audit log",
@@ -890,7 +890,21 @@
     "importStatus_INSPECTING": "Reading the sheets",
     "importStatus_AWAITING_MAPPING": "Waiting for column matching",
     "auditAction_product_media_updated": "Product photo changed (main photo or alt text)",
-    "auditAction_product_media_reordered": "Product photos reordered"
+    "auditAction_product_media_reordered": "Product photos reordered",
+    "siteContent": "Site content",
+    "auditAction_content_updated": "Site content edited",
+    "auditAction_content_faq_created": "FAQ question added",
+    "auditAction_content_faq_updated": "FAQ question edited",
+    "auditAction_content_faq_deleted": "FAQ question deleted",
+    "auditAction_content_faq_reordered": "FAQ reordered",
+    "auditAction_content_page_created": "Text page created",
+    "auditAction_content_page_updated": "Text page edited",
+    "auditAction_content_page_deleted": "Text page deleted",
+    "auditAction_content_image_uploaded": "Site image uploaded",
+    "auditEntity_content": "Site content",
+    "auditEntity_faq_item": "FAQ question",
+    "auditEntity_content_page": "Text page",
+    "auditEntity_content_image": "Site image"
   },
   "validation": {
     "summaryTitle": "Please fix the following",
@@ -1051,7 +1065,12 @@
     "REPEAT_ADD_NOT_CONFIRMED": "This same file was already added to stock once; if new goods arrived, confirm adding it again.",
     "NOTHING_TO_APPLY": "There is nothing to apply in this file.",
     "MEDIA_ORDER_MISMATCH": "The photos changed meanwhile; refresh the page and reorder again.",
-    "UNKNOWN_MANUFACTURER_BRAND": "This manufacturer brand does not exist."
+    "UNKNOWN_MANUFACTURER_BRAND": "This manufacturer brand does not exist.",
+    "HTTP_413": "The file is larger than allowed.",
+    "PAGE_PROTECTED": "This built-in page cannot be deleted or moved; you can unpublish it.",
+    "SLUG_IN_USE": "Another page already uses this address.",
+    "ORDER_MISMATCH": "The list changed; reload the page and reorder again.",
+    "PAGE_NOT_FOUND": "This page does not exist or is not published."
   },
   "timelineEvent": {
     "CREATED_FROM_QUOTE": "Order created from the quote",

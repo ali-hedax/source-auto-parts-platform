@@ -3,17 +3,13 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { memoryStorage } from 'multer';
-import { CONTENT_IMAGE_PURPOSES, CONTENT_SECTION_KEYS, contentPageSchema, contentSectionUpdateSchema, faqItemSchema, faqOrderSchema, type ContentSectionKey } from '@hedax/contracts';
+import { CONTENT_IMAGE_MAX_BYTES, CONTENT_IMAGE_PURPOSES, CONTENT_SECTION_KEYS, contentPageSchema, contentSectionUpdateSchema, faqItemSchema, faqOrderSchema, type ContentSectionKey } from '@hedax/contracts';
 import { z } from 'zod';
 import { CurrentActor, Public, RequirePermissions } from '../../common/auth/decorators.js';
 import { badRequest, notFound } from '../../common/errors.js';
 import type { Actor } from '../../common/request-context.js';
 import { ApiZodBody, zod } from '../../common/zod.js';
 import { ContentService } from './content.service.js';
-
-const MB = 1024 * 1024;
-/** Upload limit for site pictures (before re-encoding, which makes them much smaller). */
-export const CONTENT_IMAGE_MAX_BYTES = 5 * MB;
 
 const sectionParam = (value: string): ContentSectionKey => {
   if (!(CONTENT_SECTION_KEYS as string[]).includes(value)) throw notFound();

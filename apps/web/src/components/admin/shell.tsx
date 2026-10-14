@@ -4,7 +4,7 @@ import * as RDialog from '@radix-ui/react-dialog';
 import Image from 'next/image';
 import type { MeView } from '@hedax/contracts';
 import {
-  BarChart3, Boxes, CalendarDays, CircleUser, ClipboardList, CreditCard, FileSpreadsheet, FileText, Gauge, History, Landmark, LogOut, MessageSquare,
+  BarChart3, Boxes, CalendarDays, CircleUser, ClipboardList, CreditCard, FileSpreadsheet, FileText, Gauge, History, Landmark, LayoutTemplate, LogOut, MessageSquare,
   Menu, Package, Receipt, RotateCcw, ScrollText, Settings, ShieldCheck, Store, Tags, Truck, Users, UserCog, Wallet, X,
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
@@ -96,6 +96,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
       items: [
         { href: '/admin/fx', label: t('fx'), icon: Landmark, perm: 'fx.manage' },
         { href: '/admin/shipping', label: t('shipping'), icon: Truck, perm: 'shipping.manage' },
+        { href: '/admin/content', label: t('siteContent'), icon: LayoutTemplate, perm: 'content.manage' },
         { href: '/admin/policies', label: t('policies'), icon: FileText, perm: 'content.manage' },
         { href: '/admin/calendar', label: t('calendar'), icon: CalendarDays, perm: 'settings.manage' },
         { href: '/admin/settings', label: t('settings'), icon: Settings, perm: 'settings.manage' },

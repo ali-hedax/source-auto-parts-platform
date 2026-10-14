@@ -594,7 +594,7 @@
     "settings": "تنظیمات",
     "fx": "نرخ تبدیل",
     "shipping": "روش‌های ارسال",
-    "policies": "متن‌ها و شرایط",
+    "policies": "قوانین و شرایط",
     "calendar": "تقویم کاری",
     "reports": "گزارش‌ها",
     "audit": "تاریخچهٔ عملیات حساس",
@@ -890,7 +890,21 @@
     "importStatus_INSPECTING": "در حال خواندن شیت‌ها",
     "importStatus_AWAITING_MAPPING": "منتظر تطبیق ستون‌ها",
     "auditAction_product_media_updated": "تغییر عکس محصول (عکس اصلی یا متن جایگزین)",
-    "auditAction_product_media_reordered": "تغییر ترتیب عکس‌های محصول"
+    "auditAction_product_media_reordered": "تغییر ترتیب عکس‌های محصول",
+    "siteContent": "محتوای سایت",
+    "auditAction_content_updated": "ویرایش محتوای سایت",
+    "auditAction_content_faq_created": "افزودن پرسش متداول",
+    "auditAction_content_faq_updated": "ویرایش پرسش متداول",
+    "auditAction_content_faq_deleted": "حذف پرسش متداول",
+    "auditAction_content_faq_reordered": "تغییر ترتیب پرسش‌ها",
+    "auditAction_content_page_created": "ساخت صفحهٔ متنی",
+    "auditAction_content_page_updated": "ویرایش صفحهٔ متنی",
+    "auditAction_content_page_deleted": "حذف صفحهٔ متنی",
+    "auditAction_content_image_uploaded": "آپلود تصویر سایت",
+    "auditEntity_content": "محتوای سایت",
+    "auditEntity_faq_item": "پرسش متداول",
+    "auditEntity_content_page": "صفحهٔ متنی",
+    "auditEntity_content_image": "تصویر سایت"
   },
   "validation": {
     "summaryTitle": "لطفاً موارد زیر را اصلاح کنید",
@@ -1051,7 +1065,12 @@
     "REPEAT_ADD_NOT_CONFIRMED": "همین فایل قبلاً یک بار به موجودی افزوده شده است؛ اگر کالای تازه رسیده، افزودن دوباره را تأیید کنید.",
     "NOTHING_TO_APPLY": "در این فایل تغییری برای ثبت نیست.",
     "MEDIA_ORDER_MISMATCH": "فهرست عکس‌ها در این فاصله تغییر کرده است؛ صفحه را تازه کنید و دوباره مرتب کنید.",
-    "UNKNOWN_MANUFACTURER_BRAND": "این برند سازنده در پنل ثبت نشده است."
+    "UNKNOWN_MANUFACTURER_BRAND": "این برند سازنده در پنل ثبت نشده است.",
+    "HTTP_413": "حجم فایل بیش از حد مجاز است.",
+    "PAGE_PROTECTED": "این صفحهٔ سیستمی قابل حذف یا تغییر نشانی نیست؛ می‌توانید آن را منتشرنشده کنید.",
+    "SLUG_IN_USE": "صفحهٔ دیگری همین نشانی را دارد.",
+    "ORDER_MISMATCH": "فهرست تغییر کرده است؛ صفحه را تازه کنید و دوباره مرتب کنید.",
+    "PAGE_NOT_FOUND": "این صفحه وجود ندارد یا منتشر نشده است."
   },
   "timelineEvent": {
     "CREATED_FROM_QUOTE": "سفارش از پیش‌فاکتور ثبت شد",

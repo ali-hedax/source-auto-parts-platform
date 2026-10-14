@@ -54,3 +54,33 @@ export type SmsNotificationType = (typeof SMS_NOTIFICATION_TYPES)[number];
 
 export const QUOTE_VERSION_STATUSES = ['DRAFT', 'SENT', 'ACCEPTED', 'EXPIRED', 'REJECTED', 'SUPERSEDED', 'CANCELLED'] as const;
 export type QuoteVersionStatus = (typeof QUOTE_VERSION_STATUSES)[number];
+
+// ---- Site content (panel → «محتوای سایت»); the schemas are in content.ts ----
+
+/** A text in both site languages. */
+export interface Localized {
+  fa: string;
+  en: string;
+}
+
+/** Text in the visitor's language; English falls back to Persian when it was left empty. */
+export function localize(text: Localized | null | undefined, locale: string): string {
+  if (!text) return '';
+  return locale === 'en' ? text.en || text.fa : text.fa;
+}
+
+export const SOCIAL_NETWORKS = ['instagram', 'linkedin', 'telegram', 'x', 'whatsapp', 'youtube', 'aparat', 'other'] as const;
+export type SocialNetwork = (typeof SOCIAL_NETWORKS)[number];
+
+/** Pages whose search title, description and share image are set under site content → SEO. */
+export const SEO_PAGES = ['home', 'parts', 'brands', 'imported', 'requestPart', 'contact'] as const;
+export type SeoPage = (typeof SEO_PAGES)[number];
+
+/** Built-in text pages: they cannot be deleted and keep their address. */
+export const SYSTEM_PAGE_SLUGS = ['about', 'help-buying', 'help-sourcing', 'help-shipping', 'help-returns'] as const;
+
+export const CONTENT_IMAGE_PURPOSES = ['image', 'logo', 'favicon'] as const;
+export type ContentImagePurpose = (typeof CONTENT_IMAGE_PURPOSES)[number];
+
+/** Upload limit for site pictures (they are re-encoded and become much smaller). */
+export const CONTENT_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
