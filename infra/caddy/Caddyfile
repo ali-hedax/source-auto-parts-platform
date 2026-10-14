@@ -1,9 +1,10 @@
 # HEDAX reverse proxy (Caddy 2): automatic HTTPS for {$HEDAX_DOMAIN}.
 # Production S3 media routing verified on sourcebyhedax.ir on 2026-10-14.
-# This production configuration expects the existing public product-image bucket.
+# This production configuration expects the existing public media bucket (products/ and content/ readable).
 #
 #   /api/*    → NestJS API (REST, uploads, payment callbacks, chat WebSocket at /api/v1/ws)
-#   /media/*  → public S3 product images; private files remain on authenticated API routes.
+#   /media/*  → public S3 images (products/ product photos, content/ site-content images);
+#               every other prefix and the private bucket stay private (authenticated API routes).
 #   else      → Next.js web (storefront + admin)
 # /health/* is intentionally not routed: probes run inside the Docker network.
 
