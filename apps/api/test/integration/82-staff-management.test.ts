@@ -189,7 +189,10 @@ describe('only the owner manages staff (checked by the server)', () => {
       ['POST', `/admin/staff/invitations/${inv.body.invitationId}/erase`, { confirmCode: '123456' }],
       ['PATCH', `/admin/staff/${target.userId}`, { fullName: 'تغییر', suspended: true }],
       ['POST', `/admin/staff/${target.userId}/mfa-reset`, { confirmCode: '123456' }],
-      ['POST', `/admin/staff/${target.userId}/erase`, { confirmCode: '123456' }],
+      ['GET', '/admin/staff/trash', undefined],
+      ['POST', `/admin/staff/${target.userId}/trash`, {}],
+      ['POST', `/admin/staff/${target.userId}/restore`, {}],
+      ['POST', `/admin/staff/${target.userId}/purge`, { confirmName: 'کارمند support', confirmCode: '123456' }],
     ];
     for (const [method, path, body] of attempts) {
       const m = await manager.req(method, path, body);
@@ -211,7 +214,7 @@ describe('only the owner manages staff (checked by the server)', () => {
       expect(res.status).toBe(403);
       expect(res.body.error.code).toBe('SELF_EDIT');
     }
-    expect((await owner.post<any>(`/admin/staff/${ownerId}/erase`, { confirmCode: '123456' })).body.error.code).toBe('SELF_EDIT');
+    expect((await owner.post<any>(`/admin/staff/${ownerId}/trash`, {})).body.error.code).toBe('SELF_EDIT');
     expect(await activeOwners()).toBeGreaterThanOrEqual(1);
 
     // A second owner (confirmed with the acting owner's code), then demoted and deactivated by the first.
@@ -232,8 +235,10 @@ describe('only the owner manages staff (checked by the server)', () => {
     expect((await owner.patch(`/admin/staff/${accepted.body.userId}`, { suspended: true })).status).toBe(200);
     expect(await activeOwners()).toBe(owners - 1);
     expect((await second.get('/me')).status).toBe(401);
-    // Owners are not erased from here (remove the owner role first); the last active owner stays.
-    expect((await owner.post<any>(`/admin/staff/${accepted.body.userId}/erase`, { confirmCode: '123456' })).body.error.code).toBe('OWNER_PROTECTED');
+    // Another owner can go to the trash and come back (still deactivated); the last active owner stays.
+    expect((await owner.post<any>(`/admin/staff/${accepted.body.userId}/trash`, {})).status).toBe(200);
+    expect((await owner.post<any>(`/admin/staff/${accepted.body.userId}/restore`, {})).status).toBe(200);
+    expect((await memberOf(accepted.body.userId))?.status).toBe('SUSPENDED');
     expect((await owner.patch(`/admin/staff/${accepted.body.userId}`, { roleIds: [roleId('support')] })).status).toBe(200);
     expect(await activeOwners()).toBeGreaterThanOrEqual(1);
     expect((await owner.get('/me')).status).toBe(200);

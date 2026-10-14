@@ -227,7 +227,7 @@ function CalendarEditor({ calendar, reload }: { calendar: { id: string; name: st
   );
 }
 
-interface SiteSettings { contactPhone?: string; contactEmail?: string; contactAddressFa?: string; contactAddressEn?: string; workingHoursFa?: string; workingHoursEn?: string; domain?: string; reservationMinutes: number; quoteValidityHoursDefault: number; taxRateBasisPoints: number | null; taxBase: 'ITEMS' | 'ITEMS_AND_SHIPPING'; smsDisabledTypes?: string[]; version: number }
+interface SiteSettings { contactPhone?: string; contactEmail?: string; contactAddressFa?: string; contactAddressEn?: string; workingHoursFa?: string; workingHoursEn?: string; domain?: string; reservationMinutes: number; quoteValidityHoursDefault: number; taxRateBasisPoints: number | null; taxBase: 'ITEMS' | 'ITEMS_AND_SHIPPING'; smsDisabledTypes?: string[]; trashRetentionDays?: number; version: number }
 
 export function SiteSettingsPage() {
   const t = useTranslations();
@@ -246,13 +246,15 @@ function SiteSettingsForm({ settings, reload }: { settings: SiteSettings; reload
   const l = useL();
   const [s, setS] = useState({ ...settings, taxPercent: settings.taxRateBasisPoints === null ? '' : String(settings.taxRateBasisPoints / 100) });
   const { error, ok, run } = useAction(reload);
+  const me = useApi<{ isOwner: boolean }>('/me');
+  const isOwner = !!me.data?.isOwner;
   const save = () => run(() => api('/admin/settings', {
     method: 'PUT',
     body: {
       contactPhone: s.contactPhone || undefined, contactEmail: s.contactEmail || '', contactAddressFa: s.contactAddressFa || undefined, contactAddressEn: s.contactAddressEn || undefined,
       workingHoursFa: s.workingHoursFa || undefined, workingHoursEn: s.workingHoursEn || undefined, domain: s.domain || undefined,
       reservationMinutes: typedNumber(s.reservationMinutes), quoteValidityHoursDefault: typedNumber(s.quoteValidityHoursDefault),
-      taxRateBasisPoints: s.taxPercent === '' ? null : Math.round(typedNumber(s.taxPercent) * 100), taxBase: s.taxBase, manualBankTransferEnabled: false, smsDisabledTypes: s.smsDisabledTypes ?? [], version: settings.version,
+      taxRateBasisPoints: s.taxPercent === '' ? null : Math.round(typedNumber(s.taxPercent) * 100), taxBase: s.taxBase, manualBankTransferEnabled: false, smsDisabledTypes: s.smsDisabledTypes ?? [], trashRetentionDays: typedNumber(s.trashRetentionDays ?? 30) || 30, version: settings.version,
     },
   }));
   const text = (key: keyof SiteSettings, label: string, ltr = false) => (
@@ -281,6 +283,14 @@ function SiteSettingsForm({ settings, reload }: { settings: SiteSettings; reload
           </Field>
         </div>
         <p className="mt-3 text-sm text-steel">{l('انتقال بانکی دستی در نسخهٔ اول غیرفعال است؛ رسید بارگذاری‌شده پرداخت محسوب نمی‌شود.', 'Manual bank transfer is disabled in v1; an uploaded receipt is not a payment.')}</p>
+      </Section>
+      <Section title={l('سطل زباله', 'Trash')} id="st-trash">
+        <div className="grid gap-3 md:grid-cols-4">
+          <Field id="st-trash-days" label={l('حذف خودکار بعد از (روز)', 'Delete automatically after (days)')}
+            hint={isOwner ? l('موارد سطل زباله بعد از این مدت، با کار زمان‌بندی‌شدهٔ روزانه برای همیشه حذف می‌شوند (۱ تا ۳۶۵).', 'Items in the trash are deleted for good by the daily job after this many days (1–365).') : l('فقط مالک می‌تواند این مدت را تغییر دهد.', 'Only an owner can change this.')}>
+            <Input id="st-trash-days" inputMode="numeric" disabled={!isOwner} value={s.trashRetentionDays ?? 30} onChange={(e) => setS({ ...s, trashRetentionDays: typedNumber(e.target.value) || 0 })} />
+          </Field>
+        </div>
       </Section>
       <Section title={t('admin.notificationSettings')} id="st-notify">
         <p className="mb-3 text-sm text-steel">{t('admin.notificationSettingsHint')}</p>

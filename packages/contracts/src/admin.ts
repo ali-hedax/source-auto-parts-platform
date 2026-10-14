@@ -71,6 +71,38 @@ export const staffEraseSchema = z.object({
 });
 
 /**
+ * Deleting for good from the trash: the staff member's name typed again (checked by the server) and
+ * the acting owner's current authenticator code (the same complete erasure as before).
+ */
+export const trashPurgeSchema = z.object({
+  confirmName: z.string().trim().min(1).max(200),
+  confirmCode: z.string().trim().regex(/^[0-9۰-۹]{6}$/),
+});
+
+/** A staff member in the trash, as the owner sees it under panel → staff → trash. */
+export interface StaffTrashView {
+  entryId: string;
+  userId: string;
+  /** What has to be typed to delete for good (the name, or the e-mail when there is no name). */
+  label: string;
+  fullName: string | null;
+  email: string | null;
+  roles: Array<{ id: string; nameFa: string; nameEn: string; isOwner: boolean }>;
+  trashedAt: string;
+  trashedBy: string | null;
+  /** When the daily job deletes it for good (trashedAt + site settings → trash retention days). */
+  purgeAt: string;
+  daysLeft: number;
+}
+
+/** An active staff member for pickers (e.g. assigning a sourcing request); open to any staff role. */
+export interface StaffOptionView {
+  id: string;
+  fullName: string | null;
+  email: string | null;
+}
+
+/**
  * PENDING: e-mail queued or not configured; SENT: accepted by the SMTP server (not proof of inbox delivery);
  * FAILED: the e-mail could not be handed over; then ACCEPTED, EXPIRED or REVOKED.
  */
@@ -102,9 +134,10 @@ export interface StaffMemberView {
   mfaEnabled: boolean;
   lastLoginAt: string | null;
   roles: Array<{ id: string; key: string; nameFa: string; nameEn: string; isOwner: boolean }>;
-  /** The signed-in owner's own row: no role change, suspension or erasure from here. */
+  /** The signed-in owner's own row: no role change, suspension or trash from here. */
   isSelf: boolean;
-  canErase: boolean;
+  /** «حذف» (move to the trash): never oneself, never the last active owner. */
+  canTrash: boolean;
 }
 
 export const staffUpdateSchema = z.object({
@@ -307,6 +340,8 @@ export const siteSettingsSchema = z.object({
   manualBankTransferEnabled: z.literal(false).default(false),
   /** SMS copies switched off by the owner (in-app notifications are unaffected). */
   smsDisabledTypes: z.array(z.enum(SMS_NOTIFICATION_TYPES)).max(SMS_NOTIFICATION_TYPES.length).default([]),
+  /** Days an item stays in the trash before the daily job deletes it for good. */
+  trashRetentionDays: z.number().int().min(1).max(365).default(30),
 });
 
 export const policyVersionSchema = z.object({

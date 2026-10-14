@@ -57,14 +57,21 @@ describe('staff erasure', () => {
     expect((await staff.get('/me')).status).toBe(200);
     expect(await auditMentions(email)).toBeGreaterThan(0);
 
-    // Only users.manage may erase, and never without a current authenticator code.
+    // «حذف» only moves to the trash. Deleting for good is the owner's alone, from the trash, with the
+    // name typed again and a current authenticator code.
     const support = await inviteStaff(t, owner, 'support');
-    expect((await support.post(`/admin/staff/${userId}/erase`, { confirmCode: '123456' })).status).toBe(403);
-    expect((await owner.post(`/admin/staff/${userId}/erase`, {})).status).toBe(400);
-    const wrong = await owner.post(`/admin/staff/${userId}/erase`, { confirmCode: '000000' === (await ownerTotp()) ? '111111' : '000000' });
+    expect((await support.post(`/admin/staff/${userId}/trash`, {})).status).toBe(403);
+    expect((await owner.post(`/admin/staff/${userId}/purge`, { confirmName: fullName, confirmCode: '123456' })).status).toBe(404);
+    expect((await owner.post(`/admin/staff/${userId}/trash`, {})).status).toBe(200);
+    expect((await support.post(`/admin/staff/${userId}/purge`, { confirmName: fullName, confirmCode: '123456' })).status).toBe(403);
+    expect((await owner.post(`/admin/staff/${userId}/purge`, { confirmName: fullName })).status).toBe(400);
+    expect((await owner.post(`/admin/staff/${userId}/purge`, { confirmName: 'کس دیگر', confirmCode: '123456' })).body.error.code).toBe('CONFIRM_NAME_MISMATCH');
+    const wrong = await owner.post(`/admin/staff/${userId}/purge`, { confirmName: fullName, confirmCode: '000000' === (await ownerTotp()) ? '111111' : '000000' });
     expect(wrong.body.error.code).toBe('MFA_CODE_INVALID');
 
-    const res = await owner.post<{ erased: boolean; invitations: number; auditEntries: number }>(`/admin/staff/${userId}/erase`, { confirmCode: await freshCode() });
+    // The typed name is compared like search text: Arabic ي/ك, extra spaces and the half-space do not matter.
+    const typed = ` ${fullName.replace('‌', ' ').replace(/ی/g, 'ي')}  `;
+    const res = await owner.post<{ erased: boolean; invitations: number; auditEntries: number }>(`/admin/staff/${userId}/purge`, { confirmName: typed, confirmCode: await freshCode() });
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(res.body).toMatchObject({ erased: true, invitations: 1 });
     expect(res.body.auditEntries).toBeGreaterThan(0);
@@ -84,7 +91,8 @@ describe('staff erasure', () => {
     expect(await auditMentions(email)).toBe(0);
     expect(await auditMentions(fullName)).toBe(0);
     const events = await s.prisma.auditLog.findMany({ where: { entityId: { in: [userId, inv.body.invitationId] } }, select: { action: true } });
-    expect(events.map((e) => e.action)).toEqual(expect.arrayContaining(['staff.invited', 'staff.invitation.accepted', 'staff.erased']));
+    expect(events.map((e) => e.action)).toEqual(expect.arrayContaining(['staff.invited', 'staff.invitation.accepted', 'staff.trashed', 'staff.erased']));
+    expect(await s.prisma.trashEntry.count({ where: { entityId: userId } })).toBe(0);
 
     // Not listed any more, cannot be edited, and the address can be invited again.
     const list = await owner.get<{ staff: Array<{ id: string }> }>('/admin/staff');
@@ -120,12 +128,12 @@ describe('staff erasure', () => {
 
   it('refuses erasing oneself, and the audit log still refuses deletes and ordinary updates', async () => {
     const me = await owner.get<{ id: string }>('/me');
-    const self = await owner.post(`/admin/staff/${me.body.id}/erase`, { confirmCode: '123456' });
+    const self = await owner.post(`/admin/staff/${me.body.id}/trash`, {});
     expect(self.status).toBe(403);
     expect(self.body.error.code).toBe('SELF_EDIT');
-    // The owner row itself is never offered for erasure.
-    const list = await owner.get<{ staff: Array<{ id: string; canErase: boolean }> }>('/admin/staff');
-    expect(list.body.staff.find((x) => x.id === me.body.id)?.canErase).toBe(false);
+    // The owner row itself is never offered for the trash.
+    const list = await owner.get<{ staff: Array<{ id: string; canTrash: boolean }> }>('/admin/staff');
+    expect(list.body.staff.find((x) => x.id === me.body.id)?.canTrash).toBe(false);
 
     const row = await s.prisma.auditLog.findFirst({ select: { id: true } });
     await expect(s.prisma.$executeRaw`UPDATE audit_log SET after = '{}'::jsonb WHERE id = ${row!.id}::uuid`).rejects.toThrow(/append-only/);

@@ -45,15 +45,31 @@ function fixtureStaff() {
   const now = Date.now();
   return {
     staff: [
-      { id: 'fixture-staff', email: 'owner@example.test', fullName: 'مالک نمونه', phone: null, status: 'ACTIVE', mfaEnabled: true, lastLoginAt: new Date(now).toISOString(), roles: [role('owner')], isSelf: true, canErase: false },
-      { id: 'fixture-staff-2', email: 'catalog@example.test', fullName: 'کارمند کاتالوگ', phone: '+98 912 000 0000', status: 'ACTIVE', mfaEnabled: true, lastLoginAt: new Date(now - 86_400_000).toISOString(), roles: [role('catalog_warehouse')], isSelf: false, canErase: true },
-      { id: 'fixture-staff-3', email: 'finance@example.test', fullName: 'کارمند مالی', phone: null, status: 'SUSPENDED', mfaEnabled: true, lastLoginAt: null, roles: [role('finance')], isSelf: false, canErase: true },
+      { id: 'fixture-staff', email: 'owner@example.test', fullName: 'مالک نمونه', phone: null, status: 'ACTIVE', mfaEnabled: true, lastLoginAt: new Date(now).toISOString(), roles: [role('owner')], isSelf: true, canTrash: false },
+      { id: 'fixture-staff-2', email: 'catalog@example.test', fullName: 'کارمند کاتالوگ', phone: '+98 912 000 0000', status: 'ACTIVE', mfaEnabled: true, lastLoginAt: new Date(now - 86_400_000).toISOString(), roles: [role('catalog_warehouse')], isSelf: false, canTrash: true },
+      { id: 'fixture-staff-3', email: 'finance@example.test', fullName: 'کارمند مالی', phone: null, status: 'SUSPENDED', mfaEnabled: true, lastLoginAt: null, roles: [role('finance')], isSelf: false, canTrash: true },
     ],
     invitations: [
       { id: 'fixture-invitation', email: 'support@example.test', fullName: 'کارمند نمونه', phone: '+98 21 0000 0000', roles: [role('support')], status: 'SENT', createdAt: new Date(now).toISOString(), expiresAt: new Date(now + 72 * 3_600_000).toISOString(), acceptedAt: null, sentAt: new Date(now).toISOString(), lastError: null },
       { id: 'fixture-invitation-2', email: 'old@example.test', fullName: 'دعوت قدیمی', phone: null, roles: [role('sales_manager')], status: 'EXPIRED', createdAt: new Date(now - 5 * 86_400_000).toISOString(), expiresAt: new Date(now - 2 * 86_400_000).toISOString(), acceptedAt: null, sentAt: null, lastError: null },
     ],
     mailConfigured: true,
+    trashCount: 1,
+  };
+}
+
+/** Trash tab preview: one staff member moved to the trash eight days ago. */
+function fixtureStaffTrash() {
+  const now = Date.now();
+  const role = DEFAULT_ROLES.find((x) => x.key === 'sales_manager')!;
+  const trashedAt = new Date(now - 8 * 86_400_000);
+  return {
+    retentionDays: 30,
+    items: [{
+      entryId: 'fixture-trash-1', userId: 'fixture-staff-4', label: 'کارمند فروش', fullName: 'کارمند فروش', email: 'sales@example.test',
+      roles: [{ id: `r-${role.key}`, nameFa: role.nameFa, nameEn: role.nameEn, isOwner: false }],
+      trashedAt: trashedAt.toISOString(), trashedBy: 'مالک نمونه', purgeAt: new Date(trashedAt.getTime() + 30 * 86_400_000).toISOString(), daysLeft: 22,
+    }],
   };
 }
 
@@ -331,6 +347,8 @@ export async function handleFixture(method: string, pathWithQuery: string, rawBo
     if (path === '/admin/refunds' || path === '/admin/returns' || path === '/admin/audit') return ok([]);
     if (path === '/admin/customers') return ok([{ id: 'fixture-customer', fullName: 'مشتری نمونه', mobile: '+98912***0000', status: 'ACTIVE', customerType: 'CONSUMER', groupStatus: 'PENDING', requestedType: 'WORKSHOP', businessName: 'تعمیرگاه نمونه', group: null, orders: 2, requests: 1, createdAt: fixtureOrders[0]!.createdAt }]);
     if (path === '/admin/staff') return ok(fixtureStaff());
+    if (path === '/admin/staff/trash') return ok(fixtureStaffTrash());
+    if (path === '/admin/staff/options') return ok(fixtureStaff().staff.filter((s) => s.status === 'ACTIVE').map((s) => ({ id: s.id, fullName: s.fullName, email: s.email })));
     if (path === '/admin/content') return ok(Object.fromEntries(Object.entries(fixtureContent.sections).map(([k, v]) => [k, { value: v, version: 1, updatedAt: FIXTURE_CONTENT_DATE }])));
     if (path === '/admin/content/faq') return ok(fixtureContent.faq.map((f): FaqItemView => ({ id: f.id, question: f.question, answer: f.answer, visible: f.visible, sortOrder: f.sortOrder, updatedAt: FIXTURE_CONTENT_DATE })));
     if (path === '/admin/content/pages') return ok(fixtureContent.pages.map(fixturePageView));
@@ -341,7 +359,7 @@ export async function handleFixture(method: string, pathWithQuery: string, rawBo
     if (path === '/admin/mail/status') return ok({ provider: 'dev-log', configured: true, from: 'info@example.test', lastTest: null });
     if (path === '/admin/roles') return ok(DEFAULT_ROLES.map((r) => ({ id: `r-${r.key}`, key: r.key, nameFa: r.nameFa, nameEn: r.nameEn, isSystem: true, isOwner: r.isOwner, requiresMfa: r.requiresMfa, permissions: [...r.permissions], members: r.isOwner ? 1 : 0, version: 0 })));
     if (path === '/admin/exchange-rates') return ok([{ id: FIXTURE_RATE.id, irrPerAed: FIXTURE_RATE.irrPerAed, effectiveFrom: FIXTURE_RATE.effectiveFrom, note: 'نرخ نمونه — نرخ بازار نیست', createdBy: 'مالک نمونه', createdAt: FIXTURE_RATE.effectiveFrom }]);
-    if (path === '/admin/settings') return ok({ reservationMinutes: 15, quoteValidityHoursDefault: 24, taxRateBasisPoints: null, taxBase: 'ITEMS', manualBankTransferEnabled: false, version: 0 });
+    if (path === '/admin/settings') return ok({ reservationMinutes: 15, quoteValidityHoursDefault: 24, taxRateBasisPoints: null, taxBase: 'ITEMS', manualBankTransferEnabled: false, smsDisabledTypes: [], trashRetentionDays: 30, version: 0 });
     if (path === '/admin/shipping-methods') return ok([]);
     if (path === '/admin/policies') return ok([]);
     if (path === '/admin/calendars') return ok([{ id: 'cal1', name: 'تقویم کاری پیش‌فرض', timeZone: 'Asia/Tehran', weekendDays: [5], holidays: [], isDefault: true, version: 0 }]);

@@ -765,6 +765,9 @@
     "auditAction_staff_invitation_resent": "Staff invitation resent",
     "auditAction_staff_invitation_revoked": "Staff invitation revoked",
     "auditAction_staff_erased": "Staff member erased",
+    "auditAction_staff_trashed": "Staff member moved to the trash",
+    "auditAction_staff_restored": "Staff member restored from the trash",
+    "auditAction_staff_auto_erased": "Staff member deleted automatically from the trash",
     "auditAction_staff_invitation_erased": "Staff invitation erased",
     "auditAction_account_name_changed": "Account name changed",
     "auditAction_account_email_changed": "Account e-mail changed",
@@ -1013,6 +1016,8 @@
     "PERMISSION_ESCALATION": "You cannot grant permissions you do not have.",
     "SELF_EDIT": "You cannot change your own roles or status; change your name and password under My account.",
     "SELF_ROLE_EDIT": "You cannot change your own role.",
+    "NOT_IN_TRASH": "This staff member is not in the trash; delete (move to the trash) first.",
+    "CONFIRM_NAME_MISMATCH": "The typed name does not match.",
     "UNKNOWN_PERMISSION": "Unknown permission.",
     "UNKNOWN_ROLE": "Unknown role.",
     "ATTACHMENT_INVALID": "One of the files is missing, rejected or not yours.",
@@ -1032,7 +1037,7 @@
     "SLUG_IN_USE": "Another page already uses this address.",
     "ORDER_MISMATCH": "The list changed; reload the page and reorder again.",
     "PAGE_NOT_FOUND": "This page does not exist or is not published.",
-    "OWNER_ONLY": "Only an owner can manage staff."
+    "OWNER_ONLY": "Only an owner can access this."
   },
   "timelineEvent": {
     "CREATED_FROM_QUOTE": "Order created from the quote",

@@ -31,6 +31,8 @@ enum UserStatus {
   ACTIVE
   SUSPENDED
   DELETED
+  /// In the trash (panel → staff → trash): signed out, cannot sign in, e-mail kept reserved; restorable.
+  TRASHED
 }
 
 enum UiLocale {
@@ -1916,6 +1918,25 @@ model SiteSetting {
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   @@map("site_setting")
+}
+
+/// The trash: items removed in the panel that can still be restored. Only `kind` + `entityId` point to
+/// the item (staff today; products can use it later). The item itself is purged when restore is no longer
+/// possible (manually, or by the daily job after site settings → trash retention days).
+model TrashEntry {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  kind        String   @db.VarChar(40)
+  entityId    String   @map("entity_id") @db.Uuid
+  /// Shown in the trash list (e.g. the staff member's name); removed with the entry.
+  label       String   @db.VarChar(200)
+  /// What restore puts back (e.g. the account status before it was trashed).
+  restoreState Json    @default("{}") @map("restore_state")
+  trashedById String?  @map("trashed_by_id") @db.Uuid
+  trashedAt   DateTime @default(now()) @map("trashed_at") @db.Timestamptz(3)
+
+  @@unique([kind, entityId])
+  @@index([trashedAt])
+  @@map("trash_entry")
 }
 
 /// Frequently asked questions on the home page (panel → site content → FAQ). Ordered by sortOrder.

@@ -7,7 +7,7 @@ import { z } from 'zod';
 import type { PolicyKind } from '../../generated/prisma/enums.js';
 import { AuditService } from '../../common/audit.service.js';
 import { CurrentActor, Public, RequirePermissions } from '../../common/auth/decorators.js';
-import { badRequest, conflict, notFound } from '../../common/errors.js';
+import { badRequest, conflict, forbidden, notFound } from '../../common/errors.js';
 import { Prisma, PrismaService } from '../../common/prisma.service.js';
 import type { Actor } from '../../common/request-context.js';
 import { ApiZodBody, zod } from '../../common/zod.js';
@@ -64,6 +64,9 @@ export class SettingsController {
     return this.prisma.tx(async (tx) => {
       const current = await tx.siteSetting.findUnique({ where: { key: SITE_SETTINGS_KEY } });
       if ((current?.version ?? 0) !== version) throw conflict('VERSION_CONFLICT', 'Settings were changed by someone else');
+      // The trash is the owner's alone, and so is how long it keeps staff members.
+      const before = siteSettingsSchema.parse(current?.value ?? {});
+      if (value.trashRetentionDays !== before.trashRetentionDays && !actor.isOwner) throw forbidden('OWNER_ONLY', 'Only an owner can change the trash retention');
       await tx.siteSetting.upsert({
         where: { key: SITE_SETTINGS_KEY },
         create: { key: SITE_SETTINGS_KEY, value: value as Prisma.InputJsonValue, version: 1, updatedById: actor.userId },

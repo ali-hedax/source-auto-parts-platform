@@ -765,6 +765,9 @@
     "auditAction_staff_invitation_resent": "ارسال دوبارهٔ دعوت کارمند",
     "auditAction_staff_invitation_revoked": "لغو دعوت کارمند",
     "auditAction_staff_erased": "حذف کامل کارمند",
+    "auditAction_staff_trashed": "انتقال کارمند به سطل زباله",
+    "auditAction_staff_restored": "بازگردانی کارمند از سطل زباله",
+    "auditAction_staff_auto_erased": "حذف خودکار کارمند از سطل زباله",
     "auditAction_staff_invitation_erased": "حذف کامل دعوت کارمند",
     "auditAction_account_name_changed": "تغییر نام حساب",
     "auditAction_account_email_changed": "تغییر ایمیل حساب",
@@ -1013,6 +1016,8 @@
     "PERMISSION_ESCALATION": "نمی‌توانید مجوزی بیش از مجوزهای خودتان بدهید.",
     "SELF_EDIT": "نمی‌توانید نقش یا وضعیت حساب خودتان را تغییر دهید؛ نام و رمز خود را از «حساب من» عوض کنید.",
     "SELF_ROLE_EDIT": "نمی‌توانید نقش خودتان را تغییر دهید.",
+    "NOT_IN_TRASH": "این کارمند در سطل زباله نیست؛ ابتدا او را حذف (به سطل زباله منتقل) کنید.",
+    "CONFIRM_NAME_MISMATCH": "نام واردشده با نام کارمند یکی نیست.",
     "UNKNOWN_PERMISSION": "مجوز نامعتبر است.",
     "UNKNOWN_ROLE": "نقش نامعتبر است.",
     "ATTACHMENT_INVALID": "یکی از فایل‌ها پیدا نشد، رد شده یا متعلق به شما نیست.",
@@ -1032,7 +1037,7 @@
     "SLUG_IN_USE": "صفحهٔ دیگری همین نشانی را دارد.",
     "ORDER_MISMATCH": "فهرست تغییر کرده است؛ صفحه را تازه کنید و دوباره مرتب کنید.",
     "PAGE_NOT_FOUND": "این صفحه وجود ندارد یا منتشر نشده است.",
-    "OWNER_ONLY": "فقط مالک می‌تواند کارکنان را مدیریت کند."
+    "OWNER_ONLY": "فقط مالک به این بخش دسترسی دارد."
   },
   "timelineEvent": {
     "CREATED_FROM_QUOTE": "سفارش از پیش‌فاکتور ثبت شد",
