@@ -19,6 +19,7 @@ import { PrismaService } from '../../common/prisma.service.js';
 import type { Actor } from '../../common/request-context.js';
 import { ApiZodBody, zod } from '../../common/zod.js';
 import { AdminCatalogService, slugify } from './admin-catalog.service.js';
+import { UnitsService } from './units.service.js';
 
 const listQuery = paginationQuerySchema.extend({
   q: z.string().max(80).optional(),
@@ -53,6 +54,7 @@ export class AdminCatalogController {
     private readonly svc: AdminCatalogService,
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly units: UnitsService,
   ) {}
 
   @RequirePermissions('products.read')
@@ -166,13 +168,14 @@ export class AdminCatalogController {
   @RequirePermissions('products.read')
   @Get('taxonomy')
   async taxonomy() {
-    const [categories, vehicleBrands, manufacturers, groups] = await Promise.all([
+    const [categories, vehicleBrands, manufacturers, groups, units] = await Promise.all([
       this.prisma.category.findMany({ orderBy: [{ sortOrder: 'asc' }, { nameFa: 'asc' }] }),
       this.prisma.vehicleBrand.findMany({ orderBy: [{ isFeatured: 'desc' }, { sortOrder: 'asc' }] }),
       this.prisma.manufacturerBrand.findMany({ orderBy: { nameFa: 'asc' } }),
       this.prisma.customerGroup.findMany({ orderBy: { key: 'asc' } }),
+      this.units.list(),
     ]);
-    return { categories, vehicleBrands, manufacturers, customerGroups: groups };
+    return { categories, vehicleBrands, manufacturers, customerGroups: groups, units };
   }
 
   @RequirePermissions('products.write')

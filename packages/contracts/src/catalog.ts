@@ -47,6 +47,50 @@ export interface MediaView {
   alt: LocalizedText;
 }
 
+/**
+ * A quantity in a product's sales unit (whole for «عدد», halves for «لیتر» …), up to three
+ * decimals. The server checks it against the unit (decimals allowed, multiple of the step).
+ */
+export const unitQuantitySchema = z.number().positive().max(10_000_000).refine((n) => Math.abs(n * 1000 - Math.round(n * 1000)) < 1e-6, { message: 'UNIT_QUANTITY_INVALID' });
+/** Same, zero allowed (stock counts, thresholds, removing a cart line). */
+export const unitQuantityOrZeroSchema = z.number().min(0).max(10_000_000).refine((n) => Math.abs(n * 1000 - Math.round(n * 1000)) < 1e-6, { message: 'UNIT_QUANTITY_INVALID' });
+
+/** A product's sales unit as shown next to quantities and prices («۲۵۰٬۰۰۰ تومان / دست»). */
+export interface UnitRef {
+  name: string;
+  nameEn: string | null;
+  allowDecimal: boolean;
+  /** Smallest amount that can be sold, e.g. 0.5 for litres. */
+  step: number;
+}
+
+/** Sales units, managed in the panel (products → units). */
+export const unitUpsertSchema = z.object({
+  name: z.string().trim().min(1).max(30),
+  nameEn: z.string().trim().max(30).optional().nullable(),
+  allowDecimal: z.boolean().default(false),
+  step: z.number().positive().max(1000),
+  active: z.boolean().default(true),
+  sortOrder: z.number().int().min(0).max(10_000).default(0),
+});
+/** Partial edit: only the fields sent change (no defaults, so an edit never resets other fields). */
+export const unitUpdateSchema = z.object({
+  name: z.string().trim().min(1).max(30).optional(),
+  nameEn: z.string().trim().max(30).optional().nullable(),
+  allowDecimal: z.boolean().optional(),
+  step: z.number().positive().max(1000).optional(),
+  active: z.boolean().optional(),
+  sortOrder: z.number().int().min(0).max(10_000).optional(),
+});
+
+export interface UnitView extends UnitRef {
+  id: string;
+  active: boolean;
+  sortOrder: number;
+  /** Products using the unit: such a unit cannot be deleted, and its step and decimal rule are fixed. */
+  productCount: number;
+}
+
 export interface BrandRef {
   slug: string;
   name: LocalizedText;
@@ -65,20 +109,21 @@ export interface ProductCard {
   manufacturer: BrandRef | null;
   primaryImage: MediaView | null;
   availability: Availability;
+  /** The price is per this unit («… تومان / دست»). */
+  unit: UnitRef;
   price: PriceView;
 }
 
 export interface ProductDetail extends ProductCard {
   description: LocalizedText | null;
   technicalNotes: LocalizedText | null;
-  unit: string;
   packQuantity: number;
   countryOfManufacture: string | null;
   warranty: LocalizedText | null;
   oemCodes: string[];
   specs: Array<{ key: string; label: LocalizedText; value: string }>;
   images: MediaView[];
-  /** Maximum quantity the viewer may add right now (never exposes exact reserved counts). */
+  /** Maximum quantity (in the unit) the viewer may add right now (never exposes exact reserved counts). */
   maxOrderQuantity: number;
   updatedAt: string;
 }
@@ -129,14 +174,16 @@ export const productUpsertSchema = z.object({
   countryOfManufacture: z.string().length(2).toUpperCase().optional().nullable(),
   warrantyFa: z.string().max(500).optional().nullable(),
   warrantyEn: z.string().max(500).optional().nullable(),
-  unit: z.string().trim().min(1).max(30).default('عدد'),
+  /** Sales unit (required; panel → units). Quantities of the product follow its rules. */
+  unitId: idSchema,
   packQuantity: z.number().int().min(1).max(10_000).default(1),
   oemCodes: z.array(z.string().trim().min(1).max(64)).max(30).default([]),
   specs: z.array(z.object({ key: z.string().max(64), labelFa: z.string().max(100), labelEn: z.string().max(100).optional(), value: z.string().max(300) })).max(50).default([]),
   basePrice: z.object({ currency: currencySchema, amountMinor: amountMinorSchema }),
   manualPriceIrr: amountMinorSchema.optional().nullable(),
   manualPriceAed: amountMinorSchema.optional().nullable(),
-  lowStockThreshold: z.number().int().min(0).max(1_000_000).default(0),
+  /** In the product's unit (e.g. 2.5 litres). */
+  lowStockThreshold: unitQuantityOrZeroSchema.default(0),
   isSellable: z.boolean().default(true),
   /** Optimistic lock: required for updates. */
   version: z.number().int().min(0).optional(),
@@ -147,8 +194,9 @@ export const productPublishSchema = z.object({ published: z.boolean(), version: 
 
 export const priceRuleSchema = z.object({
   customerGroupId: idSchema.nullable(),
-  minQty: z.number().int().min(1),
-  maxQty: z.number().int().min(1).nullable(),
+  /** In the product's unit. */
+  minQty: unitQuantitySchema,
+  maxQty: unitQuantitySchema.nullable(),
   basePrice: z.object({ currency: currencySchema, amountMinor: amountMinorSchema }),
   manualPriceIrr: amountMinorSchema.nullable().optional(),
   manualPriceAed: amountMinorSchema.nullable().optional(),
@@ -190,6 +238,8 @@ export interface AdminProductRow {
   archived: boolean;
   basePrice: MoneyDto;
   priceSource: string;
+  /** Stock figures below are in this unit. */
+  unit: UnitRef;
   onHand: number;
   reserved: number;
   available: number;

@@ -7,11 +7,14 @@ import { badRequest, forbidden, notFound, unprocessable } from '../../common/err
 import { PrismaService } from '../../common/prisma.service.js';
 import type { Actor } from '../../common/request-context.js';
 import { irr } from '../../common/serialize.js';
-import { CatalogService } from '../catalog/catalog.service.js';
+import { CatalogService, MAX_LINE_AMOUNT } from '../catalog/catalog.service.js';
+import { fromSteps, toSteps, unitRef } from '../catalog/units.service.js';
 import { PricingService } from '../pricing/pricing.service.js';
 
 const GUEST_CART_DAYS = 30;
 const MAX_LINES = 50;
+/** The most steps of a unit one cart line may hold (MAX_LINE_AMOUNT in the unit). */
+const maxSteps = (stepMilli: number) => Math.floor((MAX_LINE_AMOUNT * 1000) / stepMilli);
 
 /**
  * Server-side cart. Browsing and building a cart need no account; the cart
@@ -69,7 +72,7 @@ export class CartService {
         allPriced = false;
         return {
           id: item.id, productId: item.productId, slug: '', sku: '', name: { fa: '', en: null }, imageUrl: null, quantity: item.quantity,
-          maxOrderQuantity: 0, unitPrice: { kind: 'inquiry', reason: 'NO_PRICE' }, lineTotalPayableIrr: null, problems: ['UNAVAILABLE'],
+          maxOrderQuantity: 0, unit: { name: '', nameEn: null, allowDecimal: false, step: 1 }, unitPrice: { kind: 'inquiry', reason: 'NO_PRICE' }, lineTotalPayableIrr: null, problems: ['UNAVAILABLE'],
         };
       }
       const card = this.catalog.toCard(p, { approvedGroupId: groupId, display }, rate);
@@ -79,7 +82,7 @@ export class CartService {
       if (!purchasable) problems.push('UNAVAILABLE');
       else if (available <= 0) problems.push('OUT_OF_STOCK');
       else if (item.quantity > available) problems.push('QUANTITY_REDUCED');
-      const price = this.pricing.resolve(p.basePrice, p.priceRules, item.quantity, groupId, rate);
+      const price = this.pricing.resolve(p.basePrice, p.priceRules, item.quantity, groupId, rate, p.salesUnit.stepMilli);
       if (price.status !== 'PRICED') problems.push('INQUIRY_REQUIRED');
       if (problems.length) blocking = true;
       let lineTotal: bigint | null = null;
@@ -96,8 +99,10 @@ export class CartService {
         sku: p.sku,
         name: card.name,
         imageUrl: card.primaryImage?.url ?? null,
-        quantity: item.quantity,
-        maxOrderQuantity: Math.min(available, 999),
+        // In the product's unit (stored as steps of it).
+        quantity: fromSteps(item.quantity, p.salesUnit),
+        maxOrderQuantity: this.catalog.maxOrderAmount(p, available),
+        unit: unitRef(p.salesUnit),
         unitPrice: this.pricing.toView(price, display),
         lineTotalPayableIrr: lineTotal === null ? null : irr(lineTotal),
         problems,
@@ -111,18 +116,20 @@ export class CartService {
     };
   }
 
-  async add(cartId: string, productId: string, quantity: number): Promise<void> {
+  /** `amount` is in the product's unit (1.5 litres); refused with UNIT_QUANTITY_INVALID when the unit does not allow it. */
+  async add(cartId: string, productId: string, amount: number): Promise<void> {
     const products = await this.catalog.hydrate([productId]);
     const p = products.get(productId);
     if (!p || !p.published) throw notFound();
     // A02: archived / unsellable / out-of-stock products cannot be bought; the UI offers sourcing instead.
     if (p.archivedAt || !p.isSellable) throw unprocessable('PRODUCT_NOT_PURCHASABLE', 'This part cannot be purchased; request sourcing instead');
+    const quantity = toSteps(amount, p.salesUnit);
     const { available } = this.catalog.availability(p);
     if (available <= 0) throw unprocessable('OUT_OF_STOCK', 'This part is out of stock; request sourcing instead');
     const count = await this.prisma.cartItem.count({ where: { cartId } });
     const existing = await this.prisma.cartItem.findUnique({ where: { cartId_productId: { cartId, productId } } });
     if (!existing && count >= MAX_LINES) throw badRequest('CART_FULL');
-    const next = Math.min((existing?.quantity ?? 0) + quantity, available, 999);
+    const next = Math.min((existing?.quantity ?? 0) + quantity, available, maxSteps(p.salesUnit.stepMilli));
     await this.prisma.cartItem.upsert({
       where: { cartId_productId: { cartId, productId } },
       create: { cartId, productId, quantity: next },
@@ -130,11 +137,14 @@ export class CartService {
     });
   }
 
-  async setQuantity(cartId: string, itemId: string, quantity: number): Promise<void> {
-    const item = await this.prisma.cartItem.findFirst({ where: { id: itemId, cartId } });
+  /** `amount` is in the product's unit; 0 removes the line. */
+  async setQuantity(cartId: string, itemId: string, amount: number): Promise<void> {
+    const item = await this.prisma.cartItem.findFirst({ where: { id: itemId, cartId }, include: { product: { select: { salesUnit: true } } } });
     if (!item) throw notFound();
+    const unit = item.product.salesUnit;
+    const quantity = toSteps(amount, unit, true);
     if (quantity === 0) await this.prisma.cartItem.delete({ where: { id: itemId } });
-    else await this.prisma.cartItem.update({ where: { id: itemId }, data: { quantity } });
+    else await this.prisma.cartItem.update({ where: { id: itemId }, data: { quantity: Math.min(quantity, maxSteps(unit.stepMilli)) } });
   }
 
   /** Moves a guest cart into the customer's cart after login (quantities are summed). */
@@ -148,12 +158,14 @@ export class CartService {
       const target =
         (await tx.cart.findUnique({ where: { userId } })) ??
         (await tx.cart.create({ data: { userId, expiresAt: new Date(Date.now() + 365 * 86_400_000) } }));
+      const units = new Map((await tx.product.findMany({ where: { id: { in: guest.items.map((i) => i.productId) } }, select: { id: true, salesUnit: { select: { stepMilli: true } } } })).map((p) => [p.id, p.salesUnit.stepMilli]));
       for (const item of guest.items) {
+        const cap = maxSteps(units.get(item.productId) ?? 1000);
         const existing = await tx.cartItem.findUnique({ where: { cartId_productId: { cartId: target.id, productId: item.productId } } });
         await tx.cartItem.upsert({
           where: { cartId_productId: { cartId: target.id, productId: item.productId } },
-          create: { cartId: target.id, productId: item.productId, quantity: Math.min(item.quantity, 999) },
-          update: { quantity: Math.min((existing?.quantity ?? 0) + item.quantity, 999) },
+          create: { cartId: target.id, productId: item.productId, quantity: Math.min(item.quantity, cap) },
+          update: { quantity: Math.min((existing?.quantity ?? 0) + item.quantity, cap) },
         });
       }
       await tx.cart.delete({ where: { id: guest.id } });

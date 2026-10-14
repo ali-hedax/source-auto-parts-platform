@@ -91,6 +91,14 @@ function priceView(p: FixtureProduct, qty: number, display: 'IRR' | 'AED'): Pric
   return { kind: 'price', payable: { currency: 'IRR', amountMinor: r.unitPayableIrr.toString() }, display: { currency: d.currency, amountMinor: d.minor.toString() }, displayIsReference: d.isReference };
 }
 
+/** Every sample part is sold per piece («عدد»). */
+const FIXTURE_UNIT = { name: 'عدد', nameEn: 'pc', allowDecimal: false, step: 1 };
+const FIXTURE_UNITS = [
+  { id: 'unit-piece', ...FIXTURE_UNIT, active: true, sortOrder: 1, productCount: 9 },
+  { id: 'unit-set', name: 'دست', nameEn: 'set', allowDecimal: false, step: 1, active: true, sortOrder: 2, productCount: 0 },
+  { id: 'unit-litre', name: 'لیتر', nameEn: 'L', allowDecimal: true, step: 0.5, active: true, sortOrder: 3, productCount: 0 },
+];
+
 function card(p: FixtureProduct, display: 'IRR' | 'AED'): ProductCard {
   const available = p.onHand - p.reserved;
   const cat = fixtureCategories.find((c) => c.code === p.category);
@@ -101,6 +109,7 @@ function card(p: FixtureProduct, display: 'IRR' | 'AED'): ProductCard {
     manufacturer: p.maker ? { slug: p.maker.slug, name: { fa: p.maker.fa, en: p.maker.en } } : null,
     primaryImage: null,
     availability: available <= 0 ? 'OUT_OF_STOCK' : available <= 2 ? 'LOW_STOCK' : 'IN_STOCK',
+    unit: FIXTURE_UNIT,
     price: priceView(p, 1, display),
   };
 }
@@ -109,7 +118,7 @@ function detail(p: FixtureProduct, display: 'IRR' | 'AED'): ProductDetail {
   return {
     ...card(p, display),
     description: p.descriptionFa ? { fa: p.descriptionFa, en: p.descriptionEn ?? null } : null,
-    technicalNotes: null, unit: 'عدد', packQuantity: 1, countryOfManufacture: null, warranty: null, oemCodes: [], specs: [], images: [],
+    technicalNotes: null, packQuantity: 1, countryOfManufacture: null, warranty: null, oemCodes: [], specs: [], images: [],
     maxOrderQuantity: Math.max(0, Math.min(p.onHand - p.reserved, 999)), updatedAt: '2026-09-29T10:00:00.000Z',
   };
 }
@@ -174,7 +183,7 @@ function cartView(cartId: string | undefined, display: 'IRR' | 'AED'): CartView 
     const available = p.onHand - p.reserved;
     return {
       id: `${cartId}:${productId}`, productId, slug: p.slug, sku: p.sku, name: { fa: p.fa, en: p.en }, imageUrl: null, quantity,
-      maxOrderQuantity: Math.min(available, 999), unitPrice: price,
+      maxOrderQuantity: Math.min(available, 999), unit: FIXTURE_UNIT, unitPrice: price,
       lineTotalPayableIrr: { currency: 'IRR' as const, amountMinor: (unit * BigInt(quantity)).toString() },
       problems: (available <= 0 ? ['OUT_OF_STOCK'] : quantity > available ? ['QUANTITY_REDUCED'] : []) as CartView['lines'][number]['problems'],
     };
@@ -322,14 +331,15 @@ export async function handleFixture(method: string, pathWithQuery: string, rawBo
     if (path === '/admin/products') {
       return ok({ page: 1, pageSize: 50, total: fixtureProducts.length, items: fixtureProducts.map((p, i) => ({
         id: p.id, sku: p.sku, nameFa: p.fa, nameEn: p.en, categoryName: fixtureCategories.find((c) => c.code === p.category)?.name.fa ?? null, published: p.published, archived: !!p.archived,
-        basePrice: { currency: p.currency, amountMinor: p.price.toString() }, priceSource: p.manualIrr ? 'PUBLIC:MANUAL_IRR' : p.currency === 'AED' ? 'PUBLIC:CONVERTED_FROM_AED' : 'PUBLIC:BASE_IRR',
+        basePrice: { currency: p.currency, amountMinor: p.price.toString() }, unit: FIXTURE_UNIT, priceSource: p.manualIrr ? 'PUBLIC:MANUAL_IRR' : p.currency === 'AED' ? 'PUBLIC:CONVERTED_FROM_AED' : 'PUBLIC:BASE_IRR',
         onHand: p.onHand, reserved: p.reserved, available: p.onHand - p.reserved, lowStockThreshold: 2, version: i, updatedAt: '2026-09-29T10:00:00.000Z',
       })) });
     }
     if (path === '/admin/inventory') {
-      return ok({ page: 1, pageSize: 50, total: fixtureProducts.length, items: fixtureProducts.map((p, i) => ({ productId: p.id, sku: p.sku, nameFa: p.fa, onHand: p.onHand, reserved: p.reserved, available: p.onHand - p.reserved, lowStockThreshold: 2, isLow: p.onHand - p.reserved <= 2, version: i, updatedAt: '2026-09-29T10:00:00.000Z' })) });
+      return ok({ page: 1, pageSize: 50, total: fixtureProducts.length, items: fixtureProducts.map((p, i) => ({ productId: p.id, sku: p.sku, nameFa: p.fa, unit: FIXTURE_UNIT, onHand: p.onHand, reserved: p.reserved, available: p.onHand - p.reserved, lowStockThreshold: 2, isLow: p.onHand - p.reserved <= 2, version: i, updatedAt: '2026-09-29T10:00:00.000Z' })) });
     }
-    if (path === '/admin/taxonomy') return ok({ categories: fixtureCategories.map((c, i) => ({ id: `cat-${i}`, code: c.code, slug: c.slug, nameFa: c.name.fa, nameEn: c.name.en, active: true })), vehicleBrands: fixtureBrands.map((b, i) => ({ id: `vb-${i}`, code: b.code, slug: b.slug, nameFa: b.name.fa, nameEn: b.name.en, isFeatured: true, active: true })), manufacturers: [], customerGroups: [{ id: 'g1', key: 'workshop', nameFa: 'تعمیرگاه / مشتری تجاری', nameEn: 'Workshop / business' }, { id: 'g2', key: 'wholesale', nameFa: 'عمده‌فروش', nameEn: 'Wholesaler' }] });
+    if (path === '/admin/units') return ok(FIXTURE_UNITS);
+    if (path === '/admin/taxonomy') return ok({ categories: fixtureCategories.map((c, i) => ({ id: `cat-${i}`, code: c.code, slug: c.slug, nameFa: c.name.fa, nameEn: c.name.en, active: true })), vehicleBrands: fixtureBrands.map((b, i) => ({ id: `vb-${i}`, code: b.code, slug: b.slug, nameFa: b.name.fa, nameEn: b.name.en, isFeatured: true, active: true })), manufacturers: [], units: FIXTURE_UNITS, customerGroups: [{ id: 'g1', key: 'workshop', nameFa: 'تعمیرگاه / مشتری تجاری', nameEn: 'Workshop / business' }, { id: 'g2', key: 'wholesale', nameFa: 'عمده‌فروش', nameEn: 'Wholesaler' }] });
     if (path === '/admin/sourcing-requests') return ok([{ id: fixtureRequest.id, reference: fixtureRequest.reference, title: fixtureRequest.title, status: fixtureRequest.status, urgency: 'NORMAL', customer: 'مشتری نمونه', assignee: 'کارشناس', itemCount: 2, createdAt: fixtureRequest.createdAt, version: 3 }]);
     if (path === `/admin/sourcing-requests/${fixtureRequest.id}`) return ok({ ...fixtureRequest, version: 3, customer: { id: 'fixture-customer', fullName: 'مشتری نمونه' }, note: null, delivery: { province: 'تهران', city: 'تهران' }, itemsDetail: [], files: [] });
     if (path === '/admin/quotes') {

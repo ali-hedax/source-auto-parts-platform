@@ -62,7 +62,7 @@ export default async function ProductPage({ params }: { params: Promise<{ locale
     ...(p.manufacturer ? [{ term: t('parts.manufacturer'), value: text(p.manufacturer.name) }] : []),
     ...(p.vehicleBrands.length ? [{ term: t('parts.vehicleBrands'), value: p.vehicleBrands.map((b) => text(b.name)).join('، ') }] : []),
     ...(p.countryOfManufacture ? [{ term: t('parts.country'), value: <Ltr>{p.countryOfManufacture}</Ltr> }] : []),
-    { term: t('parts.unit'), value: `${p.unit}${p.packQuantity > 1 ? ` × ${p.packQuantity}` : ''}` },
+    { term: t('parts.unit'), value: `${L === 'en' ? p.unit.nameEn || p.unit.name : p.unit.name}${p.packQuantity > 1 ? ` × ${p.packQuantity}` : ''}` },
     { term: t('parts.warranty'), value: text(p.warranty) ?? <span className="font-normal text-steel">{t('parts.noWarranty')}</span> },
     ...(p.oemCodes.length ? [{ term: t('parts.oemCodes'), value: <ul className="flex flex-wrap gap-x-3 gap-y-1">{p.oemCodes.map((c) => <li key={c}><Code>{c}</Code></li>)}</ul> }] : []),
     ...p.specs.map((s) => ({ term: text(s.label), value: <span dir="auto">{s.value}</span> })),
@@ -116,11 +116,11 @@ export default async function ProductPage({ params }: { params: Promise<{ locale
               <Badge tone="info">{t(`origin.${p.origin}`)}</Badge>
             </div>
             <div className="mt-5 border-t border-line-soft pt-5">
-              <Price price={p.price} size="lg" />
+              <Price price={p.price} size="lg" unit={p.unit} />
             </div>
             <div className="mt-5">
               {purchasable ? (
-                <AddToCart productId={p.id} max={p.maxOrderQuantity} name={name} />
+                <AddToCart productId={p.id} max={p.maxOrderQuantity} name={name} unit={p.unit} />
               ) : (
                 <Alert tone="warning" title={t('parts.notPurchasable')}>
                   <ButtonLink href={`/request-part?part=${encodeURIComponent(p.name.fa)}&similar=${encodeURIComponent(p.sku)}`} className="mt-3">

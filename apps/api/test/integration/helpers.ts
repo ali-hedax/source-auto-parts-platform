@@ -534,7 +534,7 @@ export function simplePdf(text = 'HEDAX test document'): Buffer {
 }
 
 export async function taxonomy(owner: Client) {
-  const tax = await owner.get<{ categories: Array<{ id: string; code: string }>; vehicleBrands: Array<{ id: string; code: string }>; customerGroups: Array<{ id: string; key: string }> }>('/admin/taxonomy');
+  const tax = await owner.get<{ categories: Array<{ id: string; code: string }>; vehicleBrands: Array<{ id: string; code: string }>; customerGroups: Array<{ id: string; key: string }>; units: Array<{ id: string; name: string; step: number; allowDecimal: boolean; active: boolean }> }>('/admin/taxonomy');
   if (tax.status !== 200) throw new Error(`taxonomy failed ${tax.status}`);
   return tax.body;
 }
@@ -542,17 +542,19 @@ export async function taxonomy(owner: Client) {
 /** Creates and publishes a NEW product with stock through the admin API; returns ids. */
 export async function createProduct(
   owner: Client,
-  opts: { sku: string; nameFa: string; priceIrr?: bigint; priceAed?: bigint; onHand: number; vehicleBrandCodes?: string[]; category?: string },
+  opts: { sku: string; nameFa: string; priceIrr?: bigint; priceAed?: bigint; onHand: number; vehicleBrandCodes?: string[]; category?: string; unit?: string },
 ): Promise<{ id: string; slug: string }> {
   const tax = await taxonomy(owner);
   const categoryId = tax.categories.find((c) => c.code === (opts.category ?? 'BRAKE'))?.id;
   const vehicleBrandIds = (opts.vehicleBrandCodes ?? ['IKCO']).map((code) => tax.vehicleBrands.find((b) => b.code === code)?.id);
+  const unitId = tax.units.find((u) => u.name === (opts.unit ?? 'عدد'))?.id;
   const created = await owner.post<{ id: string; version: number }>('/admin/products', {
     sku: opts.sku,
     nameFa: opts.nameFa,
     nameEn: `${opts.sku} test part`,
     categoryId,
     vehicleBrandIds,
+    unitId,
     partType: 'AFTERMARKET',
     condition: 'NEW',
     origin: opts.priceAed !== undefined ? 'IMPORTED' : 'DOMESTIC',

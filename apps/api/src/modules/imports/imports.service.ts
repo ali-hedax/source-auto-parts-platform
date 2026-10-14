@@ -36,6 +36,7 @@ import { Prisma, PrismaService, type Tx } from '../../common/prisma.service.js';
 import type { Actor } from '../../common/request-context.js';
 import { STORAGE, type StorageDriver } from '../../common/storage/storage.js';
 import { toJsonSafe } from '../../common/serialize.js';
+import { UnitsService } from '../catalog/units.service.js';
 import { InventoryService } from '../inventory/inventory.service.js';
 import { slugify } from '../catalog/admin-catalog.service.js';
 import { MAX_COLUMNS, readOutline, readSheet } from './spreadsheet.js';
@@ -138,6 +139,7 @@ export class ImportsService {
     private readonly outbox: OutboxService,
     private readonly audit: AuditService,
     private readonly idempotency: IdempotencyService,
+    private readonly units: UnitsService,
     @Inject(STORAGE) private readonly storage: StorageDriver,
   ) {}
 
@@ -673,11 +675,12 @@ export class ImportsService {
       if (exists) throw new DomainError('VERSION_CONFLICT', `SKU ${v.sku} was created meanwhile`);
       const slugBase = slugify(v.nameEn ?? '') || slugify(v.sku) || `part-${randomUUID().slice(0, 8)}`;
       const slugTaken = await tx.product.findUnique({ where: { slug: slugBase } });
+      const unit = (v.unit ? await this.units.findByName(v.unit, tx) : null) ?? (await this.units.defaultUnit(tx));
       const created = await tx.product.create({
         data: {
           sku: v.sku, slug: slugTaken ? `${slugBase}-${randomUUID().slice(0, 6)}` : slugBase, categoryId: maps.catId.get(v.categoryCode as string) as string,
           manufacturerBrandId: v.manufacturerBrand ? (maps.mfr.get(normalizeSearchText(v.manufacturerBrand)) ?? null) : null,
-          partType: v.partType as 'GENUINE', condition: v.condition as 'NEW', origin: v.origin as 'DOMESTIC', unit: v.unit ?? 'عدد',
+          partType: v.partType as 'GENUINE', condition: v.condition as 'NEW', origin: v.origin as 'DOMESTIC', unitId: unit.id, unit: unit.name,
           // New products start as drafts: publishing keeps its own rules (price, real photo for used parts).
           isSellable: v.isActive ?? true, published: false, oemCodes: v.technicalNumber ? [v.technicalNumber] : [],
           createdById: job.committedById, updatedById: job.committedById,
@@ -695,8 +698,14 @@ export class ImportsService {
       await this.inventory.ensureBalance(tx, productId);
     } else {
       if (!productId) throw new DomainError('VERSION_CONFLICT');
-      const current = await tx.product.findUnique({ where: { id: productId }, select: { oemCodes: true } });
+      const current = await tx.product.findUnique({ where: { id: productId }, select: { oemCodes: true, salesUnit: true } });
       if (!current) throw new DomainError('VERSION_CONFLICT');
+      // A unit change keeps stored quantities meaningful only between units with the same step and decimal rule.
+      const unit = v.unit ? await this.units.findByName(v.unit, tx) : null;
+      if (v.unit && !unit) throw new DomainError('UNKNOWN_UNIT', `Row ${row.rowNumber}: unknown unit`);
+      if (unit && (unit.stepMilli !== current.salesUnit.stepMilli || unit.allowDecimal !== current.salesUnit.allowDecimal)) {
+        throw new DomainError('UNIT_CHANGE_LOCKED', `Row ${row.rowNumber}: change the unit in the panel`);
+      }
       const addCode = v.technicalNumber && !current.oemCodes.some((c) => technicalKey(c) === technicalKey(v.technicalNumber as string));
       const res = await tx.product.updateMany({
         where: { id: productId, version: row.expectedProductVersion ?? -1 },
@@ -708,7 +717,7 @@ export class ImportsService {
           ...(v.partType ? { partType: v.partType } : {}),
           ...(v.condition ? { condition: v.condition } : {}),
           ...(v.origin ? { origin: v.origin } : {}),
-          ...(v.unit ? { unit: v.unit } : {}),
+          ...(unit ? { unitId: unit.id, unit: unit.name } : {}),
           ...(v.isActive !== undefined ? { isSellable: v.isActive } : {}),
           ...(addCode ? { oemCodes: [...current.oemCodes, v.technicalNumber as string] } : {}),
         },

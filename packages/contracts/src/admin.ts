@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { idSchema, optionalText } from './common.js';
+import { unitQuantityOrZeroSchema } from './catalog.js';
 import { SMS_NOTIFICATION_TYPES } from './constants.js';
 
 export const exchangeRateSchema = z.object({
@@ -13,7 +14,8 @@ export const inventoryAdjustSchema = z.object({
   productId: idSchema,
   warehouseId: idSchema.optional(),
   /** Absolute physical count after counting; the server derives the delta. */
-  newOnHand: z.number().int().min(0).max(10_000_000),
+  /** In the product's unit (e.g. 12.5 litres). */
+  newOnHand: unitQuantityOrZeroSchema,
   reason: z.enum(['PHYSICAL_COUNT', 'RECEIVED', 'DAMAGED', 'LOST', 'RETURN_RESTOCK', 'CORRECTION']),
   note: optionalText(500),
   expectedVersion: z.number().int().min(0),

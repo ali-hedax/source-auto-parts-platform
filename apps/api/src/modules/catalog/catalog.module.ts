@@ -5,11 +5,13 @@ import { AdminCatalogController } from './admin-catalog.controller.js';
 import { AdminCatalogService } from './admin-catalog.service.js';
 import { CatalogController } from './catalog.controller.js';
 import { CatalogService } from './catalog.service.js';
+import { UnitsController } from './units.controller.js';
+import { UnitsService } from './units.service.js';
 
 @Module({
   imports: [InventoryModule, PricingModule],
-  controllers: [CatalogController, AdminCatalogController],
-  providers: [CatalogService, AdminCatalogService],
-  exports: [CatalogService],
+  controllers: [CatalogController, AdminCatalogController, UnitsController],
+  providers: [CatalogService, AdminCatalogService, UnitsService],
+  exports: [CatalogService, UnitsService],
 })
 export class CatalogModule {}

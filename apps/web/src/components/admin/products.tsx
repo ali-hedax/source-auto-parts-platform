@@ -1,7 +1,7 @@
 'use client';
 
-import type { AdminProductRow, MoneyDto } from '@hedax/contracts';
-import { minorToDecimalString, parseDecimalAmount } from '@hedax/domain';
+import type { AdminProductRow, MoneyDto, UnitRef, UnitView } from '@hedax/contracts';
+import { formatQuantity, isValidQuantity, minorToDecimalString, parseDecimalAmount } from '@hedax/domain';
 import { Plus } from 'lucide-react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -10,7 +10,7 @@ import { Button, ButtonLink } from '@/components/ui/button';
 import { Async } from '@/components/ui/async';
 import { ErrorSummary } from '@/components/ui/error-summary';
 import { Checkbox, Field, Input, Select, Textarea } from '@/components/ui/field';
-import { Money, Num, useListSeparator } from '@/components/ui/format';
+import { Money, Num, Quantity, useListSeparator } from '@/components/ui/format';
 import { Alert, Badge, Code, EmptyState, PageHeader, Section, TableScroll, td, th } from '@/components/ui/misc';
 import { Link, useRouter } from '@/i18n/navigation';
 import { api } from '@/lib/api/client';
@@ -25,6 +25,7 @@ interface Taxonomy {
   vehicleBrands: Array<{ id: string; code: string; nameFa: string; nameEn: string | null }>;
   manufacturers: Array<{ id: string; nameFa: string; nameEn: string | null }>;
   customerGroups: Array<{ id: string; key: string; nameFa: string; nameEn: string }>;
+  units: UnitView[];
 }
 
 export function ProductsList() {
@@ -61,9 +62,9 @@ export function ProductsList() {
                   <td className={td}>{p.nameFa}{p.nameEn ? <span className="block text-xs text-steel">{p.nameEn}</span> : null}</td>
                   <td className={td}><Money value={p.basePrice} /></td>
                   <td className={td}><span className="text-xs">{priceSource(p.priceSource)}</span></td>
-                  <td className={td}><Num value={p.onHand} /></td>
+                  <td className={td}><Quantity value={p.onHand} unit={p.unit} /></td>
                   <td className={td}><Num value={p.reserved} /></td>
-                  <td className={td}>{p.available <= p.lowStockThreshold ? <Badge tone="warning"><Num value={p.available} /></Badge> : <Num value={p.available} />}</td>
+                  <td className={td}>{p.available <= p.lowStockThreshold ? <Badge tone="warning"><Quantity value={p.available} unit={p.unit} /></Badge> : <Quantity value={p.available} unit={p.unit} />}</td>
                   <td className={td}>{p.archived ? <Badge tone="danger">{t('admin.archived')}</Badge> : p.published ? <Badge tone="success">{l('بله', 'Yes')}</Badge> : <Badge>{l('خیر', 'No')}</Badge>}</td>
                 </tr>
               ))}
@@ -78,14 +79,14 @@ export function ProductsList() {
 interface ProductForm {
   sku: string; slug: string; nameFa: string; nameEn: string; aliases: string; descriptionFa: string; descriptionEn: string;
   categoryId: string; manufacturerBrandId: string; vehicleBrandIds: string[]; partType: string; condition: string; origin: string;
-  countryOfManufacture: string; warrantyFa: string; warrantyEn: string; unit: string; packQuantity: string; oemCodes: string;
+  countryOfManufacture: string; warrantyFa: string; warrantyEn: string; unitId: string; packQuantity: string; oemCodes: string;
   baseCurrency: 'IRR' | 'AED'; basePrice: string; manualIrr: string; manualAed: string; lowStockThreshold: string; isSellable: boolean;
 }
 
 interface AdminProduct {
   id: string; sku: string; slug: string; nameFa: string; nameEn: string | null; aliases: string[]; descriptionFa: string | null; descriptionEn: string | null;
   warrantyFa: string | null; warrantyEn: string | null; categoryId: string; manufacturerBrandId: string | null; vehicleBrandIds: string[]; partType: string; condition: string; origin: string;
-  countryOfManufacture: string | null; unit: string; packQuantity: number; oemCodes: string[]; published: boolean; archived: boolean; isSellable: boolean; version: number;
+  countryOfManufacture: string | null; unitId: string; unit: UnitRef & { id: string; active: boolean }; packQuantity: number; oemCodes: string[]; published: boolean; archived: boolean; isSellable: boolean; version: number;
   basePrice: { currency: 'IRR' | 'AED'; amountMinor: string; manualIrr: string | null; manualAed: string | null } | null;
   priceExplanation: { source: string; unitPayableIrr: string | null; warnings: string[] };
   priceRules: Array<{ id: string; customerGroupId: string | null; minQty: number; maxQty: number | null; base: MoneyDto; manualIrr: string | null; active: boolean }>;
@@ -93,11 +94,13 @@ interface AdminProduct {
   media: Array<{ id: string; storageKey: string; width: number; height: number; altFa: string; isPrimary: boolean }>;
 }
 
-const toForm = (p?: AdminProduct): ProductForm => ({
+const toForm = (p: AdminProduct | undefined, units: UnitView[]): ProductForm => ({
   sku: p?.sku ?? '', slug: p?.slug ?? '', nameFa: p?.nameFa ?? '', nameEn: p?.nameEn ?? '', aliases: (p?.aliases ?? []).join('، '),
   descriptionFa: p?.descriptionFa ?? '', descriptionEn: p?.descriptionEn ?? '', categoryId: p?.categoryId ?? '', manufacturerBrandId: p?.manufacturerBrandId ?? '',
   vehicleBrandIds: p?.vehicleBrandIds ?? [], partType: p?.partType ?? 'GENUINE', condition: p?.condition ?? 'NEW', origin: p?.origin ?? 'DOMESTIC',
-  countryOfManufacture: p?.countryOfManufacture ?? '', warrantyFa: p?.warrantyFa ?? '', warrantyEn: p?.warrantyEn ?? '', unit: p?.unit ?? 'عدد',
+  countryOfManufacture: p?.countryOfManufacture ?? '', warrantyFa: p?.warrantyFa ?? '', warrantyEn: p?.warrantyEn ?? '',
+  // New products start with «عدد» (the first active unit when it is missing); the field is required.
+  unitId: p?.unitId ?? (units.find((u) => u.active && u.name === 'عدد') ?? units.find((u) => u.active))?.id ?? '',
   packQuantity: String(p?.packQuantity ?? 1), oemCodes: (p?.oemCodes ?? []).join(', '),
   baseCurrency: p?.basePrice?.currency ?? 'IRR', basePrice: p?.basePrice ? minorToDecimalString(BigInt(p.basePrice.amountMinor), p.basePrice.currency) : '',
   manualIrr: p?.basePrice?.manualIrr ?? '', manualAed: p?.basePrice?.manualAed ? minorToDecimalString(BigInt(p.basePrice.manualAed), 'AED') : '',
@@ -122,7 +125,10 @@ function ProductEditor({ taxonomy, product, reload }: { taxonomy: Taxonomy; prod
   const sep = useListSeparator();
   const priceSource = usePriceSourceLabel();
   const router = useRouter();
-  const [f, setF] = useState<ProductForm>(toForm(product));
+  const [f, setF] = useState<ProductForm>(toForm(product, taxonomy.units));
+  // Active units, plus the product's own unit when it was deactivated later.
+  const unitOptions = taxonomy.units.filter((u) => u.active || u.id === product?.unitId);
+  const selectedUnit = taxonomy.units.find((u) => u.id === f.unitId);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [general, setGeneral] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -135,6 +141,11 @@ function ProductEditor({ taxonomy, product, reload }: { taxonomy: Taxonomy; prod
     if (!/^[A-Za-z0-9][A-Za-z0-9._\-/]{0,63}$/.test(f.sku)) e['pf-sku'] = `${t('admin.sku')}: ${t('validation.required')}`;
     if (f.nameFa.trim().length < 2) e['pf-namefa'] = `${t('admin.name')} (FA): ${t('validation.required')}`;
     if (!f.categoryId) e['pf-category'] = `${t('parts.category')}: ${t('validation.required')}`;
+    if (!f.unitId) e['pf-unit'] = `${t('parts.unit')}: ${t('validation.required')}`;
+    const threshold = typedNumber(f.lowStockThreshold || '0');
+    if (selectedUnit && !(threshold === 0 || isValidQuantity(threshold, { name: selectedUnit.name, allowDecimal: selectedUnit.allowDecimal, stepMilli: Math.round(selectedUnit.step * 1000) }))) {
+      e['pf-threshold'] = t('parts.quantityInvalid', { step: formatQuantity(selectedUnit.step, 'fa'), unit: selectedUnit.name });
+    }
     let baseMinor = '';
     try {
       const v = parseDecimalAmount(f.basePrice, f.baseCurrency);
@@ -156,7 +167,7 @@ function ProductEditor({ taxonomy, product, reload }: { taxonomy: Taxonomy; prod
         sku: f.sku.trim(), ...(f.slug ? { slug: f.slug } : {}), nameFa: f.nameFa.trim(), nameEn: f.nameEn.trim() || null,
         aliases: f.aliases.split(/[،,]/).map((s) => s.trim()).filter(Boolean), descriptionFa: f.descriptionFa || null, descriptionEn: f.descriptionEn || null,
         categoryId: f.categoryId, manufacturerBrandId: f.manufacturerBrandId || null, vehicleBrandIds: f.vehicleBrandIds, partType: f.partType, condition: f.condition,
-        origin: f.origin, countryOfManufacture: f.countryOfManufacture || null, warrantyFa: f.warrantyFa || null, warrantyEn: f.warrantyEn || null, unit: f.unit || 'عدد',
+        origin: f.origin, countryOfManufacture: f.countryOfManufacture || null, warrantyFa: f.warrantyFa || null, warrantyEn: f.warrantyEn || null, unitId: f.unitId,
         packQuantity: typedNumber(f.packQuantity) || 1, oemCodes: f.oemCodes.split(',').map((s) => s.trim()).filter(Boolean), specs: [],
         basePrice: { currency: f.baseCurrency, amountMinor: baseMinor }, manualPriceIrr: manualIrr, manualPriceAed: manualAed,
         lowStockThreshold: typedNumber(f.lowStockThreshold) || 0, isSellable: f.isSellable, ...(product ? { version: product.version } : {}),
@@ -242,7 +253,13 @@ function ProductEditor({ taxonomy, product, reload }: { taxonomy: Taxonomy; prod
               <Select id="pf-origin" value={f.origin} onChange={(e) => set('origin', e.target.value)}>{(['DOMESTIC', 'IMPORTED', 'UNKNOWN'] as const).map((v) => <option key={v} value={v}>{t(`origin.${v}`)}</option>)}</Select>
             </Field>
             <Field id="pf-country" label={t('parts.country')} hint="ISO (e.g. DE, JP)" optionalLabel={t('common.optional')}><Input id="pf-country" dir="ltr" maxLength={2} value={f.countryOfManufacture} onChange={(e) => set('countryOfManufacture', e.target.value.toUpperCase())} /></Field>
-            <Field id="pf-unit" label={t('parts.unit')}><Input id="pf-unit" value={f.unit} onChange={(e) => set('unit', e.target.value)} /></Field>
+            <Field id="pf-unit" label={t('parts.unit')} required error={errors['pf-unit']}
+              hint={selectedUnit ? (selectedUnit.allowDecimal ? l(`اعشاری، با گام ${formatQuantity(selectedUnit.step, 'fa')}`, `Decimals, step ${selectedUnit.step}`) : l('فقط عدد صحیح', 'Whole numbers only')) : undefined}>
+              <Select id="pf-unit" value={f.unitId} onChange={(e) => set('unitId', e.target.value)} invalid={!!errors['pf-unit']}>
+                {!f.unitId ? <option value="">{l('انتخاب واحد', 'Choose a unit')}</option> : null}
+                {unitOptions.map((u) => <option key={u.id} value={u.id}>{l(u.name, u.nameEn || u.name)}{u.active ? '' : l(' (غیرفعال)', ' (inactive)')}</option>)}
+              </Select>
+            </Field>
             <Field id="pf-pack" label={t('parts.pack')}><Input id="pf-pack" inputMode="numeric" value={f.packQuantity} onChange={(e) => set('packQuantity', e.target.value)} /></Field>
             <Field id="pf-oem" label={t('parts.oemCodes')} hint={l('فقط کدهای مستند؛ موتور کاتالوگ فنی در این نسخه نیست.', 'Only documented codes; no technical catalog engine in this version.')} optionalLabel={t('common.optional')}><Input id="pf-oem" dir="ltr" value={f.oemCodes} onChange={(e) => set('oemCodes', e.target.value)} /></Field>
           </div>
@@ -264,7 +281,7 @@ function ProductEditor({ taxonomy, product, reload }: { taxonomy: Taxonomy; prod
             <Field id="pf-price" label={t('admin.price')} hint={f.baseCurrency === 'IRR' ? l('ریال (نه تومان)', 'Rials (not toman)') : l('درهم، حداکثر دو رقم اعشار', 'Dirham, up to 2 decimals')} error={errors['pf-price']} required>
               <Input id="pf-price" dir="ltr" inputMode="decimal" value={f.basePrice} onChange={(e) => set('basePrice', e.target.value)} />
             </Field>
-            <Field id="pf-threshold" label={l('حد هشدار موجودی', 'Low-stock threshold')}><Input id="pf-threshold" inputMode="numeric" value={f.lowStockThreshold} onChange={(e) => set('lowStockThreshold', e.target.value)} /></Field>
+            <Field id="pf-threshold" label={`${l('حد هشدار موجودی', 'Low-stock threshold')}${selectedUnit ? ` (${l(selectedUnit.name, selectedUnit.nameEn || selectedUnit.name)})` : ''}`} error={errors['pf-threshold']}><Input id="pf-threshold" inputMode={selectedUnit?.allowDecimal ? 'decimal' : 'numeric'} value={f.lowStockThreshold} onChange={(e) => set('lowStockThreshold', e.target.value)} /></Field>
             <Field id="pf-manualirr" label={l('قیمت دستی ریالی', 'Manual IRR price')} hint={l('بر تبدیل خودکار مقدم است', 'Overrides automatic conversion')} error={errors['pf-manualirr']} optionalLabel={t('common.optional')}>
               <Input id="pf-manualirr" dir="ltr" inputMode="numeric" value={f.manualIrr} onChange={(e) => set('manualIrr', e.target.value)} />
             </Field>
@@ -275,7 +292,7 @@ function ProductEditor({ taxonomy, product, reload }: { taxonomy: Taxonomy; prod
           </div>
           {product?.inventory ? (
             <p className="mt-4 text-sm text-steel">
-              {t('admin.onHand')}: <Num value={product.inventory.onHand} />{sep}{t('admin.reserved')}: <Num value={product.inventory.reserved} />{sep}{t('admin.available')}: <Num value={product.inventory.onHand - product.inventory.reserved} /> —{' '}
+              {t('admin.onHand')}: <Quantity value={product.inventory.onHand} unit={product.unit} />{sep}{t('admin.reserved')}: <Quantity value={product.inventory.reserved} unit={product.unit} />{sep}{t('admin.available')}: <Quantity value={Math.round((product.inventory.onHand - product.inventory.reserved) * 1000) / 1000} unit={product.unit} /> —{' '}
               <Link href="/admin/inventory" className="text-action underline">{t('admin.adjustStock')}</Link>
             </p>
           ) : null}
@@ -328,7 +345,7 @@ function PriceRules({ product, groups, reload }: { product: AdminProduct; groups
         <ul className="mb-4 flex flex-col gap-2">
           {product.priceRules.map((rule) => (
             <li key={rule.id} className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-control)] border border-line-soft bg-surface px-3 py-2.5 text-sm">
-              <span>{groupName(rule.customerGroupId)}{sep}{l('تعداد', 'Qty')} <Num value={rule.minQty} />–{rule.maxQty == null ? '∞' : <Num value={rule.maxQty} />}{sep}<Money value={rule.base} />{rule.manualIrr ? <>{sep}{l('ریال دستی', 'Manual IRR')}: <Money value={{ currency: 'IRR', amountMinor: rule.manualIrr }} /></> : null}</span>
+              <span>{groupName(rule.customerGroupId)}{sep}{l('مقدار', 'Qty')} <Num value={rule.minQty} />–{rule.maxQty == null ? '∞' : <Num value={rule.maxQty} />} {l(product.unit.name, product.unit.nameEn || product.unit.name)}{sep}<Money value={rule.base} /> / {l(product.unit.name, product.unit.nameEn || product.unit.name)}{rule.manualIrr ? <>{sep}{l('ریال دستی', 'Manual IRR')}: <Money value={{ currency: 'IRR', amountMinor: rule.manualIrr }} /></> : null}</span>
               {rule.active ? <Button size="sm" variant="ghost" onClick={() => void remove(rule.id)}>{t('common.remove')}</Button> : <Badge>{l('غیرفعال', 'Inactive')}</Badge>}
             </li>
           ))}
@@ -341,8 +358,8 @@ function PriceRules({ product, groups, reload }: { product: AdminProduct; groups
             {groups.map((g) => <option key={g.id} value={g.id}>{l(g.nameFa, g.nameEn)}</option>)}
           </Select>
         </Field>
-        <Field id="pr-min" label={l('از تعداد', 'Min qty')}><Input id="pr-min" inputMode="numeric" value={r.minQty} onChange={(e) => setR({ ...r, minQty: e.target.value })} /></Field>
-        <Field id="pr-max" label={l('تا تعداد', 'Max qty')} optionalLabel={t('common.optional')}><Input id="pr-max" inputMode="numeric" value={r.maxQty} onChange={(e) => setR({ ...r, maxQty: e.target.value })} /></Field>
+        <Field id="pr-min" label={l(`از (${product.unit.name})`, `Min (${product.unit.nameEn || product.unit.name})`)}><Input id="pr-min" inputMode={product.unit.allowDecimal ? 'decimal' : 'numeric'} value={r.minQty} onChange={(e) => setR({ ...r, minQty: e.target.value })} /></Field>
+        <Field id="pr-max" label={l(`تا (${product.unit.name})`, `Max (${product.unit.nameEn || product.unit.name})`)} optionalLabel={t('common.optional')}><Input id="pr-max" inputMode={product.unit.allowDecimal ? 'decimal' : 'numeric'} value={r.maxQty} onChange={(e) => setR({ ...r, maxQty: e.target.value })} /></Field>
         <Field id="pr-cur" label={l('ارز', 'Currency')}>
           <Select id="pr-cur" value={r.currency} onChange={(e) => setR({ ...r, currency: e.target.value as 'IRR' | 'AED' })}><option value="IRR">IRR</option><option value="AED">AED</option></Select>
         </Field>

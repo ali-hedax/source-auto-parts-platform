@@ -12,6 +12,7 @@ import { SCANNER, type MalwareScanner } from '../../common/storage/scanner.js';
 import { STORAGE, type StorageDriver } from '../../common/storage/storage.js';
 import { InventoryService } from '../inventory/inventory.service.js';
 import { PricingService } from '../pricing/pricing.service.js';
+import { UnitsService, fromSteps, toSteps, unitRef } from './units.service.js';
 
 export function slugify(input: string): string {
   return input
@@ -29,6 +30,7 @@ export class AdminCatalogService {
     private readonly inventory: InventoryService,
     private readonly pricing: PricingService,
     private readonly audit: AuditService,
+    private readonly units: UnitsService,
     @Inject(STORAGE) private readonly storage: StorageDriver,
     @Inject(SCANNER) private readonly scanner: MalwareScanner,
   ) {}
@@ -43,7 +45,7 @@ export class AdminCatalogService {
     const [rows, total, rate] = await Promise.all([
       this.prisma.product.findMany({
         where,
-        include: { translations: true, category: true, basePrice: true, priceRules: { where: { active: true } }, inventory: { where: { warehouseId } } },
+        include: { translations: true, category: true, salesUnit: true, basePrice: true, priceRules: { where: { active: true } }, inventory: { where: { warehouseId } } },
         orderBy: { updatedAt: 'desc' },
         skip: (q.page - 1) * q.pageSize,
         take: q.pageSize,
@@ -64,11 +66,13 @@ export class AdminCatalogService {
           published: p.published,
           archived: !!p.archivedAt,
           basePrice: { currency: p.basePrice?.baseCurrency ?? 'IRR', amountMinor: (p.basePrice?.baseAmountMinor ?? 0n).toString() },
-          priceSource: describePrice(this.pricing.resolve(p.basePrice, p.priceRules, 1, null, rate)),
-          onHand: bal?.onHand ?? 0,
-          reserved: bal?.reserved ?? 0,
-          available: (bal?.onHand ?? 0) - (bal?.reserved ?? 0),
-          lowStockThreshold: bal?.lowStockThreshold ?? 0,
+          priceSource: describePrice(this.pricing.resolve(p.basePrice, p.priceRules, 1, null, rate, p.salesUnit.stepMilli)),
+          // Quantities in the product's unit (stored as steps of it).
+          unit: unitRef(p.salesUnit),
+          onHand: fromSteps(bal?.onHand ?? 0, p.salesUnit),
+          reserved: fromSteps(bal?.reserved ?? 0, p.salesUnit),
+          available: fromSteps((bal?.onHand ?? 0) - (bal?.reserved ?? 0), p.salesUnit),
+          lowStockThreshold: fromSteps(bal?.lowStockThreshold ?? 0, p.salesUnit),
           version: p.version,
           updatedAt: p.updatedAt.toISOString(),
         };
@@ -83,6 +87,7 @@ export class AdminCatalogService {
       include: {
         translations: true,
         vehicleBrands: true,
+        salesUnit: true,
         media: { where: { deletedAt: null }, orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }] },
         basePrice: true,
         priceRules: { orderBy: [{ customerGroupId: 'asc' }, { minQty: 'asc' }] },
@@ -94,7 +99,8 @@ export class AdminCatalogService {
     const rate = await this.pricing.currentRate();
     const fa = p.translations.find((t) => t.locale === 'fa');
     const en = p.translations.find((t) => t.locale === 'en');
-    const resolved = this.pricing.resolve(p.basePrice, p.priceRules, 1, null, rate);
+    const resolved = this.pricing.resolve(p.basePrice, p.priceRules, 1, null, rate, p.salesUnit.stepMilli);
+    const u = p.salesUnit;
     return {
       id: p.id,
       sku: p.sku,
@@ -113,7 +119,8 @@ export class AdminCatalogService {
       condition: p.condition,
       origin: p.origin,
       countryOfManufacture: p.countryOfManufacture,
-      unit: p.unit,
+      unitId: p.unitId,
+      unit: { id: u.id, ...unitRef(u), active: u.active },
       packQuantity: p.packQuantity,
       oemCodes: p.oemCodes,
       specs: p.specs,
@@ -136,8 +143,8 @@ export class AdminCatalogService {
       priceRules: p.priceRules.map((r) => ({
         id: r.id,
         customerGroupId: r.customerGroupId,
-        minQty: r.minQty,
-        maxQty: r.maxQty,
+        minQty: fromSteps(r.minQty, u),
+        maxQty: r.maxQty === null ? null : fromSteps(r.maxQty, u),
         base: { currency: r.baseCurrency, amountMinor: r.baseAmountMinor.toString() },
         manualIrr: r.manualIrrMinor?.toString() ?? null,
         manualAed: r.manualAedMinor?.toString() ?? null,
@@ -146,7 +153,7 @@ export class AdminCatalogService {
         active: r.active,
       })),
       inventory: p.inventory[0]
-        ? { onHand: p.inventory[0].onHand, reserved: p.inventory[0].reserved, version: p.inventory[0].version, lowStockThreshold: p.inventory[0].lowStockThreshold }
+        ? { onHand: fromSteps(p.inventory[0].onHand, u), reserved: fromSteps(p.inventory[0].reserved, u), version: p.inventory[0].version, lowStockThreshold: fromSteps(p.inventory[0].lowStockThreshold, u) }
         : null,
       media: p.media.map((m) => ({ id: m.id, storageKey: m.storageKey, width: m.width, height: m.height, altFa: m.altFa, altEn: m.altEn, isPrimary: m.isPrimary, sortOrder: m.sortOrder })),
     };
@@ -189,6 +196,10 @@ export class AdminCatalogService {
         updatedById: actorId,
       };
       if (priceData.baseAmountMinor <= 0n) throw badRequest('ZERO_PRICE_NOT_ALLOWED', 'Base price must be greater than zero');
+      const current = id ? await tx.product.findUnique({ where: { id }, select: { unitId: true, salesUnit: true } }) : null;
+      const unit = await this.units.usable(input.unitId, current?.unitId ?? null, tx);
+      if (current && current.unitId !== unit.id) await this.assertUnitChangeAllowed(tx, id!, current.salesUnit, unit);
+      const lowStockSteps = toSteps(input.lowStockThreshold, unit, true);
       const common = {
         categoryId: input.categoryId,
         manufacturerBrandId: input.manufacturerBrandId ?? null,
@@ -196,7 +207,8 @@ export class AdminCatalogService {
         condition: input.condition,
         origin: input.origin,
         countryOfManufacture: input.countryOfManufacture ?? null,
-        unit: input.unit,
+        unitId: unit.id,
+        unit: unit.name,
         packQuantity: input.packQuantity,
         oemCodes: input.oemCodes,
         specs: input.specs as Prisma.InputJsonValue,
@@ -231,7 +243,7 @@ export class AdminCatalogService {
         await this.inventory.ensureBalance(tx, productId);
       }
 
-      await tx.inventoryBalance.updateMany({ where: { productId }, data: { lowStockThreshold: input.lowStockThreshold } });
+      await tx.inventoryBalance.updateMany({ where: { productId }, data: { lowStockThreshold: lowStockSteps } });
       await tx.productTranslation.upsert({
         where: { productId_locale: { productId, locale: 'fa' } },
         create: { productId, locale: 'fa', name: input.nameFa, description: input.descriptionFa ?? null, warranty: input.warrantyFa ?? null, aliases: input.aliases },
@@ -256,11 +268,28 @@ export class AdminCatalogService {
         entityType: 'product',
         entityId: productId,
         before,
-        after: { sku: input.sku, price: priceData },
+        after: { sku: input.sku, price: priceData, unit: unit.name },
       });
       const fresh = await tx.product.findUniqueOrThrow({ where: { id: productId }, select: { version: true } });
       return { id: productId, version: fresh.version };
     });
+  }
+
+  /**
+   * Stored quantities count steps of the unit, so a product with stock, orders, carts or quantity
+   * prices may only move to a unit with the same step and decimal rule (e.g. «عدد» → «دست»).
+   */
+  private async assertUnitChangeAllowed(tx: Tx, productId: string, from: { stepMilli: number; allowDecimal: boolean }, to: { stepMilli: number; allowDecimal: boolean }): Promise<void> {
+    if (from.stepMilli === to.stepMilli && from.allowDecimal === to.allowDecimal) return;
+    const [stock, orders, carts, rules] = await Promise.all([
+      tx.inventoryBalance.count({ where: { productId, OR: [{ onHand: { not: 0 } }, { reserved: { not: 0 } }, { lowStockThreshold: { not: 0 } }] } }),
+      tx.orderItem.count({ where: { productId } }),
+      tx.cartItem.count({ where: { productId } }),
+      tx.quantityPriceRule.count({ where: { productId } }),
+    ]);
+    if (stock + orders + carts + rules > 0) {
+      throw conflict('UNIT_CHANGE_LOCKED', 'This product already has stock, orders, carts or quantity prices in its unit; choose a unit with the same step', { stock, orders, carts, rules });
+    }
   }
 
   async setPublished(id: string, published: boolean, version: number) {
@@ -427,12 +456,14 @@ export class AdminCatalogService {
         if (!group) throw badRequest('UNKNOWN_GROUP');
       }
       if (input.maxQty !== null && input.maxQty < input.minQty) throw badRequest('INVALID_QTY_RANGE');
+      // Quantities come in the product's unit and are stored as its steps (like stock and carts).
+      const unit = await this.units.forProduct(productId, tx);
       const rule = await tx.quantityPriceRule.create({
         data: {
           productId,
           customerGroupId: input.customerGroupId,
-          minQty: input.minQty,
-          maxQty: input.maxQty,
+          minQty: toSteps(input.minQty, unit),
+          maxQty: input.maxQty === null ? null : toSteps(input.maxQty, unit),
           baseCurrency: input.basePrice.currency,
           baseAmountMinor: BigInt(input.basePrice.amountMinor),
           manualIrrMinor: input.manualPriceIrr ? BigInt(input.manualPriceIrr) : null,
