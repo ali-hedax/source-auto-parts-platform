@@ -60,6 +60,11 @@ export const staffInvitationUpdateSchema = z.object({
   confirmCode: z.string().trim().regex(/^[0-9۰-۹]{6}$/).optional(),
 });
 
+/** Resetting a staff member's authenticator (new phone): they enrol again at the next sign-in. */
+export const staffMfaResetSchema = z.object({
+  confirmCode: z.string().trim().regex(/^[0-9۰-۹]{6}$/),
+});
+
 /** Erasing a staff member or an invitation cannot be undone, so it always needs a current authenticator code. */
 export const staffEraseSchema = z.object({
   confirmCode: z.string().trim().regex(/^[0-9۰-۹]{6}$/),
@@ -87,7 +92,24 @@ export interface StaffInvitationView {
   lastError: string | null;
 }
 
+/** A staff member as the owner sees them under panel → staff. */
+export interface StaffMemberView {
+  id: string;
+  email: string | null;
+  fullName: string | null;
+  phone: string | null;
+  status: 'ACTIVE' | 'SUSPENDED';
+  mfaEnabled: boolean;
+  lastLoginAt: string | null;
+  roles: Array<{ id: string; key: string; nameFa: string; nameEn: string; isOwner: boolean }>;
+  /** The signed-in owner's own row: no role change, suspension or erasure from here. */
+  isSelf: boolean;
+  canErase: boolean;
+}
+
 export const staffUpdateSchema = z.object({
+  fullName: z.string().trim().min(2).max(120).optional(),
+  phone: staffPhoneSchema.optional(),
   roleIds: z.array(idSchema).min(1).max(10).optional(),
   suspended: z.boolean().optional(),
   reason: optionalText(300),
