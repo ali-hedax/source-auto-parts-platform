@@ -364,7 +364,7 @@ async function completeTotp(c: Client, email: string, password: string, challeng
   if (mfa.status !== 200) throw new Error(`MFA login failed ${mfa.status} ${JSON.stringify(mfa.body)}`);
 }
 
-async function enrollTotp(c: Client): Promise<string> {
+export async function enrollTotp(c: Client): Promise<string> {
   const enroll = await c.post<{ challengeId: string; secret: string }>('/auth/staff/mfa/enroll');
   if (enroll.status !== 200) throw new Error(`MFA enroll failed ${enroll.status} ${JSON.stringify(enroll.body)}`);
   const confirm = await c.post('/auth/staff/mfa/enroll/confirm', { challengeId: enroll.body.challengeId, code: await totp({ secret: enroll.body.secret }) });
@@ -384,11 +384,23 @@ async function enrollTotp(c: Client): Promise<string> {
 export async function ownerTotp(previous?: string): Promise<string> {
   const secret = readOwnerState().totpSecret;
   if (!secret) throw new Error('owner TOTP secret unknown (loginOwner first)');
+  // Test files run one after another against one owner: a step handed out by an earlier file
+  // may already be used, so every file waits for a step nobody has received yet.
+  const stepFile = path.join(process.env.HEDAX_TEST_WORKDIR as string, 'owner-totp-step');
+  let handed = -1;
+  try {
+    handed = Number(readFileSync(stepFile, 'utf8'));
+  } catch {
+    /* first code of the run */
+  }
+  const step = () => Math.floor(Date.now() / 30_000);
+  if (step() <= handed) await sleep((handed + 1) * 30_000 - Date.now() + 500);
   let code = await totp({ secret });
   if (code === previous) {
     await sleep(31_000);
     code = await totp({ secret });
   }
+  writeFileSync(stepFile, String(step()));
   return code;
 }
 

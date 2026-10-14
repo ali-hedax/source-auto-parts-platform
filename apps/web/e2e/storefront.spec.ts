@@ -151,6 +151,36 @@ test.describe('layout, SEO and accessibility', () => {
     await noHorizontalScroll(page);
   });
 
+  // Staff management on a phone: coloured states, the edit dialog and the ⋮ menu (owner preview).
+  test('staff page: states, edit dialog and actions menu work on a phone', async ({ page, baseURL }) => {
+    await page.context().addCookies([{ name: 'hedax_fixture_role', value: 'staff', url: baseURL as string }]);
+    await page.setViewportSize({ width: 360, height: 800 });
+    await page.goto('/fa/admin/staff');
+    const table = page.locator('main#main table');
+    for (const state of ['فعال', 'غیرفعال', 'در انتظار پذیرش', 'منقضی‌شده']) await expect(table.getByText(state, { exact: true }).first()).toBeVisible();
+    await noHorizontalScroll(page);
+    // The owner's own row offers «حساب من», not editing.
+    await expect(table.getByRole('row', { name: /مالک نمونه/ }).getByRole('link', { name: 'حساب من' })).toBeVisible();
+    const row = table.getByRole('row', { name: /کارمند کاتالوگ/ });
+    await row.getByRole('button', { name: 'ویرایش' }).click();
+    const dialog = page.getByRole('dialog', { name: 'ویرایش کارمند' });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.locator('#pd-name')).toHaveValue('کارمند کاتالوگ');
+    await expect(dialog.locator('#pd-phone')).toHaveValue('+98 912 000 0000');
+    // Validation before anything is sent.
+    await dialog.locator('#pd-phone').fill('abc');
+    await dialog.getByRole('button', { name: 'ذخیره' }).click();
+    await expect(dialog.getByText(/شماره معتبر نیست/)).toBeVisible();
+    await noHorizontalScroll(page);
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+    await row.getByRole('button', { name: /عملیات برای کارمند کاتالوگ/ }).click();
+    const menu = page.getByRole('menu');
+    for (const item of ['غیرفعال کردن حساب', 'ریست Authenticator (گوشی جدید)', 'حذف کارمند']) await expect(menu.getByRole('menuitem', { name: item })).toBeVisible();
+    await menu.getByRole('menuitem', { name: 'حذف کارمند' }).click();
+    await expect(page.getByRole('dialog').getByText(/مطمئن هستید/)).toBeVisible();
+  });
+
   // A30 / §15: the browser's text size at 200% (rem-based layout, so the root font size is what changes).
   test('text enlarged to 200%: no horizontal page scroll and the main control of each page stays reachable', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
