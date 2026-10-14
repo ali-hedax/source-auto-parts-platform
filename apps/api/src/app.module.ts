@@ -1,3 +1,4 @@
+import { MailModule } from './modules/mail/mail.module.js';
 import { Module } from '@nestjs/common';
 import { CommonModule } from './common/common.module.js';
 import { AdminModule } from './modules/admin/admin.module.js';
@@ -21,6 +22,7 @@ import { SourcingModule } from './modules/sourcing/sourcing.module.js';
 @Module({
   imports: [
     CommonModule,
+    MailModule,
     PricingModule,
     InventoryModule,
     CatalogModule,

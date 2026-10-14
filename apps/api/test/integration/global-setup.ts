@@ -80,6 +80,8 @@ export default async function setup(project: TestProject): Promise<() => Promise
     MALWARE_SCANNER: 'none-dev',
     PAYMENT_PROVIDER: 'simulator',
     SMS_PROVIDER: 'dev-log',
+    MAIL_PROVIDER: 'memory',
+    MAIL_FROM: 'Source by HEDAX <info@hedax.test>',
     OPENAPI_ENABLED: 'false',
     LOG_LEVEL: 'fatal',
     TEST_OWNER_EMAIL: 'owner@hedax.test',

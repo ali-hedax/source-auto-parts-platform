@@ -1,7 +1,8 @@
 'use client';
 
 import { useLocale, useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { INVITED_EMAIL_KEY } from '@/components/auth/accept-invitation';
 import { Button } from '@/components/ui/button';
 import { ErrorSummary } from '@/components/ui/error-summary';
 import { Field, Input } from '@/components/ui/field';
@@ -21,6 +22,16 @@ export function StaffLogin() {
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [invited, setInvited] = useState(false);
+  useEffect(() => {
+    if (!new URLSearchParams(window.location.search).has('invited')) return;
+    setInvited(true);
+    try {
+      const saved = sessionStorage.getItem(INVITED_EMAIL_KEY);
+      if (saved) setEmail((current) => current || saved);
+      sessionStorage.removeItem(INVITED_EMAIL_KEY);
+    } catch { /* storage blocked */ }
+  }, []);
   // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- full reload so server components and the header pick up the new session
   const done = () => window.location.assign(`/${locale}/admin`);
   const fail = (e: unknown) => setError(errorText(t, e));
@@ -30,7 +41,7 @@ export function StaffLogin() {
     setBusy(true);
     try {
       if (step.kind === 'password') {
-        const res = await api<{ status: string; challengeId?: string }>('/auth/staff/login', { method: 'POST', body: { email, password } });
+        const res = await api<{ status: string; challengeId?: string }>('/auth/staff/login', { method: 'POST', body: { email: email.trim(), password } });
         if (res.status === 'MFA_REQUIRED' && res.challengeId) setStep({ kind: 'mfa', challengeId: res.challengeId });
         else if (res.status === 'MFA_ENROLLMENT_REQUIRED') {
           const enroll = await api<{ challengeId: string; secret: string; otpauthUri: string }>('/auth/staff/mfa/enroll', { method: 'POST' });
@@ -67,6 +78,7 @@ export function StaffLogin() {
       <ErrorSummary title={t('validation.summaryTitle')} errors={[]} generalError={error} />
       {step.kind === 'password' ? (
         <>
+          {invited && !error ? <Alert tone="success" title={t('auth.invitationAccepted')} /> : null}
           <Field id="staff-email" label={t('auth.email')} required>
             <Input id="staff-email" type="email" dir="ltr" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} />
           </Field>

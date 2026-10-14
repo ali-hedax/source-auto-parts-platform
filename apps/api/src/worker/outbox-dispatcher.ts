@@ -7,6 +7,7 @@ import { PublicCacheService } from '../common/public-cache.service.js';
 import { runWithContext } from '../common/request-context.js';
 import { AttachmentsService } from '../modules/attachments/attachments.service.js';
 import { ImportsService } from '../modules/imports/imports.service.js';
+import { MailService } from '../modules/mail/mail.service.js';
 import { NotificationsService } from '../modules/notifications/notifications.service.js';
 import { StockOrderSettlement } from '../modules/orders/stock-order-settlement.js';
 import { PaymentsService } from '../modules/payments/payments.service.js';
@@ -60,6 +61,7 @@ export class OutboxDispatcher implements OnModuleDestroy {
     private readonly attachments: AttachmentsService,
     private readonly imports: ImportsService,
     private readonly notifications: NotificationsService,
+    private readonly mail: MailService,
     private readonly quotes: QuotesService,
     private readonly stockOrders: StockOrderSettlement,
     private readonly publicCache: PublicCacheService,
@@ -82,6 +84,7 @@ export class OutboxDispatcher implements OnModuleDestroy {
     this.register('import.parse', async (p) => this.imports.parse(String(p.jobId)));
     this.register('import.commit', async (p) => this.imports.commit(String(p.jobId)));
     this.register('payment.reconcile', async (p) => void (await this.payments.verify(String(p.attemptId), 'INQUIRY')));
+    this.register('email.send', async (p) => void (await this.mail.deliver(String(p.emailId))));
     this.register('notification.send', async (p, meta) =>
       this.notifications.deliver(p as { userId: string; type: string; params: Record<string, unknown>; linkPath: string | null; sms: boolean }, meta.dedupeKey),
     );

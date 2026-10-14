@@ -14,6 +14,7 @@ import { api } from '@/lib/api/client';
 import { errorText } from '@/lib/api/errors';
 import { typedNumber } from '@/lib/numbers';
 import { useApi } from '@/lib/use-api';
+import { MailSettings } from './mail-settings';
 import { useCodeLabel, useL } from './shell';
 
 function useAction(reload: () => Promise<void>) {
@@ -235,6 +236,7 @@ export function SiteSettingsPage() {
     <>
       <PageHeader title={t('admin.settings')} />
       <Async state={state}>{(s) => <SiteSettingsForm settings={s} reload={state.reload} />}</Async>
+      <div className="mt-6"><MailSettings /></div>
     </>
   );
 }

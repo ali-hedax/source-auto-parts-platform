@@ -310,13 +310,16 @@ export class AuthService {
     return { recoveryCodes };
   }
 
-  async acceptInvitation(input: { token: string; fullName: string; password: string }) {
-    const problems = passwordProblems(input.password, [input.fullName]);
-    if (problems.length) throw badRequest('WEAK_PASSWORD', 'Choose a stronger password', { problems });
+  async acceptInvitation(input: { token: string; fullName: string; password: string }, ipHash: string | null = null) {
+    await this.limits.hit(LIMITS.invitationAcceptPerIp, ipHash);
     const invitation = await this.prisma.staffInvitation.findUnique({ where: { tokenHash: sha256Hex(input.token) } });
-    if (!invitation || invitation.acceptedAt || invitation.revokedAt || invitation.expiresAt <= new Date()) {
-      throw badRequest('INVITATION_INVALID', 'This invitation is no longer valid');
-    }
+    // Only someone holding the link learns why it no longer works (used, revoked or expired).
+    if (!invitation) throw badRequest('INVITATION_INVALID', 'This invitation is no longer valid');
+    if (invitation.acceptedAt) throw conflict('INVITATION_ALREADY_ACCEPTED', 'This invitation was already used; sign in instead');
+    if (invitation.revokedAt) throw badRequest('INVITATION_REVOKED', 'This invitation was revoked');
+    if (invitation.expiresAt <= new Date()) throw badRequest('INVITATION_EXPIRED', 'This invitation has expired');
+    const problems = passwordProblems(input.password, [input.fullName, invitation.email]);
+    if (problems.length) throw badRequest('WEAK_PASSWORD', 'Choose a stronger password', { problems });
     const passwordHash = await argon2.hash(input.password, ARGON_OPTIONS);
     return this.prisma.tx(async (tx) => {
       const claimed = await tx.staffInvitation.updateMany({ where: { id: invitation.id, acceptedAt: null }, data: { acceptedAt: new Date() } });
@@ -333,7 +336,7 @@ export class AuthService {
         action: 'staff.invitation.accepted', entityType: 'user', entityId: user.id, actorKind: 'STAFF', actorId: user.id,
         after: { email: invitation.email, roles: roles.map((r) => r.key) },
       });
-      return { userId: user.id, requiresMfa: roles.some((r) => r.requiresMfa) };
+      return { userId: user.id, email: user.email, requiresMfa: roles.some((r) => r.requiresMfa) };
     });
   }
 
