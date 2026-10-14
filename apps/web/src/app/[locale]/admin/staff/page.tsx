@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense } from 'react';
-import { StaffPage } from '@/components/admin/people';
+import { StaffPage } from '@/components/admin/staff-page';
 
 export default function Page() {
   return (

@@ -27,9 +27,16 @@ export const roleSchema = z.object({
   requiresMfa: z.boolean().default(false),
 });
 
+/**
+ * Staff contact number (for colleagues; not a sign-in identifier): digits, +, spaces, dashes and
+ * brackets, Persian digits accepted (stored with Latin digits). Empty = none.
+ */
+export const staffPhoneSchema = z.union([z.literal(''), z.string().trim().regex(/^\+?[0-9۰-۹][0-9۰-۹ ()-]{6,19}$/, { message: 'INVALID_PHONE' })]);
+
 export const staffInviteSchema = z.object({
   email: z.email().max(200),
   fullName: z.string().trim().min(2).max(120),
+  phone: staffPhoneSchema.optional(),
   roleIds: z.array(idSchema).min(1).max(10),
   /** A current authenticator code of the acting owner (Persian digits accepted); required when the owner role is granted. */
   confirmCode: z.string().trim().regex(/^[0-9۰-۹]{6}$/).optional(),
@@ -38,6 +45,24 @@ export const staffInviteSchema = z.object({
 /** Resending replaces the link (the previous one stops working). Owner invitations need a fresh authenticator code. */
 export const staffInvitationResendSchema = z.object({
   confirmCode: z.string().trim().regex(/^[0-9۰-۹]{6}$/).optional(),
+});
+
+/**
+ * Editing an invitation that was not accepted yet. A new e-mail address makes the old link stop
+ * working: a new link with a new expiry is sent to the new address. Adding the owner role needs a
+ * fresh authenticator code of the acting owner.
+ */
+export const staffInvitationUpdateSchema = z.object({
+  email: z.email().max(200),
+  fullName: z.string().trim().min(2).max(120),
+  phone: staffPhoneSchema,
+  roleIds: z.array(idSchema).min(1).max(10),
+  confirmCode: z.string().trim().regex(/^[0-9۰-۹]{6}$/).optional(),
+});
+
+/** Resetting a staff member's authenticator (new phone): they enrol again at the next sign-in. */
+export const staffMfaResetSchema = z.object({
+  confirmCode: z.string().trim().regex(/^[0-9۰-۹]{6}$/),
 });
 
 /** Erasing a staff member or an invitation cannot be undone, so it always needs a current authenticator code. */
@@ -55,6 +80,7 @@ export interface StaffInvitationView {
   id: string;
   email: string;
   fullName: string;
+  phone: string | null;
   roles: Array<{ id: string; nameFa: string; nameEn: string; isOwner: boolean }>;
   status: StaffInvitationStatus;
   createdAt: string;
@@ -66,7 +92,24 @@ export interface StaffInvitationView {
   lastError: string | null;
 }
 
+/** A staff member as the owner sees them under panel → staff. */
+export interface StaffMemberView {
+  id: string;
+  email: string | null;
+  fullName: string | null;
+  phone: string | null;
+  status: 'ACTIVE' | 'SUSPENDED';
+  mfaEnabled: boolean;
+  lastLoginAt: string | null;
+  roles: Array<{ id: string; key: string; nameFa: string; nameEn: string; isOwner: boolean }>;
+  /** The signed-in owner's own row: no role change, suspension or erasure from here. */
+  isSelf: boolean;
+  canErase: boolean;
+}
+
 export const staffUpdateSchema = z.object({
+  fullName: z.string().trim().min(2).max(120).optional(),
+  phone: staffPhoneSchema.optional(),
   roleIds: z.array(idSchema).min(1).max(10).optional(),
   suspended: z.boolean().optional(),
   reason: optionalText(300),

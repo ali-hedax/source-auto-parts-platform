@@ -329,7 +329,7 @@ export class AuthService {
       const roles = await tx.role.findMany({ where: { id: { in: invitation.roleIds } } });
       if (roles.length === 0) throw badRequest('INVITATION_INVALID', 'The invitation has no valid roles');
       const user = await tx.user.create({
-        data: { kind: 'STAFF', email: invitation.email, fullName: input.fullName, passwordHash },
+        data: { kind: 'STAFF', email: invitation.email, fullName: input.fullName, contactPhone: invitation.contactPhone, passwordHash },
       });
       await tx.userRole.createMany({ data: roles.map((r) => ({ userId: user.id, roleId: r.id, grantedById: invitation.invitedById })) });
       await this.audit.record(tx, {
@@ -366,6 +366,7 @@ export class AuthService {
           ? { id: profile.customerGroup.id, name: user.preferredLocale === 'en' ? profile.customerGroup.nameEn : profile.customerGroup.nameFa, status: profile.groupStatus as 'PENDING' | 'APPROVED' | 'REJECTED' }
           : null,
       permissions: [...actor.permissions].sort(),
+      isOwner: actor.kind === 'STAFF' && actor.isOwner,
       mfaEnabled: !!user.mfaEnabledAt,
       preferredLocale: user.preferredLocale,
       unreadNotifications,

@@ -813,7 +813,7 @@
     "auditAction_sourcing_assigned": "ارجاع درخواست تأمین",
     "auditAction_staff_invited": "دعوت کارمند",
     "auditAction_staff_invitation_accepted": "پذیرش دعوت کارمند",
-    "auditAction_staff_updated": "تغییر نقش یا وضعیت کارمند",
+    "auditAction_staff_updated": "ویرایش کارمند (نام، تلفن، نقش یا وضعیت)",
     "auditAction_vehicle_brand_created": "ساخت برند خودرو",
     "auditAction_vehicle_brand_updated": "ویرایش برند خودرو",
     "auditEntity_product": "کالا",
@@ -863,7 +863,9 @@
     "auditEntity_content": "محتوای سایت",
     "auditEntity_faq_item": "پرسش متداول",
     "auditEntity_content_page": "صفحهٔ متنی",
-    "auditEntity_content_image": "تصویر سایت"
+    "auditEntity_content_image": "تصویر سایت",
+    "auditAction_staff_invitation_updated": "ویرایش دعوت کارمند",
+    "auditAction_staff_mfa_reset": "ریست Authenticator کارمند"
   },
   "validation": {
     "summaryTitle": "لطفاً موارد زیر را اصلاح کنید",
@@ -920,7 +922,7 @@
     "WEAK_PASSWORD": "گذرواژه ضعیف است؛ دست‌کم ۱۲ نویسه و غیر از عبارت‌های رایج انتخاب کنید.",
     "INVITATION_PENDING": "برای این ایمیل یک دعوت باز وجود دارد؛ از جدول «دعوت‌ها» آن را دوباره بفرستید یا لغو کنید.",
     "INVITATION_ALREADY_ACCEPTED": "این دعوت قبلاً استفاده شده و حساب ساخته شده است؛ از صفحهٔ ورود کارکنان وارد شوید.",
-    "INVITATION_REVOKED": "این دعوت لغو شده است؛ از مدیر سایت دعوت تازه بخواهید.",
+    "INVITATION_REVOKED": "این دعوت لغو شده است.",
     "INVITATION_EXPIRED": "زمان این دعوت گذشته است؛ از مدیر سایت بخواهید دعوت را دوباره بفرستد.",
     "MAIL_NOT_CONFIGURED": "ارسال ایمیل سایت هنوز تنظیم نشده است.",
     "CURRENT_PASSWORD_INVALID": "گذرواژهٔ فعلی نادرست است.",
@@ -1009,7 +1011,7 @@
     "ERASE_ACCOUNT_INSTEAD": "این شخص حساب کاربری دارد؛ او را از جدول کارکنان به‌طور کامل حذف کنید.",
     "OWNER_ROLE_LOCKED": "نقش مالک قابل ویرایش نیست.",
     "PERMISSION_ESCALATION": "نمی‌توانید مجوزی بیش از مجوزهای خودتان بدهید.",
-    "SELF_EDIT": "نمی‌توانید نقش یا وضعیت حساب خودتان را تغییر دهید.",
+    "SELF_EDIT": "نمی‌توانید نقش یا وضعیت حساب خودتان را تغییر دهید؛ نام و رمز خود را از «حساب من» عوض کنید.",
     "SELF_ROLE_EDIT": "نمی‌توانید نقش خودتان را تغییر دهید.",
     "UNKNOWN_PERMISSION": "مجوز نامعتبر است.",
     "UNKNOWN_ROLE": "نقش نامعتبر است.",
@@ -1029,7 +1031,8 @@
     "PAGE_PROTECTED": "این صفحهٔ سیستمی قابل حذف یا تغییر نشانی نیست؛ می‌توانید آن را منتشرنشده کنید.",
     "SLUG_IN_USE": "صفحهٔ دیگری همین نشانی را دارد.",
     "ORDER_MISMATCH": "فهرست تغییر کرده است؛ صفحه را تازه کنید و دوباره مرتب کنید.",
-    "PAGE_NOT_FOUND": "این صفحه وجود ندارد یا منتشر نشده است."
+    "PAGE_NOT_FOUND": "این صفحه وجود ندارد یا منتشر نشده است.",
+    "OWNER_ONLY": "فقط مالک می‌تواند کارکنان را مدیریت کند."
   },
   "timelineEvent": {
     "CREATED_FROM_QUOTE": "سفارش از پیش‌فاکتور ثبت شد",
