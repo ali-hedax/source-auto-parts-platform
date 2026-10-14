@@ -403,6 +403,8 @@ model User {
   /// Incremented on role change/suspension to invalidate live sessions and sockets.
   authVersion     Int        @default(0) @map("auth_version")
   lastLoginAt     DateTime?  @map("last_login_at") @db.Timestamptz(3)
+  /// Staff contact number for colleagues (panel → staff). Not used to sign in; not unique.
+  contactPhone    String?    @map("contact_phone") @db.VarChar(20)
   createdAt       DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt       DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -558,6 +560,8 @@ model StaffInvitation {
   fullName    String    @map("full_name") @db.VarChar(120)
   tokenHash   String    @unique @map("token_hash") @db.Char(64)
   roleIds     String[]  @map("role_ids") @db.Uuid
+  /// Contact number entered with the invitation; copied to the account when it is accepted.
+  contactPhone String?  @map("contact_phone") @db.VarChar(20)
   invitedById String    @map("invited_by_id") @db.Uuid
   expiresAt   DateTime  @map("expires_at") @db.Timestamptz(3)
   acceptedAt  DateTime? @map("accepted_at") @db.Timestamptz(3)

@@ -1,6 +1,6 @@
 import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Put } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { roleSchema, staffEraseSchema, staffInvitationResendSchema, staffInviteSchema, staffUpdateSchema } from '@hedax/contracts';
+import { roleSchema, staffEraseSchema, staffInvitationResendSchema, staffInvitationUpdateSchema, staffInviteSchema, staffUpdateSchema } from '@hedax/contracts';
 import { PERMISSIONS, assertCanGrant, assertNotLastOwner } from '@hedax/domain';
 import type { z } from 'zod';
 import { AuditService } from '../../common/audit.service.js';
@@ -106,6 +106,14 @@ export class StaffController {
   @ApiZodBody(staffInviteSchema)
   invite(@CurrentActor() actor: Actor, @Body(zod(staffInviteSchema)) body: z.infer<typeof staffInviteSchema>) {
     return this.invitations.invite(actor, body);
+  }
+
+  /** Edits an invitation that was not accepted: e-mail, name, phone and roles. */
+  @RequirePermissions('users.manage')
+  @Patch('staff/invitations/:id')
+  @ApiZodBody(staffInvitationUpdateSchema)
+  updateInvitation(@CurrentActor() actor: Actor, @Param('id', ParseUUIDPipe) id: string, @Body(zod(staffInvitationUpdateSchema)) body: z.infer<typeof staffInvitationUpdateSchema>) {
+    return this.invitations.update(actor, id, body);
   }
 
   @RequirePermissions('users.manage')

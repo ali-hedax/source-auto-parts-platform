@@ -11,7 +11,7 @@ import { AuthService } from '../auth/auth.service.js';
 export const ERASED = 'حذف‌شده';
 
 /** Fields that hold a person's identity in audit payloads about that person. */
-const PERSONAL_KEY = /^(email|fullName|name|mobile|mobileE164)$/i;
+const PERSONAL_KEY = /^(email|fullName|name|mobile|mobileE164|phone|contactPhone)$/i;
 
 interface Identity {
   emails: string[];
@@ -95,7 +95,7 @@ export class StaffErasureService {
       await tx.user.update({
         where: { id: userId },
         data: {
-          status: 'DELETED', email: null, fullName: null, mobileE164: null, mobileVerifiedAt: null, passwordHash: null,
+          status: 'DELETED', email: null, fullName: null, contactPhone: null, mobileE164: null, mobileVerifiedAt: null, passwordHash: null,
           mfaSecretEnc: null, mfaEnabledAt: null, mfaLastTimeStep: null, lastLoginAt: null, authVersion: { increment: 1 },
         },
       });
