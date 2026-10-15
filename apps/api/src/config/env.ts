@@ -101,10 +101,10 @@ const schema = z
     MAIL_FROM: z.preprocess(emptyAsUnset, z.string().regex(/^[^\r\n<>]{0,80}<?[^@\s<>\r\n]+@[^@\s<>\r\n]+>?$/).optional()),
 
     // Messenger bots are disabled unless token + independent webhook secret are both configured.
-    TELEGRAM_BOT_TOKEN: z.preprocess(emptyAsUnset, z.string().min(20).optional()),
-    TELEGRAM_WEBHOOK_SECRET: z.preprocess(emptyAsUnset, z.string().min(32).optional()),
-    BALE_BOT_TOKEN: z.preprocess(emptyAsUnset, z.string().min(20).optional()),
-    BALE_WEBHOOK_SECRET: z.preprocess(emptyAsUnset, z.string().min(32).optional()),
+    TELEGRAM_BOT_TOKEN: z.preprocess(emptyAsUnset, z.string().min(20).max(256).regex(/^[0-9]+:[A-Za-z0-9_-]+$/).optional()),
+    TELEGRAM_WEBHOOK_SECRET: z.preprocess(emptyAsUnset, z.string().regex(/^[A-Za-z0-9_-]{32,256}$/).optional()),
+    BALE_BOT_TOKEN: z.preprocess(emptyAsUnset, z.string().min(20).max(256).regex(/^[0-9]+:[A-Za-z0-9_-]+$/).optional()),
+    BALE_WEBHOOK_SECRET: z.preprocess(emptyAsUnset, z.string().regex(/^[A-Za-z0-9_-]{32,256}$/).optional()),
 
     LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug']).default('info'),
     OPENAPI_ENABLED: bool.default(true),
@@ -114,6 +114,12 @@ const schema = z
     const guard = (condition: boolean, path: string, message: string) => {
       if (condition) ctx.addIssue({ code: 'custom', path: [path], message });
     };
+    for (const provider of ['TELEGRAM', 'BALE'] as const) {
+      const token = env[`${provider}_BOT_TOKEN`];
+      const secret = env[`${provider}_WEBHOOK_SECRET`];
+      guard(Boolean(token) !== Boolean(secret), `${provider}_WEBHOOK_SECRET`, 'Configure both token and webhook secret, or neither');
+    }
+    guard(Boolean(env.TELEGRAM_WEBHOOK_SECRET) && env.TELEGRAM_WEBHOOK_SECRET === env.BALE_WEBHOOK_SECRET, 'BALE_WEBHOOK_SECRET', 'Providers require independent webhook secrets');
     guard(prod && env.PAYMENT_PROVIDER === 'simulator', 'PAYMENT_PROVIDER', 'The payment simulator is forbidden in production');
     guard(prod && env.SMS_PROVIDER === 'dev-log', 'SMS_PROVIDER', 'The development SMS adapter is forbidden in production');
     guard(prod && env.MALWARE_SCANNER === 'none-dev', 'MALWARE_SCANNER', 'A real malware scanner is required in production');

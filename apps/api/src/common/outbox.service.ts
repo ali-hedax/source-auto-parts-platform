@@ -16,7 +16,8 @@ export type OutboxType =
   | 'import.parse'
   | 'import.commit'
   | 'message.created'
-  | 'email.send';
+  | 'email.send'
+  | 'messenger.reply';
 
 export interface OutboxInput {
   type: OutboxType;

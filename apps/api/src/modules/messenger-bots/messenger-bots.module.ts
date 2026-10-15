@@ -8,5 +8,6 @@ import { MessengerBotsService } from './messenger-bots.service.js';
   imports: [CatalogModule],
   controllers: [MessengerBotsController],
   providers: [MessengerBotsService],
+  exports: [MessengerBotsService],
 })
 export class MessengerBotsModule {}
