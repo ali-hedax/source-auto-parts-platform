@@ -97,6 +97,12 @@ describe('A01 — product for Iran Khodro with photo and price becomes visible a
     expect(order.body.paymentStatus).toBe('PAID');
     expect(order.body.lines[0]).toMatchObject({ quantity: 2, unitPrice: { currency: 'IRR', amountMinor: '25000000' } });
     expect(order.body.receipts).toHaveLength(1);
+    // A messenger handoff never grants access to another customer's order.
+    const otherCustomer = await loginCustomer(t);
+    expect((await otherCustomer.get(`/orders/${start.body.orderId}`)).status).toBe(404);
+    const otherOrders = await otherCustomer.get('/orders');
+    expect(otherOrders.status).toBe(200);
+    expect(otherOrders.body.some((o: { id: string }) => o.id === start.body.orderId)).toBe(false);
     const bal = await balance(id);
     expect(bal).toMatchObject({ onHand: 1, reserved: 0 });
   });
