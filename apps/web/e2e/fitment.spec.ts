@@ -19,7 +19,7 @@ const PAD_ID = '00000000-0000-7000-8000-000000000001';
 test.describe('vehicle fitment on the site', () => {
   test('home cards show compact fitment next to vehicle information at phone and desktop widths', async ({ page }) => {
     await page.goto('/fa');
-    const card = page.locator('article').filter({ has: page.getByRole('heading', { name: 'لنت ترمز جلو پژو ۲۰۶', exact: true }) }).first();
+    const card = page.locator('article').filter({ has: page.locator('a[href="/fa/parts/demo-front-brake-pad-206"]') }).first();
     const fitment = card.locator('p[title]').filter({ hasText: 'کاربرد:' });
     await expect(fitment).toContainText('پژو ۲۰۶');
     await expect(fitment).toContainText('دنا');
