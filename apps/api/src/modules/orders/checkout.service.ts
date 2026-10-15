@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { Request } from 'express';
 import type { CheckoutPreview, CheckoutStart, PaymentRedirect } from '@hedax/contracts';
-import { computeOrderTotals, convertIrrToAed } from '@hedax/domain';
+import { computeOrderTotals, convertIrrToAed, lineAmountIrr } from '@hedax/domain';
 import { REFERENCE_PREFIX, humanReference } from '@hedax/domain/server';
 import { badRequest, conflict, notFound, unprocessable } from '../../common/errors.js';
 import { IdempotencyService } from '../../common/idempotency.service.js';
@@ -28,6 +28,9 @@ interface PricedLine {
   partType: 'GENUINE' | 'OEM' | 'AFTERMARKET';
   condition: 'NEW' | 'USED' | 'REFURBISHED';
   origin: 'DOMESTIC' | 'IMPORTED' | 'UNKNOWN';
+  /** The product's unit at the time of sale: quantity counts its steps, the price is per whole unit. */
+  unitName: string;
+  stepMilli: number;
 }
 
 @Injectable()
@@ -55,7 +58,7 @@ export class CheckoutService {
     for (const item of items) {
       const p = products.get(item.productId);
       if (!p || !p.published || p.archivedAt || !p.isSellable) throw unprocessable('PRODUCT_NOT_PURCHASABLE', 'A part in the cart is no longer available', { productId: item.productId });
-      const price = this.pricing.resolve(p.basePrice, p.priceRules, item.quantity, actor.approvedCustomerGroupId, rate);
+      const price = this.pricing.resolve(p.basePrice, p.priceRules, item.quantity, actor.approvedCustomerGroupId, rate, p.salesUnit.stepMilli);
       if (price.status !== 'PRICED') throw unprocessable('INQUIRY_REQUIRED', 'A part in the cart needs a price inquiry', { productId: p.id, reason: price.reason });
       lines.push({
         productId: p.id,
@@ -71,6 +74,8 @@ export class CheckoutService {
         partType: p.partType,
         condition: p.condition,
         origin: p.origin,
+        unitName: p.salesUnit.name,
+        stepMilli: p.salesUnit.stepMilli,
       });
     }
     return { lines, rate };
@@ -98,7 +103,7 @@ export class CheckoutService {
       const { lines, rate } = await this.priceCart(cart.id, actor);
       const tax = await this.settings.taxRule();
       const t = computeOrderTotals({
-        lines: lines.map((l) => ({ unitPayableIrr: l.unitIrr, quantity: l.quantity })),
+        lines: lines.map((l) => ({ unitPayableIrr: l.unitIrr, quantity: l.quantity, stepMilli: l.stepMilli })),
         shipping: selected.costIrr === null ? { status: 'UNKNOWN', methodId: selected.id } : { status: 'KNOWN', methodId: selected.id, costIrr: selected.costIrr },
         tax,
       });
@@ -144,7 +149,7 @@ export class CheckoutService {
       const settings = await this.settings.site();
       const tax = await this.settings.taxRule();
       const totals = computeOrderTotals({
-        lines: lines.map((l) => ({ unitPayableIrr: l.unitIrr, quantity: l.quantity })),
+        lines: lines.map((l) => ({ unitPayableIrr: l.unitIrr, quantity: l.quantity, stepMilli: l.stepMilli })),
         shipping: { status: 'KNOWN', methodId: option.id, costIrr: option.costIrr },
         tax,
       });
@@ -187,7 +192,8 @@ export class CheckoutService {
             data: {
               orderId: order.id, productId: line.productId, skuSnapshot: line.sku, nameFaSnapshot: line.nameFa, nameEnSnapshot: line.nameEn,
               partType: line.partType, condition: line.condition, origin: line.origin, quantity: line.quantity,
-              unitPriceMinor: line.unitIrr, lineTotalMinor: line.unitIrr * BigInt(line.quantity),
+              unitPriceMinor: line.unitIrr, lineTotalMinor: lineAmountIrr(line.unitIrr, line.quantity, line.stepMilli),
+              unitName: line.unitName, unitStepMilli: line.stepMilli,
               priceSnapshot: toJsonSafe(line.snapshot) as Prisma.InputJsonValue,
             },
           });

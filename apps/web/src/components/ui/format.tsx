@@ -1,7 +1,7 @@
 'use client';
 
-import type { MoneyDto, PriceView } from '@hedax/contracts';
-import { currencyLabel, formatDateTime, formatMinorNumber, money, toPersianDigits } from '@hedax/domain';
+import type { MoneyDto, PriceView, UnitRef } from '@hedax/contracts';
+import { currencyLabel, formatDateTime, formatMinorNumber, formatQuantity, money, toPersianDigits } from '@hedax/domain';
 import { useLocale, useTranslations } from 'next-intl';
 
 /**
@@ -22,14 +22,34 @@ export function Money({ value, className }: { value: MoneyDto | null | undefined
   );
 }
 
-export function Price({ price, size = 'md' }: { price: PriceView; size?: 'md' | 'lg' }) {
+/** The name of a sales unit in the page's language («دست» / "set"). */
+export function unitName(unit: Pick<UnitRef, 'name' | 'nameEn'> | { name: string; nameEn?: string | null }, locale: string): string {
+  return locale === 'en' ? (unit.nameEn || unit.name) : unit.name;
+}
+
+/** An amount with its unit: «۱٫۵ لیتر», "2 set". */
+export function Quantity({ value, unit, className }: { value: number; unit: { name: string; nameEn?: string | null }; className?: string }) {
+  const locale = useLocale() as 'fa' | 'en';
+  return (
+    <span className={`whitespace-nowrap ${className ?? ''}`}>
+      <span className="num">{formatQuantity(value, locale)}</span> {unitName(unit, locale)}
+    </span>
+  );
+}
+
+/** `unit`: the price is per this unit and shown as «۲۵۰٬۰۰۰ تومان / دست». */
+export function Price({ price, size = 'md', unit }: { price: PriceView; size?: 'md' | 'lg'; unit?: Pick<UnitRef, 'name' | 'nameEn'> }) {
   const t = useTranslations('price');
+  const locale = useLocale();
   if (price.kind === 'inquiry') {
     return <span className="text-sm font-semibold leading-6 text-steel">{price.reason === 'NO_VALID_FX_RATE' ? t('inquiryNoRate') : t('inquiry')}</span>;
   }
   return (
     <span className="flex flex-col gap-0.5">
-      <Money value={price.display} className={size === 'lg' ? 'text-[1.75rem] font-bold leading-tight' : 'text-lg font-bold leading-7'} />
+      <span className="flex flex-wrap items-baseline gap-x-1.5">
+        <Money value={price.display} className={size === 'lg' ? 'text-[1.75rem] font-bold leading-tight' : 'text-lg font-bold leading-7'} />
+        {unit ? <span className={`${size === 'lg' ? 'text-base' : 'text-sm'} font-medium text-steel`} data-testid="price-unit">/ {unitName(unit, locale)}</span> : null}
+      </span>
       {price.displayIsReference ? (
         <span className="text-xs leading-5 text-steel">
           {t('referenceHint')}: <Money value={price.payable} className="font-semibold text-ink" />

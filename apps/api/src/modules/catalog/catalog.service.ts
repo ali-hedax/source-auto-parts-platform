@@ -15,20 +15,26 @@ import { ENV, type Env } from '../../config/env.js';
 import { Prisma, PrismaService } from '../../common/prisma.service.js';
 import { InventoryService } from '../inventory/inventory.service.js';
 import { type CurrentRate, PricingService } from '../pricing/pricing.service.js';
+import { fromSteps, unitRef } from './units.service.js';
+
+/** Largest amount (in the unit) one cart line may hold. */
+export const MAX_LINE_AMOUNT = 999;
 
 const productInclude = (warehouseId: string) =>
   ({
     translations: true,
     category: true,
+    salesUnit: true,
     manufacturerBrand: true,
     vehicleBrands: { include: { vehicleBrand: true } },
+    vehicles: { include: { vehicle: true, model: true } },
     media: { where: { deletedAt: null }, orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }] },
     basePrice: true,
     priceRules: { where: { active: true } },
     inventory: { where: { warehouseId } },
   }) satisfies Prisma.ProductInclude;
 
-type HydratedProduct = Prisma.ProductGetPayload<{ include: ReturnType<typeof productInclude> }>;
+export type HydratedProduct = Prisma.ProductGetPayload<{ include: ReturnType<typeof productInclude> }>;
 
 export interface Viewer {
   approvedGroupId: string | null;
@@ -69,11 +75,27 @@ export class CatalogService {
     return { availability: 'IN_STOCK', available };
   }
 
+  /** «مناسب برای»: active vehicles and models, in the panel's order (vehicle first, then its models). */
+  private fitments(p: HydratedProduct): ProductDetail['fitments'] {
+    return p.vehicles
+      .filter((l) => l.vehicle.active && (!l.model || l.model.active))
+      .sort((a, b) => a.vehicle.sortOrder - b.vehicle.sortOrder || a.vehicle.name.localeCompare(b.vehicle.name, 'fa') || (a.model?.sortOrder ?? -1) - (b.model?.sortOrder ?? -1))
+      .map((l) => ({
+        vehicle: { slug: l.vehicle.slug, name: this.text(l.vehicle.name, l.vehicle.nameEn) },
+        model: l.model ? { slug: l.model.slug, name: this.text(l.model.name, l.model.nameEn) } : null,
+      }));
+  }
+
+  /** What one cart line may hold, in the unit: the available stock, at most MAX_LINE_AMOUNT. */
+  maxOrderAmount(p: HydratedProduct, availableSteps: number): number {
+    return Math.min(fromSteps(Math.max(availableSteps, 0), p.salesUnit), MAX_LINE_AMOUNT);
+  }
+
   toCard(p: HydratedProduct, viewer: Viewer, rate: CurrentRate | null): ProductCard {
     const fa = p.translations.find((t) => t.locale === 'fa');
     const en = p.translations.find((t) => t.locale === 'en');
     const primary = p.media[0];
-    const price = this.pricing.resolve(p.basePrice, p.priceRules, 1, viewer.approvedGroupId, rate);
+    const price = this.pricing.resolve(p.basePrice, p.priceRules, 1, viewer.approvedGroupId, rate, p.salesUnit.stepMilli);
     return {
       id: p.id,
       slug: p.slug,
@@ -87,6 +109,7 @@ export class CatalogService {
       manufacturer: p.manufacturerBrand ? { slug: p.manufacturerBrand.slug, name: this.text(p.manufacturerBrand.nameFa, p.manufacturerBrand.nameEn) } : null,
       primaryImage: primary ? this.mediaView(primary) : null,
       availability: this.availability(p).availability,
+      unit: unitRef(p.salesUnit),
       price: this.pricing.toView(price, viewer.display),
     };
   }
@@ -100,14 +123,14 @@ export class CatalogService {
       ...this.toCard(p, viewer, rate),
       description: fa?.description || en?.description ? this.text(fa?.description, en?.description) : null,
       technicalNotes: fa?.technicalNotes || en?.technicalNotes ? this.text(fa?.technicalNotes, en?.technicalNotes) : null,
-      unit: p.unit,
+      fitments: this.fitments(p),
       packQuantity: p.packQuantity,
       countryOfManufacture: p.countryOfManufacture,
       warranty: fa?.warranty || en?.warranty ? this.text(fa?.warranty, en?.warranty) : null,
       oemCodes: p.oemCodes,
       specs: specs.map((s) => ({ key: s.key, label: this.text(s.labelFa, s.labelEn), value: s.value })),
       images: p.media.map((m) => this.mediaView(m)),
-      maxOrderQuantity: Math.min(available, 999),
+      maxOrderQuantity: this.maxOrderAmount(p, available),
       updatedAt: p.updatedAt.toISOString(),
     };
   }
@@ -146,6 +169,14 @@ export class CatalogService {
     if (query.brand) {
       conditions.push(Prisma.sql`EXISTS (SELECT 1 FROM "product_vehicle_brand" pvb JOIN "vehicle_brand" vb ON vb."id" = pvb."vehicle_brand_id"
         WHERE pvb."product_id" = p."id" AND vb."slug" = ${query.brand})`);
+    }
+    if (query.vehicle) {
+      // A vehicle includes its models; a model also includes parts for the whole vehicle.
+      const modelFilter = query.model
+        ? Prisma.sql`AND (pv."model_id" IS NULL OR pv."model_id" IN (SELECT vm."id" FROM "vehicle_model" vm WHERE vm."vehicle_id" = v."id" AND vm."slug" = ${query.model}))`
+        : Prisma.empty;
+      conditions.push(Prisma.sql`EXISTS (SELECT 1 FROM "product_vehicle" pv JOIN "vehicle" v ON v."id" = pv."vehicle_id"
+        WHERE pv."product_id" = p."id" AND v."slug" = ${query.vehicle} AND v."active" ${modelFilter})`);
     }
     if (query.category) {
       conditions.push(Prisma.sql`c."slug" = ${query.category} OR EXISTS (SELECT 1 FROM "category" pc WHERE pc."id" = c."parent_id" AND pc."slug" = ${query.category})`);

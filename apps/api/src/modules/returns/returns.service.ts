@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { DomainError, type RefundRecord, assertRefundWithinCap, assertTransition, remainingRefundable } from '@hedax/domain';
+import { DomainError, type RefundRecord, assertRefundWithinCap, assertTransition, lineAmountIrr, quantityToSteps, remainingRefundable, stepsToQuantity } from '@hedax/domain';
 import { REFERENCE_PREFIX, humanReference } from '@hedax/domain/server';
 import { AuditService } from '../../common/audit.service.js';
 import { badRequest, conflict, notFound } from '../../common/errors.js';
@@ -15,6 +15,11 @@ import { PaymentProviderRegistry } from '../payments/provider-registry.js';
 
 const asRecords = (rows: ReadonlyArray<{ status: RefundRecord['status']; amountIrrMinor: bigint }>): RefundRecord[] =>
   rows.map((r) => ({ status: r.status, amountIrr: r.amountIrrMinor }));
+
+/** Amounts on returns are in the unit the line was sold in; stored as steps of it. */
+const lineSteps = (amount: number, line: { unitName: string; unitStepMilli: number }, allowZero = false) =>
+  quantityToSteps(amount, { name: line.unitName, allowDecimal: true, stepMilli: line.unitStepMilli }, { allowZero });
+const lineAmount = (steps: number, line: { unitStepMilli: number }) => stepsToQuantity(steps, { stepMilli: line.unitStepMilli });
 
 /**
  * Cancel/return requests are separate from their execution; refunds are
@@ -40,12 +45,15 @@ export class ReturnsService {
     if (!order && !procurement) throw notFound();
     const open = await this.prisma.returnRequest.count({ where: { ...(order ? { orderId: order.id } : { procurementId: body.orderId }), status: { in: ['REQUESTED', 'APPROVED', 'ITEMS_RECEIVED'] } } });
     if (open) throw conflict('REQUEST_OPEN', 'There is already an open request for this order');
+    const stepsByItem = new Map<string, number>();
     if (body.kind === 'RETURN') {
       if (!order) throw badRequest('RETURN_NOT_SUPPORTED', 'Use the conversation for custom-sourced orders');
       if (order.status !== 'DELIVERED') throw conflict('NOT_DELIVERED', 'Returns are possible after delivery');
       for (const i of body.items) {
         const line = order.items.find((x) => x.id === i.orderItemId);
-        if (!line || i.quantity > line.quantity - line.returnedQuantity) throw badRequest('INVALID_RETURN_QUANTITY');
+        const steps = line ? lineSteps(i.quantity, line) : 0;
+        if (!line || steps > line.quantity - line.returnedQuantity) throw badRequest('INVALID_RETURN_QUANTITY');
+        stepsByItem.set(i.orderItemId, steps);
       }
       if (!body.items.length) throw badRequest('ITEMS_REQUIRED');
     }
@@ -55,7 +63,7 @@ export class ReturnsService {
         data: {
           reference: humanReference(REFERENCE_PREFIX.returnRequest), customerId: actor.userId, kind: body.kind, reason: body.reason,
           ...(order ? { orderId: order.id } : { procurementId: body.orderId }),
-          items: { create: body.items.map((i) => ({ orderItemId: i.orderItemId, quantity: i.quantity })) },
+          items: { create: body.items.map((i) => ({ orderItemId: i.orderItemId, quantity: stepsByItem.get(i.orderItemId) ?? i.quantity })) },
         },
       });
       if (body.attachmentIds.length) await tx.attachment.updateMany({ where: { id: { in: body.attachmentIds } }, data: { subjectType: 'RETURN_REQUEST', subjectId: rr.id } });
@@ -83,7 +91,7 @@ export class ReturnsService {
     const rows = await this.prisma.returnRequest.findMany({
       orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
       take: 200,
-      include: { customer: { select: { fullName: true } }, items: { include: { orderItem: { select: { nameFaSnapshot: true, unitPriceMinor: true } } } }, refunds: true },
+      include: { customer: { select: { fullName: true } }, items: { include: { orderItem: { select: { nameFaSnapshot: true, unitPriceMinor: true, unitName: true, unitStepMilli: true } } } }, refunds: true },
     });
     const orderIds = rows.flatMap((r) => (r.orderId ? [r.orderId] : []));
     const procurementIds = rows.flatMap((r) => (r.procurementId ? [r.procurementId] : []));
@@ -95,13 +103,14 @@ export class ReturnsService {
       const payment = payments.find((p) => (r.orderId && p.orderId === r.orderId) || (r.procurementId && p.procurementId === r.procurementId)) ?? null;
       const captured = payment ? (payment.verifiedAmountIrrMinor ?? payment.amountIrrMinor) : 0n;
       const refundable = payment ? remainingRefundable(captured, asRecords(payment.refunds)) : 0n;
-      const itemsValue = r.items.reduce((sum, i) => sum + BigInt(r.status === 'ITEMS_RECEIVED' ? i.receivedQuantity : i.quantity) * i.orderItem.unitPriceMinor, 0n);
+      const itemsValue = r.items.reduce((sum, i) => sum + lineAmountIrr(i.orderItem.unitPriceMinor, r.status === 'ITEMS_RECEIVED' ? i.receivedQuantity : i.quantity, i.orderItem.unitStepMilli), 0n);
       const suggested = r.kind === 'RETURN' ? (itemsValue < refundable ? itemsValue : refundable) : refundable;
       return {
         id: r.id, reference: r.reference, kind: r.kind, status: r.status, reason: r.reason, customer: r.customer.fullName, orderId: r.orderId, procurementId: r.procurementId,
         items: r.items.map((i) => ({
           id: i.id, orderItemId: i.orderItemId, name: i.orderItem.nameFaSnapshot, unitPrice: irr(i.orderItem.unitPriceMinor),
-          quantity: i.quantity, receivedQuantity: i.receivedQuantity, restockedQuantity: i.restockedQuantity,
+          unit: i.orderItem.unitName,
+          quantity: lineAmount(i.quantity, i.orderItem), receivedQuantity: lineAmount(i.receivedQuantity, i.orderItem), restockedQuantity: lineAmount(i.restockedQuantity, i.orderItem),
         })),
         payment: payment ? { id: payment.id, reference: payment.reference, captured: irr(captured), refundable: irr(refundable) } : null,
         refunds: r.refunds.map((f) => ({ reference: f.reference, status: f.status, amount: irr(f.amountIrrMinor) })),
@@ -131,9 +140,11 @@ export class ReturnsService {
       const r = await tx.returnRequest.findUnique({ where: { id }, include: { items: { include: { orderItem: true } } } });
       if (!r) throw notFound();
       assertTransition('returnRequest', r.status, 'ITEMS_RECEIVED');
-      for (const input of items) {
-        const item = r.items.find((i) => i.id === input.itemId);
-        if (!item || input.receivedQuantity > item.quantity || input.restockQuantity > input.receivedQuantity) throw badRequest('INVALID_QUANTITY');
+      for (const amounts of items) {
+        const item = r.items.find((i) => i.id === amounts.itemId);
+        if (!item) throw badRequest('INVALID_QUANTITY');
+        const input = { ...amounts, receivedQuantity: lineSteps(amounts.receivedQuantity, item.orderItem, true), restockQuantity: lineSteps(amounts.restockQuantity, item.orderItem, true) };
+        if (input.receivedQuantity > item.quantity || input.restockQuantity > input.receivedQuantity) throw badRequest('INVALID_QUANTITY');
         await tx.returnRequestItem.update({ where: { id: item.id }, data: { receivedQuantity: input.receivedQuantity, restockedQuantity: input.restockQuantity, inspectionNote: input.inspectionNote ?? null } });
         await tx.orderItem.update({ where: { id: item.orderItemId }, data: { returnedQuantity: { increment: input.receivedQuantity } } });
         if (input.restockQuantity > 0) {

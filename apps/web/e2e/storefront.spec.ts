@@ -176,9 +176,30 @@ test.describe('layout, SEO and accessibility', () => {
     await expect(dialog).toBeHidden();
     await row.getByRole('button', { name: /عملیات برای کارمند کاتالوگ/ }).click();
     const menu = page.getByRole('menu');
-    for (const item of ['غیرفعال کردن حساب', 'ریست Authenticator (گوشی جدید)', 'حذف کارمند']) await expect(menu.getByRole('menuitem', { name: item })).toBeVisible();
-    await menu.getByRole('menuitem', { name: 'حذف کارمند' }).click();
-    await expect(page.getByRole('dialog').getByText(/مطمئن هستید/)).toBeVisible();
+    for (const item of ['غیرفعال کردن حساب', 'ریست Authenticator (گوشی جدید)', 'حذف (انتقال به سطل زباله)']) await expect(menu.getByRole('menuitem', { name: item })).toBeVisible();
+    await menu.getByRole('menuitem', { name: 'حذف (انتقال به سطل زباله)' }).click();
+    await expect(page.getByRole('dialog').getByText(/به سطل زباله منتقل می‌شود/)).toBeVisible();
+    await page.keyboard.press('Escape');
+
+    // The trash tab with its count: name, e-mail, role, date, by whom, days left; restore and delete for good.
+    const trashTab = page.getByRole('tab', { name: /سطل زباله/ });
+    await expect(trashTab).toContainText('۱');
+    await trashTab.click();
+    const trash = page.getByRole('table', { name: 'سطل زباله' });
+    for (const header of ['نام', 'ایمیل', 'نقش', 'تاریخ حذف', 'حذف‌شده توسط', 'روزهای باقی‌مانده']) await expect(trash.getByRole('columnheader', { name: header, exact: true })).toBeVisible();
+    const trashed = trash.getByRole('row', { name: /کارمند فروش/ });
+    await expect(trashed.getByText('۲۲ روز')).toBeVisible();
+    await noHorizontalScroll(page);
+    await trashed.getByRole('button', { name: 'حذف دائمی' }).click();
+    const purge = page.getByRole('dialog', { name: /حذف دائمی/ });
+    const confirm = purge.getByRole('button', { name: 'حذف برای همیشه' });
+    await expect(confirm).toBeDisabled();
+    await purge.locator('#pg-name').fill('كارمند فروش');
+    await purge.locator('#pg-code').fill('123456');
+    await expect(confirm).toBeEnabled();
+    await page.keyboard.press('Escape');
+    await trashed.getByRole('button', { name: 'بازگردانی' }).click();
+    await expect(page.getByRole('dialog').getByText(/Authenticator او ریست می‌شود/)).toBeVisible();
   });
 
   // A30 / §15: the browser's text size at 200% (rem-based layout, so the root font size is what changes).

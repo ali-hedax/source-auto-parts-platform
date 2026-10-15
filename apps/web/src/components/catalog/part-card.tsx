@@ -56,7 +56,7 @@ export async function PartCard({ product, priority = false }: { product: Product
             {product.origin === 'IMPORTED' ? <Badge tone="info">{t('origin.IMPORTED')}</Badge> : null}
           </div>
           <div className="mt-auto border-t border-line-soft pt-2.5 sm:pt-3">
-            <Price price={product.price} />
+            <Price price={product.price} unit={product.unit} />
           </div>
         </div>
       </Link>

@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Headers, Module, Param, ParseUUIDPipe, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { IDEMPOTENCY_HEADER, refundCreateSchema, returnDecisionSchema, returnRequestSchema } from '@hedax/contracts';
+import { unitQuantityOrZeroSchema } from '@hedax/contracts';
 import { z } from 'zod';
 import { CurrentActor, CustomerOnly, RequirePermissions } from '../../common/auth/decorators.js';
 import type { Actor } from '../../common/request-context.js';
@@ -11,7 +12,7 @@ import { PaymentsModule } from '../payments/payments.module.js';
 import { ReturnsService } from './returns.service.js';
 
 const receiveSchema = z.object({
-  items: z.array(z.object({ itemId: z.uuid(), receivedQuantity: z.number().int().min(0), restockQuantity: z.number().int().min(0), inspectionNote: z.string().max(1000).optional() })).min(1),
+  items: z.array(z.object({ itemId: z.uuid(), receivedQuantity: unitQuantityOrZeroSchema, restockQuantity: unitQuantityOrZeroSchema, inspectionNote: z.string().max(1000).optional() })).min(1),
 });
 const refundDecisionSchema = z.object({ decision: z.enum(['APPROVED', 'REJECTED']), reason: z.string().max(1000).optional() });
 const executeSchema = z.object({ manualReference: z.string().trim().min(4).max(120).optional() });

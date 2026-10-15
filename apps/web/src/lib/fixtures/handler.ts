@@ -14,6 +14,8 @@ import {
   type FixtureProduct,
 } from './data';
 import siteContentJson from './site-content.json';
+import { FIXTURE_IMPORT_ID, fixtureImportJob, fixtureImportList } from './imports';
+import { fixtureAdminFitment, fixtureAdminVehicles, fixtureFitmentViews, fixtureFits, fixturePublicVehicles, fixtureVehicleOptions } from './vehicles';
 
 export interface FixtureResponse {
   status: number;
@@ -45,15 +47,31 @@ function fixtureStaff() {
   const now = Date.now();
   return {
     staff: [
-      { id: 'fixture-staff', email: 'owner@example.test', fullName: 'مالک نمونه', phone: null, status: 'ACTIVE', mfaEnabled: true, lastLoginAt: new Date(now).toISOString(), roles: [role('owner')], isSelf: true, canErase: false },
-      { id: 'fixture-staff-2', email: 'catalog@example.test', fullName: 'کارمند کاتالوگ', phone: '+98 912 000 0000', status: 'ACTIVE', mfaEnabled: true, lastLoginAt: new Date(now - 86_400_000).toISOString(), roles: [role('catalog_warehouse')], isSelf: false, canErase: true },
-      { id: 'fixture-staff-3', email: 'finance@example.test', fullName: 'کارمند مالی', phone: null, status: 'SUSPENDED', mfaEnabled: true, lastLoginAt: null, roles: [role('finance')], isSelf: false, canErase: true },
+      { id: 'fixture-staff', email: 'owner@example.test', fullName: 'مالک نمونه', phone: null, status: 'ACTIVE', mfaEnabled: true, lastLoginAt: new Date(now).toISOString(), roles: [role('owner')], isSelf: true, canTrash: false },
+      { id: 'fixture-staff-2', email: 'catalog@example.test', fullName: 'کارمند کاتالوگ', phone: '+98 912 000 0000', status: 'ACTIVE', mfaEnabled: true, lastLoginAt: new Date(now - 86_400_000).toISOString(), roles: [role('catalog_warehouse')], isSelf: false, canTrash: true },
+      { id: 'fixture-staff-3', email: 'finance@example.test', fullName: 'کارمند مالی', phone: null, status: 'SUSPENDED', mfaEnabled: true, lastLoginAt: null, roles: [role('finance')], isSelf: false, canTrash: true },
     ],
     invitations: [
       { id: 'fixture-invitation', email: 'support@example.test', fullName: 'کارمند نمونه', phone: '+98 21 0000 0000', roles: [role('support')], status: 'SENT', createdAt: new Date(now).toISOString(), expiresAt: new Date(now + 72 * 3_600_000).toISOString(), acceptedAt: null, sentAt: new Date(now).toISOString(), lastError: null },
       { id: 'fixture-invitation-2', email: 'old@example.test', fullName: 'دعوت قدیمی', phone: null, roles: [role('sales_manager')], status: 'EXPIRED', createdAt: new Date(now - 5 * 86_400_000).toISOString(), expiresAt: new Date(now - 2 * 86_400_000).toISOString(), acceptedAt: null, sentAt: null, lastError: null },
     ],
     mailConfigured: true,
+    trashCount: 1,
+  };
+}
+
+/** Trash tab preview: one staff member moved to the trash eight days ago. */
+function fixtureStaffTrash() {
+  const now = Date.now();
+  const role = DEFAULT_ROLES.find((x) => x.key === 'sales_manager')!;
+  const trashedAt = new Date(now - 8 * 86_400_000);
+  return {
+    retentionDays: 30,
+    items: [{
+      entryId: 'fixture-trash-1', userId: 'fixture-staff-4', label: 'کارمند فروش', fullName: 'کارمند فروش', email: 'sales@example.test',
+      roles: [{ id: `r-${role.key}`, nameFa: role.nameFa, nameEn: role.nameEn, isOwner: false }],
+      trashedAt: trashedAt.toISOString(), trashedBy: 'مالک نمونه', purgeAt: new Date(trashedAt.getTime() + 30 * 86_400_000).toISOString(), daysLeft: 22,
+    }],
   };
 }
 
@@ -75,6 +93,14 @@ function priceView(p: FixtureProduct, qty: number, display: 'IRR' | 'AED'): Pric
   return { kind: 'price', payable: { currency: 'IRR', amountMinor: r.unitPayableIrr.toString() }, display: { currency: d.currency, amountMinor: d.minor.toString() }, displayIsReference: d.isReference };
 }
 
+/** Every sample part is sold per piece («عدد»). */
+const FIXTURE_UNIT = { name: 'عدد', nameEn: 'pc', allowDecimal: false, step: 1 };
+const FIXTURE_UNITS = [
+  { id: 'unit-piece', ...FIXTURE_UNIT, active: true, sortOrder: 1, productCount: 9 },
+  { id: 'unit-set', name: 'دست', nameEn: 'set', allowDecimal: false, step: 1, active: true, sortOrder: 2, productCount: 0 },
+  { id: 'unit-litre', name: 'لیتر', nameEn: 'L', allowDecimal: true, step: 0.5, active: true, sortOrder: 3, productCount: 0 },
+];
+
 function card(p: FixtureProduct, display: 'IRR' | 'AED'): ProductCard {
   const available = p.onHand - p.reserved;
   const cat = fixtureCategories.find((c) => c.code === p.category);
@@ -85,6 +111,7 @@ function card(p: FixtureProduct, display: 'IRR' | 'AED'): ProductCard {
     manufacturer: p.maker ? { slug: p.maker.slug, name: { fa: p.maker.fa, en: p.maker.en } } : null,
     primaryImage: null,
     availability: available <= 0 ? 'OUT_OF_STOCK' : available <= 2 ? 'LOW_STOCK' : 'IN_STOCK',
+    unit: FIXTURE_UNIT,
     price: priceView(p, 1, display),
   };
 }
@@ -93,13 +120,15 @@ function detail(p: FixtureProduct, display: 'IRR' | 'AED'): ProductDetail {
   return {
     ...card(p, display),
     description: p.descriptionFa ? { fa: p.descriptionFa, en: p.descriptionEn ?? null } : null,
-    technicalNotes: null, unit: 'عدد', packQuantity: 1, countryOfManufacture: null, warranty: null, oemCodes: [], specs: [], images: [],
+    technicalNotes: null, fitments: fixtureFitmentViews(p.sku), packQuantity: 1, countryOfManufacture: null, warranty: null, oemCodes: [], specs: [], images: [],
     maxOrderQuantity: Math.max(0, Math.min(p.onHand - p.reserved, 999)), updatedAt: '2026-09-29T10:00:00.000Z',
   };
 }
 
 function matches(p: FixtureProduct, q: string): boolean {
-  const doc = normalizeSearchText([p.fa, p.en ?? '', ...p.aliases, p.sku].join(' '));
+  // Like the API: names, aliases, SKU and the vehicles the part fits («لنت دنا»).
+  const fits = fixtureFitmentViews(p.sku).flatMap((f) => [f.vehicle.name.fa, f.vehicle.name.en ?? '', f.model ? `${f.vehicle.name.fa} ${f.model.name.fa}` : '']);
+  const doc = normalizeSearchText([p.fa, p.en ?? '', ...p.aliases, p.sku, ...fits].join(' '));
   const tokens = searchTokens(q);
   return (tokens.length > 0 && tokens.every((t) => doc.includes(t))) || doc.replace(/ /g, '').includes(compactSearchText(q));
 }
@@ -111,6 +140,8 @@ function list(params: URLSearchParams, forceImported: boolean): SearchResult {
   if (q) items = items.filter((p) => matches(p, q));
   const brand = params.get('brand');
   if (brand) items = items.filter((p) => fixtureBrands.find((b) => b.slug === brand && p.brands.includes(b.code)));
+  const vehicle = params.get('vehicle');
+  if (vehicle) items = items.filter((p) => fixtureFits(p.sku, vehicle, params.get('model')));
   const category = params.get('category');
   if (category) items = items.filter((p) => fixtureCategories.find((c) => c.slug === category)?.code === p.category);
   for (const key of ['partType', 'condition', 'origin'] as const) {
@@ -158,7 +189,7 @@ function cartView(cartId: string | undefined, display: 'IRR' | 'AED'): CartView 
     const available = p.onHand - p.reserved;
     return {
       id: `${cartId}:${productId}`, productId, slug: p.slug, sku: p.sku, name: { fa: p.fa, en: p.en }, imageUrl: null, quantity,
-      maxOrderQuantity: Math.min(available, 999), unitPrice: price,
+      maxOrderQuantity: Math.min(available, 999), unit: FIXTURE_UNIT, unitPrice: price,
       lineTotalPayableIrr: { currency: 'IRR' as const, amountMinor: (unit * BigInt(quantity)).toString() },
       problems: (available <= 0 ? ['OUT_OF_STOCK'] : quantity > available ? ['QUANTITY_REDUCED'] : []) as CartView['lines'][number]['problems'],
     };
@@ -192,6 +223,11 @@ export async function handleFixture(method: string, pathWithQuery: string, rawBo
   }
   if (route === 'GET /catalog/categories') return ok(fixtureCategories);
   if (route === 'GET /catalog/vehicle-brands') return ok(fixtureBrands);
+  if (route === 'GET /catalog/vehicles') return ok(fixturePublicVehicles());
+  if ((m = /^GET \/catalog\/vehicles\/([^/]+)$/.exec(route))) {
+    const v = fixturePublicVehicles().find((x) => x.slug === decodeURIComponent(m![1] ?? ''));
+    return v ? ok(v) : err(404, 'NOT_FOUND');
+  }
   if (route === 'GET /catalog/sitemap') return ok(fixtureProducts.map((p) => ({ slug: p.slug, updatedAt: '2026-09-29T10:00:00.000Z' })));
   if (route === 'GET /exchange-rates/current') return ok({ irrPerAed: FIXTURE_RATE.irrPerAed, effectiveFrom: FIXTURE_RATE.effectiveFrom });
   if (route === 'GET /site/contact') return ok({ phone: null, email: null, address: { fa: null, en: null }, workingHours: { fa: null, en: null } });
@@ -306,14 +342,33 @@ export async function handleFixture(method: string, pathWithQuery: string, rawBo
     if (path === '/admin/products') {
       return ok({ page: 1, pageSize: 50, total: fixtureProducts.length, items: fixtureProducts.map((p, i) => ({
         id: p.id, sku: p.sku, nameFa: p.fa, nameEn: p.en, categoryName: fixtureCategories.find((c) => c.code === p.category)?.name.fa ?? null, published: p.published, archived: !!p.archived,
-        basePrice: { currency: p.currency, amountMinor: p.price.toString() }, priceSource: p.manualIrr ? 'PUBLIC:MANUAL_IRR' : p.currency === 'AED' ? 'PUBLIC:CONVERTED_FROM_AED' : 'PUBLIC:BASE_IRR',
+        basePrice: { currency: p.currency, amountMinor: p.price.toString() }, unit: FIXTURE_UNIT, priceSource: p.manualIrr ? 'PUBLIC:MANUAL_IRR' : p.currency === 'AED' ? 'PUBLIC:CONVERTED_FROM_AED' : 'PUBLIC:BASE_IRR',
         onHand: p.onHand, reserved: p.reserved, available: p.onHand - p.reserved, lowStockThreshold: 2, version: i, updatedAt: '2026-09-29T10:00:00.000Z',
       })) });
     }
     if (path === '/admin/inventory') {
-      return ok({ page: 1, pageSize: 50, total: fixtureProducts.length, items: fixtureProducts.map((p, i) => ({ productId: p.id, sku: p.sku, nameFa: p.fa, onHand: p.onHand, reserved: p.reserved, available: p.onHand - p.reserved, lowStockThreshold: 2, isLow: p.onHand - p.reserved <= 2, version: i, updatedAt: '2026-09-29T10:00:00.000Z' })) });
+      return ok({ page: 1, pageSize: 50, total: fixtureProducts.length, items: fixtureProducts.map((p, i) => ({ productId: p.id, sku: p.sku, nameFa: p.fa, unit: FIXTURE_UNIT, onHand: p.onHand, reserved: p.reserved, available: p.onHand - p.reserved, lowStockThreshold: 2, isLow: p.onHand - p.reserved <= 2, version: i, updatedAt: '2026-09-29T10:00:00.000Z' })) });
     }
-    if (path === '/admin/taxonomy') return ok({ categories: fixtureCategories.map((c, i) => ({ id: `cat-${i}`, code: c.code, slug: c.slug, nameFa: c.name.fa, nameEn: c.name.en, active: true })), vehicleBrands: fixtureBrands.map((b, i) => ({ id: `vb-${i}`, code: b.code, slug: b.slug, nameFa: b.name.fa, nameEn: b.name.en, isFeatured: true, active: true })), manufacturers: [], customerGroups: [{ id: 'g1', key: 'workshop', nameFa: 'تعمیرگاه / مشتری تجاری', nameEn: 'Workshop / business' }, { id: 'g2', key: 'wholesale', nameFa: 'عمده‌فروش', nameEn: 'Wholesaler' }] });
+    if (path === '/admin/units') return ok(FIXTURE_UNITS);
+    if (path === '/admin/imports') return ok(fixtureImportList());
+    if (path === `/admin/imports/${FIXTURE_IMPORT_ID}`) return ok(fixtureImportJob());
+    if (path === '/admin/vehicles') return ok(fixtureAdminVehicles());
+    if (path === '/admin/vehicles/options') return ok(fixtureVehicleOptions());
+    if ((m = /^\/admin\/products\/([^/]+)$/.exec(path))) {
+      const p = fixtureProducts.find((x) => x.id === m![1]);
+      if (!p) return err(404, 'NOT_FOUND');
+      return ok({
+        id: p.id, sku: p.sku, slug: p.slug, nameFa: p.fa, nameEn: p.en, aliases: p.aliases, descriptionFa: p.descriptionFa ?? null, descriptionEn: p.descriptionEn ?? null,
+        warrantyFa: null, warrantyEn: null, categoryId: `cat-${Math.max(0, fixtureCategories.findIndex((c) => c.code === p.category))}`, manufacturerBrandId: null,
+        vehicleBrandIds: fixtureBrands.flatMap((b, i) => (p.brands.includes(b.code) ? [`vb-${i}`] : [])), vehicles: fixtureAdminFitment(p.sku),
+        partType: p.partType, condition: p.condition, origin: p.origin, countryOfManufacture: null, unitId: 'unit-piece', unit: { id: 'unit-piece', ...FIXTURE_UNIT, active: true },
+        packQuantity: 1, oemCodes: [], specs: [], published: p.published, archived: !!p.archived, isSellable: true, version: 1,
+        basePrice: { currency: p.currency, amountMinor: p.price.toString(), manualIrr: p.manualIrr?.toString() ?? null, manualAed: null },
+        priceExplanation: { source: p.currency === 'AED' ? 'PUBLIC:CONVERTED_FROM_AED' : 'PUBLIC:BASE_IRR', unitPayableIrr: null, warnings: [] },
+        priceRules: [], inventory: { onHand: p.onHand, reserved: p.reserved, version: 1, lowStockThreshold: 2 }, media: [],
+      });
+    }
+    if (path === '/admin/taxonomy') return ok({ categories: fixtureCategories.map((c, i) => ({ id: `cat-${i}`, code: c.code, slug: c.slug, nameFa: c.name.fa, nameEn: c.name.en, active: true })), vehicleBrands: fixtureBrands.map((b, i) => ({ id: `vb-${i}`, code: b.code, slug: b.slug, nameFa: b.name.fa, nameEn: b.name.en, isFeatured: true, active: true })), manufacturers: [], units: FIXTURE_UNITS, customerGroups: [{ id: 'g1', key: 'workshop', nameFa: 'تعمیرگاه / مشتری تجاری', nameEn: 'Workshop / business' }, { id: 'g2', key: 'wholesale', nameFa: 'عمده‌فروش', nameEn: 'Wholesaler' }] });
     if (path === '/admin/sourcing-requests') return ok([{ id: fixtureRequest.id, reference: fixtureRequest.reference, title: fixtureRequest.title, status: fixtureRequest.status, urgency: 'NORMAL', customer: 'مشتری نمونه', assignee: 'کارشناس', itemCount: 2, createdAt: fixtureRequest.createdAt, version: 3 }]);
     if (path === `/admin/sourcing-requests/${fixtureRequest.id}`) return ok({ ...fixtureRequest, version: 3, customer: { id: 'fixture-customer', fullName: 'مشتری نمونه' }, note: null, delivery: { province: 'تهران', city: 'تهران' }, itemsDetail: [], files: [] });
     if (path === '/admin/quotes') {
@@ -331,6 +386,8 @@ export async function handleFixture(method: string, pathWithQuery: string, rawBo
     if (path === '/admin/refunds' || path === '/admin/returns' || path === '/admin/audit') return ok([]);
     if (path === '/admin/customers') return ok([{ id: 'fixture-customer', fullName: 'مشتری نمونه', mobile: '+98912***0000', status: 'ACTIVE', customerType: 'CONSUMER', groupStatus: 'PENDING', requestedType: 'WORKSHOP', businessName: 'تعمیرگاه نمونه', group: null, orders: 2, requests: 1, createdAt: fixtureOrders[0]!.createdAt }]);
     if (path === '/admin/staff') return ok(fixtureStaff());
+    if (path === '/admin/staff/trash') return ok(fixtureStaffTrash());
+    if (path === '/admin/staff/options') return ok(fixtureStaff().staff.filter((s) => s.status === 'ACTIVE').map((s) => ({ id: s.id, fullName: s.fullName, email: s.email })));
     if (path === '/admin/content') return ok(Object.fromEntries(Object.entries(fixtureContent.sections).map(([k, v]) => [k, { value: v, version: 1, updatedAt: FIXTURE_CONTENT_DATE }])));
     if (path === '/admin/content/faq') return ok(fixtureContent.faq.map((f): FaqItemView => ({ id: f.id, question: f.question, answer: f.answer, visible: f.visible, sortOrder: f.sortOrder, updatedAt: FIXTURE_CONTENT_DATE })));
     if (path === '/admin/content/pages') return ok(fixtureContent.pages.map(fixturePageView));
@@ -341,7 +398,7 @@ export async function handleFixture(method: string, pathWithQuery: string, rawBo
     if (path === '/admin/mail/status') return ok({ provider: 'dev-log', configured: true, from: 'info@example.test', lastTest: null });
     if (path === '/admin/roles') return ok(DEFAULT_ROLES.map((r) => ({ id: `r-${r.key}`, key: r.key, nameFa: r.nameFa, nameEn: r.nameEn, isSystem: true, isOwner: r.isOwner, requiresMfa: r.requiresMfa, permissions: [...r.permissions], members: r.isOwner ? 1 : 0, version: 0 })));
     if (path === '/admin/exchange-rates') return ok([{ id: FIXTURE_RATE.id, irrPerAed: FIXTURE_RATE.irrPerAed, effectiveFrom: FIXTURE_RATE.effectiveFrom, note: 'نرخ نمونه — نرخ بازار نیست', createdBy: 'مالک نمونه', createdAt: FIXTURE_RATE.effectiveFrom }]);
-    if (path === '/admin/settings') return ok({ reservationMinutes: 15, quoteValidityHoursDefault: 24, taxRateBasisPoints: null, taxBase: 'ITEMS', manualBankTransferEnabled: false, version: 0 });
+    if (path === '/admin/settings') return ok({ reservationMinutes: 15, quoteValidityHoursDefault: 24, taxRateBasisPoints: null, taxBase: 'ITEMS', manualBankTransferEnabled: false, smsDisabledTypes: [], trashRetentionDays: 30, version: 0 });
     if (path === '/admin/shipping-methods') return ok([]);
     if (path === '/admin/policies') return ok([]);
     if (path === '/admin/calendars') return ok([{ id: 'cal1', name: 'تقویم کاری پیش‌فرض', timeZone: 'Asia/Tehran', weekendDays: [5], holidays: [], isDefault: true, version: 0 }]);

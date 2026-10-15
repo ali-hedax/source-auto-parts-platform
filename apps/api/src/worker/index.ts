@@ -12,6 +12,7 @@ import { OrdersModule } from '../modules/orders/orders.module.js';
 import { PaymentsModule } from '../modules/payments/payments.module.js';
 import { QuoteDocumentService } from '../modules/sourcing/quote-document.js';
 import { SourcingModule } from '../modules/sourcing/sourcing.module.js';
+import { TrashModule } from '../modules/trash/trash.module.js';
 import { OutboxDispatcher } from './outbox-dispatcher.js';
 import { MessengerBotsModule } from '../modules/messenger-bots/messenger-bots.module.js';
 import { MessengerBotsService } from '../modules/messenger-bots/messenger-bots.service.js';
@@ -22,7 +23,7 @@ import { MessengerBotsService } from '../modules/messenger-bots/messenger-bots.s
  * PDFs, reconciliation) never run inside a web request.
  */
 @Module({
-  imports: [CommonModule, MailModule, PaymentsModule, OrdersModule, SourcingModule, AttachmentsModule, ImportsModule, NotificationsModule, MessengerBotsModule],
+  imports: [CommonModule, MailModule, PaymentsModule, OrdersModule, SourcingModule, AttachmentsModule, ImportsModule, NotificationsModule, TrashModule, MessengerBotsModule],
   providers: [OutboxDispatcher, QuoteDocumentService],
 })
 export class WorkerModule {}

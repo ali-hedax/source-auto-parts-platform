@@ -21,6 +21,7 @@ export async function SiteHeader() {
     { href: '/parts', label: t('nav.parts') },
     { href: '/imported-parts', label: t('nav.imported') },
     { href: '/brands', label: t('nav.brands') },
+    { href: '/cars', label: t('nav.cars') },
     { href: '/request-part', label: t('nav.requestPart') },
   ] as const;
   // Logo, its alt text and the site title come from site content → general.

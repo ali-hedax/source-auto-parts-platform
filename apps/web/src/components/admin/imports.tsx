@@ -25,6 +25,7 @@ interface Taxonomy {
   categories: Array<{ id: string; code: string; nameFa: string; nameEn: string | null; active: boolean }>;
   vehicleBrands: Array<{ id: string; code: string; nameFa: string; nameEn: string | null; active: boolean }>;
   manufacturers: Array<{ id: string; nameFa: string; nameEn: string | null; active: boolean }>;
+  units: Array<{ id: string; name: string; nameEn: string | null; active: boolean }>;
 }
 
 function useNumber(): (n: number) => string {
@@ -536,7 +537,10 @@ function MappingSection({ job, onSaved }: { job: ImportJobView; onSaved: () => v
             ) : null}
             {!has('unit') ? (
               <Field id="imp-d-unit" label={l('واحد فروش (اختیاری)', 'Sales unit (optional)')} hint={l('خالی: «عدد».', 'Empty: “عدد” (piece).')}>
-                <Input id="imp-d-unit" value={form.defaults.unit} maxLength={30} onChange={(e) => setDefault('unit', e.target.value)} />
+                <Select id="imp-d-unit" value={form.defaults.unit} onChange={(e) => setDefault('unit', e.target.value)}>
+                  <option value="">{l('عدد (پیش‌فرض)', 'Piece (default)')}</option>
+                  {tax?.units.filter((u) => u.active).map((u) => <option key={u.id} value={u.name}>{l(u.name, u.nameEn || u.name)}</option>)}
+                </Select>
               </Field>
             ) : null}
             {!has('on_hand') ? (
@@ -796,6 +800,11 @@ function CommitSection({ job: j, me, onDone }: { job: ImportJobView; me: MeView 
   const s = j.summary as NonNullable<ImportJobView['summary']>;
   const [skip, setSkip] = useState(false);
   const [repeat, setRepeat] = useState(false);
+  // «کاربرد در خودرو»: new vehicles/models are created only when confirmed; similar names are linked only when ticked.
+  const fleet = s.vehicles;
+  const hasNew = !!fleet && fleet.newVehicles.length + fleet.newModels.length > 0;
+  const [createVehicles, setCreateVehicles] = useState(true);
+  const [linkSimilar, setLinkSimilar] = useState<string[]>(() => (fleet?.similar ?? []).map((x) => x.text));
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -810,7 +819,7 @@ function CommitSection({ job: j, me, onDone }: { job: ImportJobView; me: MeView 
     setBusy(true);
     setError(null);
     try {
-      await api(`/admin/imports/${j.jobId}/commit`, { method: 'POST', body: { planChecksum: j.planChecksum, skipErrorRows: skip, confirmRepeatAdd: repeat } });
+      await api(`/admin/imports/${j.jobId}/commit`, { method: 'POST', body: { planChecksum: j.planChecksum, skipErrorRows: skip, confirmRepeatAdd: repeat, createVehicles: hasNew && createVehicles, linkSimilar } });
       setConfirming(false);
       onDone();
     } catch (e) {
@@ -844,9 +853,38 @@ function CommitSection({ job: j, me, onDone }: { job: ImportJobView; me: MeView 
               <Checkbox id="imp-repeat" className="mt-2" label={l('می‌دانم؛ دوباره به موجودی افزوده شود', 'I know; add it to the stock again')} checked={repeat} onChange={(e) => setRepeat(e.target.checked)} />
             </Alert>
           ) : null}
+          {fleet && (hasNew || fleet.similar.length) ? (
+            <div className="mb-4 flex flex-col gap-3" data-testid="imp-vehicles">
+              {hasNew ? (
+                <Alert tone="info" title={l('خودروهای تازه در ستون «کاربرد در خودرو»', 'New vehicles in the vehicle fitment column')}>
+                  <ul className="mt-1 list-disc ps-5 text-sm leading-7">
+                    {fleet.newVehicles.map((v) => <li key={v.name}>{v.name} <span className="text-steel">({l('ردیف', 'row')} {v.rows.map((r) => num(r)).join('، ')})</span></li>)}
+                    {fleet.newModels.map((m) => <li key={`${m.vehicle}|${m.name}`}>{m.vehicle} ← {m.name} <span className="text-steel">({l('مدل تازه، ردیف', 'new model, row')} {m.rows.map((r) => num(r)).join('، ')})</span></li>)}
+                  </ul>
+                  <Checkbox id="imp-create-vehicles" className="mt-2" label={l('این خودروها و مدل‌ها به فهرست خودروها اضافه شوند', 'Add these vehicles and models to the vehicle list')} checked={createVehicles} onChange={(e) => setCreateVehicles(e.target.checked)} />
+                  {!createVehicles ? <p className="text-sm text-steel">{l('بدون این تأیید، این موارد ساخته و به کالاها وصل نمی‌شوند.', 'Without this, these are neither created nor linked.')}</p> : null}
+                </Alert>
+              ) : null}
+              {fleet.similar.length ? (
+                <Alert tone="warning" title={l('موارد مشکوک به تکرار: نام خیلی شبیه خودروی موجود', 'Possible duplicates: very similar to an existing vehicle')}>
+                  <p className="text-sm">{l('این نام‌ها ساخته نمی‌شوند. اگر منظور همان خودروی موجود است، تیک «اتصال» را نگه دارید.', 'These names are never created. Keep «link» ticked if the existing vehicle is meant.')}</p>
+                  <ul className="mt-1 flex flex-col">
+                    {fleet.similar.map((x) => (
+                      <li key={x.text}>
+                        <Checkbox id={`imp-similar-${x.text}`} checked={linkSimilar.includes(x.text)}
+                          label={<span>«{x.text}» ← {l('اتصال به', 'link to')} «{x.suggestion}» <span className="text-steel">({l('ردیف', 'row')} {x.rows.map((r) => num(r)).join('، ')})</span></span>}
+                          onChange={(e) => setLinkSimilar(e.target.checked ? [...linkSimilar, x.text] : linkSimilar.filter((y) => y !== x.text))} />
+                      </li>
+                    ))}
+                  </ul>
+                </Alert>
+              ) : null}
+            </div>
+          ) : null}
           {missing.length ? <Alert tone="danger" className="mb-4" title={l(`برای ثبت این تغییرات مجوز «${missing.map((p) => permName[p] ?? p).join('، ')}» لازم است.`, `Applying these changes needs the permission: ${missing.map((p) => permName[p] ?? p).join(', ')}.`)} /> : null}
           <ul className="mb-4 list-disc space-y-1 ps-5 text-sm leading-7">
             <li>{l(`${num(s.create)} کالای تازه به‌صورت پیش‌نویس (منتشرنشده) و ${num(s.update)} به‌روزرسانی`, `${num(s.create)} new products as drafts (unpublished) and ${num(s.update)} updates`)}</li>
+            {hasNew && createVehicles ? <li>{l(`${num(fleet.newVehicles.length)} خودروی تازه و ${num(fleet.newModels.length)} مدل تازه`, `${num(fleet.newVehicles.length)} new vehicles and ${num(fleet.newModels.length)} new models`)}</li> : null}
             {unit ? <li>{l('واحد قیمت', 'Price unit')}: {unit === 'IRR' ? l('ریال', 'rial') : unit === 'AED' ? l('درهم', 'dirham') : l('تومان، تبدیل به ریال', 'toman, converted to rial')}</li> : null}
             {j.settings?.columns.on_hand !== undefined ? <li>{l('موجودی', 'Stock')}: {j.settings.stockMode === 'ADD' ? l('افزودن به موجودی فعلی', 'added to the current stock') : l('جایگزینی موجودی فعلی', 'replaces the current stock')}</li> : null}
           </ul>
@@ -876,6 +914,7 @@ function ResultSection({ job: j }: { job: ImportJobView }) {
     <Section title={l('نتیجهٔ ثبت', 'Result')} id="imp-result">
       <Alert tone="success" title={l('تغییرات ثبت شد', 'The changes were applied')}>
         {r ? <p>{l(`${num(r.created)} کالای تازه، ${num(r.updated)} به‌روزرسانی، ${num(r.unchanged)} بدون تغییر و ${num(r.skipped)} ردیف خطادار که ثبت نشد.`, `${num(r.created)} new, ${num(r.updated)} updated, ${num(r.unchanged)} unchanged and ${num(r.skipped)} rows with errors that were not applied.`)}</p> : null}
+        {r && (r.vehiclesCreated || r.modelsCreated) ? <p>{l(`${num(r.vehiclesCreated ?? 0)} خودروی تازه و ${num(r.modelsCreated ?? 0)} مدل تازه به فهرست خودروها اضافه شد.`, `${num(r.vehiclesCreated ?? 0)} vehicles and ${num(r.modelsCreated ?? 0)} models were added to the vehicle list.`)}</p> : null}
         <p className="mt-1 text-sm">{l('کالاهای تازه پیش‌نویس‌اند و پس از بررسی و عکس، از صفحهٔ هر محصول منتشر می‌شوند.', 'New products are drafts; publish them from each product’s page after checking them and adding photos.')}</p>
       </Alert>
       <div className="mt-4 flex flex-wrap items-center gap-3">

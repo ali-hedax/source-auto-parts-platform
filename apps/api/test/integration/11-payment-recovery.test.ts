@@ -39,7 +39,7 @@ const balance = (productId: string) => s.prisma.inventoryBalance.findFirstOrThro
 async function setBasePrice(productId: string, amountMinor: string): Promise<void> {
   const p = await owner.get(`/admin/products/${productId}`);
   const res = await owner.put(`/admin/products/${productId}`, {
-    sku: p.body.sku, nameFa: p.body.nameFa, nameEn: p.body.nameEn, categoryId: p.body.categoryId, vehicleBrandIds: p.body.vehicleBrandIds,
+    sku: p.body.sku, nameFa: p.body.nameFa, nameEn: p.body.nameEn, categoryId: p.body.categoryId, vehicleBrandIds: p.body.vehicleBrandIds, unitId: p.body.unitId,
     partType: p.body.partType, condition: p.body.condition, origin: p.body.origin, basePrice: { currency: 'IRR', amountMinor }, version: p.body.version,
   });
   expect(res.status).toBe(200);

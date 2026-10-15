@@ -31,6 +31,8 @@ enum UserStatus {
   ACTIVE
   SUSPENDED
   DELETED
+  /// In the trash (panel → staff → trash): signed out, cannot sign in, e-mail kept reserved; restorable.
+  TRASHED
 }
 
 enum UiLocale {
@@ -735,7 +737,11 @@ model Product {
   condition            PhysicalCondition
   origin               ProductOrigin
   countryOfManufacture String?           @map("country_of_manufacture") @db.Char(2)
+  /// The unit's name, kept equal to unit.name (older readers and exports use the text).
   unit                 String            @default("عدد") @db.VarChar(30)
+  /// Sales unit (panel → units). Stored quantities of this product (stock, cart, order, return,
+  /// quantity price rules) count steps of this unit: with «لیتر» in steps of 0.5, 3 means 1.5 litres.
+  unitId               String            @map("unit_id") @db.Uuid
   packQuantity         Int               @default(1) @map("pack_quantity")
   oemCodes             String[]          @map("oem_codes")
   specs                Json              @default("[]")
@@ -755,10 +761,13 @@ model Product {
 
   category          Category              @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   manufacturerBrand ManufacturerBrand?    @relation(fields: [manufacturerBrandId], references: [id], onDelete: Restrict)
+  salesUnit         Unit                  @relation(fields: [unitId], references: [id], onDelete: Restrict)
   translations      ProductTranslation[]
   vehicleBrands     ProductVehicleBrand[]
   media             ProductMedia[]
   fitments          ProductFitment[]
+  /// «کاربرد در خودرو»: whole vehicles or specific models (panel → vehicles).
+  vehicles          ProductVehicle[]
   basePrice         ProductPrice?
   priceRules        QuantityPriceRule[]
   inventory         InventoryBalance[]
@@ -769,10 +778,30 @@ model Product {
 
   @@index([published, archivedAt, categoryId])
   @@index([origin])
+  @@index([unitId])
   // Trigram indexes for Persian/English search (pg_trgm is created in the constraints migration).
   @@index([searchText(ops: raw("gin_trgm_ops"))], type: Gin, map: "product_search_text_trgm_idx")
   @@index([searchCompact(ops: raw("gin_trgm_ops"))], type: Gin, map: "product_search_compact_trgm_idx")
   @@map("product")
+}
+
+/// Sales unit (panel → units): name, decimals allowed or not, the smallest step. A unit in use
+/// cannot be deleted (only deactivated) and its step and decimal rule no longer change.
+model Unit {
+  id           String    @id @default(uuid(7)) @db.Uuid
+  name         String    @unique @db.VarChar(30)
+  nameEn       String?   @map("name_en") @db.VarChar(30)
+  allowDecimal Boolean   @default(false) @map("allow_decimal")
+  /// The smallest amount that can be sold, in thousandths: 1000 = 1, 500 = 0.5.
+  stepMilli    Int       @default(1000) @map("step_milli")
+  active       Boolean   @default(true)
+  sortOrder    Int       @default(0) @map("sort_order")
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  products Product[]
+
+  @@map("unit")
 }
 
 model ProductTranslation {
@@ -826,6 +855,85 @@ model ProductMedia {
 }
 
 /// Manual, optional compatibility notes (v1). Not a catalog engine; see docs/FUTURE_CATALOG.md.
+/// Vehicle category (سواری، وانت، برقی …), defined by the owner. Deleting one leaves its vehicles uncategorized.
+model VehicleCategory {
+  id        String    @id @default(uuid(7)) @db.Uuid
+  name      String    @db.VarChar(80)
+  nameEn    String?   @map("name_en") @db.VarChar(80)
+  slug      String    @unique @db.VarChar(80)
+  sortOrder Int       @default(0) @map("sort_order")
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  vehicles Vehicle[]
+
+  @@map("vehicle_category")
+}
+
+/// A vehicle for fitment (پژو، دنا پلاس …), with its own page /cars/[slug]. `nameKey` is the
+/// normalized name (no spaces/half-spaces/dashes, Persian letters, Latin digits): one vehicle per key.
+model Vehicle {
+  id             String           @id @default(uuid(7)) @db.Uuid
+  categoryId     String?          @map("category_id") @db.Uuid
+  name           String           @db.VarChar(80)
+  nameEn         String?          @map("name_en") @db.VarChar(80)
+  nameKey        String           @unique @map("name_key") @db.VarChar(80)
+  slug           String           @unique @db.VarChar(80)
+  sortOrder      Int              @default(0) @map("sort_order")
+  active         Boolean          @default(true)
+  seoTitle       String?          @map("seo_title") @db.VarChar(120)
+  seoDescription String?          @map("seo_description") @db.VarChar(300)
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  category VehicleCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  models   VehicleModel[]
+  products ProductVehicle[]
+
+  @@index([categoryId])
+  @@map("vehicle")
+}
+
+/// A model / trim of a vehicle (پژو ← ۲۰۶، ۴۰۵، پارس).
+model VehicleModel {
+  id        String           @id @default(uuid(7)) @db.Uuid
+  vehicleId String           @map("vehicle_id") @db.Uuid
+  name      String           @db.VarChar(80)
+  nameEn    String?          @map("name_en") @db.VarChar(80)
+  nameKey   String           @map("name_key") @db.VarChar(80)
+  slug      String           @db.VarChar(80)
+  sortOrder Int              @default(0) @map("sort_order")
+  active    Boolean          @default(true)
+  createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  vehicle  Vehicle          @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  products ProductVehicle[]
+
+  @@unique([vehicleId, nameKey])
+  @@unique([vehicleId, slug])
+  @@map("vehicle_model")
+}
+
+/// A product fits a whole vehicle (modelId null) or one of its models. Partial unique indexes in
+/// the migration allow one row per product + whole vehicle and one per product + model.
+model ProductVehicle {
+  id        String        @id @default(uuid(7)) @db.Uuid
+  productId String        @map("product_id") @db.Uuid
+  vehicleId String        @map("vehicle_id") @db.Uuid
+  modelId   String?       @map("model_id") @db.Uuid
+
+  product Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  vehicle Vehicle       @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  model   VehicleModel? @relation(fields: [modelId], references: [id], onDelete: Restrict)
+
+  @@index([productId])
+  @@index([vehicleId])
+  @@index([modelId])
+  @@map("product_vehicle")
+}
+
 model ProductFitment {
   id             String  @id @default(uuid(7)) @db.Uuid
   productId      String  @map("product_id") @db.Uuid
@@ -1133,6 +1241,9 @@ model OrderItem {
   /// Tier, payable source, reference AED, rate id and rounding used for this line.
   priceSnapshot    Json              @map("price_snapshot")
   returnedQuantity Int               @default(0) @map("returned_quantity")
+  /// The unit this line was sold in: quantities above count its steps (1000 = whole units).
+  unitName         String            @default("عدد") @map("unit_name") @db.VarChar(30)
+  unitStepMilli    Int               @default(1000) @map("unit_step_milli")
 
   order        Order                  @relation(fields: [orderId], references: [id], onDelete: Restrict)
   product      Product                @relation(fields: [productId], references: [id], onDelete: Restrict)
@@ -1916,6 +2027,25 @@ model SiteSetting {
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   @@map("site_setting")
+}
+
+/// The trash: items removed in the panel that can still be restored. Only `kind` + `entityId` point to
+/// the item (staff today; products can use it later). The item itself is purged when restore is no longer
+/// possible (manually, or by the daily job after site settings → trash retention days).
+model TrashEntry {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  kind        String   @db.VarChar(40)
+  entityId    String   @map("entity_id") @db.Uuid
+  /// Shown in the trash list (e.g. the staff member's name); removed with the entry.
+  label       String   @db.VarChar(200)
+  /// What restore puts back (e.g. the account status before it was trashed).
+  restoreState Json    @default("{}") @map("restore_state")
+  trashedById String?  @map("trashed_by_id") @db.Uuid
+  trashedAt   DateTime @default(now()) @map("trashed_at") @db.Timestamptz(3)
+
+  @@unique([kind, entityId])
+  @@index([trashedAt])
+  @@map("trash_entry")
 }
 
 /// Frequently asked questions on the home page (panel → site content → FAQ). Ordered by sortOrder.

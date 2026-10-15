@@ -64,9 +64,12 @@ export class PricingService {
     quantity: number,
     approvedGroupId: string | null,
     rate: CurrentRate | null,
+    /** The product's unit step (quantity counts its steps; the price is per whole unit). */
+    stepMilli = 1000,
   ): PriceResult {
     return resolveUnitPrice(tiersFor(base, rules), {
       quantity,
+      stepMilli,
       approvedCustomerGroupId: approvedGroupId,
       irrPerAed: rate?.irrPerAed ?? null,
       fxRateId: rate?.id ?? null,

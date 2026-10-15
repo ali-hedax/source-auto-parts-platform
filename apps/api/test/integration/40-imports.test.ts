@@ -138,11 +138,11 @@ describe('A22 — leading-zero SKU, duplicate rows and invalid data', () => {
     const template = await owner.raw('GET', '/admin/imports/template');
     expect(template.status).toBe(200);
     const templateBytes = Buffer.from(await template.arrayBuffer());
-    // The operator template: nine Persian headers the importer maps, SKU as text, Persian drop-downs,
+    // The operator template: eleven Persian headers the importer maps (with «واحد» and «کاربرد در خودرو»), SKU as text, Persian drop-downs,
     // and its Persian sample rows parse without errors through the same reader and planner.
     const blank = await readSheet(templateBytes, 'xlsx', { sheet: 0, headerRow: 1, maxRows: 10 });
-    expect(blank?.headers).toEqual(['کد کالا', 'نام قطعه', 'کد دسته', 'نوع قطعه', 'وضعیت فیزیکی', 'منشا', 'ارز پایه', 'قیمت پایه', 'موجودی']);
-    expect(Object.keys(mapHeaders(blank!.headers).mapping).sort()).toEqual(['base_currency', 'base_price', 'category_code', 'condition', 'name_fa', 'on_hand', 'origin', 'part_type', 'sku'].sort());
+    expect(blank?.headers).toEqual(['کد کالا', 'نام قطعه', 'کد دسته', 'نوع قطعه', 'وضعیت فیزیکی', 'منشا', 'ارز پایه', 'قیمت پایه', 'موجودی', 'واحد', 'کاربرد در خودرو']);
+    expect(Object.keys(mapHeaders(blank!.headers).mapping).sort()).toEqual(['base_currency', 'base_price', 'category_code', 'condition', 'name_fa', 'on_hand', 'origin', 'part_type', 'sku', 'unit', 'vehicle_models'].sort());
     const templateWb = new ExcelJS.Workbook();
     await templateWb.xlsx.load(templateBytes as never);
     expect(templateWb.worksheets[0]!.getColumn(1).numFmt).toBe('@');
@@ -151,11 +151,15 @@ describe('A22 — leading-zero SKU, duplicate rows and invalid data', () => {
     const { mapping } = mapHeaders(sample!.headers);
     const samplePlan = planImport(sample!.rows.map(({ cells }) => Object.fromEntries(Object.entries(mapping).map(([col, i]) => [col, cells[i as number]]))), {
       mode: 'CREATE_AND_UPDATE', existing: new Map(), categoryCodes: new Set(['FILTER', 'BRAKE']), vehicleBrandCodes: new Set(), manufacturerBrands: new Map(), clearWhenEmpty: new Set(),
+      units: new Map([['عدد', { name: 'عدد', allowDecimal: false, stepMilli: 1000 }], ['دست', { name: 'دست', allowDecimal: false, stepMilli: 1000 }], ['لیتر', { name: 'لیتر', allowDecimal: true, stepMilli: 500 }]]),
+      vehicles: [{ id: 'p', name: 'پژو', models: [{ id: 'p206', name: '۲۰۶' }] }, { id: 'dp', name: 'دنا پلاس', models: [] }, { id: 's', name: 'سمند', models: [] }, { id: 'r', name: 'رانا', models: [] }],
     });
-    expect(samplePlan.rows.map((r) => [r.sku, r.action, r.values?.partType, r.values?.condition, r.values?.origin, r.values?.baseCurrency])).toEqual([
-      ['00123', 'CREATE', 'GENUINE', 'NEW', 'DOMESTIC', 'IRR'],
-      ['TEST-SAMPLE-002', 'CREATE', 'AFTERMARKET', 'USED', 'IMPORTED', 'AED'],
+    expect(samplePlan.rows.map((r) => [r.sku, r.action, r.values?.partType, r.values?.condition, r.values?.origin, r.values?.baseCurrency, r.values?.unit, r.values?.onHand])).toEqual([
+      ['00123', 'CREATE', 'GENUINE', 'NEW', 'DOMESTIC', 'IRR', 'عدد', 4],
+      ['TEST-SAMPLE-002', 'CREATE', 'AFTERMARKET', 'USED', 'IMPORTED', 'AED', 'دست', 2],
+      ['TEST-SAMPLE-003', 'CREATE', 'AFTERMARKET', 'NEW', 'DOMESTIC', 'IRR', 'لیتر', 12.5],
     ]);
+    expect(samplePlan.rows[1]?.values?.fitments?.map((f) => f.kind)).toEqual(['KNOWN', 'KNOWN']);
     mkdirSync(samples, { recursive: true });
     writeFileSync(path.join(samples, 'hedax-products-template.xlsx'), templateBytes);
     writeFileSync(path.join(samples, 'sample-row-errors.xlsx'), reportBytes);

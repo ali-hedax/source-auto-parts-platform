@@ -1,3 +1,4 @@
+import { lineAmountIrr } from './units.js';
 import {
   type CurrencyCode,
   type Money,
@@ -29,7 +30,10 @@ export interface PriceTier {
 }
 
 export interface PricingContext {
+  /** In steps of the product's unit (see units.ts); tiers' min/max quantities use the same steps. */
   quantity: number;
+  /** The unit's step in thousandths (1000 = whole units, 500 = half litres); default 1000. */
+  stepMilli?: number;
   /** Only an *approved* group id may be passed here; self-declared groups grant nothing. */
   approvedCustomerGroupId: string | null;
   /** Current valid `irr_per_aed` rate as a decimal string, or null when none is valid. */
@@ -140,7 +144,7 @@ export function resolveUnitPrice(tiers: readonly PriceTier[], ctx: PricingContex
     tierSource: tier.customerGroupId ? 'GROUP_RULE' : 'PUBLIC',
     unitPayableIrr,
     payableSource,
-    lineTotalIrr: unitPayableIrr * BigInt(ctx.quantity),
+    lineTotalIrr: lineAmountIrr(unitPayableIrr, ctx.quantity, ctx.stepMilli ?? 1000),
     referenceAed,
     fxRateId: rateRecorded ? ctx.fxRateId : null,
     irrPerAed: rateRecorded ? ctx.irrPerAed : null,

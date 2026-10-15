@@ -1,6 +1,7 @@
 'use client';
 
 import type { OrderLineView } from '@hedax/contracts';
+import { formatQuantity } from '@hedax/domain';
 import { useLocale, useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,7 @@ import { Alert } from '@/components/ui/misc';
 import { FileUploader } from '@/components/files/file-uploader';
 import { api } from '@/lib/api/client';
 import { errorText } from '@/lib/api/errors';
+import { typedNumber } from '@/lib/numbers';
 
 /**
  * Cancel/return *request*: staff decide later; nothing is refunded or restocked here.
@@ -54,16 +56,19 @@ export function ReturnRequestButton({ orderId, kind, lines = [] }: { orderId: st
             <fieldset className="flex flex-col gap-3" aria-describedby={itemsError ? `ret-items-error-${orderId}` : undefined}>
               <legend className="mb-1 font-semibold">{t('order.returnItems')}</legend>
               {returnable.map((l) => (
-                <Field key={l.id} id={`ret-qty-${l.id}`} label={`${locale === 'en' ? (l.name.en ?? l.name.fa) : l.name.fa} — ${t('order.returnableUpTo', { count: l.returnableQuantity })}`}>
+                <Field key={l.id} id={`ret-qty-${l.id}`} label={`${locale === 'en' ? (l.name.en ?? l.name.fa) : l.name.fa} — ${t('order.returnableUpTo', { count: formatQuantity(l.returnableQuantity, locale === 'en' ? 'en' : 'fa') })} ${l.unit.name}`}>
                   <Input
                     id={`ret-qty-${l.id}`}
                     type="number"
-                    inputMode="numeric"
+                    inputMode={l.unit.step % 1 === 0 ? 'numeric' : 'decimal'}
                     min={0}
+                    step={l.unit.step}
                     max={l.returnableQuantity}
                     value={quantities[l.id] ?? 0}
                     onChange={(e) => {
-                      const n = Math.max(0, Math.min(l.returnableQuantity, Math.trunc(Number(e.target.value) || 0)));
+                      // Amounts in the unit the line was sold in, rounded down to its step.
+                      const raw = Math.max(0, Math.min(l.returnableQuantity, typedNumber(e.target.value) || 0));
+                      const n = Math.floor(Math.round(raw * 1000) / Math.round(l.unit.step * 1000)) * Math.round(l.unit.step * 1000) / 1000;
                       setQuantities((q) => ({ ...q, [l.id]: n }));
                     }}
                     className="w-28"

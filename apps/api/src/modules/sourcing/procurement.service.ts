@@ -122,6 +122,7 @@ export class ProcurementService implements SettlementHandler, OnModuleInit {
         partType: i.quoteItem.partType,
         condition: i.quoteItem.condition,
         quantity: i.quantity,
+        unit: { name: 'عدد', step: 1 },
         unitPrice: moneyDto(i.quoteItem.unitPriceCurrency, i.quoteItem.unitPriceMinor),
         lineTotal: irr(i.quoteItem.lineTotalIrrMinor ?? 0n),
       })),

@@ -44,8 +44,9 @@ describe('A01 — product for Iran Khodro with photo and price becomes visible a
     const tax = await taxonomy(owner);
     const ikco = tax.vehicleBrands.find((b) => b.code === 'IKCO') as any;
     const brake = tax.categories.find((c) => c.code === 'BRAKE') as any;
+    const piece = tax.units.find((u) => u.name === 'عدد') as any;
     const created = await owner.post('/admin/products', {
-      sku: `A01-${run}`, nameFa: 'لنت ترمز عقب دنا آزمایشی', nameEn: 'Rear brake pad Dena (test)', categoryId: brake.id, vehicleBrandIds: [ikco.id],
+      sku: `A01-${run}`, nameFa: 'لنت ترمز عقب دنا آزمایشی', nameEn: 'Rear brake pad Dena (test)', categoryId: brake.id, vehicleBrandIds: [ikco.id], unitId: piece.id,
       partType: 'GENUINE', condition: 'NEW', origin: 'DOMESTIC', basePrice: { currency: 'IRR', amountMinor: '25000000' }, lowStockThreshold: 1,
     });
     expect(created.status).toBe(201);

@@ -6,7 +6,7 @@ import { ExternalLink } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { DateTime, Money } from '@/components/ui/format';
+import { DateTime, Money, Quantity } from '@/components/ui/format';
 import { Alert, Code, DefinitionList, Ltr, PageHeader, Section, StatusBadge, TableScroll, td, th } from '@/components/ui/misc';
 import { ChatThread } from '@/components/chat/chat-thread';
 import { api, newIdempotencyKey } from '@/lib/api/client';
@@ -81,8 +81,8 @@ export function OrderDetail({ order }: { order: OrderView }) {
                 {l.sku ? <span className="block text-xs text-steel"><Code>{l.sku}</Code></span> : null}
               </td>
               <td className={td}>{t(`partType.${l.partType}` as never)} · {t(`condition.${l.condition}` as never)}</td>
-              <td className={td}>{locale === 'fa' ? l.quantity.toLocaleString('fa-IR') : l.quantity}</td>
-              <td className={td}><Money value={l.unitPrice} /></td>
+              <td className={td}><Quantity value={l.quantity} unit={l.unit} /></td>
+              <td className={td}><Money value={l.unitPrice} /> <span className="text-sm text-steel">/ {l.unit.name}</span></td>
               <td className={td}><Money value={l.lineTotal} /></td>
             </tr>
           ))}

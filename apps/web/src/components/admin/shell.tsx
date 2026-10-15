@@ -4,8 +4,8 @@ import * as RDialog from '@radix-ui/react-dialog';
 import Image from 'next/image';
 import type { MeView } from '@hedax/contracts';
 import {
-  BarChart3, Boxes, CalendarDays, CircleUser, ClipboardList, CreditCard, FileSpreadsheet, FileText, Gauge, History, Landmark, LayoutTemplate, LogOut, MessageSquare,
-  Menu, Package, Receipt, RotateCcw, ScrollText, Settings, ShieldCheck, Store, Tags, Truck, Users, UserCog, Wallet, X,
+  BarChart3, Boxes, Car, CalendarDays, CircleUser, ClipboardList, CreditCard, FileSpreadsheet, FileText, Gauge, History, Landmark, LayoutTemplate, LogOut, MessageSquare,
+  Menu, Package, Receipt, RotateCcw, Ruler, ScrollText, Settings, ShieldCheck, Store, Tags, Truck, Users, UserCog, Wallet, X,
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useState, type ReactNode } from 'react';
@@ -64,6 +64,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
       items: [
         { href: '/admin/products', label: t('products'), icon: Package, perm: 'products.read' },
         { href: '/admin/taxonomy', label: t('taxonomy'), icon: Tags, perm: 'products.read' },
+        { href: '/admin/units', label: t('units'), icon: Ruler, perm: 'products.read' },
+        { href: '/admin/vehicles', label: t('vehicles'), icon: Car, perm: 'vehicles.manage' },
         { href: '/admin/inventory', label: t('inventory'), icon: Boxes, perm: 'inventory.read' },
         { href: '/admin/imports', label: t('imports'), icon: FileSpreadsheet, perm: 'imports.run' },
       ],
