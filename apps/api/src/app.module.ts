@@ -19,6 +19,7 @@ import { PricingModule } from './modules/pricing/pricing.module.js';
 import { SettingsModule } from './modules/settings/settings.module.js';
 import { ContentModule } from './modules/content/content.module.js';
 import { SourcingModule } from './modules/sourcing/sourcing.module.js';
+import { MessengerBotsModule } from './modules/messenger-bots/messenger-bots.module.js';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { SourcingModule } from './modules/sourcing/sourcing.module.js';
     SourcingModule,
     ImportsModule,
     NotificationsModule,
+    MessengerBotsModule,
     ReturnsModule,
     AdminModule,
   ],

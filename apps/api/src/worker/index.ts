@@ -14,6 +14,8 @@ import { QuoteDocumentService } from '../modules/sourcing/quote-document.js';
 import { SourcingModule } from '../modules/sourcing/sourcing.module.js';
 import { TrashModule } from '../modules/trash/trash.module.js';
 import { OutboxDispatcher } from './outbox-dispatcher.js';
+import { MessengerBotsModule } from '../modules/messenger-bots/messenger-bots.module.js';
+import { MessengerBotsService } from '../modules/messenger-bots/messenger-bots.service.js';
 
 /**
  * The worker reuses the API's modules (same business rules, same DB access)
@@ -21,7 +23,7 @@ import { OutboxDispatcher } from './outbox-dispatcher.js';
  * PDFs, reconciliation) never run inside a web request.
  */
 @Module({
-  imports: [CommonModule, MailModule, PaymentsModule, OrdersModule, SourcingModule, AttachmentsModule, ImportsModule, NotificationsModule, TrashModule],
+  imports: [CommonModule, MailModule, PaymentsModule, OrdersModule, SourcingModule, AttachmentsModule, ImportsModule, NotificationsModule, TrashModule, MessengerBotsModule],
   providers: [OutboxDispatcher, QuoteDocumentService],
 })
 export class WorkerModule {}
@@ -30,6 +32,7 @@ export async function createWorkerContext() {
   const env = loadEnv();
   const app = await NestFactory.createApplicationContext(WorkerModule, { logger: new JsonLogger(env.LOG_LEVEL) });
   app.enableShutdownHooks();
+  app.get(OutboxDispatcher).register('messenger.reply', (payload) => app.get(MessengerBotsService).deliver(payload));
   return {
     app,
     dispatcher: app.get(OutboxDispatcher),

@@ -10,10 +10,20 @@
 
 {
 	email {$ACME_EMAIL}
+	# Error logs also include request metadata when an upstream is unavailable.
+	log default {
+		format filter {
+			request>uri regexp /api/v1/integrations/.* /api/v1/integrations/REDACTED
+			request>headers>X-Telegram-Bot-Api-Secret-Token delete
+			wrap json
+		}
+	}
 }
 
 {$HEDAX_DOMAIN} {
 	encode zstd gzip
+	# Webhook headers and Bale capability URLs must never enter access logs.
+	log_skip /api/v1/integrations/*
 
 	handle /api/* {
 		# Upload limits are enforced by the API (≤20 MB per file, ≤50 MB per batch); this is a ceiling.

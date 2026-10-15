@@ -71,6 +71,11 @@ x-app-env: &app-env
   SMTP_USER: ${SMTP_USER:-}
   SMTP_PASSWORD: ${SMTP_PASSWORD:-}
   MAIL_FROM: ${MAIL_FROM:-}
+  # Optional messaging integrations; values are stored only in server .env.
+  TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+  TELEGRAM_WEBHOOK_SECRET: ${TELEGRAM_WEBHOOK_SECRET:-}
+  BALE_BOT_TOKEN: ${BALE_BOT_TOKEN:-}
+  BALE_WEBHOOK_SECRET: ${BALE_WEBHOOK_SECRET:-}
 
 services:
   postgres:

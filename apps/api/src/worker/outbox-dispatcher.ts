@@ -149,7 +149,9 @@ export class OutboxDispatcher implements OnModuleDestroy {
         if (this.stopping) break;
         await this.processRow(r.id);
       } else {
-        await this.events.add(r.type, { outboxId: r.id }, { jobId: r.id, removeOnComplete: 1000, removeOnFail: 5000, attempts: 1 });
+        // Retries are scheduled in PostgreSQL. Retaining a completed BullMQ job would
+        // suppress re-enqueue of that same row after a handled delivery failure.
+        await this.events.add(r.type, { outboxId: r.id }, { jobId: r.id, removeOnComplete: true, removeOnFail: true, attempts: 1 });
       }
     }
   }
