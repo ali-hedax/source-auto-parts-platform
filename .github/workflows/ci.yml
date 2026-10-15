@@ -48,3 +48,11 @@ jobs:
         run: pnpm typecheck
       - name: Domain, contracts and API unit tests
         run: pnpm test:unit
+      - name: Catalog fitment and messenger database regressions
+        run: pnpm --filter @hedax/api test:integration test/integration/85-vehicles.test.ts test/integration/87-messenger-bots.test.ts
+      - name: Install browser for storefront regression
+        run: pnpm --filter @hedax/web exec playwright install --with-deps chromium
+      - name: Storefront vehicle fitment on phone and desktop
+        env:
+          PW_CHANNEL: chromium
+        run: pnpm --filter @hedax/web e2e fitment.spec.ts --grep "vehicle fitment on the site"
