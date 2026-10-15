@@ -103,7 +103,8 @@ export class MessengerBotsService {
       } else {
         const lines = result.items.slice(0, 5).map((p, i) => {
           const price = p.price.kind === 'price'
-            ? formatMoney(money(p.price.payable.currency, p.price.payable.amountMinor), 'fa')
+            // The price is per sales unit (v1.2): «… ریال / دست».
+            ? `${formatMoney(money(p.price.payable.currency, p.price.payable.amountMinor), 'fa')} / ${plain(p.unit?.name || 'عدد', 30)}`
             : 'استعلام قیمت';
           const stock = p.availability === 'IN_STOCK' ? 'موجود' : p.availability === 'LOW_STOCK' ? 'موجودی محدود' : 'ناموجود';
           return `${i + 1}. ${plain(p.name.fa || p.name.en || p.sku, 120)}\nکد: ${plain(p.sku, 80)}\nوضعیت: ${stock}\nقیمت: ${price}\n${parts}/${encodeURIComponent(p.slug)}`;

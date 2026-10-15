@@ -75,11 +75,12 @@ describe('messenger catalog and order boundary', () => {
   }
   it.each(['telegram', 'bale'] as const)('uses public pricing, exact rial units, real routes and all stock states for %s', async (provider) => {
     const { service, catalog } = fixture();
-    catalog.list.mockResolvedValue({ items: ['IN_STOCK', 'LOW_STOCK', 'OUT_OF_STOCK'].map((availability, i) => ({ name: { fa: '[لنت](https://evil.test)' }, sku: 'SKU', slug: 'لنت', availability, price: i === 2 ? { kind: 'inquiry' } : { kind: 'price', payable: { currency: 'IRR', amountMinor: '9007199254740993123' }, display: { currency: 'AED', amountMinor: '10' } } })) });
+    catalog.list.mockResolvedValue({ items: ['IN_STOCK', 'LOW_STOCK', 'OUT_OF_STOCK'].map((availability, i) => ({ name: { fa: '[لنت](https://evil.test)' }, sku: 'SKU', slug: 'لنت', availability, unit: { name: 'دست', nameEn: 'set', allowDecimal: false, step: 1 }, price: i === 2 ? { kind: 'inquiry' } : { kind: 'price', payable: { currency: 'IRR', amountMinor: '9007199254740993123' }, display: { currency: 'AED', amountMinor: '10' } } })) });
     const send = transport(); await service.deliver(job('لنت', provider));
     expect(catalog.list).toHaveBeenCalledWith(expect.objectContaining({ q: 'لنت', pageSize: 5 }), { approvedGroupId: null, display: 'IRR' });
     const text = JSON.parse(send.mock.calls[0]![1].body).text;
-    expect(text).toContain('۹٬۰۰۷٬۱۹۹٬۲۵۴٬۷۴۰٬۹۹۳٬۱۲۳ ریال');
+    // Prices are per sales unit (v1.2).
+    expect(text).toContain('۹٬۰۰۷٬۱۹۹٬۲۵۴٬۷۴۰٬۹۹۳٬۱۲۳ ریال / دست');
     for (const s of ['موجود', 'موجودی محدود', 'ناموجود', 'استعلام قیمت', '/fa/parts/%D9%84%D9%86%D8%AA', '/fa/account/orders']) expect(text).toContain(s);
     expect(text).not.toContain('[لنت]'); expect(text).not.toContain('واحد خرد');
     expect(send.mock.calls[0]![0]).toContain(provider === 'telegram' ? 'api.telegram.org' : 'tapi.bale.ai');
