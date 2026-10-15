@@ -159,12 +159,14 @@ describe('the last active owner', () => {
     expect(inv.status, JSON.stringify(inv.body)).toBe(201);
     const accepted = await new Client(t).post<any>('/auth/invitations/accept', { token: new URL(inv.body.acceptUrl).searchParams.get('token'), fullName: 'مالک تنها', password: `Ol-${run}-Qz!8wx-Pn` });
     const second = accepted.body.userId as string;
-    await s.prisma.user.update({ where: { id: ownerId }, data: { status: 'SUSPENDED' } });
+    // Every other active owner (also those other test files left behind) is briefly deactivated.
+    const others = (await s.prisma.user.findMany({ where: { status: 'ACTIVE', kind: 'STAFF', id: { not: second }, roles: { some: { role: { isOwner: true } } } }, select: { id: true } })).map((u) => u.id);
+    await s.prisma.user.updateMany({ where: { id: { in: others } }, data: { status: 'SUSPENDED' } });
     try {
       await expect(staffTrash.moveToTrash({ userId: ownerId, isOwner: true }, second)).rejects.toThrow(/LAST_OWNER|last owner/);
       expect((await s.prisma.user.findUnique({ where: { id: second } }))?.status).toBe('ACTIVE');
     } finally {
-      await s.prisma.user.update({ where: { id: ownerId }, data: { status: 'ACTIVE' } });
+      await s.prisma.user.updateMany({ where: { id: { in: others } }, data: { status: 'ACTIVE' } });
     }
     // With two active owners, the other one may go to the trash (and comes back).
     expect((await owner.get<any>('/admin/staff')).body.staff.find((m: any) => m.id === second)?.canTrash).toBe(true);

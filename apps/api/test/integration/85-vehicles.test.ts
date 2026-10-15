@@ -133,18 +133,22 @@ describe('products, «مناسب برای», filter and search', () => {
     expect((await owner.del<any>(`/admin/vehicles/${peugeot.id}/models/${usedModel.id}`)).body.error.code).toBe('MODEL_IN_USE');
 
     expect((await owner.patch(`/admin/vehicles/${peugeot.id}`, { active: false })).status).toBe(200);
-    expect((await anon().get('/catalog/vehicles/peugeot')).status).toBe(404);
-    expect(await slugsOf('vehicle=peugeot')).toEqual([]);
-    const fitA = (await anon().get<any>(`/catalog/products/${(await s.prisma.product.findUniqueOrThrow({ where: { sku: `FIT-A-${run}` } })).slug}`)).body.fitments;
-    expect(fitA).toEqual([]);
-    // An inactive vehicle cannot be newly linked to a product.
-    const tax = (await owner.get<any>('/admin/taxonomy')).body;
-    const res = await owner.post<any>('/admin/products', {
-      sku: `FIT-X-${run}`, nameFa: 'کالای آزمایشی', categoryId: tax.categories[0].id, unitId: tax.units[0].id, partType: 'GENUINE', condition: 'NEW', origin: 'DOMESTIC',
-      basePrice: { currency: 'IRR', amountMinor: '1000000' }, vehicles: [{ vehicleId: peugeot.id, modelId: null }],
-    });
-    expect(res.body.error.code).toBe('VEHICLE_INACTIVE');
-    expect((await owner.patch(`/admin/vehicles/${peugeot.id}`, { active: true })).status).toBe(200);
+    try {
+      expect((await anon().get('/catalog/vehicles/peugeot')).status).toBe(404);
+      expect(await slugsOf('vehicle=peugeot')).toEqual([]);
+      const fitA = (await anon().get<any>(`/catalog/products/${(await s.prisma.product.findUniqueOrThrow({ where: { sku: `FIT-A-${run}` } })).slug}`)).body.fitments;
+      expect(fitA).toEqual([]);
+      // An inactive vehicle cannot be newly linked to a product.
+      const tax = (await owner.get<any>('/admin/taxonomy')).body;
+      const res = await owner.post<any>('/admin/products', {
+        sku: `FIT-X-${run}`, nameFa: 'کالای آزمایشی', categoryId: tax.categories[0].id, unitId: tax.units.find((u: any) => u.name === 'عدد' && u.active).id, partType: 'GENUINE', condition: 'NEW', origin: 'DOMESTIC',
+        basePrice: { currency: 'IRR', amountMinor: '1000000' }, vehicles: [{ vehicleId: peugeot.id, modelId: null }],
+      });
+      expect(res.body.error.code).toBe('VEHICLE_INACTIVE');
+    } finally {
+      // Other test files use «پژو»: it is active again whatever happened above.
+      expect((await owner.patch(`/admin/vehicles/${peugeot.id}`, { active: true })).status).toBe(200);
+    }
   });
 
   it('merges a duplicate: its products and models move over (same model joined), the duplicate is deleted', async () => {
