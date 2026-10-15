@@ -80,7 +80,7 @@ const aed = (n: bigint) => ({ currency: 'AED' as const, amountMinor: n.toString(
 export const fixtureOrders: OrderView[] = [
   {
     id: '00000000-0000-7000-8000-0000000a0001', reference: 'HX-O-DEMO01', kind: 'STOCK_ORDER', status: 'SHIPPED', paymentStatus: 'PAID', createdAt: iso(3000),
-    lines: [{ id: '00000000-0000-7000-8000-0000000d0001', returnableQuantity: 0, sku: 'DEMO-0001', name: { fa: 'لنت ترمز جلو پژو ۲۰۶ (نمونه)', en: 'Front brake pad, Peugeot 206 (SAMPLE)' }, partType: 'AFTERMARKET', condition: 'NEW', quantity: 2, unitPrice: irr(18_500_000n), lineTotal: irr(37_000_000n) }],
+    lines: [{ id: '00000000-0000-7000-8000-0000000d0001', returnableQuantity: 0, sku: 'DEMO-0001', name: { fa: 'لنت ترمز جلو پژو ۲۰۶ (نمونه)', en: 'Front brake pad, Peugeot 206 (SAMPLE)' }, partType: 'AFTERMARKET', condition: 'NEW', quantity: 2, unit: { name: 'عدد', step: 1 }, unitPrice: irr(18_500_000n), lineTotal: irr(37_000_000n) }],
     totals: { items: irr(37_000_000n), shipping: irr(800_000n), tax: irr(0n), discount: irr(0n), grandTotal: irr(37_800_000n) },
     fx: { irrPerAed: FIXTURE_RATE.irrPerAed, recordedAt: iso(3000) },
     address: { recipientName: 'مشتری نمونه', province: 'تهران', city: 'تهران', addressLine: 'نشانی نمونه — دادهٔ آزمایشی', postalCode: '1234567890' },
@@ -98,7 +98,7 @@ export const fixtureOrders: OrderView[] = [
   },
   {
     id: '00000000-0000-7000-8000-0000000a0002', reference: 'HX-O-DEMO02', kind: 'STOCK_ORDER', status: 'AWAITING_PAYMENT', paymentStatus: 'UNPAID', createdAt: iso(40),
-    lines: [{ id: '00000000-0000-7000-8000-0000000d0002', returnableQuantity: 0, sku: 'DEMO-0005', name: { fa: 'فیلتر هوای کرولا (نمونه)', en: 'Air filter, Corolla (SAMPLE)' }, partType: 'GENUINE', condition: 'NEW', quantity: 1, unitPrice: irr(1_040_000n), lineTotal: irr(1_040_000n) }],
+    lines: [{ id: '00000000-0000-7000-8000-0000000d0002', returnableQuantity: 0, sku: 'DEMO-0005', name: { fa: 'فیلتر هوای کرولا (نمونه)', en: 'Air filter, Corolla (SAMPLE)' }, partType: 'GENUINE', condition: 'NEW', quantity: 1, unit: { name: 'عدد', step: 1 }, unitPrice: irr(1_040_000n), lineTotal: irr(1_040_000n) }],
     totals: { items: irr(1_040_000n), shipping: irr(1_500_000n), tax: irr(0n), discount: irr(0n), grandTotal: irr(2_540_000n) },
     fx: { irrPerAed: FIXTURE_RATE.irrPerAed, recordedAt: iso(40) },
     address: { recipientName: 'مشتری نمونه', province: 'اصفهان', city: 'اصفهان', addressLine: 'نشانی نمونه', postalCode: '1234567890' },
@@ -156,7 +156,7 @@ export const fixtureMessages: MessageView[] = [
 
 export const fixtureProcurement: OrderView = {
   id: '00000000-0000-7000-8000-0000001a0001', reference: 'HX-P-DEMO01', kind: 'PROCUREMENT', status: 'SOURCING', paymentStatus: 'PAID', createdAt: iso(9000),
-  lines: [{ id: '00000000-0000-7000-8000-0000000d0003', returnableQuantity: 0, sku: '', name: { fa: 'کیت تسمه تایم النترا (نمونه)', en: null }, partType: 'GENUINE', condition: 'NEW', quantity: 1, unitPrice: aed(21_000n), lineTotal: irr(33_600_000n) }],
+  lines: [{ id: '00000000-0000-7000-8000-0000000d0003', returnableQuantity: 0, sku: '', name: { fa: 'کیت تسمه تایم النترا (نمونه)', en: null }, partType: 'GENUINE', condition: 'NEW', quantity: 1, unit: { name: 'عدد', step: 1 }, unitPrice: aed(21_000n), lineTotal: irr(33_600_000n) }],
   totals: { items: irr(33_600_000n), shipping: null, tax: irr(0n), discount: irr(0n), grandTotal: irr(35_600_000n) },
   fx: { irrPerAed: FIXTURE_RATE.irrPerAed, recordedAt: iso(9100) }, address: null, shipment: null,
   schedule: { promisedReadyAt: new Date(now + 2 * 86_400_000).toISOString(), currentReadyEstimate: new Date(now + 3 * 86_400_000).toISOString(), changeReason: 'تأخیر حمل‌ونقل تأمین‌کننده (نمونه)' },

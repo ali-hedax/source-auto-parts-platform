@@ -7,6 +7,9 @@ import { LIMITS, RateLimitService } from '../../common/rate-limit.service.js';
 import type { Actor } from '../../common/request-context.js';
 import { AuthService } from '../auth/auth.service.js';
 
+/** trash_entry.kind of staff members in the trash. */
+export const STAFF_TRASH_KIND = 'staff';
+
 /** What replaces an erased name or e-mail address, also in the audit trail. */
 export const ERASED = 'حذف‌شده';
 
@@ -49,7 +52,8 @@ const jsonb = (v: unknown) => (v === null || v === undefined ? Prisma.sql`NULL` 
  * status DELETED, because orders, messages and the audit trail point to it; its name, e-mail,
  * password, authenticator, roles, sessions and notifications are removed. In the audit trail the
  * events stay (who did what, when) but the person's name and e-mail become "حذف‌شده".
- * Needs users.manage and a current authenticator code; owners and one's own account are refused.
+ * Only for someone already in the trash, by an owner with a current authenticator code (never
+ * one's own account), or by the daily trash job once the retention period is over.
  */
 @Injectable()
 export class StaffErasureService {
@@ -61,13 +65,29 @@ export class StaffErasureService {
     private readonly limits: RateLimitService,
   ) {}
 
+  /**
+   * Deletes for good a staff member who is in the trash (panel → staff → trash). An owner in the
+   * trash can be erased too: the last active owner never gets there.
+   */
   async eraseStaff(actor: Actor, userId: string, confirmCode: string) {
     if (userId === actor.userId) throw forbidden('SELF_EDIT', 'You cannot erase your own account');
     await this.limits.hit(LIMITS.staffErasePerActor, actor.userId);
-    const target = await this.prisma.user.findFirst({ where: { id: userId, kind: 'STAFF', status: { not: 'DELETED' } }, include: { roles: { include: { role: true } } } });
+    const target = await this.prisma.user.findFirst({ where: { id: userId, kind: 'STAFF', status: { not: 'DELETED' } }, select: { id: true, status: true } });
     if (!target) throw notFound();
-    if (target.roles.some((r) => r.role.isOwner)) throw forbidden('OWNER_PROTECTED', 'An owner account cannot be erased');
+    if (target.status !== 'TRASHED') throw conflict('NOT_IN_TRASH', 'Move the staff member to the trash first');
     await this.auth.confirmStepUp(actor, confirmCode);
+    return this.erase(userId, false);
+  }
+
+  /** The daily trash job: staff members whose time in the trash is over (no person acting). */
+  async eraseExpired(userId: string) {
+    const target = await this.prisma.user.findFirst({ where: { id: userId, kind: 'STAFF', status: 'TRASHED' }, select: { id: true } });
+    if (!target) return null;
+    return this.erase(userId, true);
+  }
+
+  private async erase(userId: string, automatic: boolean) {
+    const target = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
     // Live sessions and sockets end before the account loses its data.
     await this.sessions.revokeAllForUser(userId, 'ERASED');
     return this.prisma.tx(async (tx) => {
@@ -92,6 +112,7 @@ export class StaffErasureService {
       await tx.mfaRecoveryCode.deleteMany({ where: { userId } });
       await tx.userRole.deleteMany({ where: { userId } });
       await tx.notification.deleteMany({ where: { userId } });
+      await tx.trashEntry.deleteMany({ where: { kind: STAFF_TRASH_KIND, entityId: userId } });
       await tx.user.update({
         where: { id: userId },
         data: {
@@ -100,7 +121,10 @@ export class StaffErasureService {
         },
       });
       const auditEntries = await this.redactAudit(tx, { emails: [...emails], names: [...names] }, [userId, ...invitationIds], userId);
-      await this.audit.record(tx, { action: 'staff.erased', entityType: 'user', entityId: userId, after: { invitations: invitationIds.length, auditEntries } });
+      await this.audit.record(tx, {
+        action: automatic ? 'staff.auto_erased' : 'staff.erased', entityType: 'user', entityId: userId,
+        after: { invitations: invitationIds.length, auditEntries, ...(automatic ? { reason: 'TRASH_RETENTION' } : {}) },
+      });
       return { id: userId, erased: true, invitations: invitationIds.length, auditEntries };
     });
   }

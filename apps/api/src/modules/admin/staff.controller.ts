@@ -1,10 +1,13 @@
 import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Put } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { roleSchema, staffEraseSchema, staffInvitationResendSchema, staffInvitationUpdateSchema, staffInviteSchema, staffMfaResetSchema, staffUpdateSchema, type StaffMemberView } from '@hedax/contracts';
+import {
+  roleSchema, staffEraseSchema, staffInvitationResendSchema, staffInvitationUpdateSchema, staffInviteSchema, staffMfaResetSchema, staffUpdateSchema, trashPurgeSchema,
+  type StaffMemberView, type StaffOptionView,
+} from '@hedax/contracts';
 import { PERMISSIONS, assertCanGrant, assertNotLastOwner } from '@hedax/domain';
 import type { z } from 'zod';
 import { AuditService } from '../../common/audit.service.js';
-import { CurrentActor, RequirePermissions } from '../../common/auth/decorators.js';
+import { CurrentActor, RequirePermissions, StaffOnly } from '../../common/auth/decorators.js';
 import { SessionService } from '../../common/auth/session.service.js';
 import { badRequest, forbidden, notFound } from '../../common/errors.js';
 import { PrismaService } from '../../common/prisma.service.js';
@@ -14,6 +17,7 @@ import { AuthService } from '../auth/auth.service.js';
 import { MailService } from '../mail/mail.service.js';
 import { InvitationsService, normalizeStaffPhone } from './invitations.service.js';
 import { StaffErasureService } from './staff-erasure.service.js';
+import { StaffTrashService } from './staff-trash.service.js';
 
 /**
  * Staff, roles and permissions (spec §13). Nobody can grant more than they
@@ -31,6 +35,7 @@ export class StaffController {
     private readonly invitations: InvitationsService,
     private readonly mail: MailService,
     private readonly erasure: StaffErasureService,
+    private readonly staffTrash: StaffTrashService,
   ) {}
 
   @RequirePermissions('users.manage')
@@ -42,7 +47,7 @@ export class StaffController {
   @RequirePermissions('users.manage')
   @Get('roles')
   async roles() {
-    const rows = await this.prisma.role.findMany({ include: { permissions: true, _count: { select: { users: true } } }, orderBy: { createdAt: 'asc' } });
+    const rows = await this.prisma.role.findMany({ include: { permissions: true, _count: { select: { users: { where: { user: { status: { in: ['ACTIVE', 'SUSPENDED'] } } } } } } }, orderBy: { createdAt: 'asc' } });
     return rows.map((r) => ({
       id: r.id, key: r.key, nameFa: r.nameFa, nameEn: r.nameEn, isSystem: r.isSystem, isOwner: r.isOwner, requiresMfa: r.requiresMfa,
       permissions: r.permissions.map((p) => p.permissionKey).sort(), members: r._count.users, version: r.version,
@@ -90,17 +95,18 @@ export class StaffController {
   @Get('staff')
   async staff(@CurrentActor() actor: Actor) {
     assertOwner(actor);
-    // Erased accounts keep only an anonymous row for history; they are not listed.
-    const rows = await this.prisma.user.findMany({ where: { kind: 'STAFF', status: { not: 'DELETED' } }, include: { roles: { include: { role: true } } }, orderBy: { createdAt: 'asc' } });
+    // Erased accounts keep only an anonymous row for history and trashed ones are under the trash tab; neither is listed here.
+    const rows = await this.prisma.user.findMany({ where: { kind: 'STAFF', status: { in: ['ACTIVE', 'SUSPENDED'] } }, include: { roles: { include: { role: true } } }, orderBy: { createdAt: 'asc' } });
+    const activeOwners = rows.filter((u) => u.status === 'ACTIVE' && u.roles.some((r) => r.role.isOwner)).length;
     const staff: StaffMemberView[] = rows.map((u) => ({
       id: u.id, email: u.email, fullName: u.fullName, phone: u.contactPhone, status: u.status === 'SUSPENDED' ? 'SUSPENDED' : 'ACTIVE',
       mfaEnabled: !!u.mfaEnabledAt, lastLoginAt: u.lastLoginAt?.toISOString() ?? null,
       roles: u.roles.map((r) => ({ id: r.roleId, key: r.role.key, nameFa: r.role.nameFa, nameEn: r.role.nameEn, isOwner: r.role.isOwner })),
       isSelf: u.id === actor.userId,
-      // The same rules are enforced by the erase endpoint.
-      canErase: u.id !== actor.userId && !u.roles.some((r) => r.role.isOwner),
+      // The same rules are enforced by the trash endpoint: never oneself, never the last active owner.
+      canTrash: u.id !== actor.userId && !(u.status === 'ACTIVE' && u.roles.some((r) => r.role.isOwner) && activeOwners <= 1),
     }));
-    return { staff, invitations: await this.invitations.list(), mailConfigured: this.mail.configured };
+    return { staff, invitations: await this.invitations.list(), mailConfigured: this.mail.configured, trashCount: await this.staffTrash.count() };
   }
 
   /** Invitation by e-mail (queued for the worker) with the one-time link also returned once to the inviting owner. */
@@ -148,14 +154,49 @@ export class StaffController {
     return this.erasure.eraseInvitation(actor, id, body.confirmCode);
   }
 
-  /** Erases a staff member: personal data, access and invitations go; history stays without a name. */
+  // ---- Trash: «حذف» moves a staff member here; restore or delete for good (owner only) ----
+
+  /** Staff members in the trash, with the days left until the daily job deletes them. */
   @RequirePermissions('users.manage')
-  @Post('staff/:id/erase')
-  @HttpCode(200)
-  @ApiZodBody(staffEraseSchema)
-  eraseStaff(@CurrentActor() actor: Actor, @Param('id', ParseUUIDPipe) id: string, @Body(zod(staffEraseSchema)) body: z.infer<typeof staffEraseSchema>) {
+  @Get('staff/trash')
+  trashList(@CurrentActor() actor: Actor) {
     assertOwner(actor);
-    return this.erasure.eraseStaff(actor, id, body.confirmCode);
+    return this.staffTrash.list();
+  }
+
+  /** Signs the person out everywhere and blocks sign-in; roles, e-mail and history are kept. */
+  @RequirePermissions('users.manage')
+  @Post('staff/:id/trash')
+  @HttpCode(200)
+  moveToTrash(@CurrentActor() actor: Actor, @Param('id', ParseUUIDPipe) id: string) {
+    assertOwner(actor);
+    return this.staffTrash.moveToTrash(actor, id);
+  }
+
+  /** Back with the same roles and details; the authenticator is set up again at the next sign-in. */
+  @RequirePermissions('users.manage')
+  @Post('staff/:id/restore')
+  @HttpCode(200)
+  restore(@CurrentActor() actor: Actor, @Param('id', ParseUUIDPipe) id: string) {
+    assertOwner(actor);
+    return this.staffTrash.restore(actor, id);
+  }
+
+  /** Deletes for good (the complete erasure): personal data, access and invitations go; history stays without a name. */
+  @RequirePermissions('users.manage')
+  @Post('staff/:id/purge')
+  @HttpCode(200)
+  @ApiZodBody(trashPurgeSchema)
+  purge(@CurrentActor() actor: Actor, @Param('id', ParseUUIDPipe) id: string, @Body(zod(trashPurgeSchema)) body: z.infer<typeof trashPurgeSchema>) {
+    assertOwner(actor);
+    return this.staffTrash.purge(actor, id, body.confirmName, body.confirmCode);
+  }
+
+  /** Active staff for pickers (assigning a request or a conversation); any staff member may read it. */
+  @StaffOnly()
+  @Get('staff/options')
+  async staffOptions(): Promise<StaffOptionView[]> {
+    return this.prisma.user.findMany({ where: { kind: 'STAFF', status: 'ACTIVE' }, select: { id: true, fullName: true, email: true }, orderBy: [{ fullName: 'asc' }, { createdAt: 'asc' }] });
   }
 
   /**
@@ -169,7 +210,7 @@ export class StaffController {
   async resetMfa(@CurrentActor() actor: Actor, @Param('id', ParseUUIDPipe) id: string, @Body(zod(staffMfaResetSchema)) body: z.infer<typeof staffMfaResetSchema>) {
     assertOwner(actor);
     if (id === actor.userId) throw forbidden('SELF_EDIT', 'Reset your own authenticator from your account page');
-    const target = await this.prisma.user.findFirst({ where: { id, kind: 'STAFF', status: { not: 'DELETED' } }, select: { id: true, mfaEnabledAt: true } });
+    const target = await this.prisma.user.findFirst({ where: { id, kind: 'STAFF', status: { in: ['ACTIVE', 'SUSPENDED'] } }, select: { id: true, mfaEnabledAt: true } });
     if (!target) throw notFound();
     await this.auth.confirmStepUp(actor, body.confirmCode);
     await this.prisma.tx(async (tx) => {
@@ -194,7 +235,7 @@ export class StaffController {
     assertOwner(actor);
     if (id === actor.userId) throw forbidden('SELF_EDIT', 'You cannot change your own roles or status');
     await this.prisma.tx(async (tx) => {
-      const target = await tx.user.findFirst({ where: { id, kind: 'STAFF', status: { not: 'DELETED' } }, include: { roles: { include: { role: { include: { permissions: true } } } } } });
+      const target = await tx.user.findFirst({ where: { id, kind: 'STAFF', status: { in: ['ACTIVE', 'SUSPENDED'] } }, include: { roles: { include: { role: { include: { permissions: true } } } } } });
       if (!target) throw notFound();
       const owners = await tx.userRole.findMany({ where: { role: { isOwner: true }, user: { status: 'ACTIVE' } }, select: { userId: true } });
       const ownerIds = owners.map((o) => o.userId);

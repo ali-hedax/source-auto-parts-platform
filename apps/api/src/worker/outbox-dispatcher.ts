@@ -12,6 +12,7 @@ import { NotificationsService } from '../modules/notifications/notifications.ser
 import { StockOrderSettlement } from '../modules/orders/stock-order-settlement.js';
 import { PaymentsService } from '../modules/payments/payments.service.js';
 import { QuotesService } from '../modules/sourcing/quotes.service.js';
+import { TrashService } from '../modules/trash/trash.service.js';
 
 export const QUEUE_EVENTS = 'hedax-events';
 export const QUEUE_SCHEDULED = 'hedax-scheduled';
@@ -25,6 +26,8 @@ const SCHEDULES: ReadonlyArray<readonly [name: string, everyMs: number]> = [
   ['orders.cancel-abandoned', 60 * 60_000],
   ['sms.send', 30_000],
   ['cleanup', 60 * 60_000],
+  // Items older than site settings → trash retention days are deleted for good.
+  ['trash.purge', 24 * 60 * 60_000],
 ];
 
 /** Events whose handling changes what anonymous visitors see (catalog, prices, stock). */
@@ -65,6 +68,7 @@ export class OutboxDispatcher implements OnModuleDestroy {
     private readonly quotes: QuotesService,
     private readonly stockOrders: StockOrderSettlement,
     private readonly publicCache: PublicCacheService,
+    private readonly trash: TrashService,
     @Inject(ENV) env: Env,
   ) {
     this.inline = env.QUEUE_DRIVER === 'inline';
@@ -217,6 +221,11 @@ export class OutboxDispatcher implements OnModuleDestroy {
           await this.prisma.session.deleteMany({ where: { expiresAt: { lt: new Date(Date.now() - 30 * 86_400_000) } } });
           await this.prisma.cart.deleteMany({ where: { userId: null, expiresAt: { lt: new Date() } } });
           break;
+        case 'trash.purge': {
+          const r = await this.trash.purgeExpired();
+          if (r.purged + r.failed > 0) this.logger.log(`trash.purge: ${r.purged} deleted, ${r.failed} failed`);
+          break;
+        }
         default:
           this.logger.warn(`unknown scheduled job ${name}`);
       }

@@ -149,7 +149,7 @@ export function RefundsPage() {
 
 interface ReturnRow {
   id: string; reference: string; kind: 'RETURN' | 'CANCEL'; status: string; reason: string; customer: string | null; createdAt: string;
-  items: Array<{ id: string; name: string; unitPrice: MoneyDto; quantity: number; receivedQuantity: number; restockedQuantity: number }>;
+  items: Array<{ id: string; name: string; unit: string; unitPrice: MoneyDto; quantity: number; receivedQuantity: number; restockedQuantity: number }>;
   payment: { id: string; reference: string; captured: MoneyDto; refundable: MoneyDto } | null;
   refunds: Array<{ reference: string; status: string; amount: MoneyDto }>;
   suggestedRefund: MoneyDto;
@@ -204,7 +204,7 @@ export function AdminReturnsPage() {
                 {r.items.length ? (
                   <ul className="text-sm">
                     {r.items.map((i) => (
-                      <li key={i.id}>{i.name} × <Num value={i.quantity} />{i.receivedQuantity ? <> — {l('دریافت‌شده', 'received')}: <Num value={i.receivedQuantity} /></> : null}{sep}<Money value={i.unitPrice} /></li>
+                      <li key={i.id}>{i.name} × <Num value={i.quantity} /> {i.unit}{i.receivedQuantity ? <> — {l('دریافت‌شده', 'received')}: <Num value={i.receivedQuantity} /> {i.unit}</> : null}{sep}<Money value={i.unitPrice} /></li>
                     ))}
                   </ul>
                 ) : null}

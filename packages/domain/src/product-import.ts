@@ -1,5 +1,7 @@
 import { type CurrencyCode, isCurrencyCode, parseDecimalAmount, toAsciiDigits } from './money.js';
 import { normalizeSearchText } from './search-normalize.js';
+import { DEFAULT_UNIT, type UnitRule, parseAmountMilli } from './units.js';
+import { type FitmentMatch, type KnownVehicle, matchFitment, splitVehicleList } from './vehicles.js';
 
 /**
  * Excel/CSV product import validation (spec §12). Pure: the parser produces
@@ -50,7 +52,7 @@ export const HEADER_ALIASES: Record<ImportColumn, readonly string[]> = {
   description_en: ['description_en', 'توضیحات انگلیسی'],
   is_active: ['is_active', 'فعال', 'وضعیت فروش'],
   technical_number: ['technical_number', 'شماره فنی', 'کد فنی', 'شماره قطعه', 'پارت نامبر', 'part number', 'part no', 'oem', 'کد oem', 'شماره oem', 'oem code'],
-  vehicle_models: ['vehicle_models', 'خودروهای سازگار', 'خودرو سازگار', 'مناسب برای', 'سازگار با', 'خودرو', 'مدل خودرو', 'compatible vehicles'],
+  vehicle_models: ['vehicle_models', 'کاربرد در خودرو', 'کاربرد', 'کاربرد خودرو', 'خودروهای سازگار', 'خودرو سازگار', 'مناسب برای', 'سازگار با', 'خودرو', 'مدل خودرو', 'compatible vehicles'],
 };
 
 /** Columns that must have a value for a new product. The ones in DEFAULTABLE may come from a value chosen for the whole file. */
@@ -127,6 +129,8 @@ export interface ExistingProductSnapshot {
   isActive: boolean;
   oemCodes?: readonly string[];
   vehicleModels?: readonly string[];
+  /** The product's fitment as "vehicleId:modelId" ("vehicleId:" for a whole vehicle). */
+  fitmentKeys?: readonly string[];
 }
 
 /** Values chosen for the whole file; used only for new products and only where the row's own cell is empty. */
@@ -166,6 +170,10 @@ export interface ImportContext {
    * (123 → "00123"). Such a row lost its zeros in Excel and must not create a second product.
    */
   zeroPaddedSkus?: ReadonlyMap<string, string>;
+  /** Sales units by normalized name (and English name): quantities are checked against the row's unit. */
+  units?: ReadonlyMap<string, UnitRule>;
+  /** The vehicle list: the «کاربرد در خودرو» column is matched against it (new ones are created only after confirmation). */
+  vehicles?: readonly KnownVehicle[];
 }
 
 export interface ImportIssue {
@@ -201,6 +209,8 @@ export interface ParsedImportValues {
   isActive?: boolean;
   technicalNumber?: string;
   vehicleModels?: string[];
+  /** «کاربرد در خودرو» items read against the vehicle list. */
+  fitments?: FitmentMatch[];
 }
 
 export interface FieldChange {
@@ -373,16 +383,24 @@ function parseEnum<T extends string>(raw: string, allowed: readonly T[]): T | nu
   return alias && (allowed as readonly string[]).includes(alias) ? (alias as T) : null;
 }
 
-function parseNonNegativeInt(cell: RawCell | undefined): number | null | 'NEGATIVE' {
+/**
+ * A stock amount in the row's unit: whole numbers for «عدد»/«دست», multiples of the step for
+ * «لیتر» (0.5, 1.5 …). Persian/Arabic digits, thousands separators and ٫ as the decimal sign are accepted.
+ */
+function parseQuantity(cell: RawCell | undefined, unit: UnitRule): number | null | 'NEGATIVE' | 'NOT_WHOLE' | 'STEP' {
+  let milli: number | null;
   if (cell && typeof cell.value === 'number') {
     if (cell.value < 0) return 'NEGATIVE';
-    return Number.isSafeInteger(cell.value) ? cell.value : null;
+    milli = parseAmountMilli(cell.value);
+  } else {
+    const t = toAsciiDigits(cellText(cell)).replace(INVISIBLE_RE, '').replace(/[\s,٬،]/g, '').replace(/٫/g, '.');
+    if (t.startsWith('-')) return 'NEGATIVE';
+    milli = parseAmountMilli(t);
   }
-  const t = toAsciiDigits(cellText(cell)).replace(INVISIBLE_RE, '').replace(/[\s,٬،]/g, '');
-  if (t.startsWith('-')) return 'NEGATIVE';
-  if (!/^\d+$/.test(t)) return null;
-  const n = Number(t);
-  return Number.isSafeInteger(n) ? n : null;
+  if (milli === null || !Number.isSafeInteger(milli)) return null;
+  if (!unit.allowDecimal && milli % 1000 !== 0) return 'NOT_WHOLE';
+  if (milli % unit.stepMilli !== 0) return 'STEP';
+  return milli / 1000;
 }
 
 function parseBool(raw: string): boolean | null {
@@ -588,6 +606,20 @@ function planRow(row: RawRow, rowNumber: number, ctx: ImportContext, skuCounts: 
     values.unit = defaults.unit;
     usedDefaults.push('unit');
   }
+  // The unit must be one of the units in the panel; quantities below follow its rules.
+  const unitRule = (name: string | undefined) => (name && ctx.units ? ctx.units.get(normalizeSearchText(name)) : undefined);
+  if (values.unit !== undefined && ctx.units) {
+    const rule = unitRule(values.unit);
+    if (!rule) {
+      err('unit', 'UNKNOWN_UNIT', values.unit);
+      delete values.unit;
+    } else {
+      values.unit = rule.name;
+      const current = existing ? unitRule(existing.unit) : undefined;
+      if (current && (current.stepMilli !== rule.stepMilli || current.allowDecimal !== rule.allowDecimal)) err('unit', 'UNIT_CHANGE_LOCKED', existing?.unit);
+    }
+  }
+  const qtyRule: UnitRule = unitRule(values.unit) ?? unitRule(existing?.unit) ?? unitRule(DEFAULT_UNIT.name) ?? DEFAULT_UNIT;
 
   // Technical number (kept as text, like the SKU)
   const technical = codeText(row.technical_number);
@@ -624,7 +656,20 @@ function planRow(row: RawRow, rowNumber: number, ctx: ImportContext, skuCounts: 
   }
 
   const models = cellText(row.vehicle_models);
-  if (models) {
+  if (models && ctx.vehicles) {
+    // «پژو ۲۰۶، دنا پلاس, رانا»: known vehicles/models are linked; new ones are listed for confirmation;
+    // a name very similar to an existing vehicle is never created, only suggested.
+    const items = splitVehicleList(models);
+    if (items.length > LIMITS.models || items.some((m) => m.length > LIMITS.model)) err('vehicle_models', 'TOO_LONG');
+    else {
+      values.fitments = items.map((item) => matchFitment(item, ctx.vehicles as readonly KnownVehicle[]));
+      for (const f of values.fitments) {
+        if (f.kind === 'SIMILAR') warn('vehicle_models', 'VEHICLE_SIMILAR', `${f.text} → ${f.suggestion.vehicleName}`);
+        else if (f.kind === 'NEW_VEHICLE') warn('vehicle_models', 'NEW_VEHICLE', f.vehicleName);
+        else if (f.kind === 'NEW_MODEL') warn('vehicle_models', 'NEW_VEHICLE_MODEL', `${f.vehicleName} ${f.modelName}`);
+      }
+    }
+  } else if (models) {
     const items = listItems(models);
     if (items.length > LIMITS.models || items.some((m) => m.length > LIMITS.model)) err('vehicle_models', 'TOO_LONG');
     else values.vehicleModels = items;
@@ -722,9 +767,10 @@ function planRow(row: RawRow, rowNumber: number, ctx: ImportContext, skuCounts: 
   const qtyCell = row.on_hand;
   const qtyRaw = cellText(qtyCell);
   if (qtyRaw && qtyCell && !qtyCell.error && !qtyCell.isFormula) {
-    const n = parseNonNegativeInt(qtyCell);
+    const n = parseQuantity(qtyCell, qtyRule);
     if (n === 'NEGATIVE') err('on_hand', 'NEGATIVE_NOT_ALLOWED');
-    else if (n === null) err('on_hand', 'NOT_A_WHOLE_NUMBER');
+    else if (n === 'NOT_WHOLE' || n === null) err('on_hand', 'NOT_A_WHOLE_NUMBER', qtyRule.name);
+    else if (n === 'STEP') err('on_hand', 'UNIT_QUANTITY_INVALID', `${qtyRule.name} (${qtyRule.stepMilli / 1000})`);
     else if (isCreate || stockMode === 'SET') values.onHand = n;
     else values.onHandAdd = n;
     if (typeof n !== 'number') stockDisplay = { text: qtyRaw };
@@ -735,9 +781,10 @@ function planRow(row: RawRow, rowNumber: number, ctx: ImportContext, skuCounts: 
   if (existing && stockMode === 'SET' && values.onHand !== undefined && values.onHand < existing.reserved) err('on_hand', 'ON_HAND_BELOW_RESERVED');
   const lowCell = row.low_stock_threshold;
   if (cellText(lowCell) && lowCell && !lowCell.error && !lowCell.isFormula) {
-    const n = parseNonNegativeInt(lowCell);
+    const n = parseQuantity(lowCell, qtyRule);
     if (n === 'NEGATIVE') err('low_stock_threshold', 'NEGATIVE_NOT_ALLOWED');
-    else if (n === null) err('low_stock_threshold', 'NOT_A_WHOLE_NUMBER');
+    else if (n === 'NOT_WHOLE' || n === null) err('low_stock_threshold', 'NOT_A_WHOLE_NUMBER', qtyRule.name);
+    else if (n === 'STEP') err('low_stock_threshold', 'UNIT_QUANTITY_INVALID', `${qtyRule.name} (${qtyRule.stepMilli / 1000})`);
     else values.lowStockThreshold = n;
   }
   if (!stockDisplay) {
@@ -856,6 +903,10 @@ function diff(e: ExistingProductSnapshot, v: ParsedImportValues): FieldChange[] 
   const models = e.vehicleModels ?? [];
   const added = (v.vehicleModels ?? []).filter((m) => !models.some((x) => normalizeSearchText(x) === normalizeSearchText(m)));
   if (added.length) out.push({ field: 'vehicleModels', before: models.length ? models.join('، ') : null, after: [...models, ...added].join('، ') });
+  // Fitment is only ever added by an import (never removed); new and similar names count as changes to review.
+  const have = new Set(e.fitmentKeys ?? []);
+  const newFits = (v.fitments ?? []).filter((f) => f.kind !== 'KNOWN' || !have.has(`${f.vehicleId}:${f.modelId ?? ''}`));
+  if (newFits.length) out.push({ field: 'fitments', before: null, after: newFits.map((f) => f.text).join('، ') });
   return out;
 }
 
@@ -913,7 +964,13 @@ const IMPORT_CODE_TEXT: Readonly<Record<string, { fa: string; en: string }>> = {
   ZERO_PRICE_NOT_ALLOWED: { fa: 'قیمت پایه نمی‌تواند صفر باشد.', en: 'The base price cannot be zero.' },
   INVALID_AMOUNT: { fa: 'مبلغ خوانده نشد (ریال بدون اعشار، تومان حداکثر یک رقم اعشار، درهم حداکثر دو رقم اعشار).', en: 'The amount could not be read (IRR without decimals, toman up to 1 decimal, AED up to 2).' },
   PRICE_REQUIRED_WHEN_CURRENCY_CHANGES: { fa: 'با تغییر ارز پایه، قیمت پایه را هم وارد کنید.', en: 'Enter the base price when the base currency changes.' },
-  NOT_A_WHOLE_NUMBER: { fa: 'فقط عدد صحیح مجاز است.', en: 'Only whole numbers are allowed.' },
+  NOT_A_WHOLE_NUMBER: { fa: 'واحد این کالا اعشار نمی‌پذیرد؛ فقط عدد صحیح مجاز است (واحد در توضیح).', en: 'This item’s unit takes whole numbers only (unit in the detail).' },
+  UNIT_QUANTITY_INVALID: { fa: 'مقدار با گام واحد این کالا جور نیست (واحد و گام در توضیح؛ مثلاً لیتر با گام ۰٫۵).', en: 'The amount does not fit the unit’s step (unit and step in the detail, e.g. litres in steps of 0.5).' },
+  UNKNOWN_UNIT: { fa: 'این واحد در پنل تعریف نشده است؛ نام را با یکی از واحدهای «محصولات ← واحدها» یکی کنید یا واحد تازه بسازید.', en: 'This unit is not defined in the panel; use one of the units under Products → Units or add it there.' },
+  UNIT_CHANGE_LOCKED: { fa: 'واحد این کالا به واحدی با گام یا قاعدهٔ اعشار دیگر تغییر نمی‌کند (موجودی‌اش با واحد فعلی شمرده شده)؛ از پنل تغییرش دهید.', en: 'This item cannot move to a unit with another step or decimal rule here; change it in the panel.' },
+  VEHICLE_SIMILAR: { fa: 'نام خودرو خیلی شبیه خودروی موجود است؛ ساخته نمی‌شود و در پیش‌نمایش برای اتصال پیشنهاد می‌شود.', en: 'The vehicle name is very similar to an existing one; it is not created but offered for linking in the preview.' },
+  NEW_VEHICLE: { fa: 'خودروی تازه؛ فقط پس از تأیید شما در پیش‌نمایش ساخته می‌شود.', en: 'New vehicle; created only after you confirm it in the preview.' },
+  NEW_VEHICLE_MODEL: { fa: 'مدل تازه برای خودروی موجود؛ فقط پس از تأیید شما ساخته می‌شود.', en: 'New model of an existing vehicle; created only after you confirm it.' },
   ON_HAND_BELOW_RESERVED: { fa: 'موجودی جدید کمتر از مقدار رزروشده برای مشتریان است.', en: 'The new stock is below the quantity reserved for customers.' },
   FORMULA_NOT_ALLOWED: { fa: 'در این ستون فرمول مجاز نیست؛ مقدار ثابت وارد کنید.', en: 'Formulas are not allowed in this column; enter a fixed value.' },
   FORMULA_WITHOUT_VALUE: { fa: 'این سلول فرمول است و نتیجهٔ ذخیره‌شده ندارد؛ فایل را با «فقط مقادیر» ذخیره کنید.', en: 'This cell is a formula without a stored result; save the file as values only.' },
@@ -945,7 +1002,7 @@ const FIELD_COLUMN: Readonly<Record<keyof ParsedImportValues, ImportColumn>> = {
   manufacturerBrand: 'manufacturer_brand', partType: 'part_type', condition: 'condition', origin: 'origin', baseCurrency: 'base_currency',
   basePriceMinor: 'base_price', overridePriceIrrMinor: 'override_price_irr', overridePriceAedMinor: 'override_price_aed', onHand: 'on_hand',
   onHandAdd: 'on_hand', lowStockThreshold: 'low_stock_threshold', unit: 'unit', descriptionFa: 'description_fa', descriptionEn: 'description_en',
-  isActive: 'is_active', technicalNumber: 'technical_number', vehicleModels: 'vehicle_models',
+  isActive: 'is_active', technicalNumber: 'technical_number', vehicleModels: 'vehicle_models', fitments: 'vehicle_models',
 };
 
 export function importFieldLabel(field: string, locale: 'fa' | 'en'): string {

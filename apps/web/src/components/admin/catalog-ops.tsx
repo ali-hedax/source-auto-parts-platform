@@ -1,5 +1,6 @@
 'use client';
 
+import { formatQuantity, isValidQuantity } from '@hedax/domain';
 import { useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -7,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Async } from '@/components/ui/async';
 import { Dialog } from '@/components/ui/dialog';
 import { Checkbox, Field, Input, Select } from '@/components/ui/field';
-import { DateTime, Num } from '@/components/ui/format';
+import { DateTime, Quantity } from '@/components/ui/format';
 import { Badge, Code, EmptyState, Ltr, PageHeader, Section, TableScroll, td, th } from '@/components/ui/misc';
 import { api } from '@/lib/api/client';
 import { errorText } from '@/lib/api/errors';
@@ -15,7 +16,7 @@ import { typedNumber } from '@/lib/numbers';
 import { useApi } from '@/lib/use-api';
 import { useCodeLabel, useL } from './shell';
 
-interface InvRow { productId: string; sku: string; nameFa: string; onHand: number; reserved: number; available: number; lowStockThreshold: number; isLow: boolean; version: number; updatedAt: string }
+interface InvRow { productId: string; sku: string; nameFa: string; unit: { name: string; allowDecimal: boolean; step: number }; onHand: number; reserved: number; available: number; lowStockThreshold: number; isLow: boolean; version: number; updatedAt: string }
 
 export function InventoryPage() {
   const t = useTranslations();
@@ -38,9 +39,9 @@ export function InventoryPage() {
                 <tr key={r.productId}>
                   <td className={td}><Code>{r.sku}</Code></td>
                   <td className={td}>{r.nameFa}</td>
-                  <td className={td}><Num value={r.onHand} /></td>
-                  <td className={td}><Num value={r.reserved} /></td>
-                  <td className={td}>{r.isLow ? <Badge tone="warning"><Num value={r.available} /></Badge> : <Num value={r.available} />}</td>
+                  <td className={td}><Quantity value={r.onHand} unit={r.unit} /></td>
+                  <td className={td}><Quantity value={r.reserved} unit={r.unit} /></td>
+                  <td className={td}>{r.isLow ? <Badge tone="warning"><Quantity value={r.available} unit={r.unit} /></Badge> : <Quantity value={r.available} unit={r.unit} />}</td>
                   <td className={td}>
                     <div className="flex gap-1">
                       <Button size="sm" variant="secondary" onClick={() => setTarget(r)}>{t('admin.adjustStock')}</Button>
@@ -62,7 +63,9 @@ export function InventoryPage() {
 function AdjustDialog({ row, onClose }: { row: InvRow; onClose: () => void }) {
   const t = useTranslations();
   const l = useL();
-  const reserved = new Intl.NumberFormat(useLocale() === 'fa' ? 'fa-IR' : 'en-US').format(row.reserved);
+  const locale = useLocale() as 'fa' | 'en';
+  const reserved = `${formatQuantity(row.reserved, locale)} ${row.unit.name}`;
+  const rule = { name: row.unit.name, allowDecimal: row.unit.allowDecimal, stepMilli: Math.round(row.unit.step * 1000) };
   const [count, setCount] = useState(String(row.onHand));
   const [reason, setReason] = useState('PHYSICAL_COUNT');
   const [note, setNote] = useState('');
@@ -70,7 +73,8 @@ function AdjustDialog({ row, onClose }: { row: InvRow; onClose: () => void }) {
   const [busy, setBusy] = useState(false);
   const submit = async () => {
     const n = typedNumber(count);
-    if (!Number.isInteger(n) || n < 0) { setError(t('validation.invalidNumber')); return; }
+    // In the product's unit: decimals only where the unit allows them, a multiple of its step.
+    if (!Number.isFinite(n) || n < 0 || (n > 0 && !isValidQuantity(n, rule))) { setError(t('parts.quantityInvalid', { step: formatQuantity(row.unit.step, locale), unit: row.unit.name })); return; }
     if (n < row.reserved) { setError(l(`شمارش نمی‌تواند کمتر از رزروشده (${reserved}) باشد.`, `Count cannot be below reserved (${reserved}).`)); return; }
     setBusy(true);
     try {
@@ -84,8 +88,8 @@ function AdjustDialog({ row, onClose }: { row: InvRow; onClose: () => void }) {
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()} title={`${t('admin.adjustStock')} — ${row.sku}`} closeLabel={t('common.close')}>
       <form noValidate onSubmit={(e) => { e.preventDefault(); void submit(); }} className="flex flex-col gap-4">
-        <Field id="adj-count" label={t('admin.newOnHand')} error={error ?? undefined} hint={`${t('admin.reserved')}: ${reserved}`} required>
-          <Input id="adj-count" inputMode="numeric" value={count} onChange={(e) => setCount(e.target.value)} invalid={!!error} />
+        <Field id="adj-count" label={`${t('admin.newOnHand')} (${row.unit.name})`} error={error ?? undefined} hint={`${t('admin.reserved')}: ${reserved}`} required>
+          <Input id="adj-count" inputMode={row.unit.allowDecimal ? 'decimal' : 'numeric'} value={count} onChange={(e) => setCount(e.target.value)} invalid={!!error} />
         </Field>
         <Field id="adj-reason" label={t('admin.adjustReason')}>
           <Select id="adj-reason" value={reason} onChange={(e) => setReason(e.target.value)}>

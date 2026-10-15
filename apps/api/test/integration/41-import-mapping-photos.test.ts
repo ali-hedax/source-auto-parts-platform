@@ -144,7 +144,7 @@ describe('a supplier price list (technical number, title, price in rial) — map
     const done = await commit(owner, job, { skipErrorRows: true });
     expect(done.res.status).toBe(201);
     expect(done.job.status).toBe('COMMITTED');
-    expect(done.job.summary.result).toEqual({ created: 2, updated: 0, unchanged: 0, skipped: 3 });
+    expect(done.job.summary.result).toEqual({ created: 2, updated: 0, unchanged: 0, skipped: 3, vehiclesCreated: 0, modelsCreated: 0 });
     const created = await products([code(2), `5${digits}`]);
     expect(created).toHaveLength(2);
     const mirror = created.find((p: any) => p.sku === code(2));

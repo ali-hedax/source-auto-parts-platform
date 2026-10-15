@@ -1,6 +1,6 @@
 'use client';
 
-import type { MoneyDto, QuoteVersionView, SourcingRequestView, StaffQuoteRow } from '@hedax/contracts';
+import type { MoneyDto, QuoteVersionView, SourcingRequestView, StaffOptionView, StaffQuoteRow } from '@hedax/contracts';
 import { QUOTE_VERSION_STATUSES } from '@hedax/contracts/constants';
 import { parseDecimalAmount } from '@hedax/domain';
 import { Plus, Trash2 } from 'lucide-react';
@@ -112,7 +112,7 @@ export function SourcingWorkbench() {
   const l = useL();
   const { id } = useParams<{ id: string }>();
   const state = useApi<StaffRequest>(`/admin/sourcing-requests/${id}`);
-  const staff = useApi<{ staff: Array<{ id: string; fullName: string | null; status: string }> }>('/admin/staff');
+  const staff = useApi<StaffOptionView[]>('/admin/staff/options');
   const [error, setError] = useState<string | null>(null);
   const [transitionTo, setTransitionTo] = useState('');
   const [reason, setReason] = useState('');
@@ -145,7 +145,7 @@ export function SourcingWorkbench() {
                 <Field id="wb-assignee" label={t('admin.assign')}>
                   <Select id="wb-assignee" defaultValue="" onChange={(e) => void run(() => api(`/admin/sourcing-requests/${r.id}/assignee`, { method: 'PUT', body: { assigneeId: e.target.value || null } }))}>
                     <option value="">{r.assignee?.displayName ?? '—'}</option>
-                    {(staff.data?.staff ?? []).filter((s) => s.status === 'ACTIVE').map((s) => <option key={s.id} value={s.id}>{s.fullName}</option>)}
+                    {(staff.data ?? []).map((s) => <option key={s.id} value={s.id}>{s.fullName ?? s.email}</option>)}
                   </Select>
                 </Field>
                 <div className="grid gap-3 md:grid-cols-2">

@@ -1,3 +1,4 @@
+import { lineAmountIrr } from './units.js';
 import { DomainError } from './errors.js';
 import {
   type CurrencyCode,
@@ -27,7 +28,10 @@ export type ShippingQuote =
 
 export interface OrderLineInput {
   unitPayableIrr: bigint;
+  /** In steps of the line's unit; the price is per whole unit. */
   quantity: number;
+  /** The unit's step in thousandths (default 1000 = whole units). */
+  stepMilli?: number;
 }
 
 export interface OrderTotals {
@@ -58,7 +62,7 @@ export function computeOrderTotals(input: {
   for (const l of input.lines) {
     if (!Number.isSafeInteger(l.quantity) || l.quantity < 1) throw new DomainError('INVALID_QUANTITY');
     if (l.unitPayableIrr <= 0n) throw new DomainError('INVALID_UNIT_PRICE');
-    itemsTotal += l.unitPayableIrr * BigInt(l.quantity);
+    itemsTotal += lineAmountIrr(l.unitPayableIrr, l.quantity, l.stepMilli ?? 1000);
   }
   const discount = input.discountIrr ?? 0n;
   if (discount < 0n || discount > itemsTotal) throw new DomainError('INVALID_DISCOUNT');

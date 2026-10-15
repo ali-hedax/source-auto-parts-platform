@@ -17,7 +17,6 @@ import {
   type RawRow,
   type StockMode,
   TEMPLATE_COLUMNS,
-  buildSearchDocument,
   describeImportCode,
   importColumnLabel,
   mapHeaders,
@@ -26,7 +25,11 @@ import {
   normalizeSearchText,
   planImport,
   suggestHeaderRow,
+  quantityToSteps,
+  stepsToQuantity,
   technicalKey,
+  type FitmentMatch,
+  type UnitRule,
 } from '@hedax/domain';
 import { AuditService } from '../../common/audit.service.js';
 import { badRequest, conflict, forbidden, notFound } from '../../common/errors.js';
@@ -36,6 +39,9 @@ import { Prisma, PrismaService, type Tx } from '../../common/prisma.service.js';
 import type { Actor } from '../../common/request-context.js';
 import { STORAGE, type StorageDriver } from '../../common/storage/storage.js';
 import { toJsonSafe } from '../../common/serialize.js';
+import { rebuildProductSearch } from '../catalog/product-search.js';
+import { UnitsService } from '../catalog/units.service.js';
+import { VehiclesService } from '../catalog/vehicles.service.js';
 import { InventoryService } from '../inventory/inventory.service.js';
 import { slugify } from '../catalog/admin-catalog.service.js';
 import { MAX_COLUMNS, readOutline, readSheet } from './spreadsheet.js';
@@ -55,15 +61,15 @@ const HEADER_HELP_FA: Record<ImportColumn, { help: string; example: string }> = 
   manufacturer_brand: { help: 'نام برند سازنده، همان‌طور که در پنل ثبت شده است (اختیاری)', example: 'ایساکو' },
   category_code: { help: 'کد یا نام دسته، همان‌طور که در پنل ثبت شده است (الزامی برای کالای تازه، یا یک مقدار برای کل فایل در پنل)', example: 'BRAKE' },
   vehicle_brand_codes: { help: 'کد یا نام برندهای خودرو، جدا با ویرگول', example: 'IKCO, SAIPA' },
-  vehicle_models: { help: 'خودروهای سازگار، جدا با ویرگول؛ فقط اضافه می‌شوند و چیزی حذف نمی‌شود', example: 'پژو ۲۰۶، سمند' },
+  vehicle_models: { help: 'کاربرد در خودرو: خودروها جدا با ویرگول (، یا ,)؛ مدل را بعد از نام خودرو بنویسید، مثل «پژو ۲۰۶». نام‌ها با فاصله، نیم‌فاصله، خط تیره یا حروف عربی هم شناخته می‌شوند. خودروی تازه فقط پس از تأیید در پیش‌نمایش ساخته می‌شود و نام خیلی شبیه به خودروی موجود برای اتصال پیشنهاد می‌شود. فقط اضافه می‌شود و چیزی حذف نمی‌شود. عنوان‌های «کاربرد»، «خودرو» و «مدل خودرو» هم شناخته می‌شوند.', example: 'پژو ۲۰۶، دنا پلاس' },
   part_type: { help: 'اصلی / او ای ام / افترمارکت (کد انگلیسی هم پذیرفته است: GENUINE / OEM / AFTERMARKET). حدس زده نمی‌شود؛ اگر نمی‌دانید خالی بگذارید.', example: 'اصلی' },
   condition: { help: 'نو / کارکرده / بازسازی شده (یا NEW / USED / REFURBISHED). کالای کارکرده یا بازسازی‌شده بدون عکس واقعی منتشر نمی‌شود.', example: 'نو' },
   origin: { help: 'داخلی / وارداتی / نامشخص (یا DOMESTIC / IMPORTED / UNKNOWN)', example: 'داخلی' },
   base_currency: { help: 'ریال یا درهم (یا IRR / AED). اگر ستون ارز ندارید، واحد ستون قیمت را در پنل انتخاب کنید؛ تومان فقط با انتخاب صریح «تومان، تبدیل به ریال» پذیرفته می‌شود.', example: 'ریال' },
   base_price: { help: 'قیمت پایه در همان ارز؛ ریال عدد صحیح، درهم حداکثر دو رقم اعشار. ارقام فارسی و جداکنندهٔ هزارگان مجازند.', example: '200,000,000' },
-  on_hand: { help: 'تعداد موجودی. در پنل انتخاب می‌کنید که این عدد جایگزین موجودی فعلی شود (شمارش انبار) یا به آن اضافه شود (کالای رسیده). عدد صحیح.', example: '4' },
-  unit: { help: 'واحد فروش (مثل عدد، جفت، دست)', example: 'عدد' },
-  low_stock_threshold: { help: 'حد هشدار موجودی (عدد صحیح)', example: '1' },
+  on_hand: { help: 'مقدار موجودی به واحد کالا. در پنل انتخاب می‌کنید که این عدد جایگزین موجودی فعلی شود (شمارش انبار) یا به آن اضافه شود (کالای رسیده). برای «عدد» و «دست» فقط عدد صحیح؛ برای «لیتر» با گام ۰٫۵ (مثل ۱۲٫۵).', example: '4' },
+  unit: { help: 'واحد فروش، یکی از واحدهای پنل (محصولات ← واحدها) مثل عدد، دست، لیتر. خالی = «عدد». واحد ناشناخته یا مقدار اعشاری برای واحد بدون اعشار در پیش‌نمایش خطا می‌دهد.', example: 'عدد' },
+  low_stock_threshold: { help: 'حد هشدار موجودی به واحد کالا (مثل موجودی)', example: '1' },
   override_price_irr: { help: 'قیمت دستی ریالی (اختیاری؛ بر تبدیل خودکار مقدم است)', example: '' },
   override_price_aed: { help: 'قیمت دستی درهمی برای نمایش/مرجع (اختیاری)', example: '' },
   description_fa: { help: 'توضیحات و مشخصات فارسی', example: 'قطر ۱۵ میلی‌متر، به همراه توپی' },
@@ -74,7 +80,7 @@ const HEADER_HELP_FA: Record<ImportColumn, { help: string; example: string }> = 
 /** Columns of the operator template, with the headers operators use (all recognised on import). */
 const TEMPLATE_CORE: ReadonlyArray<readonly [ImportColumn, string]> = [
   ['sku', 'کد کالا'], ['name_fa', 'نام قطعه'], ['category_code', 'کد دسته'], ['part_type', 'نوع قطعه'], ['condition', 'وضعیت فیزیکی'],
-  ['origin', 'منشا'], ['base_currency', 'ارز پایه'], ['base_price', 'قیمت پایه'], ['on_hand', 'موجودی'],
+  ['origin', 'منشا'], ['base_currency', 'ارز پایه'], ['base_price', 'قیمت پایه'], ['on_hand', 'موجودی'], ['unit', 'واحد'], ['vehicle_models', 'کاربرد در خودرو'],
 ];
 /** Drop-down values (Persian words the importer understands). */
 const TEMPLATE_CHOICES: Partial<Record<ImportColumn, readonly string[]>> = {
@@ -102,10 +108,30 @@ interface StoredSettings {
   clearWhenEmpty: string[];
   manufacturerBrandMapping: Record<string, string>;
   revision: number;
-  commit?: { skipErrorRows: boolean; confirmRepeatAdd: boolean };
+  commit?: { skipErrorRows: boolean; confirmRepeatAdd: boolean; createVehicles?: boolean; linkSimilar?: string[] };
 }
 
 type StoredSummary = ImportSummaryView & { stockMode?: StockMode; priceUnit?: PriceUnit | null };
+
+/** The preview's vehicle overview: new vehicles and models (created only after confirmation) and very similar names. */
+function summarizeFitments(rows: ReadonlyArray<{ rowNumber: number; values: { fitments?: FitmentMatch[] } | null }>): NonNullable<ImportSummaryView['vehicles']> {
+  const newVehicles = new Map<string, { name: string; rows: number[] }>();
+  const newModels = new Map<string, { vehicle: string; name: string; rows: number[] }>();
+  const similar = new Map<string, { text: string; suggestion: string; rows: number[] }>();
+  const add = <T extends { rows: number[] }>(map: Map<string, T>, key: string, make: () => T, row: number) => {
+    const entry = map.get(key) ?? make();
+    if (!entry.rows.includes(row)) entry.rows.push(row);
+    map.set(key, entry);
+  };
+  for (const r of rows) {
+    for (const f of r.values?.fitments ?? []) {
+      if (f.kind === 'NEW_VEHICLE') add(newVehicles, normalizeSearchText(f.vehicleName).replace(/ /g, ''), () => ({ name: f.vehicleName, rows: [] }), r.rowNumber);
+      else if (f.kind === 'NEW_MODEL') add(newModels, `${f.vehicleId}|${normalizeSearchText(f.modelName).replace(/ /g, '')}`, () => ({ vehicle: f.vehicleName, name: f.modelName, rows: [] }), r.rowNumber);
+      else if (f.kind === 'SIMILAR') add(similar, normalizeSearchText(f.text), () => ({ text: f.text, suggestion: f.suggestion.vehicleName, rows: [] }), r.rowNumber);
+    }
+  }
+  return { newVehicles: [...newVehicles.values()].slice(0, 200), newModels: [...newModels.values()].slice(0, 200), similar: [...similar.values()].slice(0, 200) };
+}
 
 function readSettings(job: { options: Prisma.JsonValue; mapping: Prisma.JsonValue; mode: 'UPDATE_ONLY' | 'CREATE_AND_UPDATE' }): StoredSettings {
   const o = (job.options ?? {}) as Partial<StoredSettings>;
@@ -138,6 +164,8 @@ export class ImportsService {
     private readonly outbox: OutboxService,
     private readonly audit: AuditService,
     private readonly idempotency: IdempotencyService,
+    private readonly units: UnitsService,
+    private readonly vehicles: VehiclesService,
     @Inject(STORAGE) private readonly storage: StorageDriver,
   ) {}
 
@@ -160,7 +188,7 @@ export class ImportsService {
       sheet.getRow(1).font = { bold: true };
       TEMPLATE_CORE.forEach(([c], i) => {
         const col = sheet.getColumn(i + 1);
-        col.width = c === 'name_fa' ? 36 : 16;
+        col.width = c === 'name_fa' || c === 'vehicle_models' ? 36 : 16;
         if (c === 'sku') col.numFmt = '@';
         const list = TEMPLATE_CHOICES[c];
         if (list) {
@@ -173,8 +201,9 @@ export class ImportsService {
         }
       });
     }
-    examples.addRow(['00123', 'فیلتر روغن پژو ۴۰۵ (فقط نمونه)', 'FILTER', 'اصلی', 'نو', 'داخلی', 'ریال', '1250000', '4']);
-    examples.addRow(['TEST-SAMPLE-002', 'لنت ترمز کارکرده (فقط نمونه)', 'BRAKE', 'افترمارکت', 'کارکرده', 'وارداتی', 'درهم', '45.50', '2']);
+    examples.addRow(['00123', 'فیلتر روغن پژو ۴۰۵ (فقط نمونه)', 'FILTER', 'اصلی', 'نو', 'داخلی', 'ریال', '1250000', '4', 'عدد', 'پژو ۴۰۵، پژو پارس']);
+    examples.addRow(['TEST-SAMPLE-002', 'لنت ترمز کارکرده (فقط نمونه)', 'BRAKE', 'افترمارکت', 'کارکرده', 'وارداتی', 'درهم', '45.50', '2', 'دست', 'پژو ۲۰۶، دنا پلاس']);
+    examples.addRow(['TEST-SAMPLE-003', 'روغن ترمز (فقط نمونه)', 'BRAKE', 'افترمارکت', 'نو', 'داخلی', 'ریال', '950000', '12.5', 'لیتر', 'سمند، رانا']);
     const help = wb.addWorksheet('راهنما', { views: [{ rightToLeft: true }] });
     help.addRow(['عنوان ستون', 'کلید انگلیسی', 'توضیح', 'نمونه']);
     help.getRow(1).font = { bold: true };
@@ -357,14 +386,25 @@ export class ImportsService {
       const codes = (col: 'sku' | 'technical_number') => rows.map((r) => (r[col]?.value === null || r[col]?.value === undefined ? '' : String(r[col]?.value).trim())).filter(Boolean);
       const skus = [...new Set(codes('sku'))];
       const numericSkus = [...new Set(rows.filter((r) => r.sku?.isNumeric).map((r) => String(r.sku?.value).trim()).filter((s) => /^\d+$/.test(s)))];
-      const [existing, technicalNumbers, categories, brands, manufacturers, zeroPaddedSkus] = await Promise.all([
+      const [existing, technicalNumbers, categories, brands, manufacturers, zeroPaddedSkus, unitRows, vehicleRows] = await Promise.all([
         this.loadExisting(skus),
         this.technicalIndex(codes('technical_number').length > 0),
         this.prisma.category.findMany({ where: { active: true }, select: { code: true, nameFa: true, nameEn: true } }),
         this.prisma.vehicleBrand.findMany({ where: { active: true }, select: { code: true, nameFa: true, nameEn: true } }),
         this.prisma.manufacturerBrand.findMany({ where: { active: true }, select: { id: true, normalizedName: true, nameFa: true, nameEn: true } }),
         this.zeroPaddedMatches(numericSkus),
+        this.prisma.unit.findMany({ where: { active: true } }),
+        this.prisma.vehicle.findMany({ where: { active: true }, include: { models: { where: { active: true } } } }),
       ]);
+      // Units by name and English name (the existing products' own units too, even when deactivated later).
+      const units = new Map<string, UnitRule>();
+      const usedUnits = await this.prisma.unit.findMany({ where: { name: { in: [...new Set([...existing.values()].map((e) => e.unit))] } } });
+      for (const u of [...unitRows, ...usedUnits]) {
+        const rule = { name: u.name, allowDecimal: u.allowDecimal, stepMilli: u.stepMilli };
+        units.set(normalizeSearchText(u.name), rule);
+        if (u.nameEn) units.set(normalizeSearchText(u.nameEn), rule);
+      }
+      const knownVehicles = vehicleRows.map((v) => ({ id: v.id, name: v.name, models: v.models.map((m) => ({ id: m.id, name: m.name })) }));
       const names = <T extends { code: string; nameFa: string; nameEn: string | null }>(list: T[]) => {
         const map = new Map<string, string>();
         for (const x of list) {
@@ -400,6 +440,8 @@ export class ImportsService {
         stockMode: settings.stockMode,
         technicalNumbers,
         zeroPaddedSkus,
+        units,
+        vehicles: knownVehicles,
       }, sheet.rows.map((r) => r.rowNumber));
       const planChecksum = createHash('sha256').update(JSON.stringify(toJsonSafe({ rows: plan.rows.map(({ display: _d, ...r }) => r), mode: settings.mode, stockMode: settings.stockMode }))).digest('hex');
       const mappedIndexes = new Set(Object.values(mapping));
@@ -436,6 +478,7 @@ export class ImportsService {
           columns: IMPORT_COLUMNS.filter((c) => mapping[c] !== undefined),
           ignoredHeaders: sheet.headers.filter((h, i) => (h ?? '').trim() !== '' && !mappedIndexes.has(i)).slice(0, 50),
           topIssues,
+          vehicles: summarizeFitments(plan.rows),
           stockMode: settings.stockMode, priceUnit: settings.priceUnit,
         };
         await tx.importJob.updateMany({ where: { id: jobId, status: 'PARSING' }, data: { status: 'PREVIEW_READY', progress: 100, planChecksum, summary: json(summary) } });
@@ -466,7 +509,10 @@ export class ImportsService {
     for (let i = 0; i < skus.length; i += 1000) {
       const products = await this.prisma.product.findMany({
         where: { sku: { in: skus.slice(i, i + 1000) } },
-        include: { translations: true, category: true, manufacturerBrand: true, vehicleBrands: { include: { vehicleBrand: true } }, basePrice: true, inventory: { where: { warehouseId } }, fitments: true },
+        include: {
+          translations: true, category: true, manufacturerBrand: true, vehicleBrands: { include: { vehicleBrand: true } }, basePrice: true,
+          inventory: { where: { warehouseId } }, fitments: true, salesUnit: true, vehicles: { select: { vehicleId: true, modelId: true } },
+        },
       });
       for (const p of products) {
         const fa = p.translations.find((t) => t.locale === 'fa');
@@ -478,9 +524,12 @@ export class ImportsService {
           manufacturerBrandId: p.manufacturerBrandId, partType: p.partType, condition: p.condition, origin: p.origin,
           baseCurrency: p.basePrice?.baseCurrency ?? 'IRR', basePriceMinor: p.basePrice?.baseAmountMinor ?? 0n,
           overridePriceIrrMinor: p.basePrice?.manualIrrMinor ?? null, overridePriceAedMinor: p.basePrice?.manualAedMinor ?? null,
-          onHand: bal?.onHand ?? 0, reserved: bal?.reserved ?? 0, inventoryVersion: bal?.version ?? 0, lowStockThreshold: bal?.lowStockThreshold ?? 0,
+          // Stock in the product's unit (stored as steps of it), as the file writes it.
+          onHand: stepsToQuantity(bal?.onHand ?? 0, p.salesUnit), reserved: stepsToQuantity(bal?.reserved ?? 0, p.salesUnit), inventoryVersion: bal?.version ?? 0,
+          lowStockThreshold: stepsToQuantity(bal?.lowStockThreshold ?? 0, p.salesUnit),
           unit: p.unit, descriptionFa: fa?.description ?? null, descriptionEn: en?.description ?? null, isActive: p.isSellable,
           oemCodes: p.oemCodes, vehicleModels: p.fitments.map((f) => f.modelText),
+          fitmentKeys: p.vehicles.map((f) => `${f.vehicleId}:${f.modelId ?? ''}`),
         });
       }
     }
@@ -568,7 +617,7 @@ export class ImportsService {
    * a permission the changes need, or when this exact file was already added to
    * stock (unless confirmed). Repeating the request is a no-op.
    */
-  async requestCommit(actor: Actor, jobId: string, input: { planChecksum: string; skipErrorRows: boolean; confirmRepeatAdd: boolean }) {
+  async requestCommit(actor: Actor, jobId: string, input: { planChecksum: string; skipErrorRows: boolean; confirmRepeatAdd: boolean; createVehicles?: boolean; linkSimilar?: string[] }) {
     const job = await this.ownJob(actor, jobId);
     if (job.status === 'COMMITTED' || job.status === 'COMMITTING') return { jobId, status: job.status };
     if (job.status !== 'PREVIEW_READY') throw conflict('IMPORT_NOT_READY');
@@ -590,7 +639,10 @@ export class ImportsService {
     await this.prisma.$transaction(async (tx) => {
       const res = await tx.importJob.updateMany({
         where: { id: jobId, status: 'PREVIEW_READY', planChecksum: input.planChecksum },
-        data: { status: 'COMMITTING', committedById: actor.userId, progress: 0, options: json({ ...settings, commit: { skipErrorRows: input.skipErrorRows, confirmRepeatAdd: input.confirmRepeatAdd } }) },
+        data: {
+          status: 'COMMITTING', committedById: actor.userId, progress: 0,
+          options: json({ ...settings, commit: { skipErrorRows: input.skipErrorRows, confirmRepeatAdd: input.confirmRepeatAdd, createVehicles: input.createVehicles ?? false, linkSimilar: input.linkSimilar ?? [] } }),
+        },
       });
       if (res.count !== 1) return;
       await this.outbox.enqueue(tx, { type: 'import.commit', aggregateType: 'import_job', aggregateId: jobId, payload: { jobId }, dedupeKey: `import-commit:${jobId}` });
@@ -613,7 +665,8 @@ export class ImportsService {
       this.prisma.importRow.count({ where: { jobId, action: 'ERROR' } }),
       this.prisma.importRow.count({ where: { jobId, action: 'UNCHANGED' } }),
     ]);
-    const result = { created: rows.filter((r) => r.action === 'CREATE').length, updated: rows.filter((r) => r.action === 'UPDATE').length, unchanged, skipped };
+    const result = { created: rows.filter((r) => r.action === 'CREATE').length, updated: rows.filter((r) => r.action === 'UPDATE').length, unchanged, skipped, vehiclesCreated: 0, modelsCreated: 0 };
+    const fitment = { create: settings.commit?.createVehicles ?? false, linkSimilar: new Set((settings.commit?.linkSimilar ?? []).map((t) => normalizeSearchText(t))), result };
     try {
       await this.prisma.tx(
         async (tx) => {
@@ -632,7 +685,7 @@ export class ImportsService {
           for (const [name, id] of Object.entries(settings.manufacturerBrandMapping)) mfr.set(normalizeSearchText(name), id);
           let done = 0;
           for (const row of rows) {
-            await this.applyRow(tx, job, row, { catId, brandId, mfr }, settings.stockMode);
+            await this.applyRow(tx, job, row, { catId, brandId, mfr }, settings.stockMode, fitment);
             done += 1;
             // Progress for large files, written outside this transaction so the panel sees it.
             if (done % 100 === 0) await this.prisma.importJob.update({ where: { id: jobId }, data: { progress: Math.min(95, Math.round((done / rows.length) * 100)) } }).catch(() => undefined);
@@ -644,7 +697,10 @@ export class ImportsService {
           });
           await this.audit.record(tx, {
             action: 'import.committed', entityType: 'import_job', entityId: jobId, actorKind: 'STAFF', actorId: job.committedById,
-            after: { ...result, stockMode: settings.stockMode, priceUnit: settings.priceUnit, skipErrorRows: settings.commit?.skipErrorRows ?? false, fileChecksum: job.fileChecksum },
+            after: {
+              ...result, stockMode: settings.stockMode, priceUnit: settings.priceUnit, skipErrorRows: settings.commit?.skipErrorRows ?? false, fileChecksum: job.fileChecksum,
+              createVehicles: fitment.create, linkedSimilar: fitment.linkSimilar.size,
+            },
           });
         },
         { timeoutMs: 600_000 },
@@ -662,6 +718,7 @@ export class ImportsService {
     row: { rowNumber: number; action: string; values: unknown; productId: string | null; expectedProductVersion: number | null; expectedInventoryVersion: number | null },
     maps: { catId: Map<string, string>; brandId: Map<string, string>; mfr: Map<string, string> },
     stockMode: StockMode,
+    fitment: { create: boolean; linkSimilar: ReadonlySet<string>; result: { vehiclesCreated: number; modelsCreated: number } },
   ): Promise<void> {
     const v = row.values as Omit<ParsedImportValues, 'basePriceMinor' | 'overridePriceIrrMinor' | 'overridePriceAedMinor'> & {
       basePriceMinor?: string; overridePriceIrrMinor?: string | null; overridePriceAedMinor?: string | null;
@@ -673,11 +730,12 @@ export class ImportsService {
       if (exists) throw new DomainError('VERSION_CONFLICT', `SKU ${v.sku} was created meanwhile`);
       const slugBase = slugify(v.nameEn ?? '') || slugify(v.sku) || `part-${randomUUID().slice(0, 8)}`;
       const slugTaken = await tx.product.findUnique({ where: { slug: slugBase } });
+      const unit = (v.unit ? await this.units.findByName(v.unit, tx) : null) ?? (await this.units.defaultUnit(tx));
       const created = await tx.product.create({
         data: {
           sku: v.sku, slug: slugTaken ? `${slugBase}-${randomUUID().slice(0, 6)}` : slugBase, categoryId: maps.catId.get(v.categoryCode as string) as string,
           manufacturerBrandId: v.manufacturerBrand ? (maps.mfr.get(normalizeSearchText(v.manufacturerBrand)) ?? null) : null,
-          partType: v.partType as 'GENUINE', condition: v.condition as 'NEW', origin: v.origin as 'DOMESTIC', unit: v.unit ?? 'عدد',
+          partType: v.partType as 'GENUINE', condition: v.condition as 'NEW', origin: v.origin as 'DOMESTIC', unitId: unit.id, unit: unit.name,
           // New products start as drafts: publishing keeps its own rules (price, real photo for used parts).
           isSellable: v.isActive ?? true, published: false, oemCodes: v.technicalNumber ? [v.technicalNumber] : [],
           createdById: job.committedById, updatedById: job.committedById,
@@ -695,8 +753,14 @@ export class ImportsService {
       await this.inventory.ensureBalance(tx, productId);
     } else {
       if (!productId) throw new DomainError('VERSION_CONFLICT');
-      const current = await tx.product.findUnique({ where: { id: productId }, select: { oemCodes: true } });
+      const current = await tx.product.findUnique({ where: { id: productId }, select: { oemCodes: true, salesUnit: true } });
       if (!current) throw new DomainError('VERSION_CONFLICT');
+      // A unit change keeps stored quantities meaningful only between units with the same step and decimal rule.
+      const unit = v.unit ? await this.units.findByName(v.unit, tx) : null;
+      if (v.unit && !unit) throw new DomainError('UNKNOWN_UNIT', `Row ${row.rowNumber}: unknown unit`);
+      if (unit && (unit.stepMilli !== current.salesUnit.stepMilli || unit.allowDecimal !== current.salesUnit.allowDecimal)) {
+        throw new DomainError('UNIT_CHANGE_LOCKED', `Row ${row.rowNumber}: change the unit in the panel`);
+      }
       const addCode = v.technicalNumber && !current.oemCodes.some((c) => technicalKey(c) === technicalKey(v.technicalNumber as string));
       const res = await tx.product.updateMany({
         where: { id: productId, version: row.expectedProductVersion ?? -1 },
@@ -708,7 +772,7 @@ export class ImportsService {
           ...(v.partType ? { partType: v.partType } : {}),
           ...(v.condition ? { condition: v.condition } : {}),
           ...(v.origin ? { origin: v.origin } : {}),
-          ...(v.unit ? { unit: v.unit } : {}),
+          ...(unit ? { unitId: unit.id, unit: unit.name } : {}),
           ...(v.isActive !== undefined ? { isSellable: v.isActive } : {}),
           ...(addCode ? { oemCodes: [...current.oemCodes, v.technicalNumber as string] } : {}),
         },
@@ -751,18 +815,46 @@ export class ImportsService {
         if (missing.length) await tx.productFitment.createMany({ data: missing.map((modelText) => ({ productId: productId as string, modelText })) });
       }
     }
+    // Amounts in the file are in the product's unit (1.5 litres); stock is stored as steps of it.
+    const { salesUnit } = await tx.product.findUniqueOrThrow({ where: { id: productId as string }, select: { salesUnit: true } });
+    const steps = (amount: number) => quantityToSteps(amount, salesUnit, { allowZero: true });
     if (v.onHandAdd !== undefined && v.onHandAdd > 0) {
-      await this.inventory.addOnHand(tx, { productId: productId as string, quantity: v.onHandAdd, type: 'IMPORT_ADJUSTMENT', reason: 'IMPORT_ADD', referenceType: 'import_job', referenceId: job.id });
+      await this.inventory.addOnHand(tx, { productId: productId as string, quantity: steps(v.onHandAdd), type: 'IMPORT_ADJUSTMENT', reason: 'IMPORT_ADD', referenceType: 'import_job', referenceId: job.id });
     } else if (v.onHand !== undefined) {
       await this.inventory.setOnHand(tx, {
-        productId: productId as string, newOnHand: v.onHand, expectedVersion: row.action === 'CREATE' || stockMode === 'ADD' ? null : row.expectedInventoryVersion,
+        productId: productId as string, newOnHand: steps(v.onHand), expectedVersion: row.action === 'CREATE' || stockMode === 'ADD' ? null : row.expectedInventoryVersion,
         type: 'IMPORT_ADJUSTMENT', reason: 'IMPORT', referenceType: 'import_job', referenceId: job.id,
       });
     }
-    if (v.lowStockThreshold !== undefined) await tx.inventoryBalance.updateMany({ where: { productId: productId as string }, data: { lowStockThreshold: v.lowStockThreshold } });
-    const p = await tx.product.findUniqueOrThrow({ where: { id: productId as string }, include: { translations: true } });
-    const doc = buildSearchDocument([...p.translations.flatMap((t) => [t.name, ...t.aliases]), p.sku, ...p.oemCodes]);
-    await tx.product.update({ where: { id: p.id }, data: { searchText: doc.text, searchCompact: doc.compact } });
+    if (v.lowStockThreshold !== undefined) await tx.inventoryBalance.updateMany({ where: { productId: productId as string }, data: { lowStockThreshold: steps(v.lowStockThreshold) } });
+    await this.applyFitments(tx, productId as string, v.fitments ?? [], fitment);
+    await rebuildProductSearch(tx, productId as string);
+  }
+
+  /**
+   * «کاربرد در خودرو» of one row: known vehicles/models are linked; new ones only when the person
+   * confirmed creating them; a very similar name only when the person chose to link it to the
+   * suggested vehicle. Nothing is ever unlinked by an import.
+   */
+  private async applyFitments(
+    tx: Tx, productId: string, items: readonly FitmentMatch[],
+    fitment: { create: boolean; linkSimilar: ReadonlySet<string>; result: { vehiclesCreated: number; modelsCreated: number } },
+  ): Promise<void> {
+    for (const f of items) {
+      if (f.kind === 'KNOWN') {
+        await this.vehicles.addProductVehicle(tx, productId, f.vehicleId, f.modelId);
+      } else if (f.kind === 'SIMILAR') {
+        if (fitment.linkSimilar.has(normalizeSearchText(f.text))) await this.vehicles.addProductVehicle(tx, productId, f.suggestion.vehicleId, null);
+      } else if (fitment.create && f.kind === 'NEW_VEHICLE') {
+        const v = await this.vehicles.ensureVehicle(tx, f.vehicleName);
+        if (v.created) fitment.result.vehiclesCreated += 1;
+        await this.vehicles.addProductVehicle(tx, productId, v.id, null);
+      } else if (fitment.create && f.kind === 'NEW_MODEL') {
+        const m = await this.vehicles.ensureModel(tx, f.vehicleId, f.modelName);
+        if (m.created) fitment.result.modelsCreated += 1;
+        await this.vehicles.addProductVehicle(tx, productId, f.vehicleId, m.id);
+      }
+    }
   }
 
   /**

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { idSchema, optionalText } from './common.js';
+import { unitQuantityOrZeroSchema } from './catalog.js';
 import { SMS_NOTIFICATION_TYPES } from './constants.js';
 
 export const exchangeRateSchema = z.object({
@@ -13,7 +14,8 @@ export const inventoryAdjustSchema = z.object({
   productId: idSchema,
   warehouseId: idSchema.optional(),
   /** Absolute physical count after counting; the server derives the delta. */
-  newOnHand: z.number().int().min(0).max(10_000_000),
+  /** In the product's unit (e.g. 12.5 litres). */
+  newOnHand: unitQuantityOrZeroSchema,
   reason: z.enum(['PHYSICAL_COUNT', 'RECEIVED', 'DAMAGED', 'LOST', 'RETURN_RESTOCK', 'CORRECTION']),
   note: optionalText(500),
   expectedVersion: z.number().int().min(0),
@@ -71,6 +73,38 @@ export const staffEraseSchema = z.object({
 });
 
 /**
+ * Deleting for good from the trash: the staff member's name typed again (checked by the server) and
+ * the acting owner's current authenticator code (the same complete erasure as before).
+ */
+export const trashPurgeSchema = z.object({
+  confirmName: z.string().trim().min(1).max(200),
+  confirmCode: z.string().trim().regex(/^[0-9۰-۹]{6}$/),
+});
+
+/** A staff member in the trash, as the owner sees it under panel → staff → trash. */
+export interface StaffTrashView {
+  entryId: string;
+  userId: string;
+  /** What has to be typed to delete for good (the name, or the e-mail when there is no name). */
+  label: string;
+  fullName: string | null;
+  email: string | null;
+  roles: Array<{ id: string; nameFa: string; nameEn: string; isOwner: boolean }>;
+  trashedAt: string;
+  trashedBy: string | null;
+  /** When the daily job deletes it for good (trashedAt + site settings → trash retention days). */
+  purgeAt: string;
+  daysLeft: number;
+}
+
+/** An active staff member for pickers (e.g. assigning a sourcing request); open to any staff role. */
+export interface StaffOptionView {
+  id: string;
+  fullName: string | null;
+  email: string | null;
+}
+
+/**
  * PENDING: e-mail queued or not configured; SENT: accepted by the SMTP server (not proof of inbox delivery);
  * FAILED: the e-mail could not be handed over; then ACCEPTED, EXPIRED or REVOKED.
  */
@@ -102,9 +136,10 @@ export interface StaffMemberView {
   mfaEnabled: boolean;
   lastLoginAt: string | null;
   roles: Array<{ id: string; key: string; nameFa: string; nameEn: string; isOwner: boolean }>;
-  /** The signed-in owner's own row: no role change, suspension or erasure from here. */
+  /** The signed-in owner's own row: no role change, suspension or trash from here. */
   isSelf: boolean;
-  canErase: boolean;
+  /** «حذف» (move to the trash): never oneself, never the last active owner. */
+  canTrash: boolean;
 }
 
 export const staffUpdateSchema = z.object({
@@ -189,6 +224,10 @@ export const importCommitSchema = z.object({
   skipErrorRows: z.boolean().default(false),
   /** The same file was already added to stock (ADD); add it once more anyway. */
   confirmRepeatAdd: z.boolean().default(false),
+  /** Create the vehicles and models of «کاربرد در خودرو» that are not in the list yet (listed in the preview). */
+  createVehicles: z.boolean().default(false),
+  /** Very similar names (as written in the file) the person agreed to link to the suggested existing vehicle. */
+  linkSimilar: z.array(z.string().max(120)).max(500).default([]),
 });
 
 export const importRowFilterSchema = z.enum(['all', 'errors', 'create', 'update', 'unchanged', 'warnings']);
@@ -240,8 +279,14 @@ export interface ImportSummaryView {
   ignoredHeaders?: string[];
   /** The most common row issues of the whole file: how many rows each affects and in which columns. */
   topIssues?: Array<{ code: string; severity: 'error' | 'warning'; rows: number; columns: string[] }>;
+  /** «کاربرد در خودرو»: what the file would add to the vehicle list, and names that look like existing vehicles. */
+  vehicles?: {
+    newVehicles: Array<{ name: string; rows: number[] }>;
+    newModels: Array<{ vehicle: string; name: string; rows: number[] }>;
+    similar: Array<{ text: string; suggestion: string; rows: number[] }>;
+  };
   /** After commit: what was applied. */
-  result?: { created: number; updated: number; unchanged: number; skipped: number };
+  result?: { created: number; updated: number; unchanged: number; skipped: number; vehiclesCreated?: number; modelsCreated?: number };
 }
 
 export interface ImportJobView {
@@ -307,6 +352,8 @@ export const siteSettingsSchema = z.object({
   manualBankTransferEnabled: z.literal(false).default(false),
   /** SMS copies switched off by the owner (in-app notifications are unaffected). */
   smsDisabledTypes: z.array(z.enum(SMS_NOTIFICATION_TYPES)).max(SMS_NOTIFICATION_TYPES.length).default([]),
+  /** Days an item stays in the trash before the daily job deletes it for good. */
+  trashRetentionDays: z.number().int().min(1).max(365).default(30),
 });
 
 export const policyVersionSchema = z.object({

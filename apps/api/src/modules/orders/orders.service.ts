@@ -9,6 +9,7 @@ import { Prisma, PrismaService } from '../../common/prisma.service.js';
 import type { Actor } from '../../common/request-context.js';
 import { irr } from '../../common/serialize.js';
 import { TransitionsService } from '../../common/transitions.service.js';
+import { fromSteps } from '../catalog/units.service.js';
 
 const orderInclude = {
   items: true,
@@ -60,14 +61,16 @@ export class OrdersService {
       status: order.status,
       paymentStatus: order.paymentStatus,
       createdAt: order.createdAt.toISOString(),
+      // Quantities in the unit the line was sold in (stored as steps of it).
       lines: order.items.map((i) => ({
         id: i.id,
-        returnableQuantity: order.status === 'DELIVERED' ? Math.max(0, i.quantity - i.returnedQuantity) : 0,
+        returnableQuantity: order.status === 'DELIVERED' ? fromSteps(Math.max(0, i.quantity - i.returnedQuantity), { stepMilli: i.unitStepMilli }) : 0,
         sku: i.skuSnapshot,
         name: { fa: i.nameFaSnapshot, en: i.nameEnSnapshot },
         partType: i.partType,
         condition: i.condition,
-        quantity: i.quantity,
+        quantity: fromSteps(i.quantity, { stepMilli: i.unitStepMilli }),
+        unit: { name: i.unitName, step: i.unitStepMilli / 1000 },
         unitPrice: irr(i.unitPriceMinor),
         lineTotal: irr(i.lineTotalMinor),
       })),

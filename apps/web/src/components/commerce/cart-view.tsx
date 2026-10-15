@@ -1,7 +1,7 @@
 'use client';
 
 import type { CartView } from '@hedax/contracts';
-import { ImageOff, Info, Minus, Plus, Trash2 } from 'lucide-react';
+import { ImageOff, Info, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
@@ -10,6 +10,7 @@ import { Money, Price } from '@/components/ui/format';
 import { Alert, Code, EmptyState, Spinner } from '@/components/ui/misc';
 import { Link } from '@/i18n/navigation';
 import { api } from '@/lib/api/client';
+import { QuantityStepper } from './quantity-stepper';
 
 export function CartClient() {
   const t = useTranslations();
@@ -65,21 +66,13 @@ export function CartClient() {
               <div className="min-w-0">
                 <Link href={`/parts/${l.slug}`} className="font-bold leading-7 hover:text-action hover:underline">{name}</Link>
                 <p className="text-xs text-steel">{t('parts.sku')}: <Code>{l.sku}</Code></p>
-                <div className="mt-1"><Price price={l.unitPrice} /></div>
+                <div className="mt-1"><Price price={l.unitPrice} unit={l.unit} /></div>
                 {l.problems.map((p) => <p key={p} className="mt-1 text-sm font-medium text-danger">{t(`cart.problem_${p}`)}</p>)}
               </div>
               {/* Phones: quantity and line total share one row under the name; from sm each is its own column. */}
               <div className="col-start-2 flex flex-wrap items-end justify-between gap-3 sm:contents">
               <div className="flex items-center gap-2">
-                <div className="flex h-11 items-stretch overflow-hidden rounded-[var(--radius-control)] border border-line-strong bg-white">
-                  <button type="button" className="grid w-11 cursor-pointer place-items-center transition-colors hover:bg-surface disabled:cursor-not-allowed disabled:opacity-40" disabled={busy === l.id || l.quantity <= 1} onClick={() => change(l.id, l.quantity - 1)} aria-label={t('cart.decrease', { name })}>
-                    <Minus aria-hidden className="size-4" />
-                  </button>
-                  <span className="num grid w-10 place-items-center border-x border-line text-center font-semibold" aria-live="polite">{locale === 'fa' ? l.quantity.toLocaleString('fa-IR') : l.quantity}</span>
-                  <button type="button" className="grid w-11 cursor-pointer place-items-center transition-colors hover:bg-surface disabled:cursor-not-allowed disabled:opacity-40" disabled={busy === l.id || l.quantity >= l.maxOrderQuantity} onClick={() => change(l.id, l.quantity + 1)} aria-label={t('cart.increase', { name })}>
-                    <Plus aria-hidden className="size-4" />
-                  </button>
-                </div>
+                <QuantityStepper id={`qty-${l.id}`} value={l.quantity} onChange={(q) => void change(l.id, q)} unit={l.unit} max={Math.max(l.maxOrderQuantity, l.quantity)} name={name} disabled={busy === l.id} height="h-11" />
                 <button type="button" className="grid size-11 cursor-pointer place-items-center rounded-[var(--radius-control)] text-steel transition-colors hover:bg-danger-soft hover:text-danger disabled:opacity-40" disabled={busy === l.id} onClick={() => change(l.id, 0)} aria-label={t('cart.removeItem', { name })}>
                   <Trash2 aria-hidden className="size-5" />
                 </button>

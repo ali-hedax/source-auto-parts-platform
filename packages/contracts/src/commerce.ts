@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { type MoneyDto, idSchema, optionalText } from './common.js';
-import type { PriceView } from './catalog.js';
+import { type PriceView, type UnitRef, unitQuantityOrZeroSchema, unitQuantitySchema } from './catalog.js';
 
 // ---------------------------------------------------------------------------
 // Auth
@@ -97,9 +97,10 @@ export const businessAccountRequestSchema = z.object({
 
 export const cartItemSchema = z.object({
   productId: idSchema,
-  quantity: z.number().int().min(1).max(999),
+  /** In the product's unit (e.g. 1.5 litres); checked against the unit by the server. */
+  quantity: unitQuantitySchema.refine((n) => n <= 999, { message: 'TOO_LARGE' }),
 });
-export const cartItemUpdateSchema = z.object({ quantity: z.number().int().min(0).max(999) });
+export const cartItemUpdateSchema = z.object({ quantity: unitQuantityOrZeroSchema.refine((n) => n <= 999, { message: 'TOO_LARGE' }) });
 
 export interface CartLineView {
   id: string;
@@ -108,8 +109,10 @@ export interface CartLineView {
   sku: string;
   name: { fa: string; en: string | null };
   imageUrl: string | null;
+  /** In the product's unit. */
   quantity: number;
   maxOrderQuantity: number;
+  unit: UnitRef;
   unitPrice: PriceView;
   lineTotalPayableIrr: MoneyDto | null;
   problems: Array<'OUT_OF_STOCK' | 'QUANTITY_REDUCED' | 'PRICE_CHANGED' | 'UNAVAILABLE' | 'INQUIRY_REQUIRED'>;
@@ -200,7 +203,10 @@ export interface OrderLineView {
   name: { fa: string; en: string | null };
   partType: string;
   condition: string;
+  /** In the unit the line was sold in. */
   quantity: number;
+  /** The unit the line was sold in (custom-sourced lines: «عدد»). */
+  unit: { name: string; step: number };
   unitPrice: MoneyDto;
   lineTotal: MoneyDto;
 }
@@ -241,7 +247,7 @@ export const returnRequestSchema = z.object({
   orderId: idSchema,
   kind: z.enum(['CANCEL', 'RETURN']),
   reason: z.string().trim().min(5).max(1000),
-  items: z.array(z.object({ orderItemId: idSchema, quantity: z.number().int().min(1) })).max(50).default([]),
+  items: z.array(z.object({ orderItemId: idSchema, quantity: unitQuantitySchema })).max(50).default([]),
   attachmentIds: z.array(idSchema).max(10).default([]),
 });
 

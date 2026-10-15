@@ -1,6 +1,7 @@
 'use client';
 
-import type { StaffInvitationView, StaffMemberView } from '@hedax/contracts';
+import type { StaffInvitationView, StaffMemberView, StaffTrashView } from '@hedax/contracts';
+import { normalizeSearchText, toPersianDigits } from '@hedax/domain';
 import { Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState, type ReactNode } from 'react';
@@ -10,6 +11,7 @@ import { Dialog } from '@/components/ui/dialog';
 import { Checkbox, Field, Input } from '@/components/ui/field';
 import { DateTime } from '@/components/ui/format';
 import { Alert, Badge, EmptyState, Ltr, PageHeader, TableScroll, td, th } from '@/components/ui/misc';
+import { Tabs } from '@/components/ui/tabs';
 import { Link } from '@/i18n/navigation';
 import { api } from '@/lib/api/client';
 import { errorText, isApiError } from '@/lib/api/errors';
@@ -18,12 +20,14 @@ import { ActionMenu, type MenuAction } from './action-menu';
 import { useL } from './shell';
 
 interface RoleRow { id: string; key: string; nameFa: string; nameEn: string; isOwner: boolean }
-interface StaffData { staff: StaffMemberView[]; invitations: StaffInvitationView[]; mailConfigured: boolean }
+interface StaffData { staff: StaffMemberView[]; invitations: StaffInvitationView[]; mailConfigured: boolean; trashCount: number }
+interface TrashData { items: StaffTrashView[]; retentionDays: number }
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 /** Same rule as the server (contracts staffPhoneSchema). */
 const PHONE = /^\+?[0-9۰-۹][0-9۰-۹ ()-]{6,19}$/;
 const CODE = /^[0-9۰-۹]{6}$/;
+const faNum = (n: number) => toPersianDigits(String(n));
 
 type Person = { kind: 'staff'; member: StaffMemberView } | { kind: 'invitation'; inv: StaffInvitationView };
 type Modal =
@@ -32,8 +36,11 @@ type Modal =
   | { type: 'status'; member: StaffMemberView; suspend: boolean }
   | { type: 'revoke'; inv: StaffInvitationView }
   | { type: 'resend'; inv: StaffInvitationView }
-  | { type: 'erase'; person: Person }
+  | { type: 'erase'; inv: StaffInvitationView }
+  | { type: 'trash'; member: StaffMemberView }
   | { type: 'mfa'; member: StaffMemberView }
+  | { type: 'restore'; item: StaffTrashView }
+  | { type: 'purge'; item: StaffTrashView }
   | null;
 type Notice = { tone: 'success' | 'warning'; text: string; link?: string } | null;
 
@@ -43,6 +50,8 @@ export function StaffPage() {
   const l = useL();
   const state = useApi<StaffData>('/admin/staff');
   const roles = useApi<RoleRow[]>('/admin/roles');
+  const [tab, setTab] = useState<'staff' | 'trash'>('staff');
+  const trash = useApi<TrashData>(tab === 'trash' ? '/admin/staff/trash' : null);
   const [modal, setModal] = useState<Modal>(null);
   const [notice, setNotice] = useState<Notice>(null);
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +60,7 @@ export function StaffPage() {
     setModal(null);
     setError(null);
     setNotice(n);
-    await state.reload();
+    await Promise.all([state.reload(), tab === 'trash' ? trash.reload() : null]);
   };
   const run = async (fn: () => Promise<Notice>) => {
     setError(null);
@@ -76,14 +85,14 @@ export function StaffPage() {
       return [
         ...(open ? [{ key: 'resend', label: l('ارسال دوبارهٔ دعوت‌نامه', 'Resend invitation'), onSelect: () => (inv.roles.some((r) => r.isOwner) ? setModal({ type: 'resend', inv }) : void run(() => resend(inv))) }] : []),
         ...(open && inv.status !== 'EXPIRED' ? [{ key: 'revoke', label: l('لغو دعوت', 'Revoke invitation'), onSelect: () => setModal({ type: 'revoke', inv }) }] : []),
-        { key: 'erase', label: l('حذف کامل', 'Erase'), danger: true, onSelect: () => setModal({ type: 'erase', person: p }) },
+        { key: 'erase', label: l('حذف کامل', 'Erase'), danger: true, onSelect: () => setModal({ type: 'erase', inv }) },
       ];
     }
     const m = p.member;
     return [
       { key: 'status', label: m.status === 'ACTIVE' ? l('غیرفعال کردن حساب', 'Deactivate account') : l('فعال کردن حساب', 'Activate account'), onSelect: () => setModal({ type: 'status', member: m, suspend: m.status === 'ACTIVE' }) },
       { key: 'mfa', label: l('ریست Authenticator (گوشی جدید)', 'Reset authenticator (new phone)'), disabled: !m.mfaEnabled, onSelect: () => setModal({ type: 'mfa', member: m }) },
-      ...(m.canErase ? [{ key: 'erase', label: l('حذف کارمند', 'Delete staff member'), danger: true, onSelect: () => setModal({ type: 'erase', person: p }) }] : []),
+      ...(m.canTrash ? [{ key: 'trash', label: l('حذف (انتقال به سطل زباله)', 'Delete (move to trash)'), danger: true, onSelect: () => setModal({ type: 'trash', member: m }) }] : []),
     ];
   };
 
@@ -109,6 +118,60 @@ export function StaffPage() {
         ) : null}
       </div>
       {error ? <Alert tone="danger" title={error} /> : null}
+      <Tabs
+        id="staff-tabs"
+        label={t('admin.staff')}
+        active={tab}
+        onChange={(k) => { setTab(k); setNotice(null); }}
+        items={[
+          { key: 'staff', label: l('کارکنان و دعوت‌ها', 'Staff and invitations') },
+          { key: 'trash', label: l('سطل زباله', 'Trash'), ...(state.data ? { count: state.data.trashCount } : {}) },
+        ]}
+      />
+      <div id="staff-tabs-panel" role="tabpanel" aria-labelledby={`staff-tabs-${tab}`}>
+      {tab === 'trash' ? (
+        <Async state={trash}>
+          {(data) => (
+            <div className="flex flex-col gap-3">
+              <p className="text-sm text-steel">
+                {l(
+                  `کارمندِ داخل سطل زباله نمی‌تواند وارد شود و در فهرست‌ها دیده نمی‌شود؛ ایمیلش برای بازگردانی رزرو می‌ماند. بعد از ${faNum(data.retentionDays)} روز خودکار برای همیشه حذف می‌شود (مدت در تنظیمات سایت قابل تغییر است).`,
+                  `Staff in the trash cannot sign in and are hidden from lists; their e-mail stays reserved for a restore. After ${data.retentionDays} days they are deleted for good automatically (change this in site settings).`,
+                )}
+              </p>
+              {!data.items.length ? <EmptyState title={l('سطل زباله خالی است.', 'The trash is empty.')} /> : (
+                <TableScroll caption={l('سطل زباله', 'Trash')}>
+                  <thead>
+                    <tr>
+                      <th className={th}>{l('نام', 'Name')}</th><th className={th}>{l('ایمیل', 'E-mail')}</th><th className={th}>{l('نقش', 'Role')}</th>
+                      <th className={th}>{l('تاریخ حذف', 'Deleted on')}</th><th className={th}>{l('حذف‌شده توسط', 'Deleted by')}</th><th className={th}>{l('روزهای باقی‌مانده', 'Days left')}</th>
+                      <th className={th}><span className="sr-only">{l('عملیات', 'Actions')}</span></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.items.map((item) => (
+                      <tr key={item.entryId}>
+                        <td className={td}><span className="font-semibold">{item.fullName ?? '—'}</span></td>
+                        <td className={td}>{item.email ? <Ltr>{item.email}</Ltr> : '—'}</td>
+                        <td className={td}>{item.roles.map(roleName).join('، ') || '—'}</td>
+                        <td className={td}><DateTime iso={item.trashedAt} /></td>
+                        <td className={td}>{item.trashedBy ?? '—'}</td>
+                        <td className={td}><Badge tone={item.daysLeft <= 3 ? 'danger' : 'warning'}>{l(`${faNum(item.daysLeft)} روز`, `${item.daysLeft} days`)}</Badge></td>
+                        <td className={td}>
+                          <div className="flex flex-wrap items-center gap-1">
+                            <Button size="sm" variant="secondary" onClick={() => setModal({ type: 'restore', item })}>{l('بازگردانی', 'Restore')}</Button>
+                            <Button size="sm" variant="danger" onClick={() => setModal({ type: 'purge', item })}>{l('حذف دائمی', 'Delete for good')}</Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </TableScroll>
+              )}
+            </div>
+          )}
+        </Async>
+      ) : (
       <Async state={state}>
         {(data) => {
           const people: Person[] = [
@@ -155,6 +218,8 @@ export function StaffPage() {
           );
         }}
       </Async>
+      )}
+      </div>
 
       {modal?.type === 'invite' || modal?.type === 'edit' ? (
         <PersonDialog
@@ -220,16 +285,50 @@ export function StaffPage() {
 
       {modal?.type === 'erase' ? (
         <CodeDialog
-          title={modal.person.kind === 'staff' ? l(`حذف کارمند ${nameOf(modal.person)}`, `Delete ${nameOf(modal.person)}`) : l(`حذف کامل دعوت ${nameOf(modal.person)}`, `Erase the invitation for ${nameOf(modal.person)}`)}
-          text={l('مطمئن هستید؟ نام، ایمیل، شماره، رمز، دسترسی‌ها و دعوت‌های این شخص پاک می‌شود و در تاریخچه به‌جای نام «حذف‌شده» می‌آید. کارهای ثبت‌شده (سفارش‌ها، پیام‌ها) بدون نام می‌مانند. این کار برگشت‌پذیر نیست. با کد همین لحظهٔ Authenticator خودتان تأیید کنید.', 'Are you sure? Their name, e-mail, phone, password, access and invitations are removed and the history shows "deleted" instead of the name. Recorded work stays without a name. This cannot be undone. Confirm with your current authenticator code.')}
+          title={l(`حذف کامل دعوت ${modal.inv.fullName}`, `Erase the invitation for ${modal.inv.fullName}`)}
+          text={l('مطمئن هستید؟ نام، ایمیل، شماره و دعوت‌های این شخص پاک می‌شود و در تاریخچه به‌جای نام «حذف‌شده» می‌آید. این کار برگشت‌پذیر نیست. با کد همین لحظهٔ Authenticator خودتان تأیید کنید.', 'Are you sure? Their name, e-mail, phone and invitations are removed and the history shows "deleted" instead of the name. This cannot be undone. Confirm with your current authenticator code.')}
           confirmLabel={l('حذف برای همیشه', 'Delete permanently')}
           danger
           onClose={() => setModal(null)}
           onConfirm={async (code) => {
-            const p = modal.person;
-            await api(p.kind === 'staff' ? `/admin/staff/${p.member.id}/erase` : `/admin/staff/invitations/${p.inv.id}/erase`, { method: 'POST', body: { confirmCode: code } });
+            await api(`/admin/staff/invitations/${modal.inv.id}/erase`, { method: 'POST', body: { confirmCode: code } });
             await done({ tone: 'success', text: l('به‌طور کامل حذف شد؛ نام و ایمیل در هیچ جای سایت نمانده است.', 'Erased; the name and e-mail no longer appear anywhere on the site.') });
           }}
+        />
+      ) : null}
+
+      {modal?.type === 'trash' ? (
+        <ConfirmDialog
+          title={l(`حذف ${modal.member.fullName ?? modal.member.email ?? ''}`, `Delete ${modal.member.fullName ?? modal.member.email ?? ''}`)}
+          text={l('به سطل زباله منتقل می‌شود: همین حالا از همهٔ نشست‌ها خارج می‌شود، دیگر نمی‌تواند وارد شود و در فهرست‌ها دیده نمی‌شود. نقش‌ها، ایمیل و سابقه‌اش می‌ماند و تا پیش از حذف خودکار، از زبانهٔ «سطل زباله» قابل بازگردانی است.', 'Moves to the trash: signed out now, cannot sign in and is hidden from lists. Roles, e-mail and history are kept, and you can restore from the Trash tab until the automatic deletion.')}
+          confirmLabel={l('انتقال به سطل زباله', 'Move to trash')}
+          danger
+          onClose={() => setModal(null)}
+          onConfirm={async () => {
+            await api(`/admin/staff/${modal.member.id}/trash`, { method: 'POST', body: {} });
+            await done({ tone: 'success', text: l('به سطل زباله منتقل شد و از سیستم خارج شد.', 'Moved to the trash and signed out.') });
+          }}
+        />
+      ) : null}
+
+      {modal?.type === 'restore' ? (
+        <ConfirmDialog
+          title={l(`بازگردانی ${modal.item.label}`, `Restore ${modal.item.label}`)}
+          text={l('با همان نقش و اطلاعات قبلی برمی‌گردد. Authenticator او ریست می‌شود و در اولین ورود دوباره تنظیمش می‌کند.', 'Comes back with the same roles and details. Their authenticator is reset and set up again at the first sign-in.')}
+          confirmLabel={l('بازگردانی', 'Restore')}
+          onClose={() => setModal(null)}
+          onConfirm={async () => {
+            await api(`/admin/staff/${modal.item.userId}/restore`, { method: 'POST', body: {} });
+            await done({ tone: 'success', text: l('بازگردانده شد؛ در ورود بعدی Authenticator را دوباره ثبت می‌کند.', 'Restored; they set up the authenticator again at the next sign-in.') });
+          }}
+        />
+      ) : null}
+
+      {modal?.type === 'purge' ? (
+        <PurgeDialog
+          item={modal.item}
+          onClose={() => setModal(null)}
+          onDone={() => done({ tone: 'success', text: l('برای همیشه حذف شد؛ نام و ایمیل در هیچ جای سایت نمانده است.', 'Deleted for good; the name and e-mail no longer appear anywhere on the site.') })}
         />
       ) : null}
     </div>
@@ -372,6 +471,54 @@ function ConfirmDialog({ title, text, confirmLabel, danger = false, onClose, onC
         <Button variant={danger ? 'danger' : 'primary'} loading={busy} onClick={async () => { setBusy(true); setError(null); try { await onConfirm(); } catch (e) { setError(errorText(t, e)); } finally { setBusy(false); } }}>{confirmLabel}</Button>
         <Button variant="ghost" onClick={onClose}>{l('انصراف', 'Cancel')}</Button>
       </div>
+    </Dialog>
+  );
+}
+
+/** Same comparison as the server (normalizeSearchText): Arabic/Persian letters, digits, spacing and case do not matter. */
+const sameName = (a: string, b: string) => normalizeSearchText(a) !== '' && normalizeSearchText(a) === normalizeSearchText(b);
+
+/** Delete for good from the trash: the name typed again plus the owner's current authenticator code. */
+function PurgeDialog({ item, onClose, onDone }: { item: StaffTrashView; onClose: () => void; onDone: () => Promise<void> }) {
+  const t = useTranslations();
+  const l = useL();
+  const [name, setName] = useState('');
+  const [code, setCode] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<{ name?: string; code?: string; general?: string }>({});
+  const nameOk = sameName(name, item.label);
+  const valid = nameOk && CODE.test(code.trim());
+  const submit = async () => {
+    if (!valid) return;
+    setBusy(true);
+    setError({});
+    try {
+      await api(`/admin/staff/${item.userId}/purge`, { method: 'POST', body: { confirmName: name.trim(), confirmCode: code.trim() } });
+      await onDone();
+    } catch (e) {
+      const text = errorText(t, e);
+      const codeName = isApiError(e) ? e.code : '';
+      setError(codeName === 'CONFIRM_NAME_MISMATCH' ? { name: text } : codeName === 'MFA_CODE_INVALID' || codeName === 'MFA_CONFIRMATION_REQUIRED' ? { code: text } : { general: text });
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }} title={l(`حذف دائمی ${item.label}`, `Delete ${item.label} for good`)} closeLabel={l('بستن', 'Close')}
+      description={l('نام، ایمیل، شماره، رمز، دسترسی‌ها و دعوت‌های این شخص پاک می‌شود و در تاریخچه به‌جای نام «حذف‌شده» می‌آید. کارهای ثبت‌شده (سفارش‌ها، پیام‌ها) بدون نام می‌مانند. این کار برگشت‌پذیر نیست.', 'Their name, e-mail, phone, password, access and invitations are removed and the history shows "deleted" instead of the name. Recorded work stays without a name. This cannot be undone.')}>
+      <form noValidate onSubmit={(e) => { e.preventDefault(); void submit(); }} className="flex flex-col gap-4">
+        {error.general ? <Alert tone="danger" title={error.general} /> : null}
+        <Field id="pg-name" label={l('برای تأیید، نام را دقیقاً بنویسید:', 'To confirm, type the name:')} hint={item.label} required {...(error.name ? { error: error.name } : {})}>
+          <Input id="pg-name" autoComplete="off" invalid={!!error.name} value={name} onChange={(e) => setName(e.target.value)} />
+        </Field>
+        <Field id="pg-code" label={t('admin.ownerConfirmCode')} required {...(error.code ? { error: error.code } : {})}>
+          <Input id="pg-code" dir="ltr" inputMode="numeric" autoComplete="one-time-code" maxLength={6} invalid={!!error.code} value={code} onChange={(e) => setCode(e.target.value)} />
+        </Field>
+        <div className="flex flex-wrap gap-2">
+          <Button type="submit" variant="danger" loading={busy} disabled={!valid}>{l('حذف برای همیشه', 'Delete for good')}</Button>
+          <Button variant="ghost" onClick={onClose}>{l('انصراف', 'Cancel')}</Button>
+        </div>
+      </form>
     </Dialog>
   );
 }

@@ -51,6 +51,7 @@ async function seedDev(prisma: PrismaClient): Promise<void> {
     { sku: '00123', fa: 'دیسک ترمز کمری بازسازی‌شده (نمونه)', en: 'Brake disc, Camry — refurbished (SAMPLE)', cat: 'BRAKE', brands: ['TOYOTA'], partType: 'GENUINE', condition: 'REFURBISHED', origin: 'IMPORTED', currency: 'AED', price: 21_000n, onHand: 3 },
   ];
 
+  const pieceUnit = await prisma.unit.findUniqueOrThrow({ where: { name: 'عدد' } });
   for (const p of products) {
     const doc = buildSearchDocument([p.fa, p.en, ...(p.aliases ?? []), p.sku]);
     const existing = await prisma.product.findUnique({ where: { sku: p.sku } });
@@ -64,6 +65,8 @@ async function seedDev(prisma: PrismaClient): Promise<void> {
         partType: p.partType,
         condition: p.condition,
         origin: p.origin,
+        unitId: pieceUnit.id,
+        unit: pieceUnit.name,
         oemCodes: [],
         // Used/refurbished demo items stay unpublished until a real photo is added (publish rule).
         published: p.condition === 'NEW',

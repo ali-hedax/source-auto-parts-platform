@@ -1,6 +1,6 @@
 'use client';
 
-import type { CategoryView, VehicleBrandView } from '@hedax/contracts';
+import type { CategoryView, VehicleBrandView, VehiclePublicView } from '@hedax/contracts';
 import { ChevronDown, SlidersHorizontal } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useRef, useState, useTransition } from 'react';
@@ -8,7 +8,7 @@ import { usePathname, useRouter } from '@/i18n/navigation';
 import { Checkbox, Field, Input, Select } from '@/components/ui/field';
 import { Num } from '@/components/ui/format';
 
-export type FilterKey = 'q' | 'brand' | 'category' | 'partType' | 'condition' | 'origin' | 'inStock' | 'sort';
+export type FilterKey = 'q' | 'vehicle' | 'model' | 'brand' | 'category' | 'partType' | 'condition' | 'origin' | 'inStock' | 'sort';
 
 /**
  * All filters live in the URL, so back/forward restore the exact view.
@@ -18,7 +18,9 @@ export type FilterKey = 'q' | 'brand' | 'category' | 'partType' | 'condition' | 
  * streamed panel measured CLS 0.66 on mobile). On small screens it is collapsed
  * behind a button so results are visible first; from `lg` up it is always open.
  */
-export function CatalogFilters({ categories, brands, current, showOrigin = true }: { categories: CategoryView[]; brands: VehicleBrandView[]; current: Partial<Record<FilterKey, string>>; showOrigin?: boolean }) {
+export function CatalogFilters({ categories, brands, vehicles = [], fixedVehicle, current, showOrigin = true }: {
+  categories: CategoryView[]; brands: VehicleBrandView[]; vehicles?: VehiclePublicView[]; fixedVehicle?: VehiclePublicView; current: Partial<Record<FilterKey, string>>; showOrigin?: boolean;
+}) {
   const t = useTranslations();
   const locale = useLocale() as 'fa' | 'en';
   const pathname = usePathname();
@@ -26,7 +28,9 @@ export function CatalogFilters({ categories, brands, current, showOrigin = true 
   const [pending, start] = useTransition();
   const [q, setQ] = useState(current.q ?? '');
   const [open, setOpen] = useState(false);
-  const active = (['q', 'brand', 'category', 'partType', 'condition', 'origin', 'inStock'] as const).filter((k) => current[k]).length;
+  const active = (['q', 'vehicle', 'model', 'brand', 'category', 'partType', 'condition', 'origin', 'inStock'] as const).filter((k) => current[k]).length;
+  // On a vehicle page the vehicle is fixed; only its models can be chosen.
+  const chosenVehicle = fixedVehicle ?? vehicles.find((v) => v.slug === current.vehicle);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const update = (patch: Record<string, string | null>) => {
@@ -84,6 +88,22 @@ export function CatalogFilters({ categories, brands, current, showOrigin = true 
             }}
           />
         </Field>
+        {!fixedVehicle && vehicles.length ? (
+          <Field id="filter-vehicle" label={t('parts.vehicle')} hint={t('parts.vehicleHint')}>
+            <Select id="filter-vehicle" value={current.vehicle ?? ''} aria-describedby="filter-vehicle-hint" onChange={(e) => update({ vehicle: e.target.value || null, model: null })}>
+              <option value="">{t('common.all')}</option>
+              {vehicles.map((v) => <option key={v.slug} value={v.slug}>{name(v.name)}</option>)}
+            </Select>
+          </Field>
+        ) : null}
+        {chosenVehicle && chosenVehicle.models.length ? (
+          <Field id="filter-model" label={t('parts.vehicleModel')}>
+            <Select id="filter-model" value={current.model ?? ''} onChange={(e) => update({ model: e.target.value || null })}>
+              <option value="">{t('parts.allModels')}</option>
+              {chosenVehicle.models.map((m) => <option key={m.slug} value={m.slug}>{name(m.name)}</option>)}
+            </Select>
+          </Field>
+        ) : null}
         <Field id="filter-brand" label={t('parts.brand')}>
           <Select id="filter-brand" value={current.brand ?? ''} onChange={(e) => update({ brand: e.target.value })}>
             <option value="">{t('common.all')}</option>
