@@ -137,7 +137,7 @@ export class MailService {
     if (msg.kind === 'TEST') return testMail(this.base(), msg.createdAt);
     if (msg.kind !== 'STAFF_INVITATION' || !msg.invitationId || !msg.secretEnc) throw new Error('UNKNOWN_MESSAGE');
     const inv = await this.prisma.staffInvitation.findUnique({ where: { id: msg.invitationId } });
-    if (!inv || inv.acceptedAt || inv.revokedAt || inv.expiresAt <= new Date()) return null;
+    if (!inv || inv.acceptedAt || inv.revokedAt || inv.trashedAt || inv.expiresAt <= new Date()) return null;
     const token = this.crypto.decrypt(msg.secretEnc);
     if (sha256Hex(token) !== inv.tokenHash) return null; // the link was replaced by a newer one
     const roles = await this.prisma.role.findMany({ where: { id: { in: inv.roleIds } }, include: { permissions: true } });

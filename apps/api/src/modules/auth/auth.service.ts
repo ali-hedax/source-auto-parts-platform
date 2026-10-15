@@ -316,13 +316,14 @@ export class AuthService {
     // Only someone holding the link learns why it no longer works (used, revoked or expired).
     if (!invitation) throw badRequest('INVITATION_INVALID', 'This invitation is no longer valid');
     if (invitation.acceptedAt) throw conflict('INVITATION_ALREADY_ACCEPTED', 'This invitation was already used; sign in instead');
-    if (invitation.revokedAt) throw badRequest('INVITATION_REVOKED', 'This invitation was revoked');
+    // An invitation in the trash works like a revoked one until the owner restores it.
+    if (invitation.revokedAt || invitation.trashedAt) throw badRequest('INVITATION_REVOKED', 'This invitation was revoked');
     if (invitation.expiresAt <= new Date()) throw badRequest('INVITATION_EXPIRED', 'This invitation has expired');
     const problems = passwordProblems(input.password, [input.fullName, invitation.email]);
     if (problems.length) throw badRequest('WEAK_PASSWORD', 'Choose a stronger password', { problems });
     const passwordHash = await argon2.hash(input.password, ARGON_OPTIONS);
     return this.prisma.tx(async (tx) => {
-      const claimed = await tx.staffInvitation.updateMany({ where: { id: invitation.id, acceptedAt: null }, data: { acceptedAt: new Date() } });
+      const claimed = await tx.staffInvitation.updateMany({ where: { id: invitation.id, acceptedAt: null, revokedAt: null, trashedAt: null }, data: { acceptedAt: new Date() } });
       if (claimed.count !== 1) throw badRequest('INVITATION_INVALID');
       const exists = await tx.user.findUnique({ where: { email: invitation.email } });
       if (exists) throw conflict('EMAIL_IN_USE');

@@ -9,6 +9,8 @@ import { AuthService } from '../auth/auth.service.js';
 
 /** trash_entry.kind of staff members in the trash. */
 export const STAFF_TRASH_KIND = 'staff';
+/** trash_entry.kind of invitations (never accepted) in the trash. */
+export const STAFF_INVITATION_TRASH_KIND = 'staff_invitation';
 
 /** What replaces an erased name or e-mail address, also in the audit trail. */
 export const ERASED = 'حذف‌شده';
@@ -112,7 +114,7 @@ export class StaffErasureService {
       await tx.mfaRecoveryCode.deleteMany({ where: { userId } });
       await tx.userRole.deleteMany({ where: { userId } });
       await tx.notification.deleteMany({ where: { userId } });
-      await tx.trashEntry.deleteMany({ where: { kind: STAFF_TRASH_KIND, entityId: userId } });
+      await tx.trashEntry.deleteMany({ where: { OR: [{ kind: STAFF_TRASH_KIND, entityId: userId }, { kind: STAFF_INVITATION_TRASH_KIND, entityId: { in: invitationIds } }] } });
       await tx.user.update({
         where: { id: userId },
         data: {
@@ -140,13 +142,50 @@ export class StaffErasureService {
     const ownerRole = await this.prisma.role.findFirst({ where: { id: { in: inv.roleIds }, isOwner: true }, select: { id: true } });
     if (ownerRole && !actor.isOwner) throw forbidden('OWNER_PROTECTED');
     await this.auth.confirmStepUp(actor, confirmCode);
+    return this.eraseInvitationRows(invitationId, 'address', false);
+  }
+
+  /** Deletes for good an invitation that is in the trash (panel → staff → trash), with the owner's current code. */
+  async eraseTrashedInvitation(actor: Actor, invitationId: string, confirmCode: string) {
+    await this.limits.hit(LIMITS.staffErasePerActor, actor.userId);
+    const inv = await this.prisma.staffInvitation.findUnique({ where: { id: invitationId }, select: { trashedAt: true, roleIds: true } });
+    if (!inv) throw notFound();
+    if (!inv.trashedAt) throw conflict('NOT_IN_TRASH', 'Move the invitation to the trash first');
+    const ownerRole = await this.prisma.role.findFirst({ where: { id: { in: inv.roleIds }, isOwner: true }, select: { id: true } });
+    if (ownerRole && !actor.isOwner) throw forbidden('OWNER_PROTECTED');
+    await this.auth.confirmStepUp(actor, confirmCode);
+    return this.eraseInvitationRows(invitationId, 'trash', false);
+  }
+
+  /** The daily trash job: invitations whose time in the trash is over (no person acting). */
+  async eraseExpiredInvitation(invitationId: string) {
+    const inv = await this.prisma.staffInvitation.findUnique({ where: { id: invitationId }, select: { trashedAt: true } });
+    if (!inv?.trashedAt) return null;
+    return this.eraseInvitationRows(invitationId, 'trash', true);
+  }
+
+  /**
+   * 'address': every invitation to the address goes and the address is removed from the history.
+   * 'trash': the same, unless the address is still in use (an account, or an invitation outside the
+   * trash): then only this invitation and its e-mails go, and the history is left as it is.
+   */
+  private async eraseInvitationRows(invitationId: string, scope: 'address' | 'trash', automatic: boolean) {
     return this.prisma.tx(async (tx) => {
-      const invitations = await tx.staffInvitation.findMany({ where: { email: inv.email }, select: { id: true, fullName: true } });
+      const inv = await tx.staffInvitation.findUniqueOrThrow({ where: { id: invitationId } });
+      const inUse = scope === 'trash' && (
+        !!(await tx.user.findUnique({ where: { email: inv.email }, select: { id: true } }))
+        || !!(await tx.staffInvitation.findFirst({ where: { email: inv.email, trashedAt: null, id: { not: inv.id } }, select: { id: true } }))
+      );
+      const invitations = inUse ? [inv] : await tx.staffInvitation.findMany({ where: { email: inv.email }, select: { id: true, fullName: true } });
       const invitationIds = invitations.map((i) => i.id);
-      await tx.emailMessage.deleteMany({ where: { OR: [{ invitationId: { in: invitationIds } }, { kind: 'STAFF_INVITATION', toAddress: inv.email }] } });
+      await tx.emailMessage.deleteMany({ where: inUse ? { invitationId: inv.id } : { OR: [{ invitationId: { in: invitationIds } }, { kind: 'STAFF_INVITATION', toAddress: inv.email }] } });
       await tx.staffInvitation.deleteMany({ where: { id: { in: invitationIds } } });
-      const auditEntries = await this.redactAudit(tx, { emails: [inv.email.toLowerCase()], names: [...new Set(invitations.map((i) => i.fullName.trim()))] }, invitationIds, null);
-      await this.audit.record(tx, { action: 'staff.invitation.erased', entityType: 'staff_invitation', entityId: invitationId, after: { invitations: invitationIds.length, auditEntries } });
+      await tx.trashEntry.deleteMany({ where: { kind: STAFF_INVITATION_TRASH_KIND, entityId: { in: invitationIds } } });
+      const auditEntries = inUse ? 0 : await this.redactAudit(tx, { emails: [inv.email.toLowerCase()], names: [...new Set(invitations.map((i) => i.fullName.trim()))] }, invitationIds, null);
+      await this.audit.record(tx, {
+        action: automatic ? 'staff.invitation.auto_erased' : 'staff.invitation.erased', entityType: 'staff_invitation', entityId: invitationId,
+        after: { invitations: invitationIds.length, auditEntries, ...(automatic ? { reason: 'TRASH_RETENTION' } : {}) },
+      });
       return { id: invitationId, erased: true, invitations: invitationIds.length, auditEntries };
     });
   }

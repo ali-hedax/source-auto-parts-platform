@@ -81,10 +81,15 @@ export const trashPurgeSchema = z.object({
   confirmCode: z.string().trim().regex(/^[0-9۰-۹]{6}$/),
 });
 
-/** A staff member in the trash, as the owner sees it under panel → staff → trash. */
+/** A staff member or an invitation in the trash, as the owner sees it under panel → staff → trash. */
 export interface StaffTrashView {
   entryId: string;
-  userId: string;
+  /** An account ('staff') or an invitation that was never accepted ('invitation'). */
+  kind: 'staff' | 'invitation';
+  /** The account id (kind staff) or the invitation id (kind invitation). */
+  id: string;
+  /** The state before the trash; a restore brings it back (an open invitation may have expired meanwhile). */
+  previousStatus: 'ACTIVE' | 'SUSPENDED' | StaffInvitationStatus;
   /** What has to be typed to delete for good (the name, or the e-mail when there is no name). */
   label: string;
   fullName: string | null;

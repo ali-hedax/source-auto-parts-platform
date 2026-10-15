@@ -181,14 +181,51 @@ test.describe('layout, SEO and accessibility', () => {
     await expect(page.getByRole('dialog').getByText(/به سطل زباله منتقل می‌شود/)).toBeVisible();
     await page.keyboard.press('Escape');
 
+    // Every state offers «حذف (انتقال به سطل زباله)», and the item is really on screen and clickable
+    // where it is drawn: before the fix, a menu near the bottom of the table was cut off by the
+    // table's scroll box and showed only «فعال کردن حساب» for a deactivated member.
+    const states: Array<[RegExp, string, RegExp]> = [
+      [/کارمند کاتالوگ/, 'فعال', /سطل زباله منتقل می‌شود: همین حالا/],
+      [/کارمند مالی/, 'غیرفعال', /سطل زباله منتقل می‌شود: همین حالا/],
+      [/کارمند نمونه/, 'در انتظار پذیرش', /لینک دعوت دیگر کار نمی‌کند/],
+      [/دعوت قدیمی/, 'منقضی‌شده', /لینک دعوت دیگر کار نمی‌کند/],
+      [/دعوت لغوشده/, 'لغو شده', /لینک دعوت دیگر کار نمی‌کند/],
+    ];
+    for (const [name, state, dialogText] of states) {
+      const r = table.getByRole('row', { name });
+      await expect(r.getByText(state, { exact: true })).toBeVisible();
+      await r.getByRole('button', { name: /عملیات برای/ }).click();
+      const item = page.getByRole('menu').getByRole('menuitem', { name: 'حذف (انتقال به سطل زباله)' });
+      await expect(item).toBeInViewport({ ratio: 1 });
+      expect(await item.evaluate((el) => {
+        const b = el.getBoundingClientRect();
+        const hit = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
+        return !!hit && el.contains(hit);
+      }), `trash item of ${state} is covered or cut off`).toBe(true);
+      await item.click();
+      await expect(page.getByRole('dialog').getByText(dialogText)).toBeVisible();
+      await page.keyboard.press('Escape');
+      await expect(page.getByRole('dialog')).toBeHidden();
+    }
+    // The deactivated member still offers «فعال کردن حساب» in the same menu.
+    await table.getByRole('row', { name: /کارمند مالی/ }).getByRole('button', { name: /عملیات برای/ }).click();
+    await expect(page.getByRole('menu').getByRole('menuitem', { name: 'فعال کردن حساب' })).toBeVisible();
+    await page.keyboard.press('Escape');
+
     // The trash tab with its count: name, e-mail, role, date, by whom, days left; restore and delete for good.
     const trashTab = page.getByRole('tab', { name: /سطل زباله/ });
-    await expect(trashTab).toContainText('۱');
+    await expect(trashTab).toContainText('۲');
     await trashTab.click();
     const trash = page.getByRole('table', { name: 'سطل زباله' });
-    for (const header of ['نام', 'ایمیل', 'نقش', 'تاریخ حذف', 'حذف‌شده توسط', 'روزهای باقی‌مانده']) await expect(trash.getByRole('columnheader', { name: header, exact: true })).toBeVisible();
+    for (const header of ['نام', 'ایمیل', 'نقش', 'وضعیت قبلی', 'تاریخ حذف', 'حذف‌شده توسط', 'روزهای باقی‌مانده']) await expect(trash.getByRole('columnheader', { name: header, exact: true })).toBeVisible();
     const trashed = trash.getByRole('row', { name: /کارمند فروش/ });
     await expect(trashed.getByText('۲۲ روز')).toBeVisible();
+    await expect(trashed.getByText('کارمند غیرفعال')).toBeVisible();
+    const trashedInvitation = trash.getByRole('row', { name: /دعوت بایگانی/ });
+    await expect(trashedInvitation.getByText('دعوت منقضی‌شده')).toBeVisible();
+    await trashedInvitation.getByRole('button', { name: 'بازگردانی' }).click();
+    await expect(page.getByRole('dialog').getByText(/لینک و تاریخ انقضا برمی‌گردد \(دعوت منقضی‌شده\)/)).toBeVisible();
+    await page.keyboard.press('Escape');
     await noHorizontalScroll(page);
     await trashed.getByRole('button', { name: 'حذف دائمی' }).click();
     const purge = page.getByRole('dialog', { name: /حذف دائمی/ });
@@ -199,8 +236,42 @@ test.describe('layout, SEO and accessibility', () => {
     await expect(confirm).toBeEnabled();
     await page.keyboard.press('Escape');
     await trashed.getByRole('button', { name: 'بازگردانی' }).click();
+    await expect(page.getByRole('dialog').getByText(/وضعیت قبلی برمی‌گردد \(کارمند غیرفعال\)/)).toBeVisible();
     await expect(page.getByRole('dialog').getByText(/Authenticator او ریست می‌شود/)).toBeVisible();
   });
+
+  // The reported bug: a deactivated member in the last row of the table (no invitation below it).
+  // The menu was cut off by the table's scroll box, so only «فعال کردن حساب» could be seen.
+  for (const [width, height] of [[360, 800], [1280, 900]] as const) {
+    test(`staff page: deactivated member in the last row shows every menu item at ${width}px`, async ({ page, baseURL }) => {
+      await page.context().addCookies([{ name: 'hedax_fixture_role', value: 'staff', url: baseURL as string }]);
+      await page.setViewportSize({ width, height });
+      await page.route('**/api/v1/admin/staff', async (route) => {
+        const res = await route.fetch();
+        const body = await res.json() as { staff: unknown[]; invitations: unknown[] };
+        await route.fulfill({ response: res, json: { ...body, invitations: [] } });
+      });
+      await page.goto('/fa/admin/staff');
+      const table = page.locator('main#main table');
+      const rows = table.locator('tbody tr');
+      await expect(rows.last()).toContainText('کارمند مالی');
+      await expect(rows.last().getByText('غیرفعال', { exact: true })).toBeVisible();
+      await rows.last().getByRole('button', { name: /عملیات برای/ }).click();
+      const menu = page.getByRole('menu');
+      for (const name of ['فعال کردن حساب', 'ریست Authenticator (گوشی جدید)', 'حذف (انتقال به سطل زباله)']) {
+        const item = menu.getByRole('menuitem', { name });
+        await expect(item).toBeInViewport({ ratio: 1 });
+        expect(await item.evaluate((el) => {
+          const b = el.getBoundingClientRect();
+          const hit = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
+          return !!hit && el.contains(hit);
+        }), `«${name}» is covered or cut off`).toBe(true);
+      }
+      await menu.getByRole('menuitem', { name: 'حذف (انتقال به سطل زباله)' }).click();
+      await expect(page.getByRole('dialog').getByText(/به سطل زباله منتقل می‌شود/)).toBeVisible();
+      await noHorizontalScroll(page);
+    });
+  }
 
   // A30 / §15: the browser's text size at 200% (rem-based layout, so the root font size is what changes).
   test('text enlarged to 200%: no horizontal page scroll and the main control of each page stays reachable', async ({ page }) => {

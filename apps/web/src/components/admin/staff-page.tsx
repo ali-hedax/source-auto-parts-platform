@@ -36,8 +36,8 @@ type Modal =
   | { type: 'status'; member: StaffMemberView; suspend: boolean }
   | { type: 'revoke'; inv: StaffInvitationView }
   | { type: 'resend'; inv: StaffInvitationView }
-  | { type: 'erase'; inv: StaffInvitationView }
   | { type: 'trash'; member: StaffMemberView }
+  | { type: 'trashInvitation'; inv: StaffInvitationView }
   | { type: 'mfa'; member: StaffMemberView }
   | { type: 'restore'; item: StaffTrashView }
   | { type: 'purge'; item: StaffTrashView }
@@ -78,6 +78,17 @@ export function StaffPage() {
     return <><Badge tone="warning">{l('در انتظار پذیرش', 'Awaiting acceptance')}</Badge><span className={`block text-xs ${s === 'FAILED' ? 'text-danger' : 'text-steel'}`}>{mail}</span></>;
   };
 
+  /** What a restore brings back: the account status, or the invitation's state. */
+  const previousState = (item: StaffTrashView): string => {
+    switch (item.previousStatus) {
+      case 'ACTIVE': return l('کارمند فعال', 'Active staff member');
+      case 'SUSPENDED': return l('کارمند غیرفعال', 'Deactivated staff member');
+      case 'EXPIRED': return l('دعوت منقضی‌شده', 'Expired invitation');
+      case 'REVOKED': return l('دعوت لغوشده', 'Revoked invitation');
+      default: return l('دعوت در انتظار پذیرش', 'Invitation awaiting acceptance');
+    }
+  };
+
   const actions = (p: Person): MenuAction[] => {
     if (p.kind === 'invitation') {
       const inv = p.inv;
@@ -85,14 +96,18 @@ export function StaffPage() {
       return [
         ...(open ? [{ key: 'resend', label: l('ارسال دوبارهٔ دعوت‌نامه', 'Resend invitation'), onSelect: () => (inv.roles.some((r) => r.isOwner) ? setModal({ type: 'resend', inv }) : void run(() => resend(inv))) }] : []),
         ...(open && inv.status !== 'EXPIRED' ? [{ key: 'revoke', label: l('لغو دعوت', 'Revoke invitation'), onSelect: () => setModal({ type: 'revoke', inv }) }] : []),
-        { key: 'erase', label: l('حذف کامل', 'Erase'), danger: true, onSelect: () => setModal({ type: 'erase', inv }) },
+        // Every invitation that was not accepted (pending, expired, revoked) can go to the trash.
+        { key: 'trash', label: l('حذف (انتقال به سطل زباله)', 'Delete (move to trash)'), danger: true, onSelect: () => setModal({ type: 'trashInvitation', inv }) },
       ];
     }
     const m = p.member;
     return [
       { key: 'status', label: m.status === 'ACTIVE' ? l('غیرفعال کردن حساب', 'Deactivate account') : l('فعال کردن حساب', 'Activate account'), onSelect: () => setModal({ type: 'status', member: m, suspend: m.status === 'ACTIVE' }) },
       { key: 'mfa', label: l('ریست Authenticator (گوشی جدید)', 'Reset authenticator (new phone)'), disabled: !m.mfaEnabled, onSelect: () => setModal({ type: 'mfa', member: m }) },
-      ...(m.canTrash ? [{ key: 'trash', label: l('حذف (انتقال به سطل زباله)', 'Delete (move to trash)'), danger: true, onSelect: () => setModal({ type: 'trash', member: m }) }] : []),
+      // Active or deactivated alike. Only the last active owner cannot go (the item says why); one's own row has no menu.
+      m.canTrash
+        ? { key: 'trash', label: l('حذف (انتقال به سطل زباله)', 'Delete (move to trash)'), danger: true, onSelect: () => setModal({ type: 'trash', member: m }) }
+        : { key: 'trash', label: l('حذف ممکن نیست: آخرین مالک فعال', 'Cannot delete: the last active owner'), disabled: true, onSelect: () => undefined },
     ];
   };
 
@@ -135,15 +150,15 @@ export function StaffPage() {
             <div className="flex flex-col gap-3">
               <p className="text-sm text-steel">
                 {l(
-                  `کارمندِ داخل سطل زباله نمی‌تواند وارد شود و در فهرست‌ها دیده نمی‌شود؛ ایمیلش برای بازگردانی رزرو می‌ماند. بعد از ${faNum(data.retentionDays)} روز خودکار برای همیشه حذف می‌شود (مدت در تنظیمات سایت قابل تغییر است).`,
-                  `Staff in the trash cannot sign in and are hidden from lists; their e-mail stays reserved for a restore. After ${data.retentionDays} days they are deleted for good automatically (change this in site settings).`,
+                  `کارمندِ داخل سطل زباله نمی‌تواند وارد شود و لینک دعوتِ داخل سطل زباله کار نمی‌کند؛ هیچ‌کدام در فهرست‌ها دیده نمی‌شوند. بازگردانی همان وضعیت قبلی را برمی‌گرداند (کارمند غیرفعال، غیرفعال برمی‌گردد). بعد از ${faNum(data.retentionDays)} روز خودکار برای همیشه حذف می‌شوند (مدت در تنظیمات سایت قابل تغییر است).`,
+                  `Staff in the trash cannot sign in and invitation links in the trash do not work; neither is listed. A restore brings back the previous state (a deactivated member comes back deactivated). After ${data.retentionDays} days they are deleted for good automatically (change this in site settings).`,
                 )}
               </p>
               {!data.items.length ? <EmptyState title={l('سطل زباله خالی است.', 'The trash is empty.')} /> : (
                 <TableScroll caption={l('سطل زباله', 'Trash')}>
                   <thead>
                     <tr>
-                      <th className={th}>{l('نام', 'Name')}</th><th className={th}>{l('ایمیل', 'E-mail')}</th><th className={th}>{l('نقش', 'Role')}</th>
+                      <th className={th}>{l('نام', 'Name')}</th><th className={th}>{l('ایمیل', 'E-mail')}</th><th className={th}>{l('نقش', 'Role')}</th><th className={th}>{l('وضعیت قبلی', 'Previous state')}</th>
                       <th className={th}>{l('تاریخ حذف', 'Deleted on')}</th><th className={th}>{l('حذف‌شده توسط', 'Deleted by')}</th><th className={th}>{l('روزهای باقی‌مانده', 'Days left')}</th>
                       <th className={th}><span className="sr-only">{l('عملیات', 'Actions')}</span></th>
                     </tr>
@@ -154,6 +169,7 @@ export function StaffPage() {
                         <td className={td}><span className="font-semibold">{item.fullName ?? '—'}</span></td>
                         <td className={td}>{item.email ? <Ltr>{item.email}</Ltr> : '—'}</td>
                         <td className={td}>{item.roles.map(roleName).join('، ') || '—'}</td>
+                        <td className={td}>{previousState(item)}</td>
                         <td className={td}><DateTime iso={item.trashedAt} /></td>
                         <td className={td}>{item.trashedBy ?? '—'}</td>
                         <td className={td}><Badge tone={item.daysLeft <= 3 ? 'danger' : 'warning'}>{l(`${faNum(item.daysLeft)} روز`, `${item.daysLeft} days`)}</Badge></td>
@@ -283,16 +299,16 @@ export function StaffPage() {
         />
       ) : null}
 
-      {modal?.type === 'erase' ? (
-        <CodeDialog
-          title={l(`حذف کامل دعوت ${modal.inv.fullName}`, `Erase the invitation for ${modal.inv.fullName}`)}
-          text={l('مطمئن هستید؟ نام، ایمیل، شماره و دعوت‌های این شخص پاک می‌شود و در تاریخچه به‌جای نام «حذف‌شده» می‌آید. این کار برگشت‌پذیر نیست. با کد همین لحظهٔ Authenticator خودتان تأیید کنید.', 'Are you sure? Their name, e-mail, phone and invitations are removed and the history shows "deleted" instead of the name. This cannot be undone. Confirm with your current authenticator code.')}
-          confirmLabel={l('حذف برای همیشه', 'Delete permanently')}
+      {modal?.type === 'trashInvitation' ? (
+        <ConfirmDialog
+          title={l(`حذف دعوت ${modal.inv.fullName}`, `Delete the invitation for ${modal.inv.fullName}`)}
+          text={l('به سطل زباله منتقل می‌شود: لینک دعوت دیگر کار نمی‌کند و در فهرست دیده نمی‌شود. تا پیش از حذف خودکار، از زبانهٔ «سطل زباله» با همان وضعیت قبلی قابل بازگردانی است.', 'Moves to the trash: the invitation link stops working and it is no longer listed. Until the automatic deletion you can restore it, in the same state, from the Trash tab.')}
+          confirmLabel={l('انتقال به سطل زباله', 'Move to trash')}
           danger
           onClose={() => setModal(null)}
-          onConfirm={async (code) => {
-            await api(`/admin/staff/invitations/${modal.inv.id}/erase`, { method: 'POST', body: { confirmCode: code } });
-            await done({ tone: 'success', text: l('به‌طور کامل حذف شد؛ نام و ایمیل در هیچ جای سایت نمانده است.', 'Erased; the name and e-mail no longer appear anywhere on the site.') });
+          onConfirm={async () => {
+            await api(`/admin/staff/invitations/${modal.inv.id}/trash`, { method: 'POST', body: {} });
+            await done({ tone: 'success', text: l('دعوت به سطل زباله منتقل شد؛ لینک آن دیگر کار نمی‌کند.', 'The invitation was moved to the trash; its link no longer works.') });
           }}
         />
       ) : null}
@@ -314,12 +330,15 @@ export function StaffPage() {
       {modal?.type === 'restore' ? (
         <ConfirmDialog
           title={l(`بازگردانی ${modal.item.label}`, `Restore ${modal.item.label}`)}
-          text={l('با همان نقش و اطلاعات قبلی برمی‌گردد. Authenticator او ریست می‌شود و در اولین ورود دوباره تنظیمش می‌کند.', 'Comes back with the same roles and details. Their authenticator is reset and set up again at the first sign-in.')}
+          text={modal.item.kind === 'invitation'
+            ? l(`با همان نقش‌ها، لینک و تاریخ انقضا برمی‌گردد (${previousState(modal.item)}).`, `Comes back with the same roles, link and expiry (${previousState(modal.item)}).`)
+            : l(`با همان نقش، اطلاعات و وضعیت قبلی برمی‌گردد (${previousState(modal.item)}). Authenticator او ریست می‌شود و در اولین ورود دوباره تنظیمش می‌کند.`, `Comes back with the same roles, details and status (${previousState(modal.item)}). Their authenticator is reset and set up again at the first sign-in.`)}
           confirmLabel={l('بازگردانی', 'Restore')}
           onClose={() => setModal(null)}
           onConfirm={async () => {
-            await api(`/admin/staff/${modal.item.userId}/restore`, { method: 'POST', body: {} });
-            await done({ tone: 'success', text: l('بازگردانده شد؛ در ورود بعدی Authenticator را دوباره ثبت می‌کند.', 'Restored; they set up the authenticator again at the next sign-in.') });
+            const { item } = modal;
+            await api(item.kind === 'invitation' ? `/admin/staff/invitations/${item.id}/restore` : `/admin/staff/${item.id}/restore`, { method: 'POST', body: {} });
+            await done({ tone: 'success', text: item.kind === 'invitation' ? l('دعوت بازگردانده شد.', 'The invitation was restored.') : l('بازگردانده شد؛ در ورود بعدی Authenticator را دوباره ثبت می‌کند.', 'Restored; they set up the authenticator again at the next sign-in.') });
           }}
         />
       ) : null}
@@ -493,7 +512,7 @@ function PurgeDialog({ item, onClose, onDone }: { item: StaffTrashView; onClose:
     setBusy(true);
     setError({});
     try {
-      await api(`/admin/staff/${item.userId}/purge`, { method: 'POST', body: { confirmName: name.trim(), confirmCode: code.trim() } });
+      await api(item.kind === 'invitation' ? `/admin/staff/invitations/${item.id}/purge` : `/admin/staff/${item.id}/purge`, { method: 'POST', body: { confirmName: name.trim(), confirmCode: code.trim() } });
       await onDone();
     } catch (e) {
       const text = errorText(t, e);
@@ -505,7 +524,9 @@ function PurgeDialog({ item, onClose, onDone }: { item: StaffTrashView; onClose:
   };
   return (
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }} title={l(`حذف دائمی ${item.label}`, `Delete ${item.label} for good`)} closeLabel={l('بستن', 'Close')}
-      description={l('نام، ایمیل، شماره، رمز، دسترسی‌ها و دعوت‌های این شخص پاک می‌شود و در تاریخچه به‌جای نام «حذف‌شده» می‌آید. کارهای ثبت‌شده (سفارش‌ها، پیام‌ها) بدون نام می‌مانند. این کار برگشت‌پذیر نیست.', 'Their name, e-mail, phone, password, access and invitations are removed and the history shows "deleted" instead of the name. Recorded work stays without a name. This cannot be undone.')}>
+      description={item.kind === 'invitation'
+        ? l('دعوت و ایمیل‌های آن پاک می‌شود؛ اگر این ایمیل جای دیگری (حساب یا دعوت دیگر) به کار نرفته باشد، در تاریخچه هم به‌جای نام «حذف‌شده» می‌آید. این کار برگشت‌پذیر نیست.', 'The invitation and its e-mails are removed; when the address is not used elsewhere (an account or another invitation), the history also shows "deleted" instead of the name. This cannot be undone.')
+        : l('نام، ایمیل، شماره، رمز، دسترسی‌ها و دعوت‌های این شخص پاک می‌شود و در تاریخچه به‌جای نام «حذف‌شده» می‌آید. کارهای ثبت‌شده (سفارش‌ها، پیام‌ها) بدون نام می‌مانند. این کار برگشت‌پذیر نیست.', 'Their name, e-mail, phone, password, access and invitations are removed and the history shows "deleted" instead of the name. Recorded work stays without a name. This cannot be undone.')}>
       <form noValidate onSubmit={(e) => { e.preventDefault(); void submit(); }} className="flex flex-col gap-4">
         {error.general ? <Alert tone="danger" title={error.general} /> : null}
         <Field id="pg-name" label={l('برای تأیید، نام را دقیقاً بنویسید:', 'To confirm, type the name:')} hint={item.label} required {...(error.name ? { error: error.name } : {})}>
