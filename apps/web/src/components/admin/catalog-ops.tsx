@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Async } from '@/components/ui/async';
 import { Dialog } from '@/components/ui/dialog';
 import { Checkbox, Field, Input, Select } from '@/components/ui/field';
-import { DateTime, Num, Quantity } from '@/components/ui/format';
+import { DateTime, Quantity } from '@/components/ui/format';
 import { Badge, Code, EmptyState, Ltr, PageHeader, Section, TableScroll, td, th } from '@/components/ui/misc';
 import { api } from '@/lib/api/client';
 import { errorText } from '@/lib/api/errors';
