@@ -108,7 +108,11 @@ test.describe('units and vehicles in the panel', () => {
     const picked = page.getByRole('list', { name: 'خودروهای انتخاب‌شده' });
     await expect(picked.getByText('پژو ۲۰۶')).toBeVisible();
     await expect(picked.getByText('دنا (همهٔ مدل‌ها)')).toBeVisible();
+    // The picker lives inside the product form: no nested form, and Enter in its fields never saves the product.
+    await expect(page.locator('form form')).toHaveCount(0);
     await page.locator('#pf-vehicles-q').fill('نیسان');
+    await page.locator('#pf-vehicles-q').press('Enter');
+    await expect(page.getByText('ذخیره شد.')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'افزودن «نیسان» به فهرست خودروها' })).toBeVisible();
     await page.locator('#pf-vehicles-q').fill('۴۰۵');
     await expect(page.getByLabel('۴۰۵')).toBeVisible();

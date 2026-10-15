@@ -96,7 +96,8 @@ export function VehiclePicker({ id, value, onChange, options, onOptionsChanged }
         </ul>
       ) : <p className="text-sm text-steel">{l('هنوز خودرویی انتخاب نشده است.', 'No vehicle selected yet.')}</p>}
       <label htmlFor={`${id}-q`} className="sr-only">{l('جست‌وجوی خودرو', 'Search vehicles')}</label>
-      <Input id={`${id}-q`} placeholder={l('جست‌وجو: پژو، دنا پلاس، ۲۰۶ …', 'Search: Peugeot, Dena Plus, 206 …')} value={q} onChange={(e) => { setQ(e.target.value); setSimilar(null); }} />
+      <Input id={`${id}-q`} placeholder={l('جست‌وجو: پژو، دنا پلاس، ۲۰۶ …', 'Search: Peugeot, Dena Plus, 206 …')} value={q} onChange={(e) => { setQ(e.target.value); setSimilar(null); }}
+        onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); /* searching never saves the product form */ }} />
       {error ? <Alert tone="danger" title={error} /> : null}
       {similar ? (
         <Alert tone="warning" title={l(`خودرویی با نام خیلی شبیه «${similar.name}» وجود دارد.`, `A vehicle with a very similar name exists: "${similar.name}".`)}>
@@ -122,11 +123,14 @@ export function VehiclePicker({ id, value, onChange, options, onOptionsChanged }
                       <Checkbox key={m.id} id={`${id}-m-${m.id}`} label={m.name} checked={whole || has(o.id, m.id)} disabled={whole} onChange={(e) => toggle(o.id, m.id, e.target.checked)} />
                     ))}
                   </div>
-                  <form className="ms-8 mt-1 flex items-center gap-2" onSubmit={(e) => { e.preventDefault(); void addModel(o.id); }}>
+                  {/* Not a <form>: the picker sits inside the product form; Enter adds the model instead of saving the product. */}
+                  <div className="ms-8 mt-1 flex items-center gap-2">
                     <label htmlFor={`${id}-nm-${o.id}`} className="sr-only">{l(`مدل تازه برای ${o.name}`, `New model for ${o.name}`)}</label>
-                    <Input id={`${id}-nm-${o.id}`} className="h-9 w-36 text-sm" placeholder={l('مدل تازه', 'New model')} value={modelDraft[o.id] ?? ''} onChange={(e) => setModelDraft({ ...modelDraft, [o.id]: e.target.value })} />
-                    <Button size="sm" variant="ghost" type="submit" disabled={!(modelDraft[o.id] ?? '').trim()}>{l('افزودن مدل', 'Add model')}</Button>
-                  </form>
+                    <Input id={`${id}-nm-${o.id}`} className="h-9 w-36 text-sm" placeholder={l('مدل تازه', 'New model')} value={modelDraft[o.id] ?? ''}
+                      onChange={(e) => setModelDraft({ ...modelDraft, [o.id]: e.target.value })}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void addModel(o.id); } }} />
+                    <Button size="sm" variant="ghost" type="button" onClick={() => void addModel(o.id)} disabled={!(modelDraft[o.id] ?? '').trim()}>{l('افزودن مدل', 'Add model')}</Button>
+                  </div>
                 </li>
               );
             })}
