@@ -112,6 +112,7 @@
     "notPurchasable": "این قطعه فعلاً قابل خرید نیست.",
     "maxQuantity": "حداکثر {max} {unit} قابل سفارش است.",
     "decimalStep": "قابل سفارش با گام {step} {unit}.",
+    "application": "کاربرد",
     "fitsFor": "مناسب برای:",
     "vehicle": "خودرو",
     "vehicleHint": "قطعات مناسب کل خودرو و همهٔ مدل‌هایش",

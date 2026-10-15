@@ -17,6 +17,21 @@ async function axe(page: Page) {
 const PAD_ID = '00000000-0000-7000-8000-000000000001';
 
 test.describe('vehicle fitment on the site', () => {
+  test('home cards show compact fitment next to vehicle information at phone and desktop widths', async ({ page }) => {
+    await page.goto('/fa');
+    const card = page.locator('article').filter({ has: page.getByRole('heading', { name: 'لنت ترمز جلو پژو ۲۰۶', exact: true }) }).first();
+    const fitment = card.locator('p[title]').filter({ hasText: 'کاربرد:' });
+    await expect(fitment).toContainText('پژو ۲۰۶');
+    await expect(fitment).toContainText('دنا');
+    await expect(fitment).toHaveClass(/line-clamp-1/);
+    expect(await fitment.getAttribute('title')).toBe(await fitment.textContent());
+    for (const width of [360, 1280]) {
+      await page.setViewportSize({ width, height: 900 });
+      await expect(fitment).toBeVisible();
+      await noHorizontalScroll(page);
+    }
+  });
+
   test('«مناسب برای:» sits under the photo with clickable vehicles and models; the price is per unit', async ({ page }) => {
     await page.goto('/fa/parts/demo-front-brake-pad-206');
     const fitment = page.getByTestId('fitment');

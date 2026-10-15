@@ -1,6 +1,6 @@
 import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
-import { productListQuerySchema } from '@hedax/contracts';
+import { fitmentNames, productListQuerySchema } from '@hedax/contracts';
 import { formatMoney, money } from '@hedax/domain';
 import { z } from 'zod';
 import { ENV, type Env } from '../../config/env.js';
@@ -106,8 +106,10 @@ export class MessengerBotsService {
             // The price is per sales unit (v1.2): «… ریال / دست».
             ? `${formatMoney(money(p.price.payable.currency, p.price.payable.amountMinor), 'fa')} / ${plain(p.unit?.name || 'عدد', 30)}`
             : 'استعلام قیمت';
+          const fitments = plain(fitmentNames(p.fitments).join('، '), 500);
+          const application = fitments ? `\nکاربرد در خودرو: ${fitments}` : '';
           const stock = p.availability === 'IN_STOCK' ? 'موجود' : p.availability === 'LOW_STOCK' ? 'موجودی محدود' : 'ناموجود';
-          return `${i + 1}. ${plain(p.name.fa || p.name.en || p.sku, 120)}\nکد: ${plain(p.sku, 80)}\nوضعیت: ${stock}\nقیمت: ${price}\n${parts}/${encodeURIComponent(p.slug)}`;
+          return `${i + 1}. ${plain(p.name.fa || p.name.en || p.sku, 120)}\nکد: ${plain(p.sku, 80)}${application}\nوضعیت: ${stock}\nقیمت: ${price}\n${parts}/${encodeURIComponent(p.slug)}`;
         });
         const footer = `\n\nقیمت و موجودی نهایی در مرحلهٔ ثبت سفارش بررسی می‌شود.\nپیگیری سفارش: ${orders}`;
         // Keep whole product links, never cut a URL or a surrogate pair in half.
