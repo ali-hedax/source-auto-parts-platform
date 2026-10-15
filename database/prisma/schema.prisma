@@ -568,6 +568,8 @@ model StaffInvitation {
   expiresAt   DateTime  @map("expires_at") @db.Timestamptz(3)
   acceptedAt  DateTime? @map("accepted_at") @db.Timestamptz(3)
   revokedAt   DateTime? @map("revoked_at") @db.Timestamptz(3)
+  /// In the trash (panel → staff → trash): hidden, link refused; the other fields stay for a restore.
+  trashedAt   DateTime? @map("trashed_at") @db.Timestamptz(3)
   createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
 
   invitedBy User           @relation(fields: [invitedById], references: [id], onDelete: Restrict)

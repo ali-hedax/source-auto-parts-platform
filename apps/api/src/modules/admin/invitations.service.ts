@@ -12,6 +12,16 @@ import { MailService } from '../mail/mail.service.js';
 
 const INVITATION_TTL_MS = 72 * 3_600_000;
 
+/** The state shown for an invitation, from its dates and its latest e-mail. */
+export function invitationStatus(r: { acceptedAt: Date | null; revokedAt: Date | null; expiresAt: Date }, lastEmail: { status: string } | undefined, now = new Date()): StaffInvitationStatus {
+  if (r.acceptedAt) return 'ACCEPTED';
+  if (r.revokedAt) return 'REVOKED';
+  if (r.expiresAt <= now) return 'EXPIRED';
+  if (lastEmail?.status === 'SENT') return 'SENT';
+  if (lastEmail?.status === 'FAILED') return 'FAILED';
+  return 'PENDING';
+}
+
 /** Staff contact number as stored: Latin digits, single spaces; empty = none. */
 export function normalizeStaffPhone(phone: string | undefined): string | null {
   const v = toAsciiDigits((phone ?? '').trim()).replace(/\s+/g, ' ');
@@ -48,11 +58,11 @@ export class InvitationsService {
     return roles;
   }
 
-  /** The address is free for an invitation: no account uses it and no other open invitation does. */
-  private async assertEmailFree(email: string, exceptInvitationId?: string) {
+  /** The address is free for an invitation: no account uses it and no other open invitation (outside the trash) does. */
+  async assertEmailFree(email: string, exceptInvitationId?: string) {
     if (await this.prisma.user.findUnique({ where: { email }, select: { id: true } })) throw conflict('EMAIL_IN_USE');
     const open = await this.prisma.staffInvitation.findFirst({
-      where: { email, acceptedAt: null, revokedAt: null, expiresAt: { gt: new Date() }, ...(exceptInvitationId ? { id: { not: exceptInvitationId } } : {}) },
+      where: { email, acceptedAt: null, revokedAt: null, trashedAt: null, expiresAt: { gt: new Date() }, ...(exceptInvitationId ? { id: { not: exceptInvitationId } } : {}) },
       select: { id: true },
     });
     if (open) throw conflict('INVITATION_PENDING', 'An invitation for this e-mail is still open; resend or revoke it');
@@ -83,6 +93,7 @@ export class InvitationsService {
     const inv = await this.prisma.staffInvitation.findUnique({ where: { id } });
     if (!inv) throw notFound();
     if (inv.acceptedAt) throw conflict('INVITATION_ALREADY_ACCEPTED');
+    if (inv.trashedAt) throw conflict('IN_TRASH', 'Restore the invitation from the trash first');
     if (inv.revokedAt) throw conflict('INVITATION_REVOKED');
     const ownerBefore = await this.prisma.role.count({ where: { id: { in: inv.roleIds }, isOwner: true } });
     const roles = await this.grantableRoles(actor, body.roleIds, body.confirmCode, ownerBefore > 0);
@@ -120,6 +131,7 @@ export class InvitationsService {
     const inv = await this.prisma.staffInvitation.findUnique({ where: { id } });
     if (!inv) throw notFound();
     if (inv.acceptedAt) throw conflict('INVITATION_ALREADY_ACCEPTED');
+    if (inv.trashedAt) throw conflict('IN_TRASH', 'Restore the invitation from the trash first');
     if (inv.revokedAt) throw conflict('INVITATION_REVOKED');
     await this.limits.hit(LIMITS.inviteResendPerInvitation, inv.id);
     await this.grantableRoles(actor, inv.roleIds, confirmCode);
@@ -138,6 +150,7 @@ export class InvitationsService {
     const inv = await this.prisma.staffInvitation.findUnique({ where: { id } });
     if (!inv) throw notFound();
     if (inv.acceptedAt) throw conflict('INVITATION_ALREADY_ACCEPTED');
+    if (inv.trashedAt) throw conflict('IN_TRASH', 'Restore the invitation from the trash first');
     if (inv.revokedAt) return { id, revoked: true };
     await this.prisma.tx(async (tx) => {
       await tx.staffInvitation.update({ where: { id }, data: { revokedAt: new Date() } });
@@ -147,11 +160,11 @@ export class InvitationsService {
     return { id, revoked: true };
   }
 
-  /** Recent invitations (open ones and anything from the last 90 days) with their e-mail state. */
+  /** Recent invitations (open ones and anything from the last 90 days) with their e-mail state; not those in the trash. */
   async list(): Promise<StaffInvitationView[]> {
     const since = new Date(Date.now() - 90 * 24 * 3_600_000);
     const rows = await this.prisma.staffInvitation.findMany({
-      where: { OR: [{ createdAt: { gte: since } }, { acceptedAt: null, revokedAt: null, expiresAt: { gt: new Date() } }] },
+      where: { trashedAt: null, OR: [{ createdAt: { gte: since } }, { acceptedAt: null, revokedAt: null, expiresAt: { gt: new Date() } }] },
       include: { emails: { orderBy: { createdAt: 'desc' }, take: 1 } },
       orderBy: { createdAt: 'desc' },
       take: 100,
@@ -160,13 +173,7 @@ export class InvitationsService {
     const now = new Date();
     return rows.map((r) => {
       const last = r.emails[0];
-      let status: StaffInvitationStatus;
-      if (r.acceptedAt) status = 'ACCEPTED';
-      else if (r.revokedAt) status = 'REVOKED';
-      else if (r.expiresAt <= now) status = 'EXPIRED';
-      else if (last?.status === 'SENT') status = 'SENT';
-      else if (last?.status === 'FAILED') status = 'FAILED';
-      else status = 'PENDING';
+      const status = invitationStatus(r, last, now);
       return {
         id: r.id, email: r.email, fullName: r.fullName, phone: r.contactPhone,
         roles: roles.filter((x) => r.roleIds.includes(x.id)).map((x) => ({ id: x.id, nameFa: x.nameFa, nameEn: x.nameEn, isOwner: x.isOwner })),

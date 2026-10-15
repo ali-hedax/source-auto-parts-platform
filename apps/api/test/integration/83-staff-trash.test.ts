@@ -83,7 +83,7 @@ describe('moving to the trash and restoring', () => {
     expect(reuse.status).toBe(409);
 
     // The trash row: name, e-mail, roles, date, by whom, days left (default 30).
-    const row = (await trashList()).items.find((i) => i.userId === member.userId);
+    const row = (await trashList()).items.find((i) => i.id === member.userId);
     expect(row).toMatchObject({ fullName: 'کارمند support finance', email: member.email, label: 'کارمند support finance', daysLeft: 30 });
     expect(row.roles.map((r: any) => r.nameEn).length).toBe(2);
     expect(row.trashedBy).toBeTruthy();
@@ -191,7 +191,7 @@ describe('deleting for good', () => {
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(await s.prisma.user.findUnique({ where: { id } })).toMatchObject({ status: 'DELETED', email: null, fullName: null });
     expect(await s.prisma.trashEntry.count({ where: { entityId: id } })).toBe(0);
-    expect((await trashList()).items.some((i) => i.userId === id)).toBe(false);
+    expect((await trashList()).items.some((i) => i.id === id)).toBe(false);
   });
 });
 
@@ -202,7 +202,7 @@ describe('automatic deletion', () => {
     for (const m of [old, recent]) expect((await owner.post(`/admin/staff/${m.userId}/trash`, {})).status).toBe(200);
     await s.prisma.trashEntry.update({ where: { kind_entityId: { kind: 'staff', entityId: old.userId } }, data: { trashedAt: new Date(Date.now() - 31 * DAY) } });
     await s.prisma.trashEntry.update({ where: { kind_entityId: { kind: 'staff', entityId: recent.userId } }, data: { trashedAt: new Date(Date.now() - 10 * DAY) } });
-    expect((await trashList()).items.find((i) => i.userId === recent.userId)?.daysLeft).toBe(20);
+    expect((await trashList()).items.find((i) => i.id === recent.userId)?.daysLeft).toBe(20);
 
     const first = await s.runAsWorker(() => trash.purgeExpired());
     expect(first.failed).toBe(0);

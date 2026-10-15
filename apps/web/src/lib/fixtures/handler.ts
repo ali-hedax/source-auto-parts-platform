@@ -41,7 +41,7 @@ function fixtureSiteContent(): SiteContentView {
   };
 }
 
-/** Staff page preview: the signed-in owner, an active and an inactive member, an open and an expired invitation. */
+/** Staff page preview: the signed-in owner, an active and an inactive member, an open, an expired and a revoked invitation. */
 function fixtureStaff() {
   const role = (key: string) => { const r = DEFAULT_ROLES.find((x) => x.key === key)!; return { id: `r-${r.key}`, key: r.key, nameFa: r.nameFa, nameEn: r.nameEn, isOwner: r.isOwner }; };
   const now = Date.now();
@@ -54,13 +54,14 @@ function fixtureStaff() {
     invitations: [
       { id: 'fixture-invitation', email: 'support@example.test', fullName: 'کارمند نمونه', phone: '+98 21 0000 0000', roles: [role('support')], status: 'SENT', createdAt: new Date(now).toISOString(), expiresAt: new Date(now + 72 * 3_600_000).toISOString(), acceptedAt: null, sentAt: new Date(now).toISOString(), lastError: null },
       { id: 'fixture-invitation-2', email: 'old@example.test', fullName: 'دعوت قدیمی', phone: null, roles: [role('sales_manager')], status: 'EXPIRED', createdAt: new Date(now - 5 * 86_400_000).toISOString(), expiresAt: new Date(now - 2 * 86_400_000).toISOString(), acceptedAt: null, sentAt: null, lastError: null },
+      { id: 'fixture-invitation-3', email: 'revoked@example.test', fullName: 'دعوت لغوشده', phone: null, roles: [role('support')], status: 'REVOKED', createdAt: new Date(now - 3 * 86_400_000).toISOString(), expiresAt: new Date(now + 86_400_000).toISOString(), acceptedAt: null, sentAt: null, lastError: null },
     ],
     mailConfigured: true,
-    trashCount: 1,
+    trashCount: 2,
   };
 }
 
-/** Trash tab preview: one staff member moved to the trash eight days ago. */
+/** Trash tab preview: a deactivated staff member trashed eight days ago and an expired invitation trashed yesterday. */
 function fixtureStaffTrash() {
   const now = Date.now();
   const role = DEFAULT_ROLES.find((x) => x.key === 'sales_manager')!;
@@ -68,7 +69,11 @@ function fixtureStaffTrash() {
   return {
     retentionDays: 30,
     items: [{
-      entryId: 'fixture-trash-1', userId: 'fixture-staff-4', label: 'کارمند فروش', fullName: 'کارمند فروش', email: 'sales@example.test',
+      entryId: 'fixture-trash-2', kind: 'invitation', id: 'fixture-invitation-4', previousStatus: 'EXPIRED', label: 'دعوت بایگانی', fullName: 'دعوت بایگانی', email: 'archive@example.test',
+      roles: [{ id: `r-${role.key}`, nameFa: role.nameFa, nameEn: role.nameEn, isOwner: false }],
+      trashedAt: new Date(now - 86_400_000).toISOString(), trashedBy: 'مالک نمونه', purgeAt: new Date(now + 29 * 86_400_000).toISOString(), daysLeft: 29,
+    }, {
+      entryId: 'fixture-trash-1', kind: 'staff', id: 'fixture-staff-4', previousStatus: 'SUSPENDED', label: 'کارمند فروش', fullName: 'کارمند فروش', email: 'sales@example.test',
       roles: [{ id: `r-${role.key}`, nameFa: role.nameFa, nameEn: role.nameEn, isOwner: false }],
       trashedAt: trashedAt.toISOString(), trashedBy: 'مالک نمونه', purgeAt: new Date(trashedAt.getTime() + 30 * 86_400_000).toISOString(), daysLeft: 22,
     }],

@@ -154,9 +154,37 @@ export class StaffController {
     return this.erasure.eraseInvitation(actor, id, body.confirmCode);
   }
 
-  // ---- Trash: «حذف» moves a staff member here; restore or delete for good (owner only) ----
+  // ---- Trash: «حذف» moves a staff member or an invitation here; restore or delete for good (owner only) ----
 
-  /** Staff members in the trash, with the days left until the daily job deletes them. */
+  /** Pending, expired or revoked: the link stops working until the invitation is restored. */
+  @RequirePermissions('users.manage')
+  @Post('staff/invitations/:id/trash')
+  @HttpCode(200)
+  trashInvitation(@CurrentActor() actor: Actor, @Param('id', ParseUUIDPipe) id: string) {
+    assertOwner(actor);
+    return this.staffTrash.moveInvitationToTrash(actor, id);
+  }
+
+  /** Back exactly as it was before the trash (pending, expired or revoked). */
+  @RequirePermissions('users.manage')
+  @Post('staff/invitations/:id/restore')
+  @HttpCode(200)
+  restoreInvitation(@CurrentActor() actor: Actor, @Param('id', ParseUUIDPipe) id: string) {
+    assertOwner(actor);
+    return this.staffTrash.restoreInvitation(actor, id);
+  }
+
+  /** Deletes a trashed invitation for good (and the address from the history when it is not used elsewhere). */
+  @RequirePermissions('users.manage')
+  @Post('staff/invitations/:id/purge')
+  @HttpCode(200)
+  @ApiZodBody(trashPurgeSchema)
+  purgeInvitation(@CurrentActor() actor: Actor, @Param('id', ParseUUIDPipe) id: string, @Body(zod(trashPurgeSchema)) body: z.infer<typeof trashPurgeSchema>) {
+    assertOwner(actor);
+    return this.staffTrash.purgeInvitation(actor, id, body.confirmName, body.confirmCode);
+  }
+
+  /** Staff members and invitations in the trash, with the days left until the daily job deletes them. */
   @RequirePermissions('users.manage')
   @Get('staff/trash')
   trashList(@CurrentActor() actor: Actor) {
