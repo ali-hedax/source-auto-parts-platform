@@ -115,3 +115,20 @@ test.describe('units and vehicles in the panel', () => {
     await noHorizontalScroll(page);
   });
 });
+
+test.describe('Excel import with «واحد» and «کاربرد در خودرو»', () => {
+  test('the preview shows new vehicles to confirm, suspected duplicates and row-numbered unit errors before «تأیید»', async ({ page, baseURL }) => {
+    await page.context().addCookies([{ name: 'hedax_fixture_role', value: 'staff', url: baseURL as string }]);
+    await page.setViewportSize({ width: 390, height: 900 });
+    await page.goto('/fa/admin/imports/00000000-0000-7000-8000-0000000e0001');
+    const box = page.getByTestId('imp-vehicles');
+    await expect(box.getByText('کوییک')).toBeVisible();
+    await expect(box.getByText(/پژو ← پارس/)).toBeVisible();
+    await expect(page.getByLabel('این خودروها و مدل‌ها به فهرست خودروها اضافه شوند')).toBeChecked();
+    await expect(page.getByLabel(/«سوزکی» ← اتصال به «سوزوکی»/)).toBeChecked();
+    // Row-numbered errors for the unit rules.
+    await expect(page.getByText(/واحد این کالا اعشار نمی‌پذیرد/).first()).toBeVisible();
+    await expect(page.getByText(/این واحد در پنل تعریف نشده است/).first()).toBeVisible();
+    await noHorizontalScroll(page);
+  });
+});

@@ -14,6 +14,7 @@ import {
   type FixtureProduct,
 } from './data';
 import siteContentJson from './site-content.json';
+import { FIXTURE_IMPORT_ID, fixtureImportJob, fixtureImportList } from './imports';
 import { fixtureAdminFitment, fixtureAdminVehicles, fixtureFitmentViews, fixtureFits, fixturePublicVehicles, fixtureVehicleOptions } from './vehicles';
 
 export interface FixtureResponse {
@@ -349,6 +350,8 @@ export async function handleFixture(method: string, pathWithQuery: string, rawBo
       return ok({ page: 1, pageSize: 50, total: fixtureProducts.length, items: fixtureProducts.map((p, i) => ({ productId: p.id, sku: p.sku, nameFa: p.fa, unit: FIXTURE_UNIT, onHand: p.onHand, reserved: p.reserved, available: p.onHand - p.reserved, lowStockThreshold: 2, isLow: p.onHand - p.reserved <= 2, version: i, updatedAt: '2026-09-29T10:00:00.000Z' })) });
     }
     if (path === '/admin/units') return ok(FIXTURE_UNITS);
+    if (path === '/admin/imports') return ok(fixtureImportList());
+    if (path === `/admin/imports/${FIXTURE_IMPORT_ID}`) return ok(fixtureImportJob());
     if (path === '/admin/vehicles') return ok(fixtureAdminVehicles());
     if (path === '/admin/vehicles/options') return ok(fixtureVehicleOptions());
     if ((m = /^\/admin\/products\/([^/]+)$/.exec(path))) {

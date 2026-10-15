@@ -315,3 +315,58 @@ describe('import messages for people (§12, §15)', () => {
     expect(importFieldLabel('onHand', 'en')).toBe('on_hand');
   });
 });
+
+describe('Excel: units and «کاربرد در خودرو»', () => {
+  const units = new Map([
+    ['عدد', { name: 'عدد', allowDecimal: false, stepMilli: 1000 }],
+    ['دست', { name: 'دست', allowDecimal: false, stepMilli: 1000 }],
+    ['لیتر', { name: 'لیتر', allowDecimal: true, stepMilli: 500 }],
+  ]);
+  const vehicles = [
+    { id: 'peugeot', name: 'پژو', models: [{ id: 'p206', name: '۲۰۶' }] },
+    { id: 'dena-plus', name: 'دنا پلاس', models: [] },
+    { id: 'samand', name: 'سمند', models: [] },
+  ];
+  const withFleet = (over: Partial<ImportContext> = {}) => ctx({ units, vehicles, ...over });
+
+  it('recognizes «واحد», «کاربرد در خودرو», «کاربرد», «خودرو» and «مدل خودرو» headers', () => {
+    expect(mapHeaders(['کد کالا', 'واحد', 'کاربرد در خودرو']).mapping).toMatchObject({ unit: 1, vehicle_models: 2 });
+    for (const h of ['کاربرد', 'خودرو', 'مدل خودرو']) expect(matchHeader(h)?.column).toBe('vehicle_models');
+    expect(importColumnLabel('vehicle_models', 'fa')).toBe('کاربرد در خودرو');
+  });
+
+  it('an unknown unit, or a decimal for a whole-number unit, is an error on that row; litres take halves', () => {
+    const plan = planImport([
+      { ...newRow, sku: c('U-1'), unit: c('کیلو'), on_hand: c('3') },
+      { ...newRow, sku: c('U-2'), unit: c('دست'), on_hand: c('2.5') },
+      { ...newRow, sku: c('U-3'), unit: c('لیتر'), on_hand: c('۲٫۵') },
+      { ...newRow, sku: c('U-4'), unit: c('لیتر'), on_hand: c('2.3') },
+      { ...newRow, sku: c('U-5'), unit: c('ليتر'), on_hand: c(4), low_stock_threshold: c('0.5') },
+    ], withFleet());
+    const codes = (i: number) => plan.rows[i]?.issues.map((x) => x.code);
+    expect(plan.rows.map((r) => r.rowNumber)).toEqual([2, 3, 4, 5, 6]);
+    expect(codes(0)).toContain('UNKNOWN_UNIT');
+    expect(codes(1)).toContain('NOT_A_WHOLE_NUMBER');
+    expect(plan.rows[2]).toMatchObject({ action: 'CREATE', values: { unit: 'لیتر', onHand: 2.5 } });
+    expect(codes(3)).toContain('UNIT_QUANTITY_INVALID');
+    expect(plan.rows[4]).toMatchObject({ action: 'CREATE', values: { unit: 'لیتر', onHand: 4, lowStockThreshold: 0.5 } });
+  });
+
+  it('reads vehicles and models, suggests very similar names and lists new ones for confirmation', () => {
+    const plan = planImport([{ ...newRow, sku: c('F-1'), vehicle_models: c('پژو ۲۰۶، دناپلاس, سمن، پژو پارس، کوییک') }], withFleet());
+    const row = plan.rows[0]!;
+    expect(row.action).toBe('CREATE');
+    expect(row.values?.fitments?.map((f) => f.kind)).toEqual(['KNOWN', 'KNOWN', 'SIMILAR', 'NEW_MODEL', 'NEW_VEHICLE']);
+    expect(row.values?.fitments?.[0]).toMatchObject({ vehicleId: 'peugeot', modelId: 'p206' });
+    expect(row.values?.fitments?.[1]).toMatchObject({ vehicleId: 'dena-plus', modelId: null });
+    expect(row.issues.map((x) => x.code)).toEqual(expect.arrayContaining(['VEHICLE_SIMILAR', 'NEW_VEHICLE_MODEL', 'NEW_VEHICLE']));
+    expect(row.issues.every((x) => x.severity === 'warning')).toBe(true);
+  });
+
+  it('an update adds fitment it does not have yet and never moves to a unit with another step', () => {
+    const snap = { ...existing, fitmentKeys: ['peugeot:p206'] };
+    const plan = planImport([{ sku: c('00123'), vehicle_models: c('پژو 206، سمند') }, { sku: c('00123B'), unit: c('لیتر') }], withFleet({ existing: new Map([['00123', snap], ['00123B', { ...existing }]]) }));
+    expect(plan.rows[0]?.changes).toContainEqual({ field: 'fitments', before: null, after: 'سمند' });
+    expect(plan.rows[1]?.issues.map((x) => x.code)).toContain('UNIT_CHANGE_LOCKED');
+  });
+});

@@ -404,6 +404,28 @@ export class VehiclesService {
     if (unique.length) await tx.productVehicle.createMany({ data: unique.map((w) => ({ productId, vehicleId: w.vehicleId, modelId: w.modelId })) });
   }
 
+  /** Excel import (after the person confirmed new vehicles): the vehicle with this name, created when missing. */
+  async ensureVehicle(tx: Tx, name: string): Promise<{ id: string; created: boolean }> {
+    const same = await tx.vehicle.findUnique({ where: { nameKey: vehicleKey(name) }, select: { id: true } });
+    if (same) return { id: same.id, created: false };
+    const row = await this.insertVehicle(tx, { name: name.replace(/\s+/g, ' ').trim() });
+    return { id: row.id, created: true };
+  }
+
+  /** Excel import: the vehicle's model with this name, created when missing. */
+  async ensureModel(tx: Tx, vehicleId: string, name: string): Promise<{ id: string; created: boolean }> {
+    const same = await tx.vehicleModel.findUnique({ where: { vehicleId_nameKey: { vehicleId, nameKey: vehicleKey(name) } }, select: { id: true } });
+    if (same) return { id: same.id, created: false };
+    const row = await this.insertModel(tx, vehicleId, { name: name.replace(/\s+/g, ' ').trim() });
+    return { id: row.id, created: true };
+  }
+
+  /** Adds one fitment link to a product unless it already has it (imports only ever add fitment). */
+  async addProductVehicle(tx: Tx, productId: string, vehicleId: string, modelId: string | null): Promise<void> {
+    const exists = await tx.productVehicle.findFirst({ where: { productId, vehicleId, modelId }, select: { id: true } });
+    if (!exists) await tx.productVehicle.create({ data: { productId, vehicleId, modelId } });
+  }
+
   private async refreshSearch(productIds: string[]): Promise<void> {
     for (const productId of productIds) await this.prisma.tx((tx) => rebuildProductSearch(tx, productId));
   }

@@ -224,6 +224,10 @@ export const importCommitSchema = z.object({
   skipErrorRows: z.boolean().default(false),
   /** The same file was already added to stock (ADD); add it once more anyway. */
   confirmRepeatAdd: z.boolean().default(false),
+  /** Create the vehicles and models of «کاربرد در خودرو» that are not in the list yet (listed in the preview). */
+  createVehicles: z.boolean().default(false),
+  /** Very similar names (as written in the file) the person agreed to link to the suggested existing vehicle. */
+  linkSimilar: z.array(z.string().max(120)).max(500).default([]),
 });
 
 export const importRowFilterSchema = z.enum(['all', 'errors', 'create', 'update', 'unchanged', 'warnings']);
@@ -275,8 +279,14 @@ export interface ImportSummaryView {
   ignoredHeaders?: string[];
   /** The most common row issues of the whole file: how many rows each affects and in which columns. */
   topIssues?: Array<{ code: string; severity: 'error' | 'warning'; rows: number; columns: string[] }>;
+  /** «کاربرد در خودرو»: what the file would add to the vehicle list, and names that look like existing vehicles. */
+  vehicles?: {
+    newVehicles: Array<{ name: string; rows: number[] }>;
+    newModels: Array<{ vehicle: string; name: string; rows: number[] }>;
+    similar: Array<{ text: string; suggestion: string; rows: number[] }>;
+  };
   /** After commit: what was applied. */
-  result?: { created: number; updated: number; unchanged: number; skipped: number };
+  result?: { created: number; updated: number; unchanged: number; skipped: number; vehiclesCreated?: number; modelsCreated?: number };
 }
 
 export interface ImportJobView {
