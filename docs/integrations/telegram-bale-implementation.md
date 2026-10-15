@@ -1,6 +1,22 @@
 # Telegram and Bale — implementation and release gates
 
-Status (2026-10-15): draft PR #14; local tests completed; **not deployed or registered**. Production remains on main at `899576783ecf10f4573db1669a5403abdaaa2cf1`. No production credentials were copied, printed or changed.
+Status (2026-10-15): PR #14 merged and released as `v1.3.0`; **Bale is live, Telegram is off.**
+
+- **Bale (`@sourcebyhedaxbot`):**
+  - The webhook is registered on the secret capability URL.
+  - Verified with the owner's real messages (/start and a SKU search): every reply was delivered on the first attempt and there were no errors.
+- **Server `.env`:**
+  - `BALE_BOT_TOKEN` was corrected (it had a stray `__` prefix).
+  - An independent `BALE_WEBHOOK_SECRET` was generated on the server.
+  - No value was printed.
+- **Telegram stays disabled until the owner decides:**
+  - `TELEGRAM_BOT_TOKEN` is commented out in `.env`; its value is kept in the pre-bot backup.
+  - The server has no route to `api.telegram.org`, so replies cannot be delivered from it.
+- **Rollback:**
+  - images `:pre-bot`;
+  - `/root/hedax-backups/pre-bot-20261015T065701Z/`;
+  - encrypted backup `source-backup-20261015T065702Z.tar.age`.
+- **Recommended:** rotate both bot tokens, since the production `.env` was exposed in an earlier screenshot (see below).
 
 ## Behavior and security
 
