@@ -22,6 +22,12 @@ export class KnowledgeCatalogController {
     return this.catalog.create(actor, body);
   }
 
+  @Post(':id/extract')
+  extract(@Param('id', ParseUUIDPipe) id: string) { return this.catalog.requestExtraction(id); }
+
+  @Get(':id/preview')
+  preview(@Param('id', ParseUUIDPipe) id: string) { return this.catalog.preview(id); }
+
   @Patch(':id/status')
   @ApiZodBody(catalogDocumentStatusSchema)
   updateStatus(@Param('id', ParseUUIDPipe) id: string, @Body(zod(catalogDocumentStatusSchema)) body: z.infer<typeof catalogDocumentStatusSchema>) {
