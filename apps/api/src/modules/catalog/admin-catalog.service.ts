@@ -1,8 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import sharp, { type OutputInfo } from 'sharp';
-import type { AdminProductRow, ProductMediaView, ProductUpsert } from '@hedax/contracts';
-import { DomainError, IMAGE_KINDS, describePriceSource as describePrice, inspectFile, normalizeSearchText } from '@hedax/domain';
+import type { AdminProductRow, ProductCodeLookupView, ProductCodeMatch, ProductMediaView, ProductUpsert } from '@hedax/contracts';
+import { DomainError, IMAGE_KINDS, describePriceSource as describePrice, inspectFile, normalizeSearchText, technicalKey } from '@hedax/domain';
 import type { z } from 'zod';
 import type { mediaUpdateSchema, priceRuleSchema } from '@hedax/contracts';
 import { AuditService } from '../../common/audit.service.js';
@@ -333,6 +333,46 @@ export class AdminCatalogService {
   }
 
   /** Serializes photo changes of one product (parallel uploads would otherwise both become the main photo). */
+  /**
+   * Bulk photos: the products each code belongs to. A code matches a product's SKU or
+   * one of its technical numbers, compared like the Excel import does (case, spaces and
+   * separators ignored). Archived products are left out; a shared code returns all its products.
+   */
+  async lookupCodes(codes: readonly string[]): Promise<ProductCodeLookupView> {
+    const wanted = new Map<string, string[]>();
+    for (const code of new Set(codes)) {
+      const key = technicalKey(code);
+      if (!key) continue;
+      wanted.set(key, [...(wanted.get(key) ?? []), code]);
+    }
+    const matches: Record<string, ProductCodeMatch[]> = Object.fromEntries([...new Set(codes)].map((c) => [c, []]));
+    if (!wanted.size) return { matches };
+    const products = await this.prisma.product.findMany({ where: { archivedAt: null }, select: { id: true, sku: true, oemCodes: true } });
+    const hits = new Map<string, Set<string>>();
+    for (const p of products) {
+      for (const key of new Set([p.sku, ...p.oemCodes].map(technicalKey))) {
+        if (!wanted.has(key)) continue;
+        hits.set(key, (hits.get(key) ?? new Set<string>()).add(p.id));
+      }
+    }
+    const ids = [...new Set([...hits.values()].flatMap((s) => [...s]))];
+    if (!ids.length) return { matches };
+    const rows = await this.prisma.product.findMany({
+      where: { id: { in: ids } },
+      select: {
+        id: true, sku: true,
+        translations: { where: { locale: 'fa' }, select: { name: true } },
+        _count: { select: { media: { where: { deletedAt: null } } } },
+      },
+    });
+    const byId = new Map(rows.map((r) => [r.id, { id: r.id, sku: r.sku, nameFa: r.translations[0]?.name ?? r.sku, photoCount: r._count.media }]));
+    for (const [key, set] of hits) {
+      const found = [...set].map((id) => byId.get(id)).filter((x): x is ProductCodeMatch => !!x).sort((a, b) => a.sku.localeCompare(b.sku));
+      for (const code of wanted.get(key) ?? []) matches[code] = found;
+    }
+    return { matches };
+  }
+
   private async lockProduct(tx: Tx, productId: string): Promise<{ nameFa: string } | null> {
     const [row] = await tx.$queryRaw<Array<{ id: string }>>`SELECT "id" FROM "product" WHERE "id" = ${productId}::uuid FOR UPDATE`;
     if (!row) return null;
