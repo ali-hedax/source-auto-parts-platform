@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 210 260" role="img" aria-labelledby="title">
+<title id="title">HEDAX AI mechanic pet</title>
+<defs>
+<radialGradient id="a"><stop stop-color="#79d8ff" stop-opacity=".75"/><stop offset="1" stop-color="#3182ce" stop-opacity="0"/></radialGradient>
+<linearGradient id="uniform" x1=".1" y1="0" x2=".8" y2="1"><stop stop-color="#335b90"/><stop offset=".48" stop-color="#172e52"/><stop offset="1" stop-color="#0c1b34"/></linearGradient>
+<linearGradient id="skin" x1="0" y1="0" x2=".8" y2="1"><stop stop-color="#ffd4a8"/><stop offset=".6" stop-color="#dfa17d"/><stop offset="1" stop-color="#aa624e"/></linearGradient>
+<linearGradient id="metal"><stop stop-color="#f3faff"/><stop offset=".45" stop-color="#94b3d1"/><stop offset=".75" stop-color="#f1f6ff"/><stop offset="1" stop-color="#647d9a"/></linearGradient>
+<filter id="shadow" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="7" stdDeviation="7" flood-color="#102746" flood-opacity=".35"/></filter>
+</defs>
+<ellipse cx="108" cy="233" rx="81" ry="18" fill="url(#a)"/>
+<g filter="url(#shadow)">
+<!-- Compact cartoon body, oversized friendly head -->
+<path d="M58 160Q38 163 31 188L30 210Q45 222 70 212L79 177Z" fill="url(#uniform)" stroke="#0c1b34" stroke-width="3"/>
+<path d="M140 158Q166 155 178 184L175 207Q159 222 143 205L133 181Z" fill="url(#uniform)" stroke="#0c1b34" stroke-width="3"/>
+<path d="M66 166Q92 154 118 162Q146 161 154 184L152 222L62 222L59 187Z" fill="url(#uniform)" stroke="#0c1b34" stroke-width="4"/>
+<path d="M79 207L75 237Q91 244 104 234L109 211M115 211L119 238Q135 246 148 234L141 206" fill="url(#uniform)" stroke="#0c1b34" stroke-width="4"/>
+<path d="M73 233Q60 233 59 245Q61 251 88 249L106 243L102 233M120 234Q119 244 135 249L160 247Q160 235 143 233" fill="#182339" stroke="#0a1221" stroke-width="3"/>
+<path d="M104 160L106 175L119 162" fill="#0d203a" stroke="#5faeea" stroke-width="2"/>
+<path d="M68 187L86 188M125 189L146 188" stroke="#6aa9d8" stroke-width="2"/>
+<rect x="70" y="195" width="23" height="17" rx="4" fill="#0f2644" stroke="#548fc6"/>
+<text x="111" y="207" fill="#f1f8ff" font-size="12" font-family="Arial,sans-serif" font-weight="bold">HEDAX</text>
+<!-- face -->
+<path d="M45 86Q44 37 92 28Q150 18 164 74Q172 115 149 147Q134 167 103 169Q64 167 48 135Q39 115 45 86Z" fill="url(#skin)" stroke="#a66e56" stroke-width="2"/>
+<path d="M45 98Q27 91 36 111Q42 122 49 119M160 98Q179 91 171 113Q165 123 157 119" fill="#d99673" stroke="#a66e56" stroke-width="2"/>
+<!-- hair, deliberately close to the approved short dark swept style -->
+<path d="M43 100Q25 74 38 55Q37 33 56 27Q62 12 81 16Q98 5 114 15Q134 5 148 26Q167 25 171 49Q181 69 162 98L156 81Q151 64 135 61Q107 69 81 54Q60 57 51 80Z" fill="#241d25"/>
+<path d="M51 50Q65 26 90 30M91 26Q112 19 132 33M135 37Q157 42 161 59" fill="none" stroke="#5e4142" stroke-width="7" stroke-linecap="round"/>
+<!-- expressive eyes -->
+<path d="M60 100Q73 92 87 98M120 98Q134 92 148 99" fill="none" stroke="#3b2829" stroke-width="5" stroke-linecap="round"/>
+<ellipse cx="76" cy="108" rx="5" ry="6" fill="#261f24"/><ellipse cx="133" cy="108" rx="5" ry="6" fill="#261f24"/>
+<circle cx="78" cy="106" r="1.6" fill="#fff"/><circle cx="135" cy="106" r="1.6" fill="#fff"/>
+<path d="M105 107L101 121Q105 124 110 121" fill="none" stroke="#ac715a" stroke-width="3" stroke-linecap="round"/>
+<!-- moustache and beard -->
+<path d="M61 122Q65 145 80 153Q106 177 133 152Q148 141 151 120Q141 132 132 131Q115 124 106 132Q94 123 80 131Q71 129 61 122Z" fill="#35262a"/>
+<path d="M88 139Q106 149 123 138" fill="none" stroke="#e8a48d" stroke-width="4" stroke-linecap="round"/>
+<path d="M83 129Q95 125 105 133Q117 124 130 129" fill="none" stroke="#302127" stroke-width="6" stroke-linecap="round"/>
+<!-- raised hand waving -->
+<path d="M41 176L25 166Q19 157 21 149Q12 139 14 134Q17 131 24 137L20 124Q21 117 27 120L32 133L32 116Q33 110 39 114L42 133L47 122Q53 120 54 128L52 146Q58 159 55 168Z" fill="#182439" stroke="#718ba6" stroke-width="2.5"/>
+<!-- wrench held in other hand -->
+<g transform="rotate(18 165 155)">
+<path d="M165 113L161 138L158 176Q163 185 169 176L174 136L182 117L175 109L169 119L163 119L161 109Z" fill="url(#metal)" stroke="#6b88a3" stroke-width="2"/>
+<circle cx="164" cy="173" r="2.5" fill="#355d80"/>
+</g>
+<path d="M157 172Q171 166 179 178Q180 188 167 193Q157 190 151 182Z" fill="#182439" stroke="#718ba6" stroke-width="2"/>
+</g>
+</svg>

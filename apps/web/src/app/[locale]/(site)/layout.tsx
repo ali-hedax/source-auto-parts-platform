@@ -4,6 +4,7 @@ import { setRequestLocale } from 'next-intl/server';
 import { AnnouncementBarView } from '@/components/layout/announcement-bar-view';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { SiteHeader } from '@/components/layout/site-header';
+import { HedaxAssistantWidget } from '@/components/chat/hedax-assistant-widget';
 import { getSiteContent } from '@/lib/site-content';
 
 export default async function SiteLayout({ children, params }: { children: ReactNode; params: Promise<{ locale: string }> }) {
@@ -20,6 +21,7 @@ export default async function SiteLayout({ children, params }: { children: React
         {children}
       </main>
       <SiteFooter />
+      <HedaxAssistantWidget locale={locale} />
     </>
   );
 }

@@ -290,3 +290,13 @@ main:has(> .page-canvas) {
 :focus-visible {
   transition-duration: 0s;
 }
+
+/* Floating mascot: a subtle idle motion; disabled by the global reduced-motion rule. */
+@keyframes hedax-mascot-idle {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-4px) rotate(2deg); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .hedax-pet-float { animation: hedax-mascot-idle 3.5s ease-in-out infinite; transform-origin: center bottom; }
+  .group:hover .hedax-pet-float { animation-duration: 1.2s; }
+}
