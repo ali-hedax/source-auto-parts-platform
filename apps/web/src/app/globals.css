@@ -297,5 +297,6 @@ main:has(> .page-canvas) {
   50% { transform: translateY(-4px) rotate(2deg); }
 }
 @media (prefers-reduced-motion: no-preference) {
-  .hedax-mascot-float { animation: hedax-mascot-idle 3.5s ease-in-out infinite; }
+  .hedax-pet-float { animation: hedax-mascot-idle 3.5s ease-in-out infinite; transform-origin: center bottom; }
+  .group:hover .hedax-pet-float { animation-duration: 1.2s; }
 }
