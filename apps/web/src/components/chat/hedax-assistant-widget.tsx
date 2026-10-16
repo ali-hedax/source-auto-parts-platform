@@ -1,6 +1,6 @@
 'use client';
 
-import { Headphones, MessageCircle, Search, Send, X } from 'lucide-react';
+import { MessageCircle, Search, Send, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 type ChatLink = { label: string; href: string };
