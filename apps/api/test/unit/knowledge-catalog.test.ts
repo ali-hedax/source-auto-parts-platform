@@ -6,7 +6,7 @@ const actor = { userId: '0192f3a0-0000-7000-8000-000000000001', kind: 'STAFF', p
 describe('knowledge catalog service', () => {
   it('does not register a quarantined file', async () => {
     const prisma = { attachment: { findFirst: vi.fn().mockResolvedValue({ status: 'SCANNING', extension: 'pdf' }) } };
-    const service = new KnowledgeCatalogService(prisma as never, { record: vi.fn() } as never);
+    const service = new KnowledgeCatalogService(prisma as never, { record: vi.fn() } as never, {} as never, {} as never);
     await expect(service.create(actor as never, { attachmentId: '0192f3a0-0000-7000-8000-000000000002', title: 'Catalog', version: '1' })).rejects.toMatchObject({ code: 'FILE_NOT_READY' });
   });
 
@@ -27,7 +27,7 @@ describe('knowledge catalog service', () => {
       tx: vi.fn(async (callback: (value: typeof tx) => unknown) => callback(tx)),
     };
     const audit = { record: vi.fn().mockResolvedValue(undefined) };
-    const service = new KnowledgeCatalogService(prisma as never, audit as never);
+    const service = new KnowledgeCatalogService(prisma as never, audit as never, {} as never, {} as never);
 
     const result = await service.create(actor as never, { attachmentId: attachment.id, title: 'Parts', version: '3' });
     expect(result).toMatchObject({ title: 'Parts', version: '3', status: 'UPLOADED', extension: 'pdf', sha256: 'a'.repeat(64) });
