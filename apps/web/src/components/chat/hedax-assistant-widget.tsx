@@ -2,6 +2,7 @@
 
 import { MessageCircle, Search, Send, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { usePathname } from 'next/navigation';
 
 type ChatLink = { label: string; href: string };
 type ChatMessage = { id: number; from: 'visitor' | 'guide'; text: string; link?: ChatLink };
@@ -78,6 +79,7 @@ function respond(input: string, locale: string): { text: string; link: ChatLink 
 export function HedaxAssistantWidget({ locale }: { locale: string }) {
   const en = locale === 'en';
   const t = assistantCopy(en);
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([{ id: 0, from: 'guide', text: t.greeting }]);
@@ -116,6 +118,9 @@ export function HedaxAssistantWidget({ locale }: { locale: string }) {
     append(question, respond(question, locale));
     setDraft('');
   };
+
+  // Keep transactional and staff flows unobstructed on small screens.
+  if (/\/(checkout|payment|staff)(\/|$)/.test(pathname)) return null;
 
   return (
     <aside className="fixed bottom-4 end-4 z-50 sm:bottom-6 sm:end-6" aria-label={t.title}>
