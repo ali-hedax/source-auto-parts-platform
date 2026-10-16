@@ -23,7 +23,7 @@ function normalizeHeader(value: string, index: number): string {
 function cellValue(value: unknown): string {
   if (value === null || value === undefined) return '';
   if (typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'boolean') return '';
-  return String(value).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '').trim().slice(0, MAX_CELL);
+  return [...String(value)].filter((ch) => ch.charCodeAt(0) >= 32 || ch === '\\n' || ch === '\\r' || ch === '\\t').join('').trim().slice(0, MAX_CELL);
 }
 
 /**
