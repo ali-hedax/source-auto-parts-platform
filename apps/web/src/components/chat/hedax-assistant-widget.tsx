@@ -111,7 +111,7 @@ export function HedaxAssistantWidget({ locale }: { locale: string }) {
     ]);
   };
 
-  const choose = (topic: Topic) => append(t.choices[topics.indexOf(topic)], replyFor(topic, locale));
+  const choose = (topic: Topic) => append(t.choices[topics.indexOf(topic)] ?? t.title, replyFor(topic, locale));
   const send = () => {
     const question = draft.trim().slice(0, 160);
     if (!question) return;
@@ -129,12 +129,12 @@ export function HedaxAssistantWidget({ locale }: { locale: string }) {
           role="dialog"
           aria-modal="false"
           aria-label={t.title}
-          className="absolute bottom-[5.25rem] end-0 flex h-[min(34rem,calc(100dvh-7.5rem))] w-[min(23rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+          className="absolute bottom-[5rem] end-0 flex h-[min(34rem,calc(100dvh-7rem))] w-[min(23rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-[1.5rem] border border-sky-200 bg-white shadow-[0_25px_80px_-18px_rgba(12,43,89,0.55)]"
         >
           <header className="flex shrink-0 items-center gap-3 bg-[#172a49] px-4 py-3 text-white">
             {/* The image can be replaced with an animated 3D avatar later without changing chat logic. */}
             {/* eslint-disable-next-line @next/next/no-img-element -- local mascot illustration */}
-            <img src="/hedax-ai-mascot.svg" alt="" width={48} height={48} className="size-12 rounded-full border-2 border-sky-300 bg-[#244e81]" />
+            <img src="/hedax-ai-mascot.svg" alt="" width={40} height={48} className="h-12 w-10 object-contain" />
             <div className="min-w-0 flex-1">
               <h2 className="font-bold">{t.title}</h2>
               <p className="text-xs text-slate-200">{t.description}</p>
@@ -176,12 +176,28 @@ export function HedaxAssistantWidget({ locale }: { locale: string }) {
         </section>
       ) : null}
 
-      <button type="button" onClick={() => setOpen((current) => !current)} aria-label={open ? t.close : t.open} aria-expanded={open} className="group relative flex min-h-16 items-center gap-2 rounded-full border-2 border-sky-300 bg-[#172a49] pe-4 ps-1.5 text-white shadow-xl transition-transform hover:scale-105 focus-visible:outline-sky-500">
-        <span className="absolute inset-0 -z-10 rounded-full bg-sky-400/20 motion-safe:animate-pulse" aria-hidden="true" />
-        {/* eslint-disable-next-line @next/next/no-img-element -- local mascot illustration */}
-        <img src="/hedax-ai-mascot.svg" alt="" width={56} height={56} className="hedax-mascot-float size-14 rounded-full border border-sky-200 bg-[#244e81]" />
-        <span className="text-sm font-bold">{en ? 'Ask HEDAX' : 'از هداکس بپرس'}</span>
-        {open ? <X aria-hidden="true" className="size-4" /> : <MessageCircle aria-hidden="true" className="size-4" />}
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        aria-label={open ? t.close : t.open}
+        aria-expanded={open}
+        className={'group relative flex cursor-pointer flex-col items-center justify-end rounded-2xl focus-visible:outline-4 focus-visible:outline-sky-500 ' + (open ? 'min-h-14 min-w-14' : 'h-44 w-36 sm:h-48 sm:w-40')}
+      >
+        {open ? (
+          <span className="grid size-14 place-items-center rounded-full border-2 border-sky-300 bg-[#172a49] text-white shadow-xl"><X aria-hidden="true" className="size-6" /></span>
+        ) : (
+          <>
+            <span aria-hidden="true" className="pointer-events-none absolute bottom-6 left-1/2 h-14 w-28 -translate-x-1/2 rounded-full bg-sky-400/30 blur-xl" />
+            <span className="hedax-pet-float relative block h-36 w-32 sm:h-40 sm:w-36">
+              {/* eslint-disable-next-line @next/next/no-img-element -- local illustrated mascot */}
+              <img src="/hedax-ai-mascot.svg" alt="" width={144} height={180} className="size-full object-contain drop-shadow-[0_10px_8px_rgba(16,48,94,0.28)]" />
+            </span>
+            <span className="relative -mt-3 inline-flex min-h-10 items-center gap-1.5 rounded-full border border-sky-300 bg-[#172a49] px-3 text-xs font-bold text-white shadow-lg transition-colors group-hover:bg-[#2467a9]">
+              <MessageCircle aria-hidden="true" className="size-4 text-sky-300" />
+              {en ? 'Ask HEDAX' : 'کمک می‌خوای؟'}
+            </span>
+          </>
+        )}
       </button>
     </aside>
   );
