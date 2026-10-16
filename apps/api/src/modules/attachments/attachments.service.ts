@@ -4,7 +4,7 @@ import sharp from 'sharp';
 import type { AttachmentView, UploadPolicyView } from '@hedax/contracts';
 import { DEFAULT_UPLOAD_POLICY, IMAGE_KINDS, type FileKind, checkBatch, inspectFile, sanitizeDisplayFilename } from '@hedax/domain';
 import type { Attachment, AttachmentPurpose } from '../../generated/prisma/client.js';
-import { badRequest, forbidden, notFound } from '../../common/errors.js';
+import { badRequest, conflict, forbidden, notFound } from '../../common/errors.js';
 import { OutboxService } from '../../common/outbox.service.js';
 import { PrismaService } from '../../common/prisma.service.js';
 import { LIMITS, RateLimitService } from '../../common/rate-limit.service.js';
@@ -65,7 +65,7 @@ export class AttachmentsService {
     if (files.length === 0) throw badRequest('FILE_REQUIRED');
     const batch = checkBatch(files.map((f) => ({ size: f.size })));
     if (!batch.ok) throw badRequest(batch.reason, 'Upload limits exceeded');
-    if (purpose === 'IMPORT' && !actor.permissions.has('imports.run')) throw forbidden();
+    if ((purpose === 'IMPORT' || purpose === 'KNOWLEDGE_CATALOG') && !actor.permissions.has('imports.run')) throw forbidden();
     const used = await this.prisma.attachment.aggregate({ where: { ownerId: actor.userId, deletedAt: null }, _sum: { sizeBytes: true } });
     if ((used._sum.sizeBytes ?? 0) + files.reduce((s, f) => s + f.size, 0) > PER_USER_QUOTA_BYTES) throw badRequest('QUOTA_EXCEEDED');
 
@@ -74,13 +74,14 @@ export class AttachmentsService {
       const filename = sanitizeDisplayFilename(file.originalname);
       const inspection = inspectFile(filename, new Uint8Array(file.buffer));
       const importOnly = purpose === 'IMPORT' && inspection.kind && !['xlsx', 'csv'].includes(inspection.kind);
+      const catalogOnly = purpose === 'KNOWLEDGE_CATALOG' && inspection.kind && !['pdf', 'xlsx', 'csv'].includes(inspection.kind);
       const key = `att/${new Date().toISOString().slice(0, 7).replace('-', '/')}/${randomUUID()}.${inspection.extension || 'bin'}`;
-      if (inspection.verdict === 'REJECT' || importOnly) {
+      if (inspection.verdict === 'REJECT' || importOnly || catalogOnly) {
         const rejected = await this.prisma.attachment.create({
           data: {
             ownerId: actor.userId, purpose, status: 'REJECTED', storageKey: key, originalFilename: filename,
             extension: inspection.extension.slice(0, 10), sizeBytes: Math.max(file.size, 1),
-            rejectReason: importOnly ? 'IMPORT_FORMAT_NOT_ALLOWED' : (inspection.reason ?? 'REJECTED'),
+            rejectReason: importOnly ? 'IMPORT_FORMAT_NOT_ALLOWED' : catalogOnly ? 'CATALOG_FORMAT_NOT_ALLOWED' : (inspection.reason ?? 'REJECTED'),
           },
         });
         out.push(this.view(rejected, false));
@@ -169,6 +170,7 @@ export class AttachmentsService {
     if (actor.kind !== 'STAFF') return false;
     if (a.subjectType === 'BUSINESS_VERIFICATION') return actor.permissions.has('customers.read');
     if (a.subjectType === 'RETURN_REQUEST') return actor.permissions.has('returns.manage');
+    if (a.purpose === 'KNOWLEDGE_CATALOG') return actor.permissions.has('imports.run');
     if (a.purpose === 'IMPORT' || a.purpose === 'IMPORT_REPORT' || a.purpose === 'EXPORT') return actor.permissions.has('imports.run') || actor.permissions.has('exports.run');
     return false;
   }
@@ -190,6 +192,9 @@ export class AttachmentsService {
   async delete(actor: Actor, id: string): Promise<void> {
     const a = await this.prisma.attachment.findFirst({ where: { id, ownerId: actor.userId, deletedAt: null } });
     if (!a) throw notFound();
+    if (a.purpose === 'KNOWLEDGE_CATALOG' && await this.prisma.catalogDocument.findUnique({ where: { attachmentId: a.id }, select: { id: true } })) {
+      throw conflict('CATALOG_FILE_IN_USE', 'A registered catalog file cannot be deleted through the generic attachment endpoint');
+    }
     await this.prisma.attachment.update({ where: { id }, data: { status: 'DELETED', deletedAt: new Date() } });
     // Immediately unreachable; message/financial records keep only metadata.
     await this.storage.deletePrivate(a.storageKey).catch(() => undefined);

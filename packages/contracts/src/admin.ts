@@ -385,3 +385,35 @@ export interface DashboardView {
   /** ATTENTION: configured but needs a look (e.g. antivirus signatures too old). */
   launchReadiness: Array<{ key: string; status: 'READY' | 'MISSING' | 'SIMULATED' | 'ATTENTION'; note: string }>;
 }
+
+export const CATALOG_DOCUMENT_STATUSES = ['UPLOADED', 'PENDING_PROCESSING', 'NEEDS_REVIEW', 'APPROVED', 'REJECTED'] as const;
+export type CatalogDocumentStatus = (typeof CATALOG_DOCUMENT_STATUSES)[number];
+
+export const catalogDocumentCreateSchema = z.object({
+  attachmentId: idSchema,
+  title: z.string().trim().min(2).max(160),
+  version: z.string().trim().min(1).max(40),
+});
+
+export const catalogDocumentStatusSchema = z.object({
+  status: z.enum(CATALOG_DOCUMENT_STATUSES),
+  note: optionalText(500),
+});
+
+export interface CatalogDocumentView {
+  id: string;
+  title: string;
+  version: string;
+  status: CatalogDocumentStatus;
+  filename: string;
+  extension: 'pdf' | 'xlsx' | 'csv';
+  sizeBytes: number;
+  sha256: string;
+  uploadedBy: { id: string; name: string | null; email: string | null };
+  uploadedAt: string;
+  updatedAt: string;
+  processingError: string | null;
+  processedAt: string | null;
+  approvedAt: string | null;
+  downloadUrl: string;
+}

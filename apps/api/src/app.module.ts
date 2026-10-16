@@ -20,6 +20,7 @@ import { SettingsModule } from './modules/settings/settings.module.js';
 import { ContentModule } from './modules/content/content.module.js';
 import { SourcingModule } from './modules/sourcing/sourcing.module.js';
 import { MessengerBotsModule } from './modules/messenger-bots/messenger-bots.module.js';
+import { KnowledgeCatalogModule } from './modules/knowledge-catalog/knowledge-catalog.module.js';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { MessengerBotsModule } from './modules/messenger-bots/messenger-bots.mod
     ConversationsModule,
     SourcingModule,
     ImportsModule,
+    KnowledgeCatalogModule,
     NotificationsModule,
     MessengerBotsModule,
     ReturnsModule,
