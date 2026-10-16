@@ -14,6 +14,8 @@ import { QuoteDocumentService } from '../modules/sourcing/quote-document.js';
 import { SourcingModule } from '../modules/sourcing/sourcing.module.js';
 import { TrashModule } from '../modules/trash/trash.module.js';
 import { OutboxDispatcher } from './outbox-dispatcher.js';
+import { KnowledgeCatalogModule } from '../modules/knowledge-catalog/knowledge-catalog.module.js';
+import { KnowledgeCatalogService } from '../modules/knowledge-catalog/knowledge-catalog.service.js';
 import { MessengerBotsModule } from '../modules/messenger-bots/messenger-bots.module.js';
 import { MessengerBotsService } from '../modules/messenger-bots/messenger-bots.service.js';
 
@@ -23,7 +25,7 @@ import { MessengerBotsService } from '../modules/messenger-bots/messenger-bots.s
  * PDFs, reconciliation) never run inside a web request.
  */
 @Module({
-  imports: [CommonModule, MailModule, PaymentsModule, OrdersModule, SourcingModule, AttachmentsModule, ImportsModule, NotificationsModule, TrashModule, MessengerBotsModule],
+  imports: [CommonModule, MailModule, PaymentsModule, OrdersModule, SourcingModule, AttachmentsModule, ImportsModule, NotificationsModule, TrashModule, MessengerBotsModule, KnowledgeCatalogModule],
   providers: [OutboxDispatcher, QuoteDocumentService],
 })
 export class WorkerModule {}
@@ -32,6 +34,7 @@ export async function createWorkerContext() {
   const env = loadEnv();
   const app = await NestFactory.createApplicationContext(WorkerModule, { logger: new JsonLogger(env.LOG_LEVEL) });
   app.enableShutdownHooks();
+  app.get(OutboxDispatcher).register('catalog.extract', (payload) => app.get(KnowledgeCatalogService).extract(String(payload.documentId)));
   app.get(OutboxDispatcher).register('messenger.reply', (payload) => app.get(MessengerBotsService).deliver(payload));
   return {
     app,
