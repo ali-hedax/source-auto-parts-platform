@@ -7,6 +7,7 @@ import {
   mediaUpdateSchema,
   paginationQuerySchema,
   priceRuleSchema,
+  productCodeLookupSchema,
   productPublishSchema,
   productUpsertSchema,
 } from '@hedax/contracts';
@@ -68,6 +69,14 @@ export class AdminCatalogController {
       archived: q.archived === '1',
     });
     return { ...res, page: q.page, pageSize: q.pageSize };
+  }
+
+  /** Bulk photos: which products the codes read from photo file names belong to. Registered before products/:id. */
+  @RequirePermissions('products.write')
+  @Post('products/code-lookup')
+  @ApiZodBody(productCodeLookupSchema)
+  lookupCodes(@Body(zod(productCodeLookupSchema)) body: z.infer<typeof productCodeLookupSchema>) {
+    return this.svc.lookupCodes(body.codes);
   }
 
   @RequirePermissions('products.read')
