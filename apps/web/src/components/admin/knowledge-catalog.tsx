@@ -3,7 +3,7 @@
 import type { AttachmentView, CatalogChunkPreview, CatalogDocumentStatus, CatalogDocumentView } from '@hedax/contracts';
 import { BookOpen, Download, FileUp } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useState, type FormEvent } from 'react';
+import { Fragment, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Field, Input, Select } from '@/components/ui/field';
 import { DateTime } from '@/components/ui/format';
@@ -143,7 +143,8 @@ export function KnowledgeCatalogPage() {
             <TableScroll caption={l('فهرست کاتالوگ‌ها', 'Catalog sources')}>
               <thead><tr><th className={th}>{l('عنوان و فایل', 'Title & file')}</th><th className={th}>{l('نسخه', 'Version')}</th><th className={th}>{l('بارگذار / تاریخ', 'Uploader / date')}</th><th className={th}>{l('وضعیت', 'Status')}</th><th className={th}>{l('دریافت', 'Download')}</th><th className={th}>{l('استخراج و بررسی', 'Extract & review')}</th></tr></thead>
               <tbody>{documents.data.map((item) => (
-                <tr key={item.id}>
+                <Fragment key={item.id}>
+                <tr>
                   <td className={td}><p className="font-semibold">{item.title}</p><p className="mt-1 text-xs text-steel" dir="auto">{item.filename} · {item.extension.toUpperCase()} · {bytes(item.sizeBytes, locale)}</p></td>
                   <td className={td}><span dir="ltr">{item.version}</span></td>
                   <td className={td}><p>{item.uploadedBy.name ?? item.uploadedBy.email ?? '—'}</p><p className="mt-1 text-xs text-steel"><DateTime iso={item.uploadedAt} /></p></td>
@@ -178,6 +179,7 @@ export function KnowledgeCatalogPage() {
                     </div>
                   </td></tr>
                 ) : null}
+                </Fragment>
               ))}</tbody>
             </TableScroll>
           ) : documents.data ? <EmptyState title={l('هنوز کاتالوگی بارگذاری نشده است.', 'No catalog source has been uploaded yet.')} icon={<BookOpen aria-hidden />} />
