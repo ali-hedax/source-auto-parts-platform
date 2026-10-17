@@ -1,4 +1,4 @@
-import type { CategoryView, ContentButton, HomeSection, SearchResult, VehicleBrandView } from '@hedax/contracts';
+import type { CatalogEntrySearchResult, CategoryView, ContentButton, HomeSection, SearchResult, VehicleBrandView } from '@hedax/contracts';
 import { localize } from '@hedax/contracts/constants';
 import { ArrowLeft, ArrowRight, CarFront, ChevronLeft, ChevronRight, PackageSearch, Plus, Search, ShieldCheck } from 'lucide-react';
 import type { Metadata } from 'next';
@@ -7,6 +7,7 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { ReactNode } from 'react';
 import { RichText } from '@/components/content/rich-text';
 import { ButtonLink, buttonClass } from '@/components/ui/button';
+import { CatalogHomeSection } from '@/components/catalog/catalog-home';
 import { PartCard } from '@/components/catalog/part-card';
 import { EmptyState } from '@/components/ui/misc';
 import { Link } from '@/i18n/navigation';
@@ -42,11 +43,12 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   setRequestLocale(locale);
   const t = await getTranslations();
   const currency = await displayCurrency();
-  const [content, featured, brands, categories] = await Promise.all([
+  const [content, featured, brands, categories, catalogRecent] = await Promise.all([
     getSiteContent(),
     serverApi<SearchResult>(`/catalog/products?inStock=1&pageSize=8&currency=${currency}`, { publicCache: 60 }).catch(() => null),
     serverApi<VehicleBrandView[]>('/catalog/vehicle-brands', { publicCache: 300 }).catch(() => []),
     serverApi<CategoryView[]>('/catalog/categories', { publicCache: 300 }).catch(() => []),
+    serverApi<CatalogEntrySearchResult>('/catalog/entries?pageSize=4', { publicCache: 60 }).catch(() => null),
   ]);
   if (!content) {
     return <div className="container-page py-12"><EmptyState title={t('pages.errorHint')} /></div>;
@@ -86,7 +88,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                       <input id="hero-search" name="q" type="search" required placeholder={t('search.placeholder')} aria-describedby="hero-search-hint"
                         className="h-14 w-full rounded-xl border border-transparent bg-white ps-12 pe-4 text-base text-ink shadow-sm placeholder:text-steel/80" />
                     </div>
-                    <button type="submit" className="inline-flex h-14 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#0879f9] px-7 font-bold text-white shadow-lg shadow-blue-900/25 transition-all hover:bg-[#0967d3] active:bg-[#0967d3]">
+                    <button type="submit" className="inline-flex h-14 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#096ce5] px-7 font-bold text-white shadow-lg shadow-blue-900/25 transition-all hover:bg-[#0967d3] active:bg-[#0967d3]">
                       {L(s.searchButton)}
                     </button>
                   </div>
@@ -135,7 +137,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                   <span className="min-w-0 flex-1"><strong className="block text-base font-bold">{locale === 'fa' ? 'انتخاب خودروی من' : 'Find parts for my car'}</strong><span className="block text-sm text-[#56677d]">{locale === 'fa' ? 'قطعات را بر اساس خودرو پیدا کنید' : 'Browse by vehicle'}</span></span>
                   <Chevron aria-hidden className="size-5 text-[#096ce5]" />
                 </Link>
-                <Link href="/parts" className="hedax-discovery-card group flex items-center gap-4 rounded-2xl border border-white/20 bg-white/95 p-4 text-[#15243a] shadow-xl transition-all hover:-translate-y-1 hover:border-sky-400">
+                <Link href="/catalog" className="hedax-discovery-card group flex items-center gap-4 rounded-2xl border border-white/20 bg-white/95 p-4 text-[#15243a] shadow-xl transition-all hover:-translate-y-1 hover:border-sky-400">
                   <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-[#e9f3ff] text-[#096ce5]"><PackageSearch className="size-6" aria-hidden /></span>
                   <span className="min-w-0 flex-1"><strong className="block text-base font-bold">{locale === 'fa' ? 'کاتالوگ قطعات' : 'Parts catalogue'}</strong><span className="block text-sm text-[#56677d]">{locale === 'fa' ? 'جست‌وجو بر اساس نام یا شماره فنی' : 'Search by part name or number'}</span></span>
                   <Chevron aria-hidden className="size-5 text-[#096ce5]" />
@@ -255,6 +257,10 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
     }
   };
 
-  return <div className="autodoc-inspired-home">{content.home.sections.filter((s) => s.visible).map(render)}</div>;
+  // The technical catalog (search + newest parts) comes right after the hero (or first, without one).
+  const visible = content.home.sections.filter((s) => s.visible);
+  const blocks = visible.map(render);
+  blocks.splice(visible.findIndex((s) => s.type === 'hero') + 1, 0, <CatalogHomeSection key="technical-catalog" recent={catalogRecent} />);
+  return <div className="autodoc-inspired-home">{blocks}</div>;
 }
 

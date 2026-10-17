@@ -14,6 +14,7 @@ import { api, uploadWithProgress } from '@/lib/api/client';
 import { errorText, isApiError } from '@/lib/api/errors';
 import { useApi } from '@/lib/use-api';
 import { BulkPhotoUpload } from './bulk-photos';
+import { CatalogEntriesAdmin } from './catalog-entries-admin';
 import { useL } from './shell';
 
 const MAX_BYTES = 20 * 1024 * 1024;
@@ -35,7 +36,7 @@ function bytes(value: number, locale: string): string {
 }
 
 /** The "اسناد و فایل‌های مرجع" tab: upload CSV/XLSX/PDF catalog sources and review/extract them. */
-function CatalogDocuments() {
+function CatalogDocuments({ onConvert }: { onConvert: (documentId: string, ordinal: number) => void }) {
   const t = useTranslations();
   const l = useL();
   const locale = useLocale();
@@ -177,7 +178,12 @@ function CatalogDocuments() {
                     <div className="max-h-80 overflow-auto rounded-lg border p-3">
                       <p className="mb-2 text-sm font-semibold">{l('داده‌های پیشنهادی؛ نیازمند تأیید کارشناس', 'Unverified candidates — expert review required')}</p>
                       {(previews[item.id] ?? []).length ? (previews[item.id] ?? []).map((chunk) => (
-                        <pre key={chunk.ordinal} className="mb-2 whitespace-pre-wrap break-words border-b pb-2 text-xs" dir="auto">{l('ردیف', 'Row')} {chunk.rowStart ?? '—'}: {chunk.contentText}</pre>
+                        <div key={chunk.ordinal} className="mb-2 flex flex-wrap items-start justify-between gap-2 border-b pb-2">
+                          <pre className="min-w-0 flex-1 whitespace-pre-wrap break-words text-xs" dir="auto">{l('ردیف', 'Row')} {chunk.rowStart ?? '—'}: {chunk.contentText}</pre>
+                          {(chunk.metadata as { candidatePartNumber?: string | null } | null)?.candidatePartNumber ? (
+                            <Button type="button" size="sm" variant="secondary" onClick={() => onConvert(item.id, chunk.ordinal)}>{l('تبدیل به آیتم کاتالوگ', 'Turn into a catalog part')}</Button>
+                          ) : null}
+                        </div>
                       )) : <p className="text-sm text-steel">{l('هنوز اطلاعاتی استخراج نشده است.', 'No extracted records yet.')}</p>}
                     </div>
                   </td></tr>
@@ -194,7 +200,7 @@ function CatalogDocuments() {
   );
 }
 
-type CatalogTab = 'documents' | 'photos';
+type CatalogTab = 'documents' | 'entries' | 'photos';
 
 /**
  * مرکز دانش و کاتالوگ: جایی واحد برای هر مادهٔ خامی که قرار است بعداً به کاتالوگ تبدیل شود — چه
@@ -204,8 +210,13 @@ type CatalogTab = 'documents' | 'photos';
  */
 export function KnowledgeCatalogPage() {
   const l = useL();
-  const initialTab = useSearchParams().get('tab') === 'photos' ? 'photos' : 'documents';
+  const search = useSearchParams();
+  const asked = search.get('tab');
+  const initialTab: CatalogTab = asked === 'photos' || asked === 'entries' ? asked : 'documents';
   const [tab, setTab] = useState<CatalogTab>(initialTab);
+  // «تبدیل به آیتم کاتالوگ» opens the catalog tab with the form filled from that row.
+  const [draft, setDraft] = useState<{ documentId: string; ordinal: number } | null>(null);
+  const convert = (documentId: string, ordinal: number) => { setDraft({ documentId, ordinal }); setTab('entries'); };
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
@@ -222,11 +233,14 @@ export function KnowledgeCatalogPage() {
         onChange={setTab}
         items={[
           { key: 'documents', label: l('اسناد و فایل‌های مرجع', 'Reference documents') },
+          { key: 'entries', label: l('قطعات کاتالوگ', 'Catalog parts') },
           { key: 'photos', label: l('بارگذاری گروهی عکس', 'Bulk photo upload') },
         ]}
       />
       <div id="catalog-tabs-panel" role="tabpanel" aria-labelledby={`catalog-tabs-${tab}`} className="flex flex-col gap-6">
-        {tab === 'documents' ? <CatalogDocuments /> : <Suspense><BulkPhotoUpload /></Suspense>}
+        {tab === 'documents' ? <CatalogDocuments onConvert={convert} />
+          : tab === 'entries' ? <CatalogEntriesAdmin draft={draft} openEntryId={search.get('entry')} onDraftUsed={() => setDraft(null)} />
+          : <Suspense><BulkPhotoUpload /></Suspense>}
       </div>
     </div>
   );

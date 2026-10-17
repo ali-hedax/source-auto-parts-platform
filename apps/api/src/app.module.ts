@@ -21,6 +21,7 @@ import { ContentModule } from './modules/content/content.module.js';
 import { SourcingModule } from './modules/sourcing/sourcing.module.js';
 import { MessengerBotsModule } from './modules/messenger-bots/messenger-bots.module.js';
 import { KnowledgeCatalogModule } from './modules/knowledge-catalog/knowledge-catalog.module.js';
+import { CatalogEntriesModule } from './modules/catalog-entries/catalog-entries.module.js';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { KnowledgeCatalogModule } from './modules/knowledge-catalog/knowledge-ca
     SourcingModule,
     ImportsModule,
     KnowledgeCatalogModule,
+    CatalogEntriesModule,
     NotificationsModule,
     MessengerBotsModule,
     ReturnsModule,
