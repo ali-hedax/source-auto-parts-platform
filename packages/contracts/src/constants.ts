@@ -13,6 +13,19 @@ export const CSRF_COOKIE = 'hedax_csrf';
 export const SESSION_COOKIE = 'hedax_sid';
 export const CART_COOKIE = 'hedax_cart';
 
+/** Compact localized vehicle/model names; older cached cards may omit fitments. */
+export function fitmentNames(
+  fitments: readonly { vehicle: { name: { fa: string; en: string | null } }; model: { name: { fa: string; en: string | null } } | null }[] | null | undefined,
+  locale: 'fa' | 'en' = 'fa',
+): string[] {
+  const name = (value: { fa: string; en: string | null }) => (locale === 'en' ? (value.en?.trim() || value.fa) : value.fa).replace(/\s+/g, ' ').trim();
+  return [...new Set((fitments ?? []).map((fitment) => {
+    const vehicle = name(fitment.vehicle.name);
+    if (!vehicle) return '';
+    return [vehicle, fitment.model ? name(fitment.model.name) : ''].filter(Boolean).join(' ');
+  }).filter(Boolean))];
+}
+
 /**
  * System messages (request received, quote issued, …) are stored once in both
  * languages, Persian first: "fa / en". Each reader is shown their own language.

@@ -111,6 +111,8 @@ export interface ProductCard {
   origin: Origin;
   category: BrandRef | null;
   vehicleBrands: BrandRef[];
+  /** Active compatible vehicles and optional models, shared by lists and details. */
+  fitments: FitmentView[];
   manufacturer: BrandRef | null;
   primaryImage: MediaView | null;
   availability: Availability;
@@ -122,8 +124,6 @@ export interface ProductCard {
 export interface ProductDetail extends ProductCard {
   description: LocalizedText | null;
   technicalNotes: LocalizedText | null;
-  /** «مناسب برای:» chips under the photo (vehicles and models). */
-  fitments: FitmentView[];
   packQuantity: number;
   countryOfManufacture: string | null;
   warranty: LocalizedText | null;

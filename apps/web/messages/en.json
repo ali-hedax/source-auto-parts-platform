@@ -112,6 +112,7 @@
     "notPurchasable": "This part can't be purchased right now.",
     "maxQuantity": "You can order up to {max} {unit}.",
     "decimalStep": "Sold in steps of {step} {unit}.",
+    "application": "Fits",
     "fitsFor": "Fits:",
     "vehicle": "Vehicle",
     "vehicleHint": "Parts for the whole vehicle and all its models",

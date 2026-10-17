@@ -86,6 +86,24 @@ describe('messenger catalog and order boundary', () => {
     expect(send.mock.calls[0]![0]).toContain(provider === 'telegram' ? 'api.telegram.org' : 'tapi.bale.ai');
   });
 
+  it.each(['1800101506', 'میل لنگ'])('shows vehicle and model after code in Bale search: %s', async (query) => {
+    const { service, catalog } = fixture();
+    const fitments = [
+      { vehicle: { slug: 'dena', name: { fa: 'دنا', en: 'Dena' } }, model: null },
+      { vehicle: { slug: 'peugeot', name: { fa: 'پژو', en: 'Peugeot' } }, model: { slug: '405', name: { fa: '405', en: null } } },
+    ];
+    const product = { name: { fa: 'میل لنگ' }, sku: '1800101506', slug: '1800101506', availability: 'IN_STOCK', price: { kind: 'inquiry' } };
+    catalog.list.mockResolvedValue({ items: [
+      { ...product, fitments }, { ...product, fitments: [] }, product,
+    ] });
+    const send = transport();
+    await service.deliver(job(query, 'bale'));
+    const text = JSON.parse(send.mock.calls[0]![1].body).text;
+    expect(text).toContain('کد: 1800101506\nکاربرد در خودرو: دنا، پژو 405\nوضعیت: موجود');
+    expect(text.match(/کاربرد در خودرو:/g)).toHaveLength(1);
+    expect(text).toContain('/fa/parts/1800101506');
+  });
+
   it.each(['/orders', '/track 123456', '/order@SourceByHedaxBot', 'پیگیری سفارش ۱۲۳'])('keeps order information behind website login: %s', async (command) => {
     const { service, catalog } = fixture(); const send = transport();
     await service.deliver(job(command));
