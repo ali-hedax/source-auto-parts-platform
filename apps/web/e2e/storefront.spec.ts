@@ -273,6 +273,26 @@ test.describe('layout, SEO and accessibility', () => {
     });
   }
 
+  // «کاربرد:» on product cards (home and parts list): one line under the brand, hidden without fitments.
+  for (const [width, height] of [[360, 800], [1280, 900]] as const) {
+    test(`product cards show «کاربرد» in one line at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height });
+      for (const path of ['/fa', '/fa/parts']) {
+        await page.goto(path);
+        const withFit = page.locator('article', { hasText: 'DEMO-0002' }).first();
+        const line = withFit.getByTestId('card-fitment');
+        await expect(line).toHaveText('کاربرد: سمند، دنا');
+        await expect(line).toHaveAttribute('title', 'سمند، دنا');
+        const box = await line.boundingBox();
+        expect(box!.height, 'one line').toBeLessThan(24);
+        // Cards of parts without fitments have no empty «کاربرد» line.
+        const without = page.locator('article').filter({ hasNotText: /DEMO-000[128]/ }).first();
+        if (await without.count()) await expect(without.getByTestId('card-fitment')).toHaveCount(0);
+        await noHorizontalScroll(page);
+      }
+    });
+  }
+
   // A30 / §15: the browser's text size at 200% (rem-based layout, so the root font size is what changes).
   test('text enlarged to 200%: no horizontal page scroll and the main control of each page stays reachable', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });

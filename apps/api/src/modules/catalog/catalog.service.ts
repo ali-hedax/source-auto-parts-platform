@@ -76,7 +76,7 @@ export class CatalogService {
   }
 
   /** «مناسب برای»: active vehicles and models, in the panel's order (vehicle first, then its models). */
-  private fitments(p: HydratedProduct): ProductDetail['fitments'] {
+  private fitments(p: HydratedProduct): ProductCard['fitments'] {
     return p.vehicles
       .filter((l) => l.vehicle.active && (!l.model || l.model.active))
       .sort((a, b) => a.vehicle.sortOrder - b.vehicle.sortOrder || a.vehicle.name.localeCompare(b.vehicle.name, 'fa') || (a.model?.sortOrder ?? -1) - (b.model?.sortOrder ?? -1))
@@ -106,6 +106,8 @@ export class CatalogService {
       origin: p.origin,
       category: { slug: p.category.slug, name: this.text(p.category.nameFa, p.category.nameEn) },
       vehicleBrands: p.vehicleBrands.map((vb) => ({ slug: vb.vehicleBrand.slug, name: this.text(vb.vehicleBrand.nameFa, vb.vehicleBrand.nameEn) })),
+      // Loaded by productInclude in the same query as the list (no extra query per product).
+      fitments: this.fitments(p),
       manufacturer: p.manufacturerBrand ? { slug: p.manufacturerBrand.slug, name: this.text(p.manufacturerBrand.nameFa, p.manufacturerBrand.nameEn) } : null,
       primaryImage: primary ? this.mediaView(primary) : null,
       availability: this.availability(p).availability,
@@ -123,7 +125,6 @@ export class CatalogService {
       ...this.toCard(p, viewer, rate),
       description: fa?.description || en?.description ? this.text(fa?.description, en?.description) : null,
       technicalNotes: fa?.technicalNotes || en?.technicalNotes ? this.text(fa?.technicalNotes, en?.technicalNotes) : null,
-      fitments: this.fitments(p),
       packQuantity: p.packQuantity,
       countryOfManufacture: p.countryOfManufacture,
       warranty: fa?.warranty || en?.warranty ? this.text(fa?.warranty, en?.warranty) : null,

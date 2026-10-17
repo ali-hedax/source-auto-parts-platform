@@ -95,6 +95,7 @@
     "sku": "کد کالا",
     "manufacturer": "سازنده",
     "vehicleBrands": "برند خودرو",
+    "usedIn": "کاربرد",
     "country": "کشور سازنده",
     "warranty": "ضمانت",
     "noWarranty": "اطلاعات ضمانت ثبت نشده است",

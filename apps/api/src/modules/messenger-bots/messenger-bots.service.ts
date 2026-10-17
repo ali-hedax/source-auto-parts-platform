@@ -1,7 +1,7 @@
 import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { productListQuerySchema } from '@hedax/contracts';
-import { formatMoney, money } from '@hedax/domain';
+import { fitmentLabels, formatMoney, money } from '@hedax/domain';
 import { z } from 'zod';
 import { ENV, type Env } from '../../config/env.js';
 import { OutboxService } from '../../common/outbox.service.js';
@@ -107,7 +107,10 @@ export class MessengerBotsService {
             ? `${formatMoney(money(p.price.payable.currency, p.price.payable.amountMinor), 'fa')} / ${plain(p.unit?.name || 'عدد', 30)}`
             : 'استعلام قیمت';
           const stock = p.availability === 'IN_STOCK' ? 'موجود' : p.availability === 'LOW_STOCK' ? 'موجودی محدود' : 'ناموجود';
-          return `${i + 1}. ${plain(p.name.fa || p.name.en || p.sku, 120)}\nکد: ${plain(p.sku, 80)}\nوضعیت: ${stock}\nقیمت: ${price}\n${parts}/${encodeURIComponent(p.slug)}`;
+          // «کاربرد در خودرو» only when the part has fitments (no empty line).
+          const usedIn = plain(fitmentLabels(p.fitments ?? [], 'fa').join('، '), 300);
+          const fits = usedIn.trim() ? `\nکاربرد در خودرو: ${usedIn}` : '';
+          return `${i + 1}. ${plain(p.name.fa || p.name.en || p.sku, 120)}\nکد: ${plain(p.sku, 80)}${fits}\nوضعیت: ${stock}\nقیمت: ${price}\n${parts}/${encodeURIComponent(p.slug)}`;
         });
         const footer = `\n\nقیمت و موجودی نهایی در مرحلهٔ ثبت سفارش بررسی می‌شود.\nپیگیری سفارش: ${orders}`;
         // Keep whole product links, never cut a URL or a surrogate pair in half.

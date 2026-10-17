@@ -113,6 +113,7 @@ function card(p: FixtureProduct, display: 'IRR' | 'AED'): ProductCard {
     id: p.id, slug: p.slug, sku: p.sku, name: { fa: p.fa, en: p.en }, partType: p.partType, condition: p.condition, origin: p.origin,
     category: cat ? { slug: cat.slug, name: cat.name } : null,
     vehicleBrands: fixtureBrands.filter((b) => p.brands.includes(b.code)).map((b) => ({ slug: b.slug, name: b.name })),
+    fitments: fixtureFitmentViews(p.sku),
     manufacturer: p.maker ? { slug: p.maker.slug, name: { fa: p.maker.fa, en: p.maker.en } } : null,
     primaryImage: null,
     availability: available <= 0 ? 'OUT_OF_STOCK' : available <= 2 ? 'LOW_STOCK' : 'IN_STOCK',
@@ -125,7 +126,7 @@ function detail(p: FixtureProduct, display: 'IRR' | 'AED'): ProductDetail {
   return {
     ...card(p, display),
     description: p.descriptionFa ? { fa: p.descriptionFa, en: p.descriptionEn ?? null } : null,
-    technicalNotes: null, fitments: fixtureFitmentViews(p.sku), packQuantity: 1, countryOfManufacture: null, warranty: null, oemCodes: [], specs: [], images: [],
+    technicalNotes: null, packQuantity: 1, countryOfManufacture: null, warranty: null, oemCodes: [], specs: [], images: [],
     maxOrderQuantity: Math.max(0, Math.min(p.onHand - p.reserved, 999)), updatedAt: '2026-09-29T10:00:00.000Z',
   };
 }

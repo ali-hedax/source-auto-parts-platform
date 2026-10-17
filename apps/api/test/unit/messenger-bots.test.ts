@@ -86,6 +86,21 @@ describe('messenger catalog and order boundary', () => {
     expect(send.mock.calls[0]![0]).toContain(provider === 'telegram' ? 'api.telegram.org' : 'tapi.bale.ai');
   });
 
+  it('adds «کاربرد در خودرو» after the code only when the part has fitments', async () => {
+    const { service, catalog } = fixture();
+    const v = (fa: string) => ({ slug: fa, name: { fa, en: null } });
+    const base = { sku: '1800101506', slug: '1800101506', availability: 'IN_STOCK', unit: { name: 'عدد', nameEn: 'pc', allowDecimal: false, step: 1 }, price: { kind: 'price', payable: { currency: 'IRR', amountMinor: '1220000000' }, display: { currency: 'IRR', amountMinor: '1220000000' } } };
+    catalog.list.mockResolvedValue({ items: [
+      { ...base, name: { fa: 'ميل لنگ' }, fitments: [{ vehicle: v('دنا'), model: null }, { vehicle: v('سمند'), model: null }, { vehicle: v('پژو'), model: v('405') }] },
+      { ...base, sku: 'NOFIT', name: { fa: 'بی‌کاربرد' }, fitments: [] },
+    ] });
+    const send = transport(); await service.deliver(job('ميل لنگ', 'bale'));
+    const text: string = JSON.parse(send.mock.calls[0]![1].body).text;
+    expect(text).toContain('1. ميل لنگ\nکد: 1800101506\nکاربرد در خودرو: دنا، سمند، پژو 405\nوضعیت: موجود\nقیمت: ۱٬۲۲۰٬۰۰۰٬۰۰۰ ریال / عدد\n');
+    expect(text).toContain('2. بی‌کاربرد\nکد: NOFIT\nوضعیت: موجود');
+    expect(text.match(/کاربرد در خودرو/g)).toHaveLength(1);
+  });
+
   it.each(['/orders', '/track 123456', '/order@SourceByHedaxBot', 'پیگیری سفارش ۱۲۳'])('keeps order information behind website login: %s', async (command) => {
     const { service, catalog } = fixture(); const send = transport();
     await service.deliver(job(command));

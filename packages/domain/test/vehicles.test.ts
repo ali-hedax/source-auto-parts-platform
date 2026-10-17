@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { editDistance, isSimilarVehicleName, matchFitment, splitVehicleList, vehicleKey, vehicleSlug } from '../src/index.js';
+import { editDistance, fitmentLabels, isSimilarVehicleName, matchFitment, splitVehicleList, vehicleKey, vehicleSlug } from '../src/index.js';
 
 const vehicles = [
   { id: 'peugeot', name: 'پژو', models: [{ id: 'p206', name: '۲۰۶' }, { id: 'p405', name: '405' }] },
@@ -48,5 +48,23 @@ describe('vehicle names', () => {
   it('makes slugs from English names', () => {
     expect(vehicleSlug('Dena Plus', 'x')).toBe('dena-plus');
     expect(vehicleSlug(null, 'vehicle-1')).toBe('vehicle-1');
+  });
+});
+
+describe('fitmentLabels («کاربرد»)', () => {
+  const v = (fa: string, en: string | null = null) => ({ name: { fa, en } });
+  it('lists vehicles and "vehicle model" in order, without repeats', () => {
+    const list = [
+      { vehicle: v('دنا', 'Dena'), model: null },
+      { vehicle: v('سمند', 'Samand'), model: null },
+      { vehicle: v('پژو', 'Peugeot'), model: v('405', '405') },
+      { vehicle: v('دنا', 'Dena'), model: null },
+    ];
+    expect(fitmentLabels(list, 'fa')).toEqual(['دنا', 'سمند', 'پژو 405']);
+    expect(fitmentLabels(list, 'en')).toEqual(['Dena', 'Samand', 'Peugeot 405']);
+  });
+  it('falls back to Persian names and is empty without fitments', () => {
+    expect(fitmentLabels([{ vehicle: v('تیبا'), model: null }], 'en')).toEqual(['تیبا']);
+    expect(fitmentLabels([], 'fa')).toEqual([]);
   });
 });
