@@ -95,6 +95,7 @@
     "sku": "SKU",
     "manufacturer": "Manufacturer",
     "vehicleBrands": "Vehicle brand",
+    "usedIn": "Fits",
     "country": "Country of manufacture",
     "warranty": "Warranty",
     "noWarranty": "No warranty information recorded",
