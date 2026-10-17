@@ -15,6 +15,7 @@ import {
 } from './data';
 import siteContentJson from './site-content.json';
 import { FIXTURE_IMPORT_ID, fixtureImportJob, fixtureImportList } from './imports';
+import { fixtureCatalogAdminDetail, fixtureCatalogAdminList, fixtureCatalogDetail, fixtureCatalogList, fixtureCatalogSitemap } from './catalog-entries';
 import { fixtureAdminFitment, fixtureAdminVehicles, fixtureFitmentViews, fixtureFits, fixturePublicVehicles, fixtureVehicleOptions } from './vehicles';
 
 export interface FixtureResponse {
@@ -234,6 +235,12 @@ export async function handleFixture(method: string, pathWithQuery: string, rawBo
     const v = fixturePublicVehicles().find((x) => x.slug === decodeURIComponent(m![1] ?? ''));
     return v ? ok(v) : err(404, 'NOT_FOUND');
   }
+  if (route === 'GET /catalog/entries') return ok(fixtureCatalogList(params));
+  if (route === 'GET /catalog/entries/sitemap') return ok(fixtureCatalogSitemap());
+  if ((m = /^GET \/catalog\/entries\/([^/]+)$/.exec(route))) {
+    const e = fixtureCatalogDetail(decodeURIComponent(m[1] ?? ''));
+    return e ? ok(e) : err(404, 'NOT_FOUND');
+  }
   if (route === 'GET /catalog/sitemap') return ok(fixtureProducts.map((p) => ({ slug: p.slug, updatedAt: '2026-09-29T10:00:00.000Z' })));
   if (route === 'GET /exchange-rates/current') return ok({ irrPerAed: FIXTURE_RATE.irrPerAed, effectiveFrom: FIXTURE_RATE.effectiveFrom });
   if (route === 'GET /site/contact') return ok({ phone: null, email: null, address: { fa: null, en: null }, workingHours: { fa: null, en: null } });
@@ -391,6 +398,11 @@ export async function handleFixture(method: string, pathWithQuery: string, rawBo
     if (path === '/payments/admin/cases') return ok([]);
     if (path === '/admin/refunds' || path === '/admin/returns' || path === '/admin/audit') return ok([]);
     if (path === '/admin/customers') return ok([{ id: 'fixture-customer', fullName: 'مشتری نمونه', mobile: '+98912***0000', status: 'ACTIVE', customerType: 'CONSUMER', groupStatus: 'PENDING', requestedType: 'WORKSHOP', businessName: 'تعمیرگاه نمونه', group: null, orders: 2, requests: 1, createdAt: fixtureOrders[0]!.createdAt }]);
+    if (path === '/admin/catalog-entries') return ok(fixtureCatalogAdminList(params));
+    if ((m = /^\/admin\/catalog-entries\/([0-9a-f-]{36})$/.exec(path))) {
+      const e = fixtureCatalogAdminDetail(m[1] ?? '');
+      return e ? ok(e) : err(404, 'NOT_FOUND');
+    }
     if (path === '/admin/staff') return ok(fixtureStaff());
     if (path === '/admin/staff/trash') return ok(fixtureStaffTrash());
     if (path === '/admin/staff/options') return ok(fixtureStaff().staff.filter((s) => s.status === 'ACTIVE').map((s) => ({ id: s.id, fullName: s.fullName, email: s.email })));

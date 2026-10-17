@@ -275,6 +275,18 @@ enum AttachmentStatus {
   DELETED
 }
 
+/// Technical catalog entries (panel → knowledge center → catalog parts): only PUBLISHED ones are public.
+enum CatalogEntryStatus {
+  DRAFT
+  PUBLISHED
+}
+
+/// Other numbers of a catalog entry: same part from other makers, or the number that replaces it.
+enum CatalogNumberKind {
+  EQUIVALENT
+  REPLACEMENT
+}
+
 enum CatalogDocumentStatus {
   UPLOADED
   PENDING_PROCESSING
@@ -397,79 +409,79 @@ enum EventSubject {
 // ---------------------------------------------------------------------------
 
 model User {
-  id              String     @id @default(uuid(7)) @db.Uuid
-  kind            UserKind
-  status          UserStatus @default(ACTIVE)
-  mobileE164      String?    @unique @map("mobile_e164") @db.VarChar(16)
-  mobileVerifiedAt DateTime? @map("mobile_verified_at") @db.Timestamptz(3)
-  email           String?    @unique @db.VarChar(200)
-  passwordHash    String?    @map("password_hash")
-  fullName        String?    @map("full_name") @db.VarChar(120)
-  preferredLocale UiLocale   @default(fa) @map("preferred_locale")
+  id               String     @id @default(uuid(7)) @db.Uuid
+  kind             UserKind
+  status           UserStatus @default(ACTIVE)
+  mobileE164       String?    @unique @map("mobile_e164") @db.VarChar(16)
+  mobileVerifiedAt DateTime?  @map("mobile_verified_at") @db.Timestamptz(3)
+  email            String?    @unique @db.VarChar(200)
+  passwordHash     String?    @map("password_hash")
+  fullName         String?    @map("full_name") @db.VarChar(120)
+  preferredLocale  UiLocale   @default(fa) @map("preferred_locale")
   /// TOTP secret encrypted with the app key (AES-256-GCM); never returned by the API.
-  mfaSecretEnc    String?    @map("mfa_secret_enc")
-  mfaEnabledAt    DateTime?  @map("mfa_enabled_at") @db.Timestamptz(3)
+  mfaSecretEnc     String?    @map("mfa_secret_enc")
+  mfaEnabledAt     DateTime?  @map("mfa_enabled_at") @db.Timestamptz(3)
   /// Last accepted TOTP time step; codes at or before it are rejected (replay protection).
-  mfaLastTimeStep Int?       @map("mfa_last_time_step")
+  mfaLastTimeStep  Int?       @map("mfa_last_time_step")
   /// Incremented on role change/suspension to invalidate live sessions and sockets.
-  authVersion     Int        @default(0) @map("auth_version")
-  lastLoginAt     DateTime?  @map("last_login_at") @db.Timestamptz(3)
+  authVersion      Int        @default(0) @map("auth_version")
+  lastLoginAt      DateTime?  @map("last_login_at") @db.Timestamptz(3)
   /// Staff contact number for colleagues (panel → staff). Not used to sign in; not unique.
-  contactPhone    String?    @map("contact_phone") @db.VarChar(20)
-  createdAt       DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt       DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
+  contactPhone     String?    @map("contact_phone") @db.VarChar(20)
+  createdAt        DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  customerProfile     CustomerProfile?
-  addresses           Address[]
-  sessions            Session[]
-  roles               UserRole[]         @relation("UserRoles")
-  rolesGranted        UserRole[]         @relation("RoleGrantedBy")
-  recoveryCodes       MfaRecoveryCode[]
-  mfaChallenges       MfaChallenge[]
-  invitationsSent     StaffInvitation[]
-  carts               Cart[]
-  orders              Order[]
-  sourcingRequests    SourcingRequest[]  @relation("RequestCustomer")
-  assignedRequests    SourcingRequest[]  @relation("RequestAssignee")
-  quotesAsCustomer    Quote[]
-  quoteVersionsCreated QuoteVersion[]    @relation("QuoteVersionCreator")
-  procurements        Procurement[]      @relation("ProcurementCustomer")
-  assignedProcurements Procurement[]     @relation("ProcurementAssignee")
-  paymentAttempts     PaymentAttempt[]
-  conversationsAsCustomer Conversation[] @relation("ConversationCustomer")
-  conversationsAssigned   Conversation[] @relation("ConversationAssignee")
-  participations      Participant[]
-  messages            Message[]
-  readCursors         MessageReadCursor[]
-  internalNotes       InternalNote[]
-  attachments         Attachment[]
-  importJobs          ImportJob[]
-  notifications       Notification[]
-  auditLogs           AuditLog[]
-  policyAcceptances   PolicyAcceptance[]
-  returnRequests      ReturnRequest[]    @relation("ReturnCustomer")
-  exchangeRates       ExchangeRate[]
-  catalogDocuments    CatalogDocument[] @relation("CatalogDocumentUploader")
+  customerProfile         CustomerProfile?
+  addresses               Address[]
+  sessions                Session[]
+  roles                   UserRole[]          @relation("UserRoles")
+  rolesGranted            UserRole[]          @relation("RoleGrantedBy")
+  recoveryCodes           MfaRecoveryCode[]
+  mfaChallenges           MfaChallenge[]
+  invitationsSent         StaffInvitation[]
+  carts                   Cart[]
+  orders                  Order[]
+  sourcingRequests        SourcingRequest[]   @relation("RequestCustomer")
+  assignedRequests        SourcingRequest[]   @relation("RequestAssignee")
+  quotesAsCustomer        Quote[]
+  quoteVersionsCreated    QuoteVersion[]      @relation("QuoteVersionCreator")
+  procurements            Procurement[]       @relation("ProcurementCustomer")
+  assignedProcurements    Procurement[]       @relation("ProcurementAssignee")
+  paymentAttempts         PaymentAttempt[]
+  conversationsAsCustomer Conversation[]      @relation("ConversationCustomer")
+  conversationsAssigned   Conversation[]      @relation("ConversationAssignee")
+  participations          Participant[]
+  messages                Message[]
+  readCursors             MessageReadCursor[]
+  internalNotes           InternalNote[]
+  attachments             Attachment[]
+  importJobs              ImportJob[]
+  notifications           Notification[]
+  auditLogs               AuditLog[]
+  policyAcceptances       PolicyAcceptance[]
+  returnRequests          ReturnRequest[]     @relation("ReturnCustomer")
+  exchangeRates           ExchangeRate[]
+  catalogDocuments        CatalogDocument[]   @relation("CatalogDocumentUploader")
 
   @@index([kind, status])
   @@map("user")
 }
 
 model CustomerProfile {
-  userId           String              @id @map("user_id") @db.Uuid
-  customerType     CustomerType        @default(CONSUMER) @map("customer_type")
-  customerGroupId  String?             @map("customer_group_id") @db.Uuid
-  groupStatus      GroupApprovalStatus @default(NONE) @map("group_status")
-  requestedType    CustomerType?       @map("requested_type")
-  businessName     String?             @map("business_name") @db.VarChar(200)
-  businessCity     String?             @map("business_city") @db.VarChar(60)
-  businessNote     String?             @map("business_note") @db.VarChar(1000)
-  companyRole      String?             @map("company_role") @db.VarChar(100)
-  groupDecidedById String?             @map("group_decided_by_id") @db.Uuid
-  groupDecidedAt   DateTime?           @map("group_decided_at") @db.Timestamptz(3)
-  groupDecisionNote String?            @map("group_decision_note") @db.VarChar(500)
-  createdAt        DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt        DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+  userId            String              @id @map("user_id") @db.Uuid
+  customerType      CustomerType        @default(CONSUMER) @map("customer_type")
+  customerGroupId   String?             @map("customer_group_id") @db.Uuid
+  groupStatus       GroupApprovalStatus @default(NONE) @map("group_status")
+  requestedType     CustomerType?       @map("requested_type")
+  businessName      String?             @map("business_name") @db.VarChar(200)
+  businessCity      String?             @map("business_city") @db.VarChar(60)
+  businessNote      String?             @map("business_note") @db.VarChar(1000)
+  companyRole       String?             @map("company_role") @db.VarChar(100)
+  groupDecidedById  String?             @map("group_decided_by_id") @db.Uuid
+  groupDecidedAt    DateTime?           @map("group_decided_at") @db.Timestamptz(3)
+  groupDecisionNote String?             @map("group_decision_note") @db.VarChar(500)
+  createdAt         DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   user          User           @relation(fields: [userId], references: [id], onDelete: Restrict)
   customerGroup CustomerGroup? @relation(fields: [customerGroupId], references: [id], onDelete: Restrict)
@@ -523,14 +535,14 @@ model Session {
 }
 
 model OtpChallenge {
-  id          String    @id @default(uuid(7)) @db.Uuid
-  mobileE164  String    @map("mobile_e164") @db.VarChar(16)
-  codeHash    String    @map("code_hash") @db.Char(64)
-  expiresAt   DateTime  @map("expires_at") @db.Timestamptz(3)
-  attempts    Int       @default(0)
-  consumedAt  DateTime? @map("consumed_at") @db.Timestamptz(3)
-  ipHash      String?   @map("ip_hash") @db.Char(64)
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  id         String    @id @default(uuid(7)) @db.Uuid
+  mobileE164 String    @map("mobile_e164") @db.VarChar(16)
+  codeHash   String    @map("code_hash") @db.Char(64)
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz(3)
+  attempts   Int       @default(0)
+  consumedAt DateTime? @map("consumed_at") @db.Timestamptz(3)
+  ipHash     String?   @map("ip_hash") @db.Char(64)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
 
   @@index([mobileE164, createdAt])
   @@index([ipHash, createdAt])
@@ -538,15 +550,15 @@ model OtpChallenge {
 }
 
 model MfaChallenge {
-  id         String    @id @default(uuid(7)) @db.Uuid
-  tokenHash  String    @unique @map("token_hash") @db.Char(64)
-  userId     String    @map("user_id") @db.Uuid
-  purpose    String    @db.VarChar(30) // LOGIN | ENROLL
-  pendingSecretEnc String? @map("pending_secret_enc")
-  attempts   Int       @default(0)
-  expiresAt  DateTime  @map("expires_at") @db.Timestamptz(3)
-  consumedAt DateTime? @map("consumed_at") @db.Timestamptz(3)
-  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  id               String    @id @default(uuid(7)) @db.Uuid
+  tokenHash        String    @unique @map("token_hash") @db.Char(64)
+  userId           String    @map("user_id") @db.Uuid
+  purpose          String    @db.VarChar(30) // LOGIN | ENROLL
+  pendingSecretEnc String?   @map("pending_secret_enc")
+  attempts         Int       @default(0)
+  expiresAt        DateTime  @map("expires_at") @db.Timestamptz(3)
+  consumedAt       DateTime? @map("consumed_at") @db.Timestamptz(3)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
 
   user User @relation(fields: [userId], references: [id], onDelete: Restrict)
 
@@ -567,20 +579,20 @@ model MfaRecoveryCode {
 }
 
 model StaffInvitation {
-  id          String    @id @default(uuid(7)) @db.Uuid
-  email       String    @db.VarChar(200)
-  fullName    String    @map("full_name") @db.VarChar(120)
-  tokenHash   String    @unique @map("token_hash") @db.Char(64)
-  roleIds     String[]  @map("role_ids") @db.Uuid
+  id           String    @id @default(uuid(7)) @db.Uuid
+  email        String    @db.VarChar(200)
+  fullName     String    @map("full_name") @db.VarChar(120)
+  tokenHash    String    @unique @map("token_hash") @db.Char(64)
+  roleIds      String[]  @map("role_ids") @db.Uuid
   /// Contact number entered with the invitation; copied to the account when it is accepted.
-  contactPhone String?  @map("contact_phone") @db.VarChar(20)
-  invitedById String    @map("invited_by_id") @db.Uuid
-  expiresAt   DateTime  @map("expires_at") @db.Timestamptz(3)
-  acceptedAt  DateTime? @map("accepted_at") @db.Timestamptz(3)
-  revokedAt   DateTime? @map("revoked_at") @db.Timestamptz(3)
+  contactPhone String?   @map("contact_phone") @db.VarChar(20)
+  invitedById  String    @map("invited_by_id") @db.Uuid
+  expiresAt    DateTime  @map("expires_at") @db.Timestamptz(3)
+  acceptedAt   DateTime? @map("accepted_at") @db.Timestamptz(3)
+  revokedAt    DateTime? @map("revoked_at") @db.Timestamptz(3)
   /// In the trash (panel → staff → trash): hidden, link refused; the other fields stay for a restore.
-  trashedAt   DateTime? @map("trashed_at") @db.Timestamptz(3)
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  trashedAt    DateTime? @map("trashed_at") @db.Timestamptz(3)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
 
   invitedBy User           @relation(fields: [invitedById], references: [id], onDelete: Restrict)
   emails    EmailMessage[]
@@ -697,6 +709,7 @@ model VehicleBrand {
   updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   products             ProductVehicleBrand[]
+  catalogEntries       CatalogEntryVehicleBrand[]
   sourcingRequestItems SourcingRequestItem[]
 
   @@map("vehicle_brand")
@@ -714,7 +727,8 @@ model ManufacturerBrand {
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  products Product[]
+  products       Product[]
+  catalogEntries CatalogEntry[]
 
   @@map("manufacturer_brand")
 }
@@ -731,9 +745,10 @@ model Category {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Restrict)
-  children Category[] @relation("CategoryTree")
-  products Product[]
+  parent         Category?      @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children       Category[]     @relation("CategoryTree")
+  products       Product[]
+  catalogEntries CatalogEntry[]
 
   @@index([parentId])
   @@map("category")
@@ -771,15 +786,17 @@ model Product {
   createdAt            DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt            DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  category          Category              @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  manufacturerBrand ManufacturerBrand?    @relation(fields: [manufacturerBrandId], references: [id], onDelete: Restrict)
-  salesUnit         Unit                  @relation(fields: [unitId], references: [id], onDelete: Restrict)
+  category          Category               @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  manufacturerBrand ManufacturerBrand?     @relation(fields: [manufacturerBrandId], references: [id], onDelete: Restrict)
+  salesUnit         Unit                   @relation(fields: [unitId], references: [id], onDelete: Restrict)
   translations      ProductTranslation[]
   vehicleBrands     ProductVehicleBrand[]
   media             ProductMedia[]
   fitments          ProductFitment[]
   /// «کاربرد در خودرو»: whole vehicles or specific models (panel → vehicles).
   vehicles          ProductVehicle[]
+  /// Technical catalog entries linked to this product by hand (never automatically).
+  catalogEntries    CatalogEntry[]
   basePrice         ProductPrice?
   priceRules        QuantityPriceRule[]
   inventory         InventoryBalance[]
@@ -800,16 +817,16 @@ model Product {
 /// Sales unit (panel → units): name, decimals allowed or not, the smallest step. A unit in use
 /// cannot be deleted (only deactivated) and its step and decimal rule no longer change.
 model Unit {
-  id           String    @id @default(uuid(7)) @db.Uuid
-  name         String    @unique @db.VarChar(30)
-  nameEn       String?   @map("name_en") @db.VarChar(30)
-  allowDecimal Boolean   @default(false) @map("allow_decimal")
+  id           String   @id @default(uuid(7)) @db.Uuid
+  name         String   @unique @db.VarChar(30)
+  nameEn       String?  @map("name_en") @db.VarChar(30)
+  allowDecimal Boolean  @default(false) @map("allow_decimal")
   /// The smallest amount that can be sold, in thousandths: 1000 = 1, 500 = 0.5.
-  stepMilli    Int       @default(1000) @map("step_milli")
-  active       Boolean   @default(true)
-  sortOrder    Int       @default(0) @map("sort_order")
-  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  stepMilli    Int      @default(1000) @map("step_milli")
+  active       Boolean  @default(true)
+  sortOrder    Int      @default(0) @map("sort_order")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   products Product[]
 
@@ -869,14 +886,14 @@ model ProductMedia {
 /// Manual, optional compatibility notes (v1). Not a catalog engine; see docs/FUTURE_CATALOG.md.
 /// Vehicle category (سواری، وانت، برقی …), defined by the owner. Deleting one leaves its vehicles uncategorized.
 model VehicleCategory {
-  id        String    @id @default(uuid(7)) @db.Uuid
-  name      String    @db.VarChar(80)
-  nameEn    String?   @map("name_en") @db.VarChar(80)
-  slug      String    @unique @db.VarChar(80)
-  sortOrder Int       @default(0) @map("sort_order")
-  active    Boolean   @default(true)
-  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id        String   @id @default(uuid(7)) @db.Uuid
+  name      String   @db.VarChar(80)
+  nameEn    String?  @map("name_en") @db.VarChar(80)
+  slug      String   @unique @db.VarChar(80)
+  sortOrder Int      @default(0) @map("sort_order")
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   vehicles Vehicle[]
 
@@ -886,22 +903,23 @@ model VehicleCategory {
 /// A vehicle for fitment (پژو، دنا پلاس …), with its own page /cars/[slug]. `nameKey` is the
 /// normalized name (no spaces/half-spaces/dashes, Persian letters, Latin digits): one vehicle per key.
 model Vehicle {
-  id             String           @id @default(uuid(7)) @db.Uuid
-  categoryId     String?          @map("category_id") @db.Uuid
-  name           String           @db.VarChar(80)
-  nameEn         String?          @map("name_en") @db.VarChar(80)
-  nameKey        String           @unique @map("name_key") @db.VarChar(80)
-  slug           String           @unique @db.VarChar(80)
-  sortOrder      Int              @default(0) @map("sort_order")
-  active         Boolean          @default(true)
-  seoTitle       String?          @map("seo_title") @db.VarChar(120)
-  seoDescription String?          @map("seo_description") @db.VarChar(300)
-  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt      DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id             String   @id @default(uuid(7)) @db.Uuid
+  categoryId     String?  @map("category_id") @db.Uuid
+  name           String   @db.VarChar(80)
+  nameEn         String?  @map("name_en") @db.VarChar(80)
+  nameKey        String   @unique @map("name_key") @db.VarChar(80)
+  slug           String   @unique @db.VarChar(80)
+  sortOrder      Int      @default(0) @map("sort_order")
+  active         Boolean  @default(true)
+  seoTitle       String?  @map("seo_title") @db.VarChar(120)
+  seoDescription String?  @map("seo_description") @db.VarChar(300)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  category VehicleCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  models   VehicleModel[]
-  products ProductVehicle[]
+  category       VehicleCategory?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  models         VehicleModel[]
+  products       ProductVehicle[]
+  catalogEntries CatalogEntryVehicle[]
 
   @@index([categoryId])
   @@map("vehicle")
@@ -909,19 +927,20 @@ model Vehicle {
 
 /// A model / trim of a vehicle (پژو ← ۲۰۶، ۴۰۵، پارس).
 model VehicleModel {
-  id        String           @id @default(uuid(7)) @db.Uuid
-  vehicleId String           @map("vehicle_id") @db.Uuid
-  name      String           @db.VarChar(80)
-  nameEn    String?          @map("name_en") @db.VarChar(80)
-  nameKey   String           @map("name_key") @db.VarChar(80)
-  slug      String           @db.VarChar(80)
-  sortOrder Int              @default(0) @map("sort_order")
-  active    Boolean          @default(true)
-  createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id        String   @id @default(uuid(7)) @db.Uuid
+  vehicleId String   @map("vehicle_id") @db.Uuid
+  name      String   @db.VarChar(80)
+  nameEn    String?  @map("name_en") @db.VarChar(80)
+  nameKey   String   @map("name_key") @db.VarChar(80)
+  slug      String   @db.VarChar(80)
+  sortOrder Int      @default(0) @map("sort_order")
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  vehicle  Vehicle          @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
-  products ProductVehicle[]
+  vehicle        Vehicle               @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  products       ProductVehicle[]
+  catalogEntries CatalogEntryVehicle[]
 
   @@unique([vehicleId, nameKey])
   @@unique([vehicleId, slug])
@@ -931,10 +950,10 @@ model VehicleModel {
 /// A product fits a whole vehicle (modelId null) or one of its models. Partial unique indexes in
 /// the migration allow one row per product + whole vehicle and one per product + model.
 model ProductVehicle {
-  id        String        @id @default(uuid(7)) @db.Uuid
-  productId String        @map("product_id") @db.Uuid
-  vehicleId String        @map("vehicle_id") @db.Uuid
-  modelId   String?       @map("model_id") @db.Uuid
+  id        String  @id @default(uuid(7)) @db.Uuid
+  productId String  @map("product_id") @db.Uuid
+  vehicleId String  @map("vehicle_id") @db.Uuid
+  modelId   String? @map("model_id") @db.Uuid
 
   product Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
   vehicle Vehicle       @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
@@ -1129,12 +1148,12 @@ model InventoryMovement {
 // ---------------------------------------------------------------------------
 
 model Cart {
-  id             String    @id @default(uuid(7)) @db.Uuid
-  userId         String?   @unique @map("user_id") @db.Uuid
-  guestTokenHash String?   @unique @map("guest_token_hash") @db.Char(64)
-  expiresAt      DateTime  @map("expires_at") @db.Timestamptz(3)
-  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id             String   @id @default(uuid(7)) @db.Uuid
+  userId         String?  @unique @map("user_id") @db.Uuid
+  guestTokenHash String?  @unique @map("guest_token_hash") @db.Char(64)
+  expiresAt      DateTime @map("expires_at") @db.Timestamptz(3)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   user  User?      @relation(fields: [userId], references: [id], onDelete: Restrict)
   items CartItem[]
@@ -1193,34 +1212,34 @@ model ShippingZone {
 }
 
 model Order {
-  id                  String               @id @default(uuid(7)) @db.Uuid
-  reference           String               @unique @db.VarChar(20)
-  userId              String               @map("user_id") @db.Uuid
-  status              StockOrderStatus     @default(AWAITING_PAYMENT)
-  paymentStatus       PaymentSummaryStatus @default(UNPAID) @map("payment_status")
-  currency            CurrencyCode         @default(IRR)
-  itemsTotalMinor     BigInt               @map("items_total_minor")
-  discountMinor       BigInt               @default(0) @map("discount_minor")
-  shippingMinor       BigInt               @map("shipping_minor")
-  taxMinor            BigInt               @default(0) @map("tax_minor")
-  grandTotalMinor     BigInt               @map("grand_total_minor")
-  fxRateId            String?              @map("fx_rate_id") @db.Uuid
-  irrPerAed           Decimal?             @map("irr_per_aed") @db.Decimal(24, 6)
-  roundingRule        String               @map("rounding_rule") @db.VarChar(30)
-  taxRuleSnapshot     Json?                @map("tax_rule_snapshot")
-  pricingRulesVersion String               @map("pricing_rules_version") @db.VarChar(30)
-  addressSnapshot     Json                 @map("address_snapshot")
-  shippingMethodId    String               @map("shipping_method_id") @db.Uuid
-  shippingSnapshot    Json                 @map("shipping_snapshot")
-  policyVersionId     String               @map("policy_version_id") @db.Uuid
-  customerNote        String?              @map("customer_note") @db.VarChar(1000)
-  idempotencyKey      String               @map("idempotency_key") @db.VarChar(128)
-  reservationExpiresAt DateTime?           @map("reservation_expires_at") @db.Timestamptz(3)
-  version             Int                  @default(0)
-  confirmedAt         DateTime?            @map("confirmed_at") @db.Timestamptz(3)
-  cancelledAt         DateTime?            @map("cancelled_at") @db.Timestamptz(3)
-  createdAt           DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt           DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id                   String               @id @default(uuid(7)) @db.Uuid
+  reference            String               @unique @db.VarChar(20)
+  userId               String               @map("user_id") @db.Uuid
+  status               StockOrderStatus     @default(AWAITING_PAYMENT)
+  paymentStatus        PaymentSummaryStatus @default(UNPAID) @map("payment_status")
+  currency             CurrencyCode         @default(IRR)
+  itemsTotalMinor      BigInt               @map("items_total_minor")
+  discountMinor        BigInt               @default(0) @map("discount_minor")
+  shippingMinor        BigInt               @map("shipping_minor")
+  taxMinor             BigInt               @default(0) @map("tax_minor")
+  grandTotalMinor      BigInt               @map("grand_total_minor")
+  fxRateId             String?              @map("fx_rate_id") @db.Uuid
+  irrPerAed            Decimal?             @map("irr_per_aed") @db.Decimal(24, 6)
+  roundingRule         String               @map("rounding_rule") @db.VarChar(30)
+  taxRuleSnapshot      Json?                @map("tax_rule_snapshot")
+  pricingRulesVersion  String               @map("pricing_rules_version") @db.VarChar(30)
+  addressSnapshot      Json                 @map("address_snapshot")
+  shippingMethodId     String               @map("shipping_method_id") @db.Uuid
+  shippingSnapshot     Json                 @map("shipping_snapshot")
+  policyVersionId      String               @map("policy_version_id") @db.Uuid
+  customerNote         String?              @map("customer_note") @db.VarChar(1000)
+  idempotencyKey       String               @map("idempotency_key") @db.VarChar(128)
+  reservationExpiresAt DateTime?            @map("reservation_expires_at") @db.Timestamptz(3)
+  version              Int                  @default(0)
+  confirmedAt          DateTime?            @map("confirmed_at") @db.Timestamptz(3)
+  cancelledAt          DateTime?            @map("cancelled_at") @db.Timestamptz(3)
+  createdAt            DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   user           User                   @relation(fields: [userId], references: [id], onDelete: Restrict)
   shippingMethod ShippingMethod         @relation(fields: [shippingMethodId], references: [id], onDelete: Restrict)
@@ -1269,19 +1288,19 @@ model OrderItem {
 
 /// Append-only state history for every business subject (actor, time, from/to, reason).
 model OrderEvent {
-  id          String       @id @default(uuid(7)) @db.Uuid
-  subjectType EventSubject @map("subject_type")
-  subjectId   String       @map("subject_id") @db.Uuid
-  type        String       @db.VarChar(60)
-  fromState   String?      @map("from_state") @db.VarChar(40)
-  toState     String?      @map("to_state") @db.VarChar(40)
-  reason      String?      @db.VarChar(1000)
-  actorKind   ActorKind    @map("actor_kind")
-  actorId     String?      @map("actor_id") @db.Uuid
+  id              String       @id @default(uuid(7)) @db.Uuid
+  subjectType     EventSubject @map("subject_type")
+  subjectId       String       @map("subject_id") @db.Uuid
+  type            String       @db.VarChar(60)
+  fromState       String?      @map("from_state") @db.VarChar(40)
+  toState         String?      @map("to_state") @db.VarChar(40)
+  reason          String?      @db.VarChar(1000)
+  actorKind       ActorKind    @map("actor_kind")
+  actorId         String?      @map("actor_id") @db.Uuid
   /// Visible to the customer timeline? Internal-only events are false.
-  customerVisible Boolean  @default(true) @map("customer_visible")
-  data        Json         @default("{}")
-  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  customerVisible Boolean      @default(true) @map("customer_visible")
+  data            Json         @default("{}")
+  createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
 
   @@index([subjectType, subjectId, createdAt])
   @@map("order_event")
@@ -1430,13 +1449,13 @@ model QuoteVersion {
   createdAt              DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt              DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  quote         Quote          @relation("QuoteVersions", fields: [quoteId], references: [id], onDelete: Restrict)
-  currentOf     Quote?         @relation("CurrentQuoteVersion")
-  createdBy     User           @relation("QuoteVersionCreator", fields: [createdById], references: [id], onDelete: Restrict)
-  termsPolicy   PolicyVersion  @relation(fields: [termsPolicyVersionId], references: [id], onDelete: Restrict)
-  items         QuoteItem[]
-  costs         QuoteCost[]
-  procurement   Procurement?
+  quote       Quote         @relation("QuoteVersions", fields: [quoteId], references: [id], onDelete: Restrict)
+  currentOf   Quote?        @relation("CurrentQuoteVersion")
+  createdBy   User          @relation("QuoteVersionCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  termsPolicy PolicyVersion @relation(fields: [termsPolicyVersionId], references: [id], onDelete: Restrict)
+  items       QuoteItem[]
+  costs       QuoteCost[]
+  procurement Procurement?
 
   @@unique([quoteId, versionNumber])
   @@index([status, validUntil])
@@ -1468,8 +1487,8 @@ model QuoteItem {
   leadDayKind       DayKind               @map("lead_day_kind")
   sortOrder         Int                   @default(0) @map("sort_order")
 
-  quoteVersion    QuoteVersion            @relation(fields: [quoteVersionId], references: [id], onDelete: Restrict)
-  sourcingItem    SourcingRequestItem?    @relation(fields: [sourcingItemId], references: [id], onDelete: Restrict)
+  quoteVersion    QuoteVersion           @relation(fields: [quoteVersionId], references: [id], onDelete: Restrict)
+  sourcingItem    SourcingRequestItem?   @relation(fields: [sourcingItemId], references: [id], onDelete: Restrict)
   internalCost    QuoteItemInternalCost?
   procurementItem ProcurementItem?
 
@@ -1522,30 +1541,30 @@ model Supplier {
 }
 
 model Procurement {
-  id                    String            @id @default(uuid(7)) @db.Uuid
-  reference             String            @unique @db.VarChar(20)
+  id                      String               @id @default(uuid(7)) @db.Uuid
+  reference               String               @unique @db.VarChar(20)
   /// One accepted quote version → at most one procurement order (idempotent acceptance).
-  quoteVersionId        String            @unique @map("quote_version_id") @db.Uuid
-  customerId            String            @map("customer_id") @db.Uuid
-  status                ProcurementStatus @default(AWAITING_PAYMENT)
-  paymentStatus         PaymentSummaryStatus @default(UNPAID) @map("payment_status")
-  totalPayableIrrMinor  BigInt            @map("total_payable_irr_minor")
-  paidAt                DateTime?         @map("paid_at") @db.Timestamptz(3)
+  quoteVersionId          String               @unique @map("quote_version_id") @db.Uuid
+  customerId              String               @map("customer_id") @db.Uuid
+  status                  ProcurementStatus    @default(AWAITING_PAYMENT)
+  paymentStatus           PaymentSummaryStatus @default(UNPAID) @map("payment_status")
+  totalPayableIrrMinor    BigInt               @map("total_payable_irr_minor")
+  paidAt                  DateTime?            @map("paid_at") @db.Timestamptz(3)
   /// Original promise, set once at payment verification; never overwritten.
-  promisedReadyAt       DateTime?         @map("promised_ready_at") @db.Timestamptz(3)
-  currentReadyEstimate  DateTime?         @map("current_ready_estimate") @db.Timestamptz(3)
-  promisedDeliveryAt    DateTime?         @map("promised_delivery_at") @db.Timestamptz(3)
-  currentDeliveryEstimate DateTime?       @map("current_delivery_estimate") @db.Timestamptz(3)
-  addressSnapshot       Json?             @map("address_snapshot")
-  operationalOrigin     String?           @map("operational_origin") @db.VarChar(80)
-  assigneeId            String?           @map("assignee_id") @db.Uuid
-  version               Int               @default(0)
-  createdAt             DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt             DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+  promisedReadyAt         DateTime?            @map("promised_ready_at") @db.Timestamptz(3)
+  currentReadyEstimate    DateTime?            @map("current_ready_estimate") @db.Timestamptz(3)
+  promisedDeliveryAt      DateTime?            @map("promised_delivery_at") @db.Timestamptz(3)
+  currentDeliveryEstimate DateTime?            @map("current_delivery_estimate") @db.Timestamptz(3)
+  addressSnapshot         Json?                @map("address_snapshot")
+  operationalOrigin       String?              @map("operational_origin") @db.VarChar(80)
+  assigneeId              String?              @map("assignee_id") @db.Uuid
+  version                 Int                  @default(0)
+  createdAt               DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt               DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  quoteVersion   QuoteVersion              @relation(fields: [quoteVersionId], references: [id], onDelete: Restrict)
-  customer       User                      @relation("ProcurementCustomer", fields: [customerId], references: [id], onDelete: Restrict)
-  assignee       User?                     @relation("ProcurementAssignee", fields: [assigneeId], references: [id], onDelete: Restrict)
+  quoteVersion   QuoteVersion            @relation(fields: [quoteVersionId], references: [id], onDelete: Restrict)
+  customer       User                    @relation("ProcurementCustomer", fields: [customerId], references: [id], onDelete: Restrict)
+  assignee       User?                   @relation("ProcurementAssignee", fields: [assigneeId], references: [id], onDelete: Restrict)
   items          ProcurementItem[]
   payments       PaymentAttempt[]
   shipments      Shipment[]
@@ -1616,34 +1635,34 @@ model BusinessCalendar {
 // ---------------------------------------------------------------------------
 
 model PaymentAttempt {
-  id                    String             @id @default(uuid(7)) @db.Uuid
-  reference             String             @unique @db.VarChar(24)
-  subjectType           PaymentSubjectType @map("subject_type")
-  orderId               String?            @map("order_id") @db.Uuid
-  procurementId         String?            @map("procurement_id") @db.Uuid
-  customerId            String             @map("customer_id") @db.Uuid
-  provider              String             @db.VarChar(40)
-  merchantId            String             @map("merchant_id") @db.VarChar(80)
-  providerReference     String?            @map("provider_reference") @db.VarChar(120)
-  providerTransactionId String?            @map("provider_transaction_id") @db.VarChar(120)
-  amountIrrMinor        BigInt             @map("amount_irr_minor")
-  status                PaymentStatus      @default(CREATED)
+  id                     String             @id @default(uuid(7)) @db.Uuid
+  reference              String             @unique @db.VarChar(24)
+  subjectType            PaymentSubjectType @map("subject_type")
+  orderId                String?            @map("order_id") @db.Uuid
+  procurementId          String?            @map("procurement_id") @db.Uuid
+  customerId             String             @map("customer_id") @db.Uuid
+  provider               String             @db.VarChar(40)
+  merchantId             String             @map("merchant_id") @db.VarChar(80)
+  providerReference      String?            @map("provider_reference") @db.VarChar(120)
+  providerTransactionId  String?            @map("provider_transaction_id") @db.VarChar(120)
+  amountIrrMinor         BigInt             @map("amount_irr_minor")
+  status                 PaymentStatus      @default(CREATED)
   /// Exactly what the customer accepted when starting this session (amounts, rate, items, policy).
-  snapshot              Json
-  providerDeadline      DateTime?          @map("provider_deadline") @db.Timestamptz(3)
-  redirectUrl           String?            @map("redirect_url") @db.VarChar(1000)
+  snapshot               Json
+  providerDeadline       DateTime?          @map("provider_deadline") @db.Timestamptz(3)
+  redirectUrl            String?            @map("redirect_url") @db.VarChar(1000)
   /// Locale of the customer when the session started (for the return page).
-  locale                UiLocale           @default(fa)
-  verifiedAt            DateTime?          @map("verified_at") @db.Timestamptz(3)
-  verifiedAmountIrrMinor BigInt?           @map("verified_amount_irr_minor")
-  overpaymentIrrMinor   BigInt             @default(0) @map("overpayment_irr_minor")
-  cardMask              String?            @map("card_mask") @db.VarChar(24)
-  failureCode           String?            @map("failure_code") @db.VarChar(60)
-  lastInquiryAt         DateTime?          @map("last_inquiry_at") @db.Timestamptz(3)
-  inquiryCount          Int                @default(0) @map("inquiry_count")
-  idempotencyKey        String             @map("idempotency_key") @db.VarChar(128)
-  createdAt             DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt             DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+  locale                 UiLocale           @default(fa)
+  verifiedAt             DateTime?          @map("verified_at") @db.Timestamptz(3)
+  verifiedAmountIrrMinor BigInt?            @map("verified_amount_irr_minor")
+  overpaymentIrrMinor    BigInt             @default(0) @map("overpayment_irr_minor")
+  cardMask               String?            @map("card_mask") @db.VarChar(24)
+  failureCode            String?            @map("failure_code") @db.VarChar(60)
+  lastInquiryAt          DateTime?          @map("last_inquiry_at") @db.Timestamptz(3)
+  inquiryCount           Int                @default(0) @map("inquiry_count")
+  idempotencyKey         String             @map("idempotency_key") @db.VarChar(128)
+  createdAt              DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt              DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   order       Order?             @relation(fields: [orderId], references: [id], onDelete: Restrict)
   procurement Procurement?       @relation(fields: [procurementId], references: [id], onDelete: Restrict)
@@ -1846,13 +1865,13 @@ model MessageReadCursor {
 
 /// Staff-only notes. Never selected by customer-facing queries, PDFs or exports.
 model InternalNote {
-  id             String        @id @default(uuid(7)) @db.Uuid
-  conversationId String?       @map("conversation_id") @db.Uuid
-  subjectType    EventSubject  @map("subject_type")
-  subjectId      String        @map("subject_id") @db.Uuid
-  authorId       String        @map("author_id") @db.Uuid
-  body           String        @db.VarChar(4000)
-  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  id             String       @id @default(uuid(7)) @db.Uuid
+  conversationId String?      @map("conversation_id") @db.Uuid
+  subjectType    EventSubject @map("subject_type")
+  subjectId      String       @map("subject_id") @db.Uuid
+  authorId       String       @map("author_id") @db.Uuid
+  body           String       @db.VarChar(4000)
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
 
   conversation Conversation? @relation(fields: [conversationId], references: [id], onDelete: Restrict)
   author       User          @relation(fields: [authorId], references: [id], onDelete: Restrict)
@@ -1885,8 +1904,8 @@ model Attachment {
   createdAt        DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt        DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  owner      User               @relation(fields: [ownerId], references: [id], onDelete: Restrict)
-  messageRef MessageAttachment?
+  owner           User               @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  messageRef      MessageAttachment?
   catalogDocument CatalogDocument?
 
   @@index([ownerId, createdAt])
@@ -1913,6 +1932,7 @@ model CatalogDocument {
   attachment Attachment             @relation(fields: [attachmentId], references: [id], onDelete: Restrict)
   uploader   User                   @relation("CatalogDocumentUploader", fields: [uploaderId], references: [id], onDelete: Restrict)
   chunks     CatalogDocumentChunk[]
+  entries    CatalogEntry[]
 
   @@index([status, createdAt])
   @@index([uploaderId, createdAt])
@@ -1936,6 +1956,119 @@ model CatalogDocumentChunk {
 
   @@unique([documentId, ordinal])
   @@map("catalog_document_chunk")
+}
+
+/// A part in the technical catalog («کاتالوگ فنی قطعات»): a reference entry customers can search
+/// (/catalog), not a shop product: no price, no stock. It may be linked by hand to one product.
+/// `partNumberKey` is partNumberKey(partNumber): no spaces/dashes/dots, upper case, Latin digits.
+model CatalogEntry {
+  id                  String             @id @default(uuid(7)) @db.Uuid
+  slug                String             @unique @db.VarChar(120)
+  partNumber          String             @map("part_number") @db.VarChar(80)
+  partNumberKey       String             @unique @map("part_number_key") @db.VarChar(80)
+  nameFa              String             @map("name_fa") @db.VarChar(200)
+  nameEn              String?            @map("name_en") @db.VarChar(200)
+  manufacturerBrandId String?            @map("manufacturer_brand_id") @db.Uuid
+  categoryId          String?            @map("category_id") @db.Uuid
+  /// [{ label, value }] in display order.
+  specs               Json               @default("[]")
+  descriptionFa       String?            @map("description_fa") @db.Text
+  descriptionEn       String?            @map("description_en") @db.Text
+  /// The catalog file in the knowledge center this entry came from (optional).
+  sourceDocumentId    String?            @map("source_document_id") @db.Uuid
+  productId           String?            @map("product_id") @db.Uuid
+  status              CatalogEntryStatus @default(DRAFT)
+  publishedAt         DateTime?          @map("published_at") @db.Timestamptz(3)
+  /// normalizeSearchText of both names (for name search).
+  searchText          String             @default("") @map("search_text") @db.Text
+  createdById         String?            @map("created_by_id") @db.Uuid
+  updatedById         String?            @map("updated_by_id") @db.Uuid
+  createdAt           DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  manufacturerBrand ManufacturerBrand?         @relation(fields: [manufacturerBrandId], references: [id], onDelete: Restrict)
+  category          Category?                  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  sourceDocument    CatalogDocument?           @relation(fields: [sourceDocumentId], references: [id], onDelete: SetNull)
+  product           Product?                   @relation(fields: [productId], references: [id], onDelete: SetNull)
+  numbers           CatalogEntryNumber[]
+  vehicles          CatalogEntryVehicle[]
+  vehicleBrands     CatalogEntryVehicleBrand[]
+  images            CatalogEntryImage[]
+
+  @@index([status, publishedAt])
+  @@index([categoryId])
+  @@index([manufacturerBrandId])
+  @@index([productId])
+  @@map("catalog_entry")
+}
+
+model CatalogEntryNumber {
+  id        String            @id @default(uuid(7)) @db.Uuid
+  entryId   String            @map("entry_id") @db.Uuid
+  number    String            @db.VarChar(80)
+  numberKey String            @map("number_key") @db.VarChar(80)
+  kind      CatalogNumberKind
+  sortOrder Int               @default(0) @map("sort_order")
+
+  entry CatalogEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+
+  @@unique([entryId, numberKey])
+  @@index([numberKey])
+  @@map("catalog_entry_number")
+}
+
+/// «کاربرد در خودرو» of a catalog entry: a whole vehicle or one model, optionally with years.
+model CatalogEntryVehicle {
+  id        String  @id @default(uuid(7)) @db.Uuid
+  entryId   String  @map("entry_id") @db.Uuid
+  vehicleId String  @map("vehicle_id") @db.Uuid
+  modelId   String? @map("model_id") @db.Uuid
+  yearFrom  Int?    @map("year_from")
+  yearTo    Int?    @map("year_to")
+  note      String? @db.VarChar(200)
+  sortOrder Int     @default(0) @map("sort_order")
+
+  entry   CatalogEntry  @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  vehicle Vehicle       @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  model   VehicleModel? @relation(fields: [modelId], references: [id], onDelete: Restrict)
+
+  @@index([entryId])
+  @@index([vehicleId])
+  @@index([modelId])
+  @@map("catalog_entry_vehicle")
+}
+
+/// Vehicle makers (ایران خودرو، سایپا …) of a catalog entry, for the brand filter.
+model CatalogEntryVehicleBrand {
+  entryId        String @map("entry_id") @db.Uuid
+  vehicleBrandId String @map("vehicle_brand_id") @db.Uuid
+
+  entry        CatalogEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  vehicleBrand VehicleBrand @relation(fields: [vehicleBrandId], references: [id], onDelete: Restrict)
+
+  @@id([entryId, vehicleBrandId])
+  @@index([vehicleBrandId])
+  @@map("catalog_entry_vehicle_brand")
+}
+
+/// Photos of a catalog entry, in the public media store (same processing as product photos).
+model CatalogEntryImage {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  entryId    String   @map("entry_id") @db.Uuid
+  storageKey String   @unique @map("storage_key") @db.VarChar(200)
+  width      Int
+  height     Int
+  mime       String   @db.VarChar(40)
+  sizeBytes  Int      @map("size_bytes")
+  altFa      String   @map("alt_fa") @db.VarChar(200)
+  altEn      String?  @map("alt_en") @db.VarChar(200)
+  sortOrder  Int      @default(0) @map("sort_order")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  entry CatalogEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+
+  @@index([entryId, sortOrder])
+  @@map("catalog_entry_image")
 }
 
 // ---------------------------------------------------------------------------
@@ -2089,15 +2222,15 @@ model SiteSetting {
 /// the item (staff today; products can use it later). The item itself is purged when restore is no longer
 /// possible (manually, or by the daily job after site settings → trash retention days).
 model TrashEntry {
-  id          String   @id @default(uuid(7)) @db.Uuid
-  kind        String   @db.VarChar(40)
-  entityId    String   @map("entity_id") @db.Uuid
+  id           String   @id @default(uuid(7)) @db.Uuid
+  kind         String   @db.VarChar(40)
+  entityId     String   @map("entity_id") @db.Uuid
   /// Shown in the trash list (e.g. the staff member's name); removed with the entry.
-  label       String   @db.VarChar(200)
+  label        String   @db.VarChar(200)
   /// What restore puts back (e.g. the account status before it was trashed).
-  restoreState Json    @default("{}") @map("restore_state")
-  trashedById String?  @map("trashed_by_id") @db.Uuid
-  trashedAt   DateTime @default(now()) @map("trashed_at") @db.Timestamptz(3)
+  restoreState Json     @default("{}") @map("restore_state")
+  trashedById  String?  @map("trashed_by_id") @db.Uuid
+  trashedAt    DateTime @default(now()) @map("trashed_at") @db.Timestamptz(3)
 
   @@unique([kind, entityId])
   @@index([trashedAt])
