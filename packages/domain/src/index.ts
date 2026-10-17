@@ -13,3 +13,4 @@ export * from './rbac.js';
 export * from './payments.js';
 export * from './units.js';
 export * from './vehicles.js';
+export * from './photo-filename.js';

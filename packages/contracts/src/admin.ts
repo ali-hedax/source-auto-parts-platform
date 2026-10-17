@@ -400,6 +400,13 @@ export const catalogDocumentStatusSchema = z.object({
   note: optionalText(500),
 });
 
+export interface CatalogChunkPreview {
+  ordinal: number;
+  contentText: string;
+  rowStart: number | null;
+  metadata: unknown;
+}
+
 export interface CatalogDocumentView {
   id: string;
   title: string;

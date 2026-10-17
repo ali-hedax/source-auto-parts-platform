@@ -1,16 +1,19 @@
 'use client';
 
-import type { AttachmentView, CatalogDocumentStatus, CatalogDocumentView } from '@hedax/contracts';
+import type { AttachmentView, CatalogChunkPreview, CatalogDocumentStatus, CatalogDocumentView } from '@hedax/contracts';
 import { BookOpen, Download, FileUp } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useState, type FormEvent } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Fragment, Suspense, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Field, Input, Select } from '@/components/ui/field';
 import { DateTime } from '@/components/ui/format';
 import { Alert, EmptyState, PageHeader, Section, StatusBadge, TableScroll, td, th } from '@/components/ui/misc';
+import { Tabs } from '@/components/ui/tabs';
 import { api, uploadWithProgress } from '@/lib/api/client';
 import { errorText, isApiError } from '@/lib/api/errors';
 import { useApi } from '@/lib/use-api';
+import { BulkPhotoUpload } from './bulk-photos';
 import { useL } from './shell';
 
 const MAX_BYTES = 20 * 1024 * 1024;
@@ -31,7 +34,8 @@ function bytes(value: number, locale: string): string {
   return `${new Intl.NumberFormat(locale === 'fa' ? 'fa-IR' : 'en-US', { maximumFractionDigits: 1 }).format(value / 1024 / 1024)} MB`;
 }
 
-export function KnowledgeCatalogPage() {
+/** The "اسناد و فایل‌های مرجع" tab: upload CSV/XLSX/PDF catalog sources and review/extract them. */
+function CatalogDocuments() {
   const t = useTranslations();
   const l = useL();
   const locale = useLocale();
@@ -44,6 +48,8 @@ export function KnowledgeCatalogPage() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ tone: 'success' | 'danger'; text: string } | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [previews, setPreviews] = useState<Record<string, CatalogChunkPreview[]>>({});
+  const [previewOpen, setPreviewOpen] = useState<string | null>(null);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -90,9 +96,31 @@ export function KnowledgeCatalogPage() {
     } finally { setUpdating(null); }
   };
 
+  const requestExtraction = async (id: string) => {
+    setUpdating(id); setMessage(null);
+    try {
+      await api(`/admin/knowledge-catalog/${id}/extract`, { method: 'POST' });
+      await documents.reload();
+      setMessage({ tone: 'success', text: l('درخواست استخراج ثبت شد. وضعیت را کمی بعد بررسی کنید.', 'Extraction queued. Check status shortly.') });
+    } catch (error) {
+      setMessage({ tone: 'danger', text: isApiError(error) ? errorText(t, error) : l('درخواست استخراج ناموفق بود.', 'Could not queue extraction.') });
+    } finally { setUpdating(null); }
+  };
+
+  const togglePreview = async (id: string) => {
+    if (previewOpen === id) { setPreviewOpen(null); return; }
+    setUpdating(id); setMessage(null);
+    try {
+      const rows = await api<CatalogChunkPreview[]>(`/admin/knowledge-catalog/${id}/preview`);
+      setPreviews((prev) => ({ ...prev, [id]: rows }));
+      setPreviewOpen(id);
+    } catch (error) {
+      setMessage({ tone: 'danger', text: isApiError(error) ? errorText(t, error) : l('پیش‌نمایش در دسترس نیست.', 'Preview unavailable.') });
+    } finally { setUpdating(null); }
+  };
+
   return (
     <>
-      <PageHeader title={l('مرکز دانش و کاتالوگ', 'Knowledge & catalog center')} description={l('منابع کاتالوگ را امن و نسخه‌بندی‌شده نگه دارید. پردازش هوشمند، OCR و embedding در این فاز اجرا نمی‌شود.', 'Keep catalog sources secure and versioned. AI processing, OCR and embeddings are not run in this phase.')} />
       <Section title={l('بارگذاری منبع جدید', 'Upload a new source')} id="catalog-upload">
         <form onSubmit={submit} className="grid gap-4 md:grid-cols-2">
           <Field id="catalog-title" label={l('عنوان کاتالوگ', 'Catalog title')} required>
@@ -116,9 +144,10 @@ export function KnowledgeCatalogPage() {
         <Section title={l('فهرست کاتالوگ‌ها', 'Catalog sources')} id="catalog-list">
           {documents.data?.length ? (
             <TableScroll caption={l('فهرست کاتالوگ‌ها', 'Catalog sources')}>
-              <thead><tr><th className={th}>{l('عنوان و فایل', 'Title & file')}</th><th className={th}>{l('نسخه', 'Version')}</th><th className={th}>{l('بارگذار / تاریخ', 'Uploader / date')}</th><th className={th}>{l('وضعیت', 'Status')}</th><th className={th}>{l('دریافت', 'Download')}</th></tr></thead>
+              <thead><tr><th className={th}>{l('عنوان و فایل', 'Title & file')}</th><th className={th}>{l('نسخه', 'Version')}</th><th className={th}>{l('بارگذار / تاریخ', 'Uploader / date')}</th><th className={th}>{l('وضعیت', 'Status')}</th><th className={th}>{l('دریافت', 'Download')}</th><th className={th}>{l('استخراج و بررسی', 'Extract & review')}</th></tr></thead>
               <tbody>{documents.data.map((item) => (
-                <tr key={item.id}>
+                <Fragment key={item.id}>
+                <tr>
                   <td className={td}><p className="font-semibold">{item.title}</p><p className="mt-1 text-xs text-steel" dir="auto">{item.filename} · {item.extension.toUpperCase()} · {bytes(item.sizeBytes, locale)}</p></td>
                   <td className={td}><span dir="ltr">{item.version}</span></td>
                   <td className={td}><p>{item.uploadedBy.name ?? item.uploadedBy.email ?? '—'}</p><p className="mt-1 text-xs text-steel"><DateTime iso={item.uploadedAt} /></p></td>
@@ -129,7 +158,31 @@ export function KnowledgeCatalogPage() {
                     </Select>
                   </td>
                   <td className={td}><a href={item.downloadUrl} download className="inline-flex min-h-10 items-center gap-2 font-semibold text-action underline underline-offset-4"><Download aria-hidden className="size-4" />{l('دانلود', 'Download')}</a></td>
+                  <td className={td}>
+                    <div className="flex flex-col gap-2">
+                      {item.extension !== 'pdf' && (item.status === 'UPLOADED' || item.status === 'NEEDS_REVIEW') ? (
+                        <Button type="button" disabled={updating === item.id} onClick={() => void requestExtraction(item.id)}>
+                          {l('استخراج اطلاعات', 'Extract candidates')}
+                        </Button>
+                      ) : null}
+                      <Button type="button" disabled={updating === item.id} onClick={() => void togglePreview(item.id)}>
+                        {previewOpen === item.id ? l('بستن پیش‌نمایش', 'Close preview') : l('مشاهده داده‌های استخراجی', 'View extracted data')}
+                      </Button>
+                      {item.processingError ? <p className="text-xs text-steel" dir="auto">{item.processingError}</p> : null}
+                    </div>
+                  </td>
                 </tr>
+                {previewOpen === item.id ? (
+                  <tr><td colSpan={6} className={td}>
+                    <div className="max-h-80 overflow-auto rounded-lg border p-3">
+                      <p className="mb-2 text-sm font-semibold">{l('داده‌های پیشنهادی؛ نیازمند تأیید کارشناس', 'Unverified candidates — expert review required')}</p>
+                      {(previews[item.id] ?? []).length ? (previews[item.id] ?? []).map((chunk) => (
+                        <pre key={chunk.ordinal} className="mb-2 whitespace-pre-wrap break-words border-b pb-2 text-xs" dir="auto">{l('ردیف', 'Row')} {chunk.rowStart ?? '—'}: {chunk.contentText}</pre>
+                      )) : <p className="text-sm text-steel">{l('هنوز اطلاعاتی استخراج نشده است.', 'No extracted records yet.')}</p>}
+                    </div>
+                  </td></tr>
+                ) : null}
+                </Fragment>
               ))}</tbody>
             </TableScroll>
           ) : documents.data ? <EmptyState title={l('هنوز کاتالوگی بارگذاری نشده است.', 'No catalog source has been uploaded yet.')} icon={<BookOpen aria-hidden />} />
@@ -138,5 +191,43 @@ export function KnowledgeCatalogPage() {
         </Section>
       </div>
     </>
+  );
+}
+
+type CatalogTab = 'documents' | 'photos';
+
+/**
+ * مرکز دانش و کاتالوگ: جایی واحد برای هر مادهٔ خامی که قرار است بعداً به کاتالوگ تبدیل شود — چه
+ * فایل مرجع (اکسل/CSV/PDF) باشد، چه دسته‌عکسی که از قطعات یا از صفحات یک کاتالوگ کاغذی گرفته‌اید.
+ * بارگذاری گروهی عکس قبلاً صفحهٔ جداگانه‌ای بود؛ حالا یک تب همین‌جاست تا عکس‌ها هم در همین مرکز
+ * جمع شوند و بعداً با بقیهٔ منابع کاتالوگ ادغام شوند.
+ */
+export function KnowledgeCatalogPage() {
+  const l = useL();
+  const initialTab = useSearchParams().get('tab') === 'photos' ? 'photos' : 'documents';
+  const [tab, setTab] = useState<CatalogTab>(initialTab);
+  return (
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title={l('مرکز دانش و کاتالوگ', 'Knowledge & catalog center')}
+        description={l(
+          'هر چیزی که قرار است منبع کاتالوگ شود را اینجا جمع کنید: فایل مرجع (اکسل، CSV، PDF) یا عکس‌های گروهی قطعات. استخراج اولیهٔ CSV/Excel با تأیید انسانی فعال است؛ استخراج متن PDF، OCR روی عکس‌ها و embedding هنوز فعال نیست — فعلاً فقط بایگانی و بررسی دستی.',
+          'Collect everything that will become a catalog source here: reference files (Excel, CSV, PDF) or bulk part photos. CSV/Excel candidate extraction is available for human review; PDF text extraction, OCR on photos and embeddings are not enabled yet — for now this is archiving and manual review only.',
+        )}
+      />
+      <Tabs
+        id="catalog-tabs"
+        label={l('مرکز دانش و کاتالوگ', 'Knowledge & catalog center')}
+        active={tab}
+        onChange={setTab}
+        items={[
+          { key: 'documents', label: l('اسناد و فایل‌های مرجع', 'Reference documents') },
+          { key: 'photos', label: l('بارگذاری گروهی عکس', 'Bulk photo upload') },
+        ]}
+      />
+      <div id="catalog-tabs-panel" role="tabpanel" aria-labelledby={`catalog-tabs-${tab}`} className="flex flex-col gap-6">
+        {tab === 'documents' ? <CatalogDocuments /> : <Suspense><BulkPhotoUpload /></Suspense>}
+      </div>
+    </div>
   );
 }
