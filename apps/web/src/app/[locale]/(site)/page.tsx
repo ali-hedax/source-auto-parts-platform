@@ -2,6 +2,7 @@ import type { CategoryView, ContentButton, HomeSection, SearchResult, VehicleBra
 import { localize } from '@hedax/contracts/constants';
 import { ArrowLeft, ArrowRight, CarFront, ChevronLeft, ChevronRight, PackageSearch, Plus, Search, ShieldCheck } from 'lucide-react';
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { ReactNode } from 'react';
 import { RichText } from '@/components/content/rich-text';
@@ -12,6 +13,7 @@ import { Link } from '@/i18n/navigation';
 import { serverApi } from '@/lib/api/server';
 import { displayCurrency } from '@/lib/preferences';
 import { getSiteContent, seoMetadata } from '@/lib/site-content';
+import { vehicleBrandLogo } from '@/lib/vehicle-brand-logos';
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
@@ -159,14 +161,21 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
               </Link>
             </div>
             <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-              {brands.filter((b) => b.isFeatured).map((b) => (
-                <li key={b.slug}>
-                  <Link href={`/brands/${b.slug}`} className="hedax-brand-card flex h-full min-h-[5.5rem] flex-col justify-center gap-1 rounded-2xl border border-[#e1eaf5] bg-white px-5 py-4 shadow-sm transition-all hover:-translate-y-1 hover:border-[#65b7ff] hover:shadow-lg">
-                    <span className="font-bold leading-7">{name(b.name)}</span>
-                    <span className="text-xs text-steel">{t('common.partCount', { count: b.productCount })}</span>
-                  </Link>
-                </li>
-              ))}
+              {brands.filter((b) => b.isFeatured).map((b) => {
+                const logo = vehicleBrandLogo(b.slug);
+                return (
+                  <li key={b.slug}>
+                    <Link href={`/brands/${b.slug}`} className="hedax-brand-card flex h-full min-h-[5.5rem] flex-col justify-center gap-1.5 rounded-2xl border border-[#e1eaf5] bg-white px-5 py-4 shadow-sm transition-all hover:-translate-y-1 hover:border-[#65b7ff] hover:shadow-lg">
+                      {logo ? (
+                        <Image src={logo} alt={name(b.name)} width={128} height={40} unoptimized className="h-9 w-auto max-w-[8rem] object-contain" />
+                      ) : (
+                        <span className="font-bold leading-7">{name(b.name)}</span>
+                      )}
+                      <span className="text-xs text-steel">{t('common.partCount', { count: b.productCount })}</span>
+                    </Link>
+                  </li>
+                );
+              })}
               {L(s.otherTitle) && s.otherHref ? (
                 <li>
                   <Link href={s.otherHref} className="flex h-full min-h-[4.5rem] flex-col justify-center gap-0.5 rounded-[var(--radius-card)] border border-dashed border-line-strong px-4 py-3 transition-colors hover:border-action hover:bg-action-soft">

@@ -8,7 +8,7 @@ import { useEffect, useId, useMemo, useRef, useState, type DragEvent } from 'rea
 import { Button } from '@/components/ui/button';
 import { Checkbox, Select } from '@/components/ui/field';
 import { formatBytes } from '@/components/ui/format';
-import { Alert, Badge, Code, PageHeader, Section, TableScroll, td, th } from '@/components/ui/misc';
+import { Alert, Badge, Code, Section, TableScroll, td, th } from '@/components/ui/misc';
 import { Link } from '@/i18n/navigation';
 import { api, uploadWithProgress } from '@/lib/api/client';
 import { errorText } from '@/lib/api/errors';
@@ -177,10 +177,9 @@ export function BulkPhotoUpload() {
 
   return (
     <>
-      <PageHeader
-        title={l('بارگذاری گروهی عکس قطعات', 'Bulk part photos')}
-        description={l('عکس‌ها را یکجا بکشید و رها کنید یا یک پوشه انتخاب کنید. نام هر فایل باید شمارهٔ فنی یا کد کالای قطعه باشد؛ برای چند عکس از یک قطعه شماره بگذارید: 0450102805-1.jpg، 0450102805-2.jpg. عکس شمارهٔ ۱ عکس اصلی می‌شود.', 'Drop many photos at once or choose a folder. Each file name must be the part’s technical number or SKU; number several photos of one part: 0450102805-1.jpg, 0450102805-2.jpg. Photo 1 becomes the main photo.')}
-      />
+      <p className="max-w-3xl text-sm leading-6 text-steel">
+        {l('عکس‌ها را یکجا بکشید و رها کنید یا یک پوشه انتخاب کنید. نام هر فایل باید شمارهٔ فنی یا کد کالای قطعه باشد؛ برای چند عکس از یک قطعه شماره بگذارید: 0450102805-1.jpg، 0450102805-2.jpg. عکس شمارهٔ ۱ عکس اصلی می‌شود.', 'Drop many photos at once or choose a folder. Each file name must be the part’s technical number or SKU; number several photos of one part: 0450102805-1.jpg, 0450102805-2.jpg. Photo 1 becomes the main photo.')}
+      </p>
       <Section title={l('انتخاب عکس‌ها', 'Choose photos')} id="bulk-photos-pick">
         <label
           htmlFor={fileInputId}

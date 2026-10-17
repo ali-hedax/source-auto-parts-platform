@@ -952,7 +952,7 @@ export function ImportedProductsPage({ jobId }: { jobId: string }) {
         description={l('برای هر قطعه یک یا چند عکس واقعی از همان قطعه بگذارید. عکس‌ها با شناسهٔ ثابت محصول ذخیره می‌شوند، نه با نام یا ردیف Excel.', 'Add one or more real photos of each part. Photos are linked to the product’s permanent id, never to its name or Excel row.')}
         actions={(
           <>
-            <ButtonLink href="/admin/product-photos" icon={<Images aria-hidden className="size-4" />}>{l('بارگذاری گروهی عکس', 'Bulk photo upload')}</ButtonLink>
+            <ButtonLink href={{ pathname: '/admin/knowledge-catalog', query: { tab: 'photos' } }} icon={<Images aria-hidden className="size-4" />}>{l('بارگذاری گروهی عکس', 'Bulk photo upload')}</ButtonLink>
             <ButtonLink href={`/admin/imports/${jobId}`} variant="secondary" icon={locale === 'fa' ? <ArrowRight aria-hidden className="size-4" /> : <ArrowLeft aria-hidden className="size-4" />}>{l('بازگشت به این واردکردن', 'Back to this import')}</ButtonLink>
           </>
         )}

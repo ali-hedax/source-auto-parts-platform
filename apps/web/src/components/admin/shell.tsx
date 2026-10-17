@@ -4,7 +4,7 @@ import * as RDialog from '@radix-ui/react-dialog';
 import Image from 'next/image';
 import type { MeView } from '@hedax/contracts';
 import {
-  BarChart3, BookOpen, Boxes, Car, CalendarDays, CircleUser, ClipboardList, CreditCard, FileSpreadsheet, FileText, Gauge, History, Images, Landmark, LayoutTemplate, LogOut, MessageSquare,
+  BarChart3, BookOpen, Boxes, Car, CalendarDays, CircleUser, ClipboardList, CreditCard, FileSpreadsheet, FileText, Gauge, History, Landmark, LayoutTemplate, LogOut, MessageSquare,
   Menu, Package, Receipt, RotateCcw, Ruler, ScrollText, Settings, ShieldCheck, Store, Tags, Truck, Users, UserCog, Wallet, X,
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
@@ -39,8 +39,13 @@ export function usePriceSourceLabel(): (source: string) => string {
   };
 }
 
-/** `perm` is a permission key, or OWNER_ONLY for links only owners see (checked by the API too). */
-interface NavItem { href: string; label: string; icon: typeof Gauge; perm?: string }
+/**
+ * `perm` is a permission key, or OWNER_ONLY for links only owners see (checked by the API too).
+ * An array means the link shows for any one of them — for a page whose tabs each need a
+ * different permission, like «مرکز دانش و کاتالوگ» (documents need `imports.run`, bulk photos
+ * need `products.write`); each tab's own actions still check its real permission server-side.
+ */
+interface NavItem { href: string; label: string; icon: typeof Gauge; perm?: string | string[] }
 const OWNER_ONLY = '@owner';
 const navPermissions = (me: { permissions: string[]; isOwner: boolean }) => (me.isOwner ? [...me.permissions, OWNER_ONLY] : me.permissions);
 interface NavGroup { title: string; items: NavItem[] }
@@ -68,8 +73,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
         { href: '/admin/vehicles', label: t('vehicles'), icon: Car, perm: 'vehicles.manage' },
         { href: '/admin/inventory', label: t('inventory'), icon: Boxes, perm: 'inventory.read' },
         { href: '/admin/imports', label: t('imports'), icon: FileSpreadsheet, perm: 'imports.run' },
-        { href: '/admin/product-photos', label: t('productPhotos'), icon: Images, perm: 'products.write' },
-        { href: '/admin/knowledge-catalog', label: t('knowledgeCatalog'), icon: BookOpen, perm: 'imports.run' },
+        { href: '/admin/knowledge-catalog', label: t('knowledgeCatalog'), icon: BookOpen, perm: ['imports.run', 'products.write'] },
       ],
     },
     {
@@ -179,7 +183,7 @@ function AdminNavList({ groups, permissions, pathname, onNavigate }: { groups: N
   return (
     <ul className="flex flex-col gap-0.5 p-3">
       {groups.map((g) => {
-        const visible = g.items.filter((i) => !i.perm || permissions.includes(i.perm));
+        const visible = g.items.filter((i) => !i.perm || (Array.isArray(i.perm) ? i.perm.some((p) => permissions.includes(p)) : permissions.includes(i.perm)));
         if (!visible.length) return null;
         return (
           <li key={g.title || 'root'}>

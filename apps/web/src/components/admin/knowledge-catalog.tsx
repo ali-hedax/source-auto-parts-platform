@@ -3,14 +3,17 @@
 import type { AttachmentView, CatalogChunkPreview, CatalogDocumentStatus, CatalogDocumentView } from '@hedax/contracts';
 import { BookOpen, Download, FileUp } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { Fragment, useState, type FormEvent } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Fragment, Suspense, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Field, Input, Select } from '@/components/ui/field';
 import { DateTime } from '@/components/ui/format';
 import { Alert, EmptyState, PageHeader, Section, StatusBadge, TableScroll, td, th } from '@/components/ui/misc';
+import { Tabs } from '@/components/ui/tabs';
 import { api, uploadWithProgress } from '@/lib/api/client';
 import { errorText, isApiError } from '@/lib/api/errors';
 import { useApi } from '@/lib/use-api';
+import { BulkPhotoUpload } from './bulk-photos';
 import { useL } from './shell';
 
 const MAX_BYTES = 20 * 1024 * 1024;
@@ -31,7 +34,8 @@ function bytes(value: number, locale: string): string {
   return `${new Intl.NumberFormat(locale === 'fa' ? 'fa-IR' : 'en-US', { maximumFractionDigits: 1 }).format(value / 1024 / 1024)} MB`;
 }
 
-export function KnowledgeCatalogPage() {
+/** The "اسناد و فایل‌های مرجع" tab: upload CSV/XLSX/PDF catalog sources and review/extract them. */
+function CatalogDocuments() {
   const t = useTranslations();
   const l = useL();
   const locale = useLocale();
@@ -117,7 +121,6 @@ export function KnowledgeCatalogPage() {
 
   return (
     <>
-      <PageHeader title={l('مرکز دانش و کاتالوگ', 'Knowledge & catalog center')} description={l('منابع کاتالوگ را امن و نسخه‌بندی‌شده نگه دارید. استخراج اولیه CSV و Excel با تأیید انسانی فعال است؛ استخراج متن PDF، OCR و embedding هنوز فعال نیست.', 'Keep catalog sources secure and versioned. CSV/Excel candidate extraction is available for human review; PDF extraction, OCR and embeddings are not enabled yet.')} />
       <Section title={l('بارگذاری منبع جدید', 'Upload a new source')} id="catalog-upload">
         <form onSubmit={submit} className="grid gap-4 md:grid-cols-2">
           <Field id="catalog-title" label={l('عنوان کاتالوگ', 'Catalog title')} required>
@@ -188,5 +191,43 @@ export function KnowledgeCatalogPage() {
         </Section>
       </div>
     </>
+  );
+}
+
+type CatalogTab = 'documents' | 'photos';
+
+/**
+ * مرکز دانش و کاتالوگ: جایی واحد برای هر مادهٔ خامی که قرار است بعداً به کاتالوگ تبدیل شود — چه
+ * فایل مرجع (اکسل/CSV/PDF) باشد، چه دسته‌عکسی که از قطعات یا از صفحات یک کاتالوگ کاغذی گرفته‌اید.
+ * بارگذاری گروهی عکس قبلاً صفحهٔ جداگانه‌ای بود؛ حالا یک تب همین‌جاست تا عکس‌ها هم در همین مرکز
+ * جمع شوند و بعداً با بقیهٔ منابع کاتالوگ ادغام شوند.
+ */
+export function KnowledgeCatalogPage() {
+  const l = useL();
+  const initialTab = useSearchParams().get('tab') === 'photos' ? 'photos' : 'documents';
+  const [tab, setTab] = useState<CatalogTab>(initialTab);
+  return (
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title={l('مرکز دانش و کاتالوگ', 'Knowledge & catalog center')}
+        description={l(
+          'هر چیزی که قرار است منبع کاتالوگ شود را اینجا جمع کنید: فایل مرجع (اکسل، CSV، PDF) یا عکس‌های گروهی قطعات. استخراج اولیهٔ CSV/Excel با تأیید انسانی فعال است؛ استخراج متن PDF، OCR روی عکس‌ها و embedding هنوز فعال نیست — فعلاً فقط بایگانی و بررسی دستی.',
+          'Collect everything that will become a catalog source here: reference files (Excel, CSV, PDF) or bulk part photos. CSV/Excel candidate extraction is available for human review; PDF text extraction, OCR on photos and embeddings are not enabled yet — for now this is archiving and manual review only.',
+        )}
+      />
+      <Tabs
+        id="catalog-tabs"
+        label={l('مرکز دانش و کاتالوگ', 'Knowledge & catalog center')}
+        active={tab}
+        onChange={setTab}
+        items={[
+          { key: 'documents', label: l('اسناد و فایل‌های مرجع', 'Reference documents') },
+          { key: 'photos', label: l('بارگذاری گروهی عکس', 'Bulk photo upload') },
+        ]}
+      />
+      <div id="catalog-tabs-panel" role="tabpanel" aria-labelledby={`catalog-tabs-${tab}`} className="flex flex-col gap-6">
+        {tab === 'documents' ? <CatalogDocuments /> : <Suspense><BulkPhotoUpload /></Suspense>}
+      </div>
+    </div>
   );
 }
