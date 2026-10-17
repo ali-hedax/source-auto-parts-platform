@@ -106,7 +106,7 @@ export async function bootApp(): Promise<TestApp> {
 
 /** Services resolved from the running app (same instances the HTTP layer uses). */
 export async function services(t: TestApp) {
-  const [prisma, attachments, imports, payments, settlement, quotes, ctx, scanner, mail, mailTransport] = await Promise.all([
+  const [prisma, attachments, imports, payments, settlement, quotes, ctx, scanner, mail, mailTransport, catalogImport] = await Promise.all([
     import('../../dist/common/prisma.service.js'),
     import('../../dist/modules/attachments/attachments.service.js'),
     import('../../dist/modules/imports/imports.service.js'),
@@ -117,11 +117,13 @@ export async function services(t: TestApp) {
     import('../../dist/common/storage/scanner.js'),
     import('../../dist/modules/mail/mail.service.js'),
     import('../../dist/modules/mail/mail.transport.js'),
+    import('../../dist/modules/catalog-entries/catalog-import.service.js'),
   ]);
   return {
     prisma: t.get<any>(prisma.PrismaService),
     attachments: t.get<any>(attachments.AttachmentsService),
     imports: t.get<any>(imports.ImportsService),
+    catalogImport: t.get<any>(catalogImport.CatalogImportService),
     payments: t.get<any>(payments.PaymentsService),
     settlement: t.get<any>(settlement.StockOrderSettlement),
     quotes: t.get<any>(quotes.QuotesService),
@@ -153,6 +155,8 @@ export async function drainOutbox(s: Services, types: string[], aggregateId?: st
       else if (row.type === 'import.inspect') await s.imports.inspectJob(p.jobId);
       else if (row.type === 'import.parse') await s.imports.parse(p.jobId);
       else if (row.type === 'import.commit') await s.imports.commit(p.jobId);
+      else if (row.type === 'catalog-entries.import.parse') await s.catalogImport.parse(p.jobId);
+      else if (row.type === 'catalog-entries.import.commit') await s.catalogImport.commit(p.jobId);
       else if (row.type === 'payment.reconcile') await s.payments.verify(p.attemptId, 'INQUIRY');
       else if (row.type === 'email.send') await s.mail.deliver(p.emailId);
       else throw new Error(`drainOutbox: no handler for ${row.type}`);

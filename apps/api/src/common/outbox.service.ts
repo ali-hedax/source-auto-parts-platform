@@ -13,6 +13,8 @@ export type OutboxType =
   | 'quote.pdf.render'
   | 'attachment.scan'
   | 'catalog.extract'
+  | 'catalog-entries.import.parse'
+  | 'catalog-entries.import.commit'
   | 'import.inspect'
   | 'import.parse'
   | 'import.commit'

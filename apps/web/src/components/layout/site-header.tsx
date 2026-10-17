@@ -22,6 +22,7 @@ export async function SiteHeader() {
     { href: '/imported-parts', label: t('nav.imported') },
     { href: '/brands', label: t('nav.brands') },
     { href: '/cars', label: t('nav.cars') },
+    { href: '/catalog', label: t('nav.catalog') },
     { href: '/request-part', label: t('nav.requestPart') },
   ] as const;
   // Logo, its alt text and the site title come from site content → general.
@@ -48,7 +49,7 @@ export async function SiteHeader() {
               placeholder={t('search.placeholder')}
               className="min-w-0 flex-1 bg-transparent px-3 text-[0.9375rem] placeholder:text-steel/80 focus-visible:outline-none"
             />
-            <button type="submit" className="shrink-0 cursor-pointer bg-[#0879f9] px-5 text-sm font-bold text-white transition-colors hover:bg-[#0967d3] focus-visible:bg-[#0967d3] focus-visible:underline focus-visible:outline-none" aria-label={t('search.submit')}>
+            <button type="submit" className="shrink-0 cursor-pointer bg-[#096ce5] px-5 text-sm font-bold text-white transition-colors hover:bg-[#0967d3] focus-visible:bg-[#0967d3] focus-visible:underline focus-visible:outline-none" aria-label={t('search.submit')}>
               {t('common.search')}
             </button>
           </div>

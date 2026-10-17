@@ -17,7 +17,7 @@ This branch adds an **opt-in, review-only** extraction pipeline for Source by HE
 
 - PDF text extraction or OCR (PDF uploads remain supported as source files).
 - Automated catalog approval, product creation, merging duplicates or RAG embeddings.
-- Customer-facing search, chatbot access or automatic learning from these candidate records.
+- Customer-facing search of these candidate records, chatbot access or automatic learning from them. (Phase 3 adds a reviewed technical catalog: a candidate row can be turned into a catalog entry by hand — see [`KNOWLEDGE_CATALOG_PHASE3_TECHNICAL_CATALOG.md`](KNOWLEDGE_CATALOG_PHASE3_TECHNICAL_CATALOG.md).)
 - Production deployment.
 
 ## Verification before merge
@@ -35,5 +35,7 @@ Run from the repository root using the project's documented pnpm setup:
 **No new database migration is required** because phase 1 already created `catalog_document_chunk`. The phase 1 migration must be present in the target environment.
 
 ## Next phase
+
+Phase 3 (technical parts catalog, panel and /catalog) is described in [`KNOWLEDGE_CATALOG_PHASE3_TECHNICAL_CATALOG.md`](KNOWLEDGE_CATALOG_PHASE3_TECHNICAL_CATALOG.md). Still open:
 
 Add sandboxed PDF text extraction, selective OCR, candidate reconciliation against existing SKU/OEM/vehicle entities, explicit reviewer approval, and then hybrid RAG indexing. Keep every customer-facing fact tied to an approved source.

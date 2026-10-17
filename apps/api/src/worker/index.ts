@@ -15,6 +15,8 @@ import { SourcingModule } from '../modules/sourcing/sourcing.module.js';
 import { TrashModule } from '../modules/trash/trash.module.js';
 import { OutboxDispatcher } from './outbox-dispatcher.js';
 import { KnowledgeCatalogModule } from '../modules/knowledge-catalog/knowledge-catalog.module.js';
+import { CatalogEntriesModule } from '../modules/catalog-entries/catalog-entries.module.js';
+import { CatalogImportService } from '../modules/catalog-entries/catalog-import.service.js';
 import { KnowledgeCatalogService } from '../modules/knowledge-catalog/knowledge-catalog.service.js';
 import { MessengerBotsModule } from '../modules/messenger-bots/messenger-bots.module.js';
 import { MessengerBotsService } from '../modules/messenger-bots/messenger-bots.service.js';
@@ -25,7 +27,7 @@ import { MessengerBotsService } from '../modules/messenger-bots/messenger-bots.s
  * PDFs, reconciliation) never run inside a web request.
  */
 @Module({
-  imports: [CommonModule, MailModule, PaymentsModule, OrdersModule, SourcingModule, AttachmentsModule, ImportsModule, NotificationsModule, TrashModule, MessengerBotsModule, KnowledgeCatalogModule],
+  imports: [CommonModule, MailModule, PaymentsModule, OrdersModule, SourcingModule, AttachmentsModule, ImportsModule, NotificationsModule, TrashModule, MessengerBotsModule, KnowledgeCatalogModule, CatalogEntriesModule],
   providers: [OutboxDispatcher, QuoteDocumentService],
 })
 export class WorkerModule {}
@@ -35,6 +37,8 @@ export async function createWorkerContext() {
   const app = await NestFactory.createApplicationContext(WorkerModule, { logger: new JsonLogger(env.LOG_LEVEL) });
   app.enableShutdownHooks();
   app.get(OutboxDispatcher).register('catalog.extract', (payload) => app.get(KnowledgeCatalogService).extract(String(payload.documentId)));
+  app.get(OutboxDispatcher).register('catalog-entries.import.parse', (payload) => app.get(CatalogImportService).parse(String(payload.jobId)));
+  app.get(OutboxDispatcher).register('catalog-entries.import.commit', (payload) => app.get(CatalogImportService).commit(String(payload.jobId)));
   app.get(OutboxDispatcher).register('messenger.reply', (payload) => app.get(MessengerBotsService).deliver(payload));
   return {
     app,

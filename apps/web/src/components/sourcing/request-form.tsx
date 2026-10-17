@@ -79,7 +79,8 @@ export function RequestForm({ brands }: { brands: VehicleBrandView[] }) {
       initial = newDraft();
       if (part) {
         initial.title = part.slice(0, 200);
-        initial.items = [emptyItem(part.slice(0, 200))];
+        // «درخواست تأمین» on a catalog part also brings its technical number (?code=).
+        initial.items = [{ ...emptyItem(part.slice(0, 200)), partCode: (search.get('code') ?? '').slice(0, 80) }];
       }
     }
     setDraft(initial);
@@ -251,7 +252,8 @@ export function RequestForm({ brands }: { brands: VehicleBrandView[] }) {
                 </Select>
               </Field>
             </div>
-            <details className="group rounded-[var(--radius-control)] border border-dashed border-line px-3">
+            {/* Shown open when it already holds a value (e.g. the technical number brought from the catalog). */}
+            <details className="group rounded-[var(--radius-control)] border border-dashed border-line px-3" {...(it.partCode || it.vin ? { open: true } : {})}>
               <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-sm font-semibold text-action [&::-webkit-details-marker]:hidden"><ChevronDown aria-hidden className="size-4 transition-transform duration-200 group-open:rotate-180" />{t('request.partCode')} / {t('request.vin')} ({t('common.optional')})</summary>
               <div className="grid gap-4 pb-4 pt-1 md:grid-cols-2">
                 <Field id={`item-${i}-code`} label={t('request.partCode')} optionalLabel={t('common.optional')}>
