@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { composeSystemText, productListQuerySchema, quoteDraftSchema, sendMessageSchema, sourcingRequestCreateSchema, staffMfaSchema, systemTextFor } from '../src/index.js';
+import { catalogDocumentCreateSchema, catalogDocumentStatusSchema, composeSystemText, productListQuerySchema, quoteDraftSchema, sendMessageSchema, sourcingRequestCreateSchema, staffMfaSchema, systemTextFor } from '../src/index.js';
 
 describe('API contracts', () => {
   it('accepts a list-file-only sourcing request for any brand (A03)', () => {
@@ -61,5 +61,15 @@ describe('API contracts', () => {
     expect(systemTextFor(body, 'fa')).toBe('درخواست HX-R-AB12 ثبت شد.');
     expect(systemTextFor(body, 'en')).toBe('Request HX-R-AB12 received.');
     expect(systemTextFor('plain text', 'en')).toBe('plain text');
+  });
+
+  it('validates knowledge catalog metadata and every phase-one status', () => {
+    const attachmentId = '0192f3a0-0000-7000-8000-000000000001';
+    expect(catalogDocumentCreateSchema.parse({ attachmentId, title: ' کاتالوگ ترمز ', version: '2.0' })).toMatchObject({ title: 'کاتالوگ ترمز', version: '2.0' });
+    expect(catalogDocumentCreateSchema.safeParse({ attachmentId, title: '', version: '' }).success).toBe(false);
+    for (const status of ['UPLOADED', 'PENDING_PROCESSING', 'NEEDS_REVIEW', 'APPROVED', 'REJECTED']) {
+      expect(catalogDocumentStatusSchema.safeParse({ status }).success).toBe(true);
+    }
+    expect(catalogDocumentStatusSchema.safeParse({ status: 'EMBEDDED' }).success).toBe(false);
   });
 });

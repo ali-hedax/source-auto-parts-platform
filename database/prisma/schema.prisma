@@ -259,6 +259,7 @@ enum AttachmentPurpose {
   IMPORT_REPORT
   QUOTE_PDF
   EXPORT
+  KNOWLEDGE_CATALOG
 }
 
 enum AttachmentVisibility {
@@ -272,6 +273,14 @@ enum AttachmentStatus {
   READY
   REJECTED
   DELETED
+}
+
+enum CatalogDocumentStatus {
+  UPLOADED
+  PENDING_PROCESSING
+  NEEDS_REVIEW
+  APPROVED
+  REJECTED
 }
 
 enum ImportMode {
@@ -440,6 +449,7 @@ model User {
   policyAcceptances   PolicyAcceptance[]
   returnRequests      ReturnRequest[]    @relation("ReturnCustomer")
   exchangeRates       ExchangeRate[]
+  catalogDocuments    CatalogDocument[] @relation("CatalogDocumentUploader")
 
   @@index([kind, status])
   @@map("user")
@@ -1877,11 +1887,55 @@ model Attachment {
 
   owner      User               @relation(fields: [ownerId], references: [id], onDelete: Restrict)
   messageRef MessageAttachment?
+  catalogDocument CatalogDocument?
 
   @@index([ownerId, createdAt])
   @@index([subjectType, subjectId])
   @@index([status])
   @@map("attachment")
+}
+
+/// A secured source file for the future catalog/RAG pipeline. Phase one stores
+/// metadata and workflow state only; no extraction, OCR or embeddings run here.
+model CatalogDocument {
+  id              String                @id @default(uuid(7)) @db.Uuid
+  attachmentId    String                @unique @map("attachment_id") @db.Uuid
+  uploaderId      String                @map("uploader_id") @db.Uuid
+  title           String                @db.VarChar(160)
+  version         String                @db.VarChar(40)
+  status          CatalogDocumentStatus @default(UPLOADED)
+  processingError String?               @map("processing_error") @db.VarChar(500)
+  processedAt     DateTime?             @map("processed_at") @db.Timestamptz(3)
+  approvedAt      DateTime?             @map("approved_at") @db.Timestamptz(3)
+  createdAt       DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  attachment Attachment             @relation(fields: [attachmentId], references: [id], onDelete: Restrict)
+  uploader   User                   @relation("CatalogDocumentUploader", fields: [uploaderId], references: [id], onDelete: Restrict)
+  chunks     CatalogDocumentChunk[]
+
+  @@index([status, createdAt])
+  @@index([uploaderId, createdAt])
+  @@map("catalog_document")
+}
+
+/// Reserved text segments for a later RAG phase. This table intentionally has
+/// no vector/embedding column and remains empty until extraction is implemented.
+model CatalogDocumentChunk {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  documentId  String   @map("document_id") @db.Uuid
+  ordinal     Int
+  contentText String   @map("content_text") @db.Text
+  pageNumber  Int?     @map("page_number")
+  rowStart    Int?     @map("row_start")
+  rowEnd      Int?     @map("row_end")
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  document CatalogDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, ordinal])
+  @@map("catalog_document_chunk")
 }
 
 // ---------------------------------------------------------------------------

@@ -10,7 +10,7 @@ import type { Actor } from '../../common/request-context.js';
 import { AttachmentsService } from './attachments.service.js';
 
 const purposeSchema = z.object({
-  purpose: z.enum(['MESSAGE', 'SOURCING_REQUEST', 'RETURN_REQUEST', 'BUSINESS_VERIFICATION', 'IMPORT']),
+  purpose: z.enum(['MESSAGE', 'SOURCING_REQUEST', 'RETURN_REQUEST', 'BUSINESS_VERIFICATION', 'IMPORT', 'KNOWLEDGE_CATALOG']),
 });
 
 @ApiTags('attachments')

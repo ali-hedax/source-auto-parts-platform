@@ -229,6 +229,24 @@ export const mediaOrderSchema = z.object({
   ids: z.array(idSchema).min(1).max(50),
 });
 
+/** Bulk photos: which products the codes read from photo file names belong to (technical number or SKU). */
+export const productCodeLookupSchema = z.object({
+  codes: z.array(z.string().trim().min(1).max(80)).min(1).max(500),
+});
+
+export interface ProductCodeMatch {
+  id: string;
+  sku: string;
+  nameFa: string;
+  /** Photos the product already has. */
+  photoCount: number;
+}
+
+/** For each code asked about (as sent): the products it belongs to; empty when none, several when the code is shared. */
+export interface ProductCodeLookupView {
+  matches: Record<string, ProductCodeMatch[]>;
+}
+
 export interface ProductMediaView {
   id: string;
   storageKey: string;
