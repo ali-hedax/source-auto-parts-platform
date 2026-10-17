@@ -1,4 +1,5 @@
 import type { ProductCard } from '@hedax/contracts';
+import { fitmentLabels } from '@hedax/domain';
 import { ImageOff } from 'lucide-react';
 import Image from 'next/image';
 import { getLocale, getTranslations } from 'next-intl/server';
@@ -17,6 +18,8 @@ export async function PartCard({ product, priority = false }: { product: Product
   const locale = (await getLocale()) as 'fa' | 'en';
   const name = locale === 'en' ? (product.name.en ?? product.name.fa) : product.name.fa;
   const brandNames = product.vehicleBrands.map((b) => (locale === 'en' ? (b.name.en ?? b.name.fa) : b.name.fa)).join('، ');
+  // «کاربرد: دنا، سمند، پژو 405»; older cached responses without fitments show nothing.
+  const usedIn = fitmentLabels(product.fitments ?? [], locale).join(locale === 'en' ? ', ' : '، ');
   return (
     <article className="group h-full overflow-hidden rounded-[var(--radius-card)] border border-line-soft bg-white transition-colors duration-150 hover:border-line-strong">
       <Link href={`/parts/${product.slug}`} className="grid h-full grid-cols-[6.5rem_minmax(0,1fr)] focus-visible:outline-offset-[-3px] sm:flex sm:flex-col">
@@ -50,6 +53,7 @@ export async function PartCard({ product, priority = false }: { product: Product
             {locale === 'en' && !product.name.en ? <span className="block text-xs font-normal text-steel">({t('common.englishFallback')})</span> : null}
           </h3>
           {brandNames ? <p className="truncate text-sm text-steel">{t('parts.vehicleBrands')}: {brandNames}</p> : null}
+          {usedIn ? <p className="line-clamp-1 text-xs text-steel" title={usedIn} data-testid="card-fitment">{t('parts.usedIn')}: {usedIn}</p> : null}
           <div className="flex flex-wrap gap-1">
             <Badge>{t(`partType.${product.partType}`)}</Badge>
             {product.condition !== 'NEW' ? <Badge tone="warning">{t(`condition.${product.condition}`)}</Badge> : null}

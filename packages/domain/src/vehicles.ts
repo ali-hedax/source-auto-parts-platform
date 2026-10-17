@@ -112,3 +112,23 @@ export function vehicleSlug(nameEn: string | null | undefined, fallback: string)
     .slice(0, 80);
   return slug || fallback;
 }
+
+/** One «کاربرد» link as the catalog returns it: a whole vehicle, or one of its models. */
+export interface FitmentNames {
+  vehicle: { name: { fa: string; en: string | null } };
+  model: { name: { fa: string; en: string | null } } | null;
+}
+
+/**
+ * «کاربرد: دنا، سمند، پژو 405»: one name per vehicle or model ("vehicle model"), in the given
+ * order, without repeats. Empty when the product has no fitment.
+ */
+export function fitmentLabels(fitments: readonly FitmentNames[], locale: 'fa' | 'en'): string[] {
+  const pick = (n: { fa: string; en: string | null }) => (locale === 'en' ? (n.en || n.fa) : n.fa).trim();
+  const out: string[] = [];
+  for (const f of fitments) {
+    const label = f.model ? `${pick(f.vehicle.name)} ${pick(f.model.name)}`.trim() : pick(f.vehicle.name);
+    if (label && !out.includes(label)) out.push(label);
+  }
+  return out;
+}
