@@ -7,5 +7,5 @@ export * from './messaging.js';
 export * from './admin.js';
 export * from './content.js';
 export * from './vehicles.js';
-export * from './catalog-entries.js';
+export * from './brand-imports.js';
 export * from './builder.js';

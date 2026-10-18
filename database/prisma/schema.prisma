@@ -260,6 +260,8 @@ enum AttachmentPurpose {
   QUOTE_PDF
   EXPORT
   KNOWLEDGE_CATALOG
+  /// A brand's parts database (panel → brand database import): large xlsx/csv/zip files.
+  BRAND_IMPORT
 }
 
 enum AttachmentVisibility {
@@ -285,6 +287,34 @@ enum CatalogEntryStatus {
 enum CatalogNumberKind {
   EQUIVALENT
   REPLACEMENT
+}
+
+/// Other numbers of a part: the same part from other makers, or the number that replaces it.
+enum ProductNumberKind {
+  EQUIVALENT
+  REPLACEMENT
+}
+
+/// Brand database import (panel → «ورود دیتابیس برند»).
+enum BrandImportStatus {
+  /// The worker reads the file's sheets/CSV files, headers and sample rows.
+  INSPECTING
+  /// Waiting for the column mapping (pre-filled from the brand's saved mapping).
+  AWAITING_MAPPING
+  /// The worker reads the whole file with the mapping and counts new / update / duplicate / error.
+  PREVIEWING
+  PREVIEW_READY
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  ROLLING_BACK
+  ROLLED_BACK
+}
+
+enum BrandImportChangeAction {
+  CREATED
+  UPDATED
 }
 
 enum CatalogDocumentStatus {
@@ -727,8 +757,10 @@ model ManufacturerBrand {
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  products       Product[]
-  catalogEntries CatalogEntry[]
+  products            Product[]
+  catalogEntries      CatalogEntry[]
+  brandImportProfiles BrandImportProfile[]
+  brandImports        BrandImport[]
 
   @@map("manufacturer_brand")
 }
@@ -771,6 +803,12 @@ model Product {
   unitId               String            @map("unit_id") @db.Uuid
   packQuantity         Int               @default(1) @map("pack_quantity")
   oemCodes             String[]          @map("oem_codes")
+  /// Main technical number as written («0450-102-805») and its key partNumberKey() («0450102805»).
+  /// Unique per manufacturer brand (partial unique indexes in the migration).
+  partNumber           String?           @map("part_number") @db.VarChar(80)
+  partNumberKey        String?           @map("part_number_key") @db.VarChar(80)
+  /// The brand database import that created this part (rollback deletes only parts it created).
+  sourceBrandImportId  String?           @map("source_brand_import_id") @db.Uuid
   specs                Json              @default("[]")
   published            Boolean           @default(false)
   publishedAt          DateTime?         @map("published_at") @db.Timestamptz(3)
@@ -786,26 +824,34 @@ model Product {
   createdAt            DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt            DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  category          Category               @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  manufacturerBrand ManufacturerBrand?     @relation(fields: [manufacturerBrandId], references: [id], onDelete: Restrict)
-  salesUnit         Unit                   @relation(fields: [unitId], references: [id], onDelete: Restrict)
-  translations      ProductTranslation[]
-  vehicleBrands     ProductVehicleBrand[]
-  media             ProductMedia[]
-  fitments          ProductFitment[]
+  category           Category               @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  manufacturerBrand  ManufacturerBrand?     @relation(fields: [manufacturerBrandId], references: [id], onDelete: Restrict)
+  salesUnit          Unit                   @relation(fields: [unitId], references: [id], onDelete: Restrict)
+  translations       ProductTranslation[]
+  vehicleBrands      ProductVehicleBrand[]
+  media              ProductMedia[]
+  fitments           ProductFitment[]
   /// «کاربرد در خودرو»: whole vehicles or specific models (panel → vehicles).
-  vehicles          ProductVehicle[]
-  /// Technical catalog entries linked to this product by hand (never automatically).
-  catalogEntries    CatalogEntry[]
-  basePrice         ProductPrice?
-  priceRules        QuantityPriceRule[]
-  inventory         InventoryBalance[]
-  reservations      InventoryReservation[]
-  movements         InventoryMovement[]
-  cartItems         CartItem[]
-  orderItems        OrderItem[]
+  vehicles           ProductVehicle[]
+  /// Equivalent and replacement numbers.
+  numbers            ProductNumber[]
+  /// Technical catalog entries linked to this product by hand (legacy; merged into products).
+  catalogEntries     CatalogEntry[]
+  sourceBrandImport  BrandImport?           @relation(fields: [sourceBrandImportId], references: [id], onDelete: SetNull)
+  brandImportChanges BrandImportChange[]
+  basePrice          ProductPrice?
+  priceRules         QuantityPriceRule[]
+  inventory          InventoryBalance[]
+  reservations       InventoryReservation[]
+  movements          InventoryMovement[]
+  cartItems          CartItem[]
+  orderItems         OrderItem[]
 
   @@index([published, archivedAt, categoryId])
+  @@index([partNumberKey])
+  @@index([partNumberKey(ops: raw("gin_trgm_ops"))], type: Gin, map: "product_part_number_key_trgm_idx")
+  @@index([manufacturerBrandId])
+  @@index([sourceBrandImportId])
   @@index([origin])
   @@index([unitId])
   // Trigram indexes for Persian/English search (pg_trgm is created in the constraints migration).
@@ -954,6 +1000,9 @@ model ProductVehicle {
   productId String  @map("product_id") @db.Uuid
   vehicleId String  @map("vehicle_id") @db.Uuid
   modelId   String? @map("model_id") @db.Uuid
+  yearFrom  Int?    @map("year_from")
+  yearTo    Int?    @map("year_to")
+  note      String? @db.VarChar(200)
 
   product Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
   vehicle Vehicle       @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
@@ -1956,6 +2005,125 @@ model CatalogDocumentChunk {
 
   @@unique([documentId, ordinal])
   @@map("catalog_document_chunk")
+}
+
+/// Equivalent / replacement numbers of a part. `numberKey` = partNumberKey(number).
+model ProductNumber {
+  id        String            @id @default(uuid(7)) @db.Uuid
+  productId String            @map("product_id") @db.Uuid
+  number    String            @db.VarChar(80)
+  numberKey String            @map("number_key") @db.VarChar(80)
+  kind      ProductNumberKind
+  sortOrder Int               @default(0) @map("sort_order")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, numberKey])
+  @@index([numberKey])
+  @@index([numberKey(ops: raw("gin_trgm_ops"))], type: Gin, map: "product_number_number_key_trgm_idx")
+  @@map("product_number")
+}
+
+/// Saved column mapping per manufacturer brand and data source: applied again on the next import.
+model BrandImportProfile {
+  id                  String   @id @default(uuid(7)) @db.Uuid
+  manufacturerBrandId String   @map("manufacturer_brand_id") @db.Uuid
+  source              String   @db.VarChar(120)
+  mapping             Json     @default("{}")
+  options             Json     @default("{}")
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  manufacturerBrand ManufacturerBrand @relation(fields: [manufacturerBrandId], references: [id], onDelete: Cascade)
+
+  @@unique([manufacturerBrandId, source])
+  @@map("brand_import_profile")
+}
+
+/// One brand database import: file, mapping, preview counts, progress, statistics and rollback.
+model BrandImport {
+  id                  String            @id @default(uuid(7)) @db.Uuid
+  manufacturerBrandId String            @map("manufacturer_brand_id") @db.Uuid
+  source              String            @db.VarChar(120)
+  attachmentId        String            @map("attachment_id") @db.Uuid
+  filename            String            @db.VarChar(255)
+  status              BrandImportStatus @default(INSPECTING)
+  /// Sheets / CSV files, encoding, headers and sample rows read by the worker.
+  outline             Json?
+  mapping             Json              @default("{}")
+  /// publish (immediately or as drafts), part type, list separator.
+  options             Json              @default("{}")
+  /// Sample rows with the mapping applied (preview).
+  preview             Json?
+  /// Counts: rows, new, update, duplicate (same number twice in the file), error; then created, updated, unchanged.
+  stats               Json              @default("{}")
+  totalRows           Int?              @map("total_rows")
+  processedRows       Int               @default(0) @map("processed_rows")
+  failureReason       String?           @map("failure_reason") @db.VarChar(500)
+  createdById         String            @map("created_by_id") @db.Uuid
+  startedAt           DateTime?         @map("started_at") @db.Timestamptz(3)
+  finishedAt          DateTime?         @map("finished_at") @db.Timestamptz(3)
+  rolledBackAt        DateTime?         @map("rolled_back_at") @db.Timestamptz(3)
+  rolledBackById      String?           @map("rolled_back_by_id") @db.Uuid
+  createdAt           DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  manufacturerBrand ManufacturerBrand   @relation(fields: [manufacturerBrandId], references: [id], onDelete: Restrict)
+  changes           BrandImportChange[]
+  errors            BrandImportError[]
+  createdProducts   Product[]
+
+  @@index([manufacturerBrandId, createdAt])
+  @@index([status])
+  @@map("brand_import")
+}
+
+/// A part created or updated by a brand import, with its technical fields before the change (rollback).
+model BrandImportChange {
+  id        String                  @id @default(uuid(7)) @db.Uuid
+  importId  String                  @map("import_id") @db.Uuid
+  productId String                  @map("product_id") @db.Uuid
+  action    BrandImportChangeAction
+  before    Json?
+  createdAt DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  import  BrandImport @relation(fields: [importId], references: [id], onDelete: Cascade)
+  product Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([importId, productId])
+  @@index([productId])
+  @@map("brand_import_change")
+}
+
+/// A row a brand import could not use (downloadable error report). At most 50 000 per import.
+model BrandImportError {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  importId   String   @map("import_id") @db.Uuid
+  /// "file.csv:123" or "Sheet1:123".
+  rowRef     String   @map("row_ref") @db.VarChar(200)
+  partNumber String?  @map("part_number") @db.VarChar(120)
+  codes      String[]
+  detail     String?  @db.VarChar(300)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  import BrandImport @relation(fields: [importId], references: [id], onDelete: Cascade)
+
+  @@index([importId])
+  @@map("brand_import_error")
+}
+
+/// Technical catalog entry → the part it became (phase 4 merge). Also the source of the 301
+/// redirects /catalog/[legacySlug] → /parts/[product slug].
+model CatalogEntryMigration {
+  entryId    String   @id @map("entry_id") @db.Uuid
+  productId  String   @map("product_id") @db.Uuid
+  legacySlug String   @unique @map("legacy_slug") @db.VarChar(120)
+  /// True when the entry was merged into the product it was linked to; false when a new part was made.
+  merged     Boolean
+  migratedAt DateTime @default(now()) @map("migrated_at") @db.Timestamptz(3)
+
+  @@index([productId])
+  @@map("catalog_entry_migration")
 }
 
 /// A part in the technical catalog («کاتالوگ فنی قطعات»): a reference entry customers can search

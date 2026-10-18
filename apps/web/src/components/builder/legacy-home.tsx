@@ -1,6 +1,6 @@
 import type { CategoryView, ContentButton, HomeSection, SearchResult, VehicleBrandView } from '@hedax/contracts';
 import { localize } from '@hedax/contracts/constants';
-import { ArrowLeft, ArrowRight, CarFront, ChevronLeft, ChevronRight, PackageSearch, Plus, Search, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CarFront, ChevronLeft, ChevronRight, PackageSearch, Plus, ShieldCheck } from 'lucide-react';
 import Image from 'next/image';
 import type { ReactNode } from 'react';
 import { RichText } from '@/components/content/rich-text';
@@ -8,7 +8,6 @@ import { ButtonLink, buttonClass } from '@/components/ui/button';
 import { PartCard } from '@/components/catalog/part-card';
 import { EmptyState } from '@/components/ui/misc';
 import { Link } from '@/i18n/navigation';
-import { vehicleBrandLogo } from '@/lib/vehicle-brand-logos';
 
 import { useTranslations } from 'next-intl';
 import type { SiteContentView } from '@hedax/contracts';
@@ -22,8 +21,8 @@ function ContentButtonLink({ button, locale, variant = 'primary', size = 'md', c
   return <a href={button.href} className={buttonClass(variant, size, className)} {...(/^https?:/i.test(button.href) ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>{label}</a>;
 }
 
-export function LegacyHomeView({ content, featured, brands, categories, locale, mobileImageUrl, imageAlt }: {
-  content: SiteContentView; featured: SearchResult | null; brands: VehicleBrandView[]; categories: CategoryView[]; locale: string; mobileImageUrl?: string; imageAlt?: string;
+export function LegacyHomeView({ content, featured, brands, categories, locale, mobileImageUrl, imageAlt, logos = {} }: {
+  logos?: Record<string, string>; content: SiteContentView; featured: SearchResult | null; brands: VehicleBrandView[]; categories: CategoryView[]; locale: string; mobileImageUrl?: string; imageAlt?: string;
 }) {
   const t = useTranslations();
   const L = (text: Parameters<typeof localize>[0]) => localize(text, locale);
@@ -52,20 +51,6 @@ export function LegacyHomeView({ content, featured, brands, categories, locale, 
                 <span className="hedax-hero-eyebrow">{locale === 'fa' ? 'فروشگاه تخصصی قطعات خودرو' : 'YOUR AUTO PARTS SPECIALIST'}</span>
                 <h1 className="max-w-2xl text-[2rem] font-extrabold tracking-tight text-white sm:text-[2.7rem] lg:text-[3.2rem]">{L(s.title)}</h1>
                 {L(s.text) ? <p className="mt-4 max-w-2xl leading-8 text-silver/90 sm:text-lg sm:leading-8">{L(s.text)}</p> : null}
-                <form action={`/${locale}/parts`} method="get" role="search" className="hedax-hero-search mt-8 max-w-2xl">
-                  <label htmlFor={`hero-search-${s.id}`} className="mb-2 block text-sm font-semibold text-white">{t('search.label')}</label>
-                  <div className="flex flex-col gap-2 rounded-2xl border border-white/15 bg-white/10 p-2 shadow-[0_22px_65px_-25px_rgba(0,0,0,0.65)] backdrop-blur-md sm:flex-row">
-                    <div className="relative min-w-0 flex-1">
-                      <Search aria-hidden className="pointer-events-none absolute inset-y-0 start-4 my-auto size-5 text-steel" />
-                      <input id={`hero-search-${s.id}`} name="q" type="search" required placeholder={t('search.placeholder')} aria-describedby={`hero-search-hint-${s.id}`}
-                        className="h-14 w-full rounded-xl border border-transparent bg-white ps-12 pe-4 text-base text-ink shadow-sm placeholder:text-steel/80" />
-                    </div>
-                    <button type="submit" className="inline-flex h-14 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#096ce5] px-7 font-bold text-white shadow-lg shadow-blue-900/25 transition-all hover:bg-[#0967d3] active:bg-[#0967d3]">
-                      {L(s.searchButton)}
-                    </button>
-                  </div>
-                  <p id={`hero-search-hint-${s.id}`} className="mt-2 text-sm leading-6 text-silver/80">{t('search.hint')}</p>
-                </form>
                 {s.showCategories && topCategories.length ? (
                   <nav aria-labelledby={`categories-title-${s.id}`} className="mt-7 max-w-2xl">
                     <h2 id={`categories-title-${s.id}`} className="mb-2.5 text-sm font-semibold text-white">{L(s.categoriesTitle)}</h2>
@@ -109,7 +94,7 @@ export function LegacyHomeView({ content, featured, brands, categories, locale, 
                   <span className="min-w-0 flex-1"><strong className="block text-base font-bold">{locale === 'fa' ? 'انتخاب خودروی من' : 'Find parts for my car'}</strong><span className="block text-sm text-[#56677d]">{locale === 'fa' ? 'قطعات را بر اساس خودرو پیدا کنید' : 'Browse by vehicle'}</span></span>
                   <Chevron aria-hidden className="size-5 text-[#096ce5]" />
                 </Link>
-                <Link href="/catalog" className="hedax-discovery-card group flex items-center gap-4 rounded-2xl border border-white/20 bg-white/95 p-4 text-[#15243a] shadow-xl transition-all hover:-translate-y-1 hover:border-sky-400">
+                <Link href="/parts" className="hedax-discovery-card group flex items-center gap-4 rounded-2xl border border-white/20 bg-white/95 p-4 text-[#15243a] shadow-xl transition-all hover:-translate-y-1 hover:border-sky-400">
                   <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-[#e9f3ff] text-[#096ce5]"><PackageSearch className="size-6" aria-hidden /></span>
                   <span className="min-w-0 flex-1"><strong className="block text-base font-bold">{locale === 'fa' ? 'کاتالوگ قطعات' : 'Parts catalogue'}</strong><span className="block text-sm text-[#56677d]">{locale === 'fa' ? 'جست‌وجو بر اساس نام یا شماره فنی' : 'Search by part name or number'}</span></span>
                   <Chevron aria-hidden className="size-5 text-[#096ce5]" />
@@ -136,7 +121,7 @@ export function LegacyHomeView({ content, featured, brands, categories, locale, 
             </div>
             <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
               {brands.filter((b) => b.isFeatured).map((b) => {
-                const logo = vehicleBrandLogo(b.slug);
+                const logo = logos[b.slug] ?? null;
                 return (
                   <li key={b.slug}>
                     <Link href={`/brands/${b.slug}`} className="hedax-brand-card flex h-full min-h-[5.5rem] flex-col justify-center gap-1.5 rounded-2xl border border-[#e1eaf5] bg-white px-5 py-4 shadow-sm transition-all hover:-translate-y-1 hover:border-[#65b7ff] hover:shadow-lg">

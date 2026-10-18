@@ -18,7 +18,7 @@ export const builderStyleSchema = z.object({
   imageHeight: size(700).optional(), titleSize: size(60).min(12).optional(), priceSize: size(48).min(12).optional(),
 }).strict();
 export type BuilderStyle = z.infer<typeof builderStyleSchema>;
-export const BUILDER_KINDS = ['legacy', 'hero', 'slider', 'categories', 'search', 'vehicle-brands', 'vehicle-models', 'brands', 'new-products', 'bestsellers', 'discounts', 'offers', 'selected-products', 'vehicle-products', 'image-categories', 'services', 'benefits', 'notice', 'banners', 'text-image', 'custom', 'technical-catalog'] as const;
+export const BUILDER_KINDS = ['legacy', 'hero', 'slider', 'categories', 'search', 'vehicle-brands', 'vehicle-models', 'brands', 'new-products', 'bestsellers', 'discounts', 'offers', 'selected-products', 'vehicle-products', 'image-categories', 'services', 'benefits', 'notice', 'banners', 'text-image', 'custom', 'makers'] as const;
 export const builderItemSchema = z.object({
   title: localizedSchema(160), text: localizedSchema(1000), imageUrl: contentImageSchema, mobileImageUrl: contentImageSchema,
   alt: localizedSchema(160), href: contentLinkSchema, button: localizedSchema(60), visible: z.boolean(),

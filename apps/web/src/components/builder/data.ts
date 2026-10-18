@@ -1,18 +1,20 @@
-import type { BuilderDocument, CatalogEntrySearchResult, CategoryView, ProductCard, SearchResult, SiteContentView, VehicleBrandView, VehiclePublicView } from '@hedax/contracts';
+import type { BuilderDocument, CategoryView, ManufacturerView, ProductCard, SearchResult, SiteContentView, VehicleBrandView, VehiclePublicView } from '@hedax/contracts';
 
 export interface BuilderData {
   now: number;
+  /** Vehicle-brand emblems (slug → public path), resolved on the server. */
+  logos: Record<string, string>;
   vehicles: VehiclePublicView[];
   content: SiteContentView | null; featured: SearchResult | null; brands: VehicleBrandView[]; categories: CategoryView[];
-  catalogRecent: CatalogEntrySearchResult | null; products: Record<string, ProductCard[]>;
+  makers: ManufacturerView[]; products: Record<string, ProductCard[]>;
 }
-export async function loadBuilderData(document: BuilderDocument | null, get: <T>(path: string) => Promise<T>, currency = 'IRR'): Promise<BuilderData> {
-  const [content, featured, brands, categories, catalogRecent, vehicles] = await Promise.all([
+export async function loadBuilderData(document: BuilderDocument | null, get: <T>(path: string) => Promise<T>, currency = 'IRR', logos: Record<string, string> = {}): Promise<BuilderData> {
+  const [content, featured, brands, categories, makers, vehicles] = await Promise.all([
     get<SiteContentView>('/site/content'),
     get<SearchResult>(`/catalog/products?inStock=1&pageSize=8&currency=${currency}`).catch(() => null),
     get<VehicleBrandView[]>('/catalog/vehicle-brands').catch(() => []),
     get<CategoryView[]>('/catalog/categories').catch(() => []),
-    get<CatalogEntrySearchResult>('/catalog/entries?pageSize=4').catch(() => null),
+    get<ManufacturerView[]>('/catalog/manufacturers').catch(() => []),
     get<VehiclePublicView[]>('/catalog/vehicles').catch(() => []),
   ]);
   const products: Record<string, ProductCard[]> = {};
@@ -27,5 +29,5 @@ export async function loadBuilderData(document: BuilderDocument | null, get: <T>
       products[block.id] = (await get<SearchResult>(`/catalog/products?${params}`).catch(() => null))?.items ?? [];
     }
   }));
-  return { now: Date.now(), content, featured, brands, categories, catalogRecent, vehicles, products };
+  return { now: Date.now(), logos, content, featured, brands, categories, makers, vehicles, products };
 }

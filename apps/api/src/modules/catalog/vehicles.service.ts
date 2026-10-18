@@ -383,7 +383,7 @@ export class VehiclesService {
    * Replaces a product's fitment: whole vehicles (modelId null) and/or specific models. A vehicle
    * or model must be active unless the product already had it.
    */
-  async setProductVehicles(tx: Tx, productId: string, wanted: ReadonlyArray<{ vehicleId: string; modelId: string | null }>): Promise<void> {
+  async setProductVehicles(tx: Tx, productId: string, wanted: ReadonlyArray<{ vehicleId: string; modelId: string | null; yearFrom?: number | null; yearTo?: number | null; note?: string | null }>): Promise<void> {
     const current = await tx.productVehicle.findMany({ where: { productId } });
     const had = new Set(current.map((c) => `${c.vehicleId}:${c.modelId ?? ''}`));
     const unique = [...new Map(wanted.map((w) => [`${w.vehicleId}:${w.modelId ?? ''}`, w])).values()];
@@ -401,7 +401,7 @@ export class VehiclesService {
       if (!had.has(key) && (!v.active || (m && !m.active))) throw badRequest('VEHICLE_INACTIVE');
     }
     await tx.productVehicle.deleteMany({ where: { productId } });
-    if (unique.length) await tx.productVehicle.createMany({ data: unique.map((w) => ({ productId, vehicleId: w.vehicleId, modelId: w.modelId })) });
+    if (unique.length) await tx.productVehicle.createMany({ data: unique.map((w) => ({ productId, vehicleId: w.vehicleId, modelId: w.modelId, yearFrom: w.yearFrom ?? null, yearTo: w.yearTo ?? null, note: w.note ?? null })) });
   }
 
   /** Excel import (after the person confirmed new vehicles): the vehicle with this name, created when missing. */
@@ -421,9 +421,17 @@ export class VehiclesService {
   }
 
   /** Adds one fitment link to a product unless it already has it (imports only ever add fitment). */
-  async addProductVehicle(tx: Tx, productId: string, vehicleId: string, modelId: string | null): Promise<void> {
-    const exists = await tx.productVehicle.findFirst({ where: { productId, vehicleId, modelId }, select: { id: true } });
-    if (!exists) await tx.productVehicle.create({ data: { productId, vehicleId, modelId } });
+  /** Links a vehicle (or model); years given by an import fill the link's years when it has none. */
+  async addProductVehicle(tx: Tx, productId: string, vehicleId: string, modelId: string | null, years?: { yearFrom?: number | null; yearTo?: number | null }): Promise<'added' | 'kept'> {
+    const exists = await tx.productVehicle.findFirst({ where: { productId, vehicleId, modelId }, select: { id: true, yearFrom: true } });
+    const yearFrom = years?.yearFrom ?? null;
+    const yearTo = years?.yearTo ?? yearFrom;
+    if (!exists) {
+      await tx.productVehicle.create({ data: { productId, vehicleId, modelId, yearFrom, yearTo } });
+      return 'added';
+    }
+    if (yearFrom !== null && exists.yearFrom === null) await tx.productVehicle.update({ where: { id: exists.id }, data: { yearFrom, yearTo } });
+    return 'kept';
   }
 
   private async refreshSearch(productIds: string[]): Promise<void> {

@@ -25,6 +25,14 @@
 	# Webhook headers and Bale capability URLs must never enter access logs.
 	log_skip /api/v1/integrations/*
 
+	# Brand database import (panel → «ورود دیتابیس برند»): one file up to 150 MB, streamed to disk by the API.
+	handle /api/v1/admin/brand-imports/upload {
+		request_body {
+			max_size 160MB
+		}
+		reverse_proxy api:4000
+	}
+
 	handle /api/* {
 		# Upload limits are enforced by the API (≤20 MB per file, ≤50 MB per batch); this is a ceiling.
 		request_body {

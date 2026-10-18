@@ -1,22 +1,28 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { BuilderState, BuilderDocument, BuilderMedia, BuilderRevision } from '@hedax/contracts';
 import { Client, type Staff, type TestApp, bootApp, inviteStaff, loginOwner, pngBytes } from './helpers.js';
-let t: TestApp; let owner: Client; let manager: Staff; let support: Staff;
+let t: TestApp; let owner: Client; let manager: Staff; let support: Staff; let editor: Staff;
 const slug = `builder-${Date.now().toString(36)}`;
 const endpoint = `/admin/content/builder/${slug}`;
 const state = async () => (await owner.get<BuilderState>(endpoint)).body;
-beforeAll(async () => { t = await bootApp(); owner = await loginOwner(t); manager = await inviteStaff(t, owner, 'manager'); support = await inviteStaff(t, owner, 'support'); });
+beforeAll(async () => { t = await bootApp(); owner = await loginOwner(t); manager = await inviteStaff(t, owner, 'manager'); support = await inviteStaff(t, owner, 'support');
+  // A custom role that may edit site content but not publish it.
+  const key = `builder_editor_${Date.now().toString(36)}`.slice(0, 40);
+  const role = await owner.post('/admin/roles', { key, nameFa: 'ویرایشگر محتوا', nameEn: 'Content editor', permissions: ['dashboard.view', 'content.manage'] });
+  if (role.status !== 201) throw new Error(`role failed ${role.status} ${JSON.stringify(role.body)}`);
+  editor = await inviteStaff(t, owner, key); });
 afterAll(async () => { await t?.close(); });
 describe('visual builder with real PostgreSQL and authentication', () => {
   it('protects private drafts and separates edit and publication permissions', async () => {
     expect((await new Client(t).get(endpoint)).status).toBe(401);
     expect((await support.get(endpoint)).status).toBe(403);
     const draft = await state(); draft.document.title.fa = 'پیش‌نویس خصوصی';
-    expect((await manager.put(endpoint, { version: 0, document: draft.document })).status).toBe(200);
+    expect((await editor.put(endpoint, { version: 0, document: draft.document })).status).toBe(200);
     expect((await new Client(t).get(`/site/builder/${slug}`)).body).toBe(null);
     const saved = await state();
-    expect((await manager.post(`${endpoint}/publish`, { version: saved.version })).status).toBe(403);
-    expect((await owner.post(`${endpoint}/publish`, { version: saved.version })).status).toBe(201);
+    expect((await editor.post(`${endpoint}/publish`, { version: saved.version })).status).toBe(403);
+    // The built-in manager role runs the site's content, publication included (only staff and roles are owner-only).
+    expect((await manager.post(`${endpoint}/publish`, { version: saved.version })).status).toBe(201);
     expect((await new Client(t).get<BuilderDocument>(`/site/builder/${slug}`)).body.title.fa).toBe('پیش‌نویس خصوصی');
   });
   it('rejects simultaneous edits atomically and never leaks saved drafts', async () => {
@@ -35,6 +41,16 @@ describe('visual builder with real PostgreSQL and authentication', () => {
     expect((await state()).document.title.fa).toBe('پیش‌نویس خصوصی');
     expect((await owner.post(`${endpoint}/publish`, { version: draft.version })).status).toBe(409);
   });
+  it('serves builder product collections publicly and validates their input', async () => {
+    const guest = new Client(t);
+    for (const kind of ['bestsellers', 'discounts', 'selected-products', 'offers']) {
+      const res = await guest.get(`/catalog/collections/${kind}?limit=4`);
+      expect(res.status, kind).toBe(200);
+      expect(Array.isArray(res.body), kind).toBe(true);
+    }
+    expect((await guest.get('/catalog/collections/unknown')).status).toBe(400);
+    expect((await guest.get('/catalog/collections/selected-products?slugs=' + encodeURIComponent("x';--"))).status).toBe(400);
+  });
   it('rejects fake images and prevents archiving media used in drafts or revisions', async () => {
     const bad = await owner.upload('/admin/content/media', {}, [{ name: 'bad.jpg', data: new TextEncoder().encode('<script>evil</script>'), field: 'file', type: 'image/jpeg' }]);
     expect(bad.status).toBe(400);
@@ -42,6 +58,6 @@ describe('visual builder with real PostgreSQL and authentication', () => {
     expect(upload.status).toBe(201);
     const draft = await state(); draft.document.description.fa = upload.body.url;
     expect((await owner.put(endpoint, { version: draft.version, document: draft.document })).status).toBe(200);
-    expect((await owner.delete(`/admin/content/media/${upload.body.id}`)).status).toBe(409);
+    expect((await owner.del(`/admin/content/media/${upload.body.id}`)).status).toBe(409);
   });
 });

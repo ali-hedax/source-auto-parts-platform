@@ -45,7 +45,12 @@ export interface FixtureProduct {
   condition: 'NEW' | 'USED' | 'REFURBISHED';
   origin: 'DOMESTIC' | 'IMPORTED' | 'UNKNOWN';
   currency: 'IRR' | 'AED';
-  price: bigint;
+  /** Null: no price (a part from a brand database import, shown with «درخواست تأمین»). */
+  price: bigint | null;
+  partNumber?: string;
+  equivalents?: string[];
+  replacements?: string[];
+  specs?: Array<{ label: string; value: string }>;
   manualIrr?: bigint;
   onHand: number;
   reserved: number;
@@ -56,6 +61,8 @@ export interface FixtureProduct {
 }
 
 const makerA = { slug: 'sample-maker-a', fa: 'سازندهٔ نمونه الف', en: 'Sample Maker A' };
+/** The maker of the sample brand database import (panel → «ورود دیتابیس برند»). */
+export const makerToyota = { slug: 'sample-toyota-genuine', fa: 'تویوتا جنیون (نمونه)', en: 'Toyota Genuine (SAMPLE)' };
 const makerB = { slug: 'sample-maker-b', fa: 'سازندهٔ نمونه ب', en: 'Sample Maker B' };
 
 const pid = (n: number) => `00000000-0000-7000-8000-${String(n).padStart(12, '0')}`;
@@ -70,6 +77,11 @@ export const fixtureProducts: FixtureProduct[] = [
   { id: pid(7), sku: 'DEMO-0007', slug: 'demo-alternator-sonata-used', fa: 'دینام استوک سوناتا (نمونه)', en: 'Alternator, Sonata — used stock (SAMPLE)', aliases: [], category: 'ELECTRICAL', brands: ['HYUNDAI'], maker: null, partType: 'GENUINE', condition: 'USED', origin: 'IMPORTED', currency: 'AED', price: 48_000n, onHand: 1, reserved: 0, descriptionFa: 'قطعهٔ استوک (کارکرده). در محیط واقعی عکس واقعی همین قلم الزامی است.', published: true },
   { id: pid(8), sku: 'DEMO-0008', slug: 'demo-water-pump-405', fa: 'واتر پمپ پژو ۴۰۵ (نمونه)', en: 'Water pump, Peugeot 405 (SAMPLE)', aliases: [], category: 'ENGINE', brands: ['IKCO'], maker: null, partType: 'AFTERMARKET', condition: 'NEW', origin: 'DOMESTIC', currency: 'IRR', price: 15_900_000n, onHand: 0, reserved: 0, published: true },
   { id: pid(9), sku: '00123', slug: 'demo-brake-disc-camry-refurb', fa: 'دیسک ترمز کمری بازسازی‌شده (نمونه)', en: 'Brake disc, Camry — refurbished (SAMPLE)', aliases: [], category: 'BRAKE', brands: ['TOYOTA'], maker: null, partType: 'GENUINE', condition: 'REFURBISHED', origin: 'IMPORTED', currency: 'AED', price: 21_000n, onHand: 3, reserved: 0, published: true },
+  // From the sample brand database import: no price or stock (shown with «درخواست تأمین»).
+  { id: pid(10), sku: 'TOYOTA-04465-33471', slug: 'toyota-front-brake-pad-camry-04465-33471', fa: 'لنت ترمز جلو کمری (نمونهٔ ورود برند)', en: 'Front brake pad set, Camry (SAMPLE)', aliases: [], category: 'BRAKE', brands: ['TOYOTA'], maker: makerToyota, partType: 'GENUINE', condition: 'NEW', origin: 'UNKNOWN', currency: 'IRR', price: null, onHand: 0, reserved: 0, published: true,
+    partNumber: '04465-33471', equivalents: ['04465 33480', 'GDB3425'], replacements: ['04465-33500'], specs: [{ label: 'وزن', value: '1.2 kg' }, { label: 'جنس', value: 'سرامیکی' }], descriptionFa: 'دادهٔ نمونهٔ ورود دیتابیس برند.' },
+  { id: pid(11), sku: 'TOYOTA-17801-21050', slug: 'toyota-air-filter-corolla-17801-21050', fa: 'فیلتر هوای کرولا (نمونهٔ ورود برند)', en: 'Air filter, Corolla (SAMPLE)', aliases: [], category: 'FILTER', brands: ['TOYOTA'], maker: makerToyota, partType: 'GENUINE', condition: 'NEW', origin: 'UNKNOWN', currency: 'IRR', price: null, onHand: 0, reserved: 0, published: true,
+    partNumber: '17801-21050', equivalents: ['C 2512'], replacements: [] },
 ];
 
 const now = Date.parse('2026-09-30T08:00:00Z');

@@ -29,7 +29,8 @@ function Layer({ block, selected, select, duplicate, remove, toggle, move, index
     <div className="flex flex-wrap items-center gap-1"><button type="button" className="min-h-11 min-w-8" aria-label="نمایش یا مخفی کردن" onClick={toggle}>{block.visible ? <Eye size={16} /> : <EyeOff size={16} />}</button><button type="button" className="min-h-11 min-w-8" aria-label="کپی بخش" onClick={duplicate}><Copy size={16} /></button><button type="button" className="min-h-11 min-w-8" aria-label="حذف بخش" onClick={remove}><Trash2 size={16} /></button><button type="button" disabled={!index} className="min-h-11 px-1 text-xs disabled:opacity-30" onClick={() => move(-1)}>بالا</button><button type="button" disabled={index === total - 1} className="min-h-11 px-1 text-xs disabled:opacity-30" onClick={() => move(1)}>پایین</button></div>
   </li>;
 }
-export function VisualBuilder({ slug = 'home', fullPreview = false }: { slug?: string; fullPreview?: boolean }) {
+const NO_LOGOS: Record<string, string> = {};
+export function VisualBuilder({ slug = 'home', fullPreview = false, logos = NO_LOGOS }: { slug?: string; fullPreview?: boolean; logos?: Record<string, string> }) {
   const locale = useLocale();
   const [doc, setDoc] = useState<BuilderDocument | null>(null);
   const [data, setData] = useState<BuilderData | null>(null);
@@ -61,8 +62,8 @@ export function VisualBuilder({ slug = 'home', fullPreview = false }: { slug?: s
     preventSave.current = false; setConflict(false); setDoc(state.document); setPast([]); setFuture([]);
     setSelected(state.document.sections[0]?.id ?? '');
     setStatus(state.publishedAt ? `آخرین انتشار: ${new Date(state.publishedAt).toLocaleString('fa-IR')} — ${state.publishedBy ?? ''}` : 'پیش‌نویس؛ هنوز از این صفحه‌ساز منتشر نشده است.');
-    setData(await loadBuilderData(state.document, api));
-  }, [endpoint]);
+    setData(await loadBuilderData(state.document, api, 'IRR', logos));
+  }, [endpoint, logos]);
   useEffect(() => { void reload().catch(() => setStatus('دریافت صفحه ناموفق بود. دسترسی حساب و اتصال را بررسی کنید.')); void api<MeView>('/me').then(setMe).catch(() => undefined); }, [reload]);
   const change = (next: BuilderDocument) => {
     if (locked) return;
@@ -94,7 +95,7 @@ export function VisualBuilder({ slug = 'home', fullPreview = false }: { slug?: s
   useEffect(() => { if (fullPreview || !doc || conflict) return; const timer = setTimeout(() => void save().catch(() => undefined), 1200); return () => clearTimeout(timer); }, [doc, save, conflict, fullPreview]);
   useEffect(() => { const warn = (e: BeforeUnloadEvent) => { if (JSON.stringify(current.current) !== saved.current) { e.preventDefault(); e.returnValue = ''; } }; window.addEventListener('beforeunload', warn); return () => window.removeEventListener('beforeunload', warn); }, []);
   const queryKey = JSON.stringify(doc?.sections.map(b => ({ id: b.id, kind: b.kind, query: b.query })));
-  useEffect(() => { if (!current.current) return; let active = true; const timer = setTimeout(() => { void loadBuilderData(current.current, api).then(next => { if (active) setData(next); }).catch(() => undefined); }, 700); return () => { active = false; clearTimeout(timer); }; }, [queryKey]);
+  useEffect(() => { if (!current.current) return; let active = true; const timer = setTimeout(() => { void loadBuilderData(current.current, api, 'IRR', logos).then(next => { if (active) setData(next); }).catch(() => undefined); }, 700); return () => { active = false; clearTimeout(timer); }; }, [queryKey, logos]);
   useEffect(() => { if (tab === 10) void api<BuilderRevision[]>(`${endpoint}/history`).then(setHistory).catch(() => setStatus('دریافت تاریخچه ناموفق بود.')); if (tab === 8) void api<Array<{ slug: string; publishedAt: string | null }>>('/admin/content/builder').then(setPages).catch(() => undefined); }, [tab, endpoint]);
   const publish = async (revisionId?: string) => {
     setLocked(true);

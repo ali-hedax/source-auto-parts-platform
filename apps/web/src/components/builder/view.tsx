@@ -3,7 +3,7 @@ import { localize } from '@hedax/contracts/constants';
 import { RichText } from '@/components/content/rich-text';
 import { Link } from '@/i18n/navigation';
 import { PartCard } from '@/components/catalog/part-card';
-import { CatalogHomeSection } from '@/components/catalog/catalog-home';
+import { MakersHomeSection } from '@/components/catalog/makers-home';
 import { LegacyHomeView } from './legacy-home';
 import { BannerSlider } from './slider';
 import { VehicleFinder } from './vehicle-finder';
@@ -20,7 +20,7 @@ function Picture({ block, locale }: { block: Pick<BuilderBlock, 'imageUrl' | 'mo
 export function BuilderBlockView({ block: b, data, locale }: { block: BuilderBlock; data: BuilderData; locale: string }) {
   const L = (v: Parameters<typeof localize>[0]) => localize(v, locale);
   if (b.kind === 'legacy' && b.legacy && data.content) return <LegacyHomeView {...data} locale={locale} mobileImageUrl={b.mobileImageUrl} imageAlt={L(b.alt)} content={{ ...data.content, home: { sections: [{ ...b.legacy, id: b.id, visible: true }] } }} />;
-  if (b.kind === 'technical-catalog') return <CatalogHomeSection recent={data.catalogRecent} />;
+  if (b.kind === 'makers') return <MakersHomeSection makers={data.makers} title={localize(b.title, locale)} />;
   const title = L(b.title);
   const heading = title ? <h2 className="builder-heading">{title}</h2> : null;
   const button = b.href && L(b.button) ? <Link className="builder-button" href={b.href}>{L(b.button)}</Link> : null;

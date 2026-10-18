@@ -54,7 +54,7 @@ test.describe('Persian search normalisation (A04)', () => {
   for (const [label, query, expected] of [
     ['Persian ی matches Arabic ي in data', 'فیلتر روغن', 'فيلتر روغن سمند'],
     ['Arabic ك in query matches', 'كمك فنر', 'كمك فنر عقب'],
-    ['ZWNJ-joined query matches spaced name', 'لنت‌ترمز', 'لنت ترمز جلو'],
+    ['ZWNJ-joined query matches spaced name', 'لنت‌ترمز', 'لنت ترمز جلو پژو'],
     ['Persian digits match', 'پژو ۲۰۶', 'پژو ۲۰۶'],
   ] as const) {
     test(label, async ({ page }) => {
@@ -297,7 +297,8 @@ test.describe('layout, SEO and accessibility', () => {
   test('text enlarged to 200%: no horizontal page scroll and the main control of each page stays reachable', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     const pages: Array<[string, RegExp]> = [
-      ['/fa', /جست‌وجوی قطعات موجود/],
+      // The one search is in the header.
+      ['/fa', /^جست‌وجو$/],
       ['/fa/parts/demo-front-brake-pad-206', /افزودن به سبد/],
       ['/fa/request-part', /ثبت درخواست/],
       ['/en/parts/demo-front-brake-pad-206', /Add to cart/i],

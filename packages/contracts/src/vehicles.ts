@@ -53,7 +53,14 @@ export const vehicleQuickAddSchema = z.object({
 });
 
 /** A product's fitment: a whole vehicle (modelId null) or one of its models. */
-export const productVehicleSchema = z.object({ vehicleId: idSchema, modelId: idSchema.nullable().default(null) });
+export const productVehicleSchema = z.object({
+  vehicleId: idSchema,
+  modelId: idSchema.nullable().default(null),
+  /** Years of manufacture the part fits (Persian or Gregorian), optional. */
+  yearFrom: z.number().int().min(1300).max(2100).nullable().default(null),
+  yearTo: z.number().int().min(1300).max(2100).nullable().default(null),
+  note: z.string().trim().max(200).nullable().default(null),
+});
 
 export interface VehicleCategoryView {
   id: string;
@@ -116,4 +123,7 @@ export interface VehiclePublicView {
 export interface FitmentView {
   vehicle: { slug: string; name: LocalizedText };
   model: { slug: string; name: LocalizedText } | null;
+  yearFrom?: number | null;
+  yearTo?: number | null;
+  note?: string | null;
 }

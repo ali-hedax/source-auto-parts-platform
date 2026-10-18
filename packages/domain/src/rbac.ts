@@ -64,7 +64,7 @@ export interface RoleDefinition {
 }
 
 /** Managing people and roles stays with the owner. */
-const OWNER_ONLY: readonly Permission[] = ['users.manage', 'roles.manage', 'content.publish'];
+const OWNER_ONLY: readonly Permission[] = ['users.manage', 'roles.manage'];
 
 export const DEFAULT_ROLES: readonly RoleDefinition[] = [
   { key: 'owner', nameFa: 'مالک', nameEn: 'Owner', permissions: ALL_PERMISSIONS, requiresMfa: true, isOwner: true },

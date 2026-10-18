@@ -1,20 +1,17 @@
 'use client';
 
 import type { AttachmentView, CatalogChunkPreview, CatalogDocumentStatus, CatalogDocumentView } from '@hedax/contracts';
-import { BookOpen, Download, FileUp } from 'lucide-react';
+import { BookOpen, DatabaseZap, Download, FileSpreadsheet, FileUp } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useSearchParams } from 'next/navigation';
-import { Fragment, Suspense, useState, type FormEvent } from 'react';
+import { Fragment, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Field, Input, Select } from '@/components/ui/field';
 import { DateTime } from '@/components/ui/format';
 import { Alert, EmptyState, PageHeader, Section, StatusBadge, TableScroll, td, th } from '@/components/ui/misc';
-import { Tabs } from '@/components/ui/tabs';
 import { api, uploadWithProgress } from '@/lib/api/client';
 import { errorText, isApiError } from '@/lib/api/errors';
 import { useApi } from '@/lib/use-api';
-import { BulkPhotoUpload } from './bulk-photos';
-import { CatalogEntriesAdmin } from './catalog-entries-admin';
+import { Link, useRouter } from '@/i18n/navigation';
 import { useL } from './shell';
 
 const MAX_BYTES = 20 * 1024 * 1024;
@@ -35,7 +32,7 @@ function bytes(value: number, locale: string): string {
   return `${new Intl.NumberFormat(locale === 'fa' ? 'fa-IR' : 'en-US', { maximumFractionDigits: 1 }).format(value / 1024 / 1024)} MB`;
 }
 
-/** The "اسناد و فایل‌های مرجع" tab: upload CSV/XLSX/PDF catalog sources and review/extract them. */
+/** Reference files (factory PDF/Excel/CSV catalogs and photos of catalog pages): archive, review, rows → parts. */
 function CatalogDocuments({ onConvert }: { onConvert: (documentId: string, ordinal: number) => void }) {
   const t = useTranslations();
   const l = useL();
@@ -56,7 +53,7 @@ function CatalogDocuments({ onConvert }: { onConvert: (documentId: string, ordin
     event.preventDefault();
     setMessage(null);
     if (!file) return setMessage({ tone: 'danger', text: l('یک فایل انتخاب کنید.', 'Choose a file.') });
-    if (!/\.(pdf|xlsx|csv)$/i.test(file.name)) return setMessage({ tone: 'danger', text: l('فقط PDF، XLSX و CSV پذیرفته می‌شود.', 'Only PDF, XLSX and CSV are accepted.') });
+    if (!/\.(pdf|xlsx|csv|jpe?g|png|webp)$/i.test(file.name)) return setMessage({ tone: 'danger', text: l('فقط PDF، Excel، CSV یا عکس (JPG، PNG، WebP) پذیرفته می‌شود.', 'Only PDF, Excel, CSV or a photo (JPG, PNG, WebP) is accepted.') });
     if (file.size > MAX_BYTES) return setMessage({ tone: 'danger', text: l('حجم فایل نباید بیشتر از ۲۰ مگابایت باشد.', 'The file must not exceed 20 MB.') });
     setBusy(true);
     try {
@@ -130,8 +127,8 @@ function CatalogDocuments({ onConvert }: { onConvert: (documentId: string, ordin
           <Field id="catalog-version" label={l('نسخه', 'Version')} required hint={l('مثال: 1.0 یا 1405-07', 'For example: 1.0 or 2026-10')}>
             <Input id="catalog-version" value={version} onChange={(e) => setVersion(e.target.value)} maxLength={40} required disabled={busy} dir="ltr" />
           </Field>
-          <Field id="catalog-file" label={l('فایل کاتالوگ', 'Catalog file')} required hint={l('PDF، XLSX یا CSV؛ حداکثر ۲۰ مگابایت. فایل پیش از دسترسی اسکن امنیتی می‌شود.', 'PDF, XLSX or CSV, up to 20 MB. The file is security-scanned before access.')} className="md:col-span-2">
-            <Input id="catalog-file" type="file" accept=".pdf,.xlsx,.csv" onChange={(e) => setFile(e.target.files?.[0] ?? null)} required disabled={busy} />
+          <Field id="catalog-file" label={l('فایل کاتالوگ', 'Catalog file')} required hint={l('PDF، Excel، CSV یا عکس صفحهٔ کاتالوگ؛ حداکثر ۲۰ مگابایت. فایل پیش از باز شدن از نظر امنیتی بررسی می‌شود.', 'PDF, Excel, CSV or a photo of a catalog page, up to 20 MB. The file is checked for safety before it can be opened.')} className="md:col-span-2">
+            <Input id="catalog-file" type="file" accept=".pdf,.xlsx,.csv,.jpg,.jpeg,.png,.webp" onChange={(e) => setFile(e.target.files?.[0] ?? null)} required disabled={busy} />
           </Field>
           <div className="md:col-span-2">
             <Button type="submit" loading={busy} icon={<FileUp aria-hidden className="size-4" />}>{l('بارگذاری و ثبت', 'Upload and save')}</Button>
@@ -161,13 +158,13 @@ function CatalogDocuments({ onConvert }: { onConvert: (documentId: string, ordin
                   <td className={td}><a href={item.downloadUrl} download className="inline-flex min-h-10 items-center gap-2 font-semibold text-action underline underline-offset-4"><Download aria-hidden className="size-4" />{l('دانلود', 'Download')}</a></td>
                   <td className={td}>
                     <div className="flex flex-col gap-2">
-                      {item.extension !== 'pdf' && (item.status === 'UPLOADED' || item.status === 'NEEDS_REVIEW') ? (
+                      {(item.extension === 'csv' || item.extension === 'xlsx') && (item.status === 'UPLOADED' || item.status === 'NEEDS_REVIEW') ? (
                         <Button type="button" disabled={updating === item.id} onClick={() => void requestExtraction(item.id)}>
-                          {l('استخراج اطلاعات', 'Extract candidates')}
+                          {l('خواندن ردیف‌ها', 'Read the rows')}
                         </Button>
                       ) : null}
                       <Button type="button" disabled={updating === item.id} onClick={() => void togglePreview(item.id)}>
-                        {previewOpen === item.id ? l('بستن پیش‌نمایش', 'Close preview') : l('مشاهده داده‌های استخراجی', 'View extracted data')}
+                        {previewOpen === item.id ? l('بستن ردیف‌ها', 'Close rows') : l('دیدن ردیف‌های خوانده‌شده', 'View rows read')}
                       </Button>
                       {item.processingError ? <p className="text-xs text-steel" dir="auto">{item.processingError}</p> : null}
                     </div>
@@ -176,12 +173,12 @@ function CatalogDocuments({ onConvert }: { onConvert: (documentId: string, ordin
                 {previewOpen === item.id ? (
                   <tr><td colSpan={6} className={td}>
                     <div className="max-h-80 overflow-auto rounded-lg border p-3">
-                      <p className="mb-2 text-sm font-semibold">{l('داده‌های پیشنهادی؛ نیازمند تأیید کارشناس', 'Unverified candidates — expert review required')}</p>
+                      <p className="mb-2 text-sm font-semibold">{l('ردیف‌های خوانده‌شده از فایل؛ پیش از ساختن قطعه بررسی کنید.', 'Rows read from the file; check them before making a part.')}</p>
                       {(previews[item.id] ?? []).length ? (previews[item.id] ?? []).map((chunk) => (
                         <div key={chunk.ordinal} className="mb-2 flex flex-wrap items-start justify-between gap-2 border-b pb-2">
                           <pre className="min-w-0 flex-1 whitespace-pre-wrap break-words text-xs" dir="auto">{l('ردیف', 'Row')} {chunk.rowStart ?? '—'}: {chunk.contentText}</pre>
                           {(chunk.metadata as { candidatePartNumber?: string | null } | null)?.candidatePartNumber ? (
-                            <Button type="button" size="sm" variant="secondary" onClick={() => onConvert(item.id, chunk.ordinal)}>{l('تبدیل به آیتم کاتالوگ', 'Turn into a catalog part')}</Button>
+                            <Button type="button" size="sm" variant="secondary" onClick={() => onConvert(item.id, chunk.ordinal)}>{l('تبدیل به قطعه', 'Make a part')}</Button>
                           ) : null}
                         </div>
                       )) : <p className="text-sm text-steel">{l('هنوز اطلاعاتی استخراج نشده است.', 'No extracted records yet.')}</p>}
@@ -200,48 +197,59 @@ function CatalogDocuments({ onConvert }: { onConvert: (documentId: string, ordin
   );
 }
 
-type CatalogTab = 'documents' | 'entries' | 'photos';
-
 /**
- * مرکز دانش و کاتالوگ: جایی واحد برای هر مادهٔ خامی که قرار است بعداً به کاتالوگ تبدیل شود — چه
- * فایل مرجع (اکسل/CSV/PDF) باشد، چه دسته‌عکسی که از قطعات یا از صفحات یک کاتالوگ کاغذی گرفته‌اید.
- * بارگذاری گروهی عکس قبلاً صفحهٔ جداگانه‌ای بود؛ حالا یک تب همین‌جاست تا عکس‌ها هم در همین مرکز
- * جمع شوند و بعداً با بقیهٔ منابع کاتالوگ ادغام شوند.
+ * مرکز دانش (فایل‌های مرجع): بایگانی کاتالوگ‌های کارخانه و عکس صفحه‌های کاتالوگ. از ردیف‌های یک فایل
+ * Excel/CSV با «تبدیل به قطعه» فرم قطعه پر می‌شود؛ خودِ قطعه‌ها فقط در «قطعات» نگه‌داری می‌شوند.
  */
 export function KnowledgeCatalogPage() {
   const l = useL();
-  const search = useSearchParams();
-  const asked = search.get('tab');
-  const initialTab: CatalogTab = asked === 'photos' || asked === 'entries' ? asked : 'documents';
-  const [tab, setTab] = useState<CatalogTab>(initialTab);
-  // «تبدیل به آیتم کاتالوگ» opens the catalog tab with the form filled from that row.
-  const [draft, setDraft] = useState<{ documentId: string; ordinal: number } | null>(null);
-  const convert = (documentId: string, ordinal: number) => { setDraft({ documentId, ordinal }); setTab('entries'); };
+  const router = useRouter();
+  const convert = (documentId: string, ordinal: number) => router.push(`/admin/products/new?fromDocument=${documentId}&ordinal=${ordinal}`);
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title={l('مرکز دانش و کاتالوگ', 'Knowledge & catalog center')}
+        title={l('مرکز دانش (فایل‌های مرجع)', 'Knowledge center (reference files)')}
         description={l(
-          'هر چیزی که قرار است منبع کاتالوگ شود را اینجا جمع کنید: فایل مرجع (اکسل، CSV، PDF) یا عکس‌های گروهی قطعات. استخراج اولیهٔ CSV/Excel با تأیید انسانی فعال است؛ استخراج متن PDF، OCR روی عکس‌ها و embedding هنوز فعال نیست — فعلاً فقط بایگانی و بررسی دستی.',
-          'Collect everything that will become a catalog source here: reference files (Excel, CSV, PDF) or bulk part photos. CSV/Excel candidate extraction is available for human review; PDF text extraction, OCR on photos and embeddings are not enabled yet — for now this is archiving and manual review only.',
+          'کاتالوگ‌های کارخانه (PDF، Excel، CSV) و عکس صفحه‌های کاتالوگ را اینجا نگه دارید تا همیشه در دسترس باشند. از ردیف‌های فایل Excel یا CSV می‌توانید با «تبدیل به قطعه» یک قطعه بسازید. برای واردکردن یک‌جای قطعه‌ها از «ورود Excel» یا «ورود دیتابیس برند» استفاده کنید.',
+          'Keep factory catalogs (PDF, Excel, CSV) and photos of catalog pages here so they are always at hand. From the rows of an Excel or CSV file you can make a part with “Make a part”. To add many parts at once, use “Excel import” or “Brand database import”.',
         )}
       />
-      <Tabs
-        id="catalog-tabs"
-        label={l('مرکز دانش و کاتالوگ', 'Knowledge & catalog center')}
-        active={tab}
-        onChange={setTab}
-        items={[
-          { key: 'documents', label: l('اسناد و فایل‌های مرجع', 'Reference documents') },
-          { key: 'entries', label: l('قطعات کاتالوگ', 'Catalog parts') },
-          { key: 'photos', label: l('بارگذاری گروهی عکس', 'Bulk photo upload') },
-        ]}
-      />
-      <div id="catalog-tabs-panel" role="tabpanel" aria-labelledby={`catalog-tabs-${tab}`} className="flex flex-col gap-6">
-        {tab === 'documents' ? <CatalogDocuments onConvert={convert} />
-          : tab === 'entries' ? <CatalogEntriesAdmin draft={draft} openEntryId={search.get('entry')} onDraftUsed={() => setDraft(null)} />
-          : <Suspense><BulkPhotoUpload /></Suspense>}
-      </div>
+      <BulkImportPointer />
+      <CatalogDocuments onConvert={convert} />
     </div>
+  );
+}
+
+/**
+ * Files here are kept for reference only and do not become parts by themselves. Bulk imports have
+ * their own pages with a sample file, so the person is sent there with one click.
+ */
+function BulkImportPointer() {
+  const l = useL();
+  const card = 'flex flex-col gap-2 rounded-[var(--radius-card)] border border-line-soft bg-white p-4';
+  const button = 'inline-flex min-h-11 items-center gap-2 self-start rounded-[var(--radius-control)] px-4 text-sm font-semibold';
+  return (
+    <section aria-labelledby="kc-bulk-title" className="rounded-[var(--radius-card)] border border-action/30 bg-action/5 p-4 sm:p-5" data-testid="kc-bulk">
+      <h2 id="kc-bulk-title" className="text-lg font-bold">{l('می‌خواهید قطعه‌های یک کاتالوگ را گروهی وارد کنید؟', 'Want to add the parts of a catalog in bulk?')}</h2>
+      <p className="mt-1 text-sm leading-7 text-steel">{l('فایل‌هایی که در این صفحه بارگذاری می‌کنید فقط برای مراجعه نگه داشته می‌شوند و خودبه‌خود قطعه نمی‌شوند. برای اینکه قطعه‌ها در «قطعات» و در سایت بیایند، یکی از این دو راه را بروید:', 'Files uploaded on this page are kept for reference only; they do not become parts by themselves. To get the parts into «Parts» and onto the site, take one of these two paths:')}</p>
+      <div className="mt-3 grid gap-3 md:grid-cols-2">
+        <div className={card}>
+          <p className="font-semibold">{l('لیست کامل یک سازنده (صدها یا هزاران قطعه، بدون قیمت)', 'A maker’s full list (hundreds or thousands of parts, no price)')}</p>
+          <p className="text-sm text-steel">{l('فایل Excel یا CSV کارخانه را همان‌طور که هست وارد کنید؛ ستون‌ها را یک بار تعیین می‌کنید.', 'Import the maker’s Excel or CSV file as it is; you map the columns once.')}</p>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/admin/brand-imports" className={`${button} bg-action text-white hover:bg-action-hover`}><DatabaseZap aria-hidden className="size-4" />{l('ورود دیتابیس برند', 'Brand database import')}</Link>
+            <a href="/api/v1/admin/brand-imports/sample.xlsx" download className={`${button} border border-line-strong bg-white text-ink hover:border-ink`}><Download aria-hidden className="size-4" />{l('فایل نمونه', 'Sample file')}</a>
+          </div>
+        </div>
+        <div className={card}>
+          <p className="font-semibold">{l('چند قطعه، همراه با قیمت و موجودی', 'A few parts, with price and stock')}</p>
+          <p className="text-sm text-steel">{l('قالب Excel را دریافت کنید، پر کنید و بارگذاری کنید؛ پیش از ثبت پیش‌نمایش را می‌بینید.', 'Download the Excel template, fill it in and upload it; you see a preview before anything is saved.')}</p>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/admin/imports" className={`${button} bg-action text-white hover:bg-action-hover`}><FileSpreadsheet aria-hidden className="size-4" />{l('ورود Excel', 'Excel import')}</Link>
+            <a href="/api/v1/admin/imports/template" download className={`${button} border border-line-strong bg-white text-ink hover:border-ink`}><Download aria-hidden className="size-4" />{l('قالب Excel', 'Excel template')}</a>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }

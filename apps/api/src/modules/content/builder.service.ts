@@ -7,6 +7,9 @@ import { conflict, forbidden, notFound } from '../../common/errors.js';
 import type { Actor } from '../../common/request-context.js';
 import { ContentService } from './content.service.js';
 
+/** Minimum gap between two automatic «previous draft» snapshots of one page. */
+const DRAFT_SNAPSHOT_INTERVAL_MS = 5 * 60_000;
+
 @Injectable()
 export class BuilderService {
   constructor(private readonly prisma: PrismaService, private readonly content: ContentService, private readonly audit: AuditService) {}
@@ -18,7 +21,9 @@ export class BuilderService {
       doc.title = sections.seo.value.pages.home.title.fa ? sections.seo.value.pages.home.title : sections.brand.value.siteTitle;
       doc.description = sections.seo.value.pages.home.description;
       doc.sections = sections.home.value.sections.map(s => ({ ...newBuilderBlock('legacy', s.id), visible: s.visible, title: s.title, legacy: s, style: { desktop: { padding: 0, ...(s.type === 'brands' ? { columns: 5 } : s.type === 'featured' ? { columns: 4 } : {}) }, tablet: { padding: 0, ...(s.type === 'brands' || s.type === 'featured' ? { columns: 3 } : {}) }, mobile: { padding: 0, ...(s.type === 'brands' ? { columns: 2 } : {}) } } }));
-      doc.sections.splice(doc.sections.findIndex(b => b.legacy?.type === 'hero') + 1, 0, { ...newBuilderBlock('technical-catalog', 'technical-catalog'), title: { fa: 'کاتالوگ فنی قطعات', en: 'Technical parts catalog' } });
+      // Same place as the storefront: part makers after the vehicle brands (or after the hero, without them).
+      const brands = doc.sections.findIndex(b => b.legacy?.type === 'brands');
+      doc.sections.splice(brands >= 0 ? brands + 1 : doc.sections.findIndex(b => b.legacy?.type === 'hero') + 1, 0, { ...newBuilderBlock('makers', 'makers'), title: { fa: 'مرور بر اساس برند سازنده', en: 'Browse by part brand' } });
     }
     return builderDocumentSchema.parse(doc);
   }
@@ -47,8 +52,13 @@ export class BuilderService {
       const page = await tx.visualPage.findUniqueOrThrow({ where: { slug } });
       if (page.version !== version) throw conflict('VERSION_CONFLICT', 'Reload the latest draft before saving');
       const saved = await tx.visualPage.update({ where: { slug }, data: { draft: document as Prisma.InputJsonValue, version: { increment: 1 } } });
-      // Keep the previous draft as well, so a saved accidental deletion can be recovered.
-      await tx.visualRevision.create({ data: { pageSlug: slug, document: page.draft as Prisma.InputJsonValue, action: 'draft', actorId: actor.userId, actorName: actor.displayName ?? 'مدیر' } });
+      // Keep the previous draft as well, so a saved accidental deletion can be recovered. The editor autosaves
+      // about a second after each change, so a snapshot is taken at most every few minutes per page; otherwise
+      // typing would fill the history (and the table) with near-identical copies and push publications out of view.
+      const lastDraft = await tx.visualRevision.findFirst({ where: { pageSlug: slug, action: 'draft' }, orderBy: { createdAt: 'desc' }, select: { createdAt: true } });
+      if (!lastDraft || Date.now() - lastDraft.createdAt.getTime() >= DRAFT_SNAPSHOT_INTERVAL_MS) {
+        await tx.visualRevision.create({ data: { pageSlug: slug, document: page.draft as Prisma.InputJsonValue, action: 'draft', actorId: actor.userId, actorName: actor.displayName ?? 'مدیر' } });
+      }
       await this.audit.record(tx, { action: 'content.builder.saved', entityType: 'visual_page', entityId: slug, after: { version: saved.version } });
       return { version: saved.version };
     });

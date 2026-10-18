@@ -21,7 +21,6 @@ export function SiteHeaderView({ content, chrome, currency }: { content: SiteCon
     { href: '/imported-parts', label: t('nav.imported') },
     { href: '/brands', label: t('nav.brands') },
     { href: '/cars', label: t('nav.cars') },
-    { href: '/catalog', label: t('nav.catalog') },
     { href: '/request-part', label: t('nav.requestPart') },
   ] as const;
   // Logo, its alt text and the site title come from site content → general.

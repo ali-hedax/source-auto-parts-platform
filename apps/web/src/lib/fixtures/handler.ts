@@ -15,7 +15,7 @@ import {
 } from './data';
 import siteContentJson from './site-content.json';
 import { FIXTURE_IMPORT_ID, fixtureImportJob, fixtureImportList } from './imports';
-import { fixtureCatalogAdminDetail, fixtureCatalogAdminList, fixtureCatalogDetail, fixtureCatalogList, fixtureCatalogSitemap } from './catalog-entries';
+import { fixtureBrandImport, fixtureBrandImports } from './brand-imports';
 import { fixtureAdminFitment, fixtureAdminVehicles, fixtureFitmentViews, fixtureFits, fixturePublicVehicles, fixtureVehicleOptions } from './vehicles';
 
 export interface FixtureResponse {
@@ -86,12 +86,13 @@ const err = (status: number, code: string, message = code): FixtureResponse => (
 
 function tiers(p: FixtureProduct): PriceTier[] {
   return [{
-    id: p.id, customerGroupId: null, minQty: 1, maxQty: null, base: money(p.currency, p.price),
+    id: p.id, customerGroupId: null, minQty: 1, maxQty: null, base: money(p.currency, p.price ?? 0n),
     manualIrrMinor: p.manualIrr ?? null, manualAedMinor: null, validFrom: null, validTo: null, active: true,
   }];
 }
 
 function priceView(p: FixtureProduct, qty: number, display: 'IRR' | 'AED'): PriceView {
+  if (p.price === null) return { kind: 'inquiry', reason: 'NO_PRICE' };
   const r = resolveUnitPrice(tiers(p), { quantity: qty, approvedCustomerGroupId: null, irrPerAed: FIXTURE_RATE.irrPerAed, fxRateId: FIXTURE_RATE.id, now: new Date() });
   if (r.status !== 'PRICED') return { kind: 'inquiry', reason: r.reason === 'NO_VALID_FX_RATE' ? 'NO_VALID_FX_RATE' : 'NO_PRICE' };
   const d = displayUnitPrice(r, display);
@@ -114,6 +115,8 @@ function card(p: FixtureProduct, display: 'IRR' | 'AED'): ProductCard {
     id: p.id, slug: p.slug, sku: p.sku, name: { fa: p.fa, en: p.en }, partType: p.partType, condition: p.condition, origin: p.origin,
     category: cat ? { slug: cat.slug, name: cat.name } : null,
     vehicleBrands: fixtureBrands.filter((b) => p.brands.includes(b.code)).map((b) => ({ slug: b.slug, name: b.name })),
+    partNumber: p.partNumber ?? null,
+    purchasable: p.price !== null && available > 0,
     fitments: fixtureFitmentViews(p.sku),
     manufacturer: p.maker ? { slug: p.maker.slug, name: { fa: p.maker.fa, en: p.maker.en } } : null,
     primaryImage: null,
@@ -127,7 +130,9 @@ function detail(p: FixtureProduct, display: 'IRR' | 'AED'): ProductDetail {
   return {
     ...card(p, display),
     description: p.descriptionFa ? { fa: p.descriptionFa, en: p.descriptionEn ?? null } : null,
-    technicalNotes: null, packQuantity: 1, countryOfManufacture: null, warranty: null, oemCodes: [], specs: [], images: [],
+    technicalNotes: null, packQuantity: 1, countryOfManufacture: null, warranty: null, oemCodes: [], images: [],
+    equivalents: p.equivalents ?? [], replacements: p.replacements ?? [],
+    specs: (p.specs ?? []).map((s, i) => ({ key: `spec-${i + 1}`, label: { fa: s.label, en: null }, value: s.value })),
     maxOrderQuantity: Math.max(0, Math.min(p.onHand - p.reserved, 999)), updatedAt: '2026-09-29T10:00:00.000Z',
   };
 }
@@ -135,7 +140,7 @@ function detail(p: FixtureProduct, display: 'IRR' | 'AED'): ProductDetail {
 function matches(p: FixtureProduct, q: string): boolean {
   // Like the API: names, aliases, SKU and the vehicles the part fits («لنت دنا»).
   const fits = fixtureFitmentViews(p.sku).flatMap((f) => [f.vehicle.name.fa, f.vehicle.name.en ?? '', f.model ? `${f.vehicle.name.fa} ${f.model.name.fa}` : '']);
-  const doc = normalizeSearchText([p.fa, p.en ?? '', ...p.aliases, p.sku, ...fits].join(' '));
+  const doc = normalizeSearchText([p.fa, p.en ?? '', ...p.aliases, p.sku, p.partNumber ?? '', ...(p.equivalents ?? []), ...(p.replacements ?? []), ...fits].join(' '));
   const tokens = searchTokens(q);
   return (tokens.length > 0 && tokens.every((t) => doc.includes(t))) || doc.replace(/ /g, '').includes(compactSearchText(q));
 }
@@ -151,12 +156,14 @@ function list(params: URLSearchParams, forceImported: boolean): SearchResult {
   if (vehicle) items = items.filter((p) => fixtureFits(p.sku, vehicle, params.get('model')));
   const category = params.get('category');
   if (category) items = items.filter((p) => fixtureCategories.find((c) => c.slug === category)?.code === p.category);
+  const maker = params.get('maker');
+  if (maker) items = items.filter((p) => p.maker?.slug === maker);
   for (const key of ['partType', 'condition', 'origin'] as const) {
     const v = params.get(key);
     if (v) items = items.filter((p) => p[key] === v);
   }
   if (forceImported) items = items.filter((p) => p.origin === 'IMPORTED');
-  if (params.get('inStock') === '1') items = items.filter((p) => p.onHand - p.reserved > 0);
+  if (params.get('inStock') === '1') items = items.filter((p) => p.price !== null && p.onHand - p.reserved > 0);
   const payable = (p: FixtureProduct) => {
     const v = priceView(p, 1, 'IRR');
     return v.kind === 'price' ? BigInt(v.payable.amountMinor) : 0n;
@@ -165,7 +172,11 @@ function list(params: URLSearchParams, forceImported: boolean): SearchResult {
   if (sort === 'price_asc') items.sort((a, b) => (payable(a) < payable(b) ? -1 : 1));
   if (sort === 'price_desc') items.sort((a, b) => (payable(a) > payable(b) ? -1 : 1));
   if (sort === 'name') items.sort((a, b) => a.fa.localeCompare(b.fa, 'fa'));
-  if (!sort || sort === 'relevance') items.sort((a, b) => Number(b.onHand - b.reserved > 0) - Number(a.onHand - a.reserved > 0));
+  // Like the API: an exact technical number first, then parts that can be bought now, then the rest («قابل تأمین»).
+  const key = q ? compactSearchText(q) : '';
+  const exact = (p: FixtureProduct) => !!key && [p.partNumber, ...(p.equivalents ?? [])].some((n) => n && compactSearchText(n) === key);
+  const buyable = (p: FixtureProduct) => p.price !== null && p.onHand - p.reserved > 0;
+  if (!sort || sort === 'relevance') items.sort((a, b) => Number(exact(b)) - Number(exact(a)) || Number(buyable(b)) - Number(buyable(a)));
   const page = Math.max(1, Number(params.get('page') ?? 1));
   const pageSize = Math.min(60, Math.max(1, Number(params.get('pageSize') ?? 24)));
   return {
@@ -235,12 +246,23 @@ export async function handleFixture(method: string, pathWithQuery: string, rawBo
     const v = fixturePublicVehicles().find((x) => x.slug === decodeURIComponent(m![1] ?? ''));
     return v ? ok(v) : err(404, 'NOT_FOUND');
   }
-  if (route === 'GET /catalog/entries') return ok(fixtureCatalogList(params));
-  if (route === 'GET /catalog/entries/sitemap') return ok(fixtureCatalogSitemap());
-  if ((m = /^GET \/catalog\/entries\/([^/]+)$/.exec(route))) {
-    const e = fixtureCatalogDetail(decodeURIComponent(m[1] ?? ''));
-    return e ? ok(e) : err(404, 'NOT_FOUND');
+  if (route === 'GET /catalog/manufacturers') {
+    const makers = new Map<string, { slug: string; name: { fa: string; en: string | null }; productCount: number }>();
+    for (const p of fixtureProducts.filter((x) => x.published && !x.archived && x.maker)) {
+      const mk = p.maker!;
+      const cur = makers.get(mk.slug) ?? { slug: mk.slug, name: { fa: mk.fa, en: mk.en }, productCount: 0 };
+      cur.productCount += 1;
+      makers.set(mk.slug, cur);
+    }
+    return ok([...makers.values()].sort((a, b) => b.productCount - a.productCount));
   }
+  // The former technical catalog's addresses (301 to the part).
+  if ((m = /^GET \/catalog\/legacy-catalog\/([^/]+)$/.exec(route))) {
+    const legacy: Record<string, string> = { '04465-33471': 'toyota-front-brake-pad-camry-04465-33471', 'demo-0001': 'demo-front-brake-pad-206' };
+    const slug = legacy[decodeURIComponent(m[1] ?? '')];
+    return slug ? ok({ slug }) : err(404, 'NOT_FOUND');
+  }
+  if (route === 'GET /catalog/sitemap/pages') return ok({ pages: 1 });
   if (route === 'GET /catalog/sitemap') return ok(fixtureProducts.map((p) => ({ slug: p.slug, updatedAt: '2026-09-29T10:00:00.000Z' })));
   if (route === 'GET /exchange-rates/current') return ok({ irrPerAed: FIXTURE_RATE.irrPerAed, effectiveFrom: FIXTURE_RATE.effectiveFrom });
   if (route === 'GET /site/contact') return ok({ phone: null, email: null, address: { fa: null, en: null }, workingHours: { fa: null, en: null } });
@@ -355,7 +377,7 @@ export async function handleFixture(method: string, pathWithQuery: string, rawBo
     if (path === '/admin/products') {
       return ok({ page: 1, pageSize: 50, total: fixtureProducts.length, items: fixtureProducts.map((p, i) => ({
         id: p.id, sku: p.sku, nameFa: p.fa, nameEn: p.en, categoryName: fixtureCategories.find((c) => c.code === p.category)?.name.fa ?? null, published: p.published, archived: !!p.archived,
-        basePrice: { currency: p.currency, amountMinor: p.price.toString() }, unit: FIXTURE_UNIT, priceSource: p.manualIrr ? 'PUBLIC:MANUAL_IRR' : p.currency === 'AED' ? 'PUBLIC:CONVERTED_FROM_AED' : 'PUBLIC:BASE_IRR',
+        basePrice: p.price === null ? null : { currency: p.currency, amountMinor: p.price.toString() }, unit: FIXTURE_UNIT, partNumber: p.partNumber ?? null, manufacturer: p.maker?.fa ?? null, photoCount: 0, priceSource: p.manualIrr ? 'PUBLIC:MANUAL_IRR' : p.currency === 'AED' ? 'PUBLIC:CONVERTED_FROM_AED' : 'PUBLIC:BASE_IRR',
         onHand: p.onHand, reserved: p.reserved, available: p.onHand - p.reserved, lowStockThreshold: 2, version: i, updatedAt: '2026-09-29T10:00:00.000Z',
       })) });
     }
@@ -376,7 +398,7 @@ export async function handleFixture(method: string, pathWithQuery: string, rawBo
         vehicleBrandIds: fixtureBrands.flatMap((b, i) => (p.brands.includes(b.code) ? [`vb-${i}`] : [])), vehicles: fixtureAdminFitment(p.sku),
         partType: p.partType, condition: p.condition, origin: p.origin, countryOfManufacture: null, unitId: 'unit-piece', unit: { id: 'unit-piece', ...FIXTURE_UNIT, active: true },
         packQuantity: 1, oemCodes: [], specs: [], published: p.published, archived: !!p.archived, isSellable: true, version: 1,
-        basePrice: { currency: p.currency, amountMinor: p.price.toString(), manualIrr: p.manualIrr?.toString() ?? null, manualAed: null },
+        basePrice: p.price === null ? null : { currency: p.currency, amountMinor: p.price.toString(), manualIrr: p.manualIrr?.toString() ?? null, manualAed: null }, partNumber: p.partNumber ?? null, equivalents: p.equivalents ?? [], replacements: p.replacements ?? [],
         priceExplanation: { source: p.currency === 'AED' ? 'PUBLIC:CONVERTED_FROM_AED' : 'PUBLIC:BASE_IRR', unitPayableIrr: null, warnings: [] },
         priceRules: [], inventory: { onHand: p.onHand, reserved: p.reserved, version: 1, lowStockThreshold: 2 }, media: [],
       });
@@ -398,9 +420,9 @@ export async function handleFixture(method: string, pathWithQuery: string, rawBo
     if (path === '/payments/admin/cases') return ok([]);
     if (path === '/admin/refunds' || path === '/admin/returns' || path === '/admin/audit') return ok([]);
     if (path === '/admin/customers') return ok([{ id: 'fixture-customer', fullName: 'مشتری نمونه', mobile: '+98912***0000', status: 'ACTIVE', customerType: 'CONSUMER', groupStatus: 'PENDING', requestedType: 'WORKSHOP', businessName: 'تعمیرگاه نمونه', group: null, orders: 2, requests: 1, createdAt: fixtureOrders[0]!.createdAt }]);
-    if (path === '/admin/catalog-entries') return ok(fixtureCatalogAdminList(params));
-    if ((m = /^\/admin\/catalog-entries\/([0-9a-f-]{36})$/.exec(path))) {
-      const e = fixtureCatalogAdminDetail(m[1] ?? '');
+    if (path === '/admin/brand-imports') return ok(fixtureBrandImports());
+    if ((m = /^\/admin\/brand-imports\/([0-9a-f-]{36})$/.exec(path))) {
+      const e = fixtureBrandImport(m[1] ?? '');
       return e ? ok(e) : err(404, 'NOT_FOUND');
     }
     if (path === '/admin/staff') return ok(fixtureStaff());

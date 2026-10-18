@@ -1,5 +1,5 @@
 import { createReadStream } from 'node:fs';
-import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { chmod, copyFile, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { Readable } from 'node:stream';
 import type { StorageDriver } from './storage.js';
@@ -36,6 +36,13 @@ export class LocalStorageDriver implements StorageDriver {
     const file = this.resolve(this.privateDir, key);
     await mkdir(path.dirname(file), { recursive: true });
     await writeFile(file, body, { mode: 0o600 });
+  }
+
+  async putPrivateFile(key: string, filePath: string): Promise<void> {
+    const file = this.resolve(this.privateDir, key);
+    await mkdir(path.dirname(file), { recursive: true });
+    await copyFile(filePath, file);
+    await chmod(file, 0o600);
   }
 
   async getPrivate(key: string): Promise<Readable> {
