@@ -9,7 +9,7 @@ import { FitmentChips } from '@/components/catalog/fitment-chips';
 import { ProductGallery } from '@/components/catalog/product-gallery';
 import { ButtonLink } from '@/components/ui/button';
 import { Price } from '@/components/ui/format';
-import { Alert, Badge, Code, DefinitionList, Ltr, StatusBadge } from '@/components/ui/misc';
+import { Alert, Badge, Code, DefinitionList, Ltr, StatusBadge, TableScroll, td, th } from '@/components/ui/misc';
 import { Link } from '@/i18n/navigation';
 import { serverApiOptional } from '@/lib/api/server';
 import { publicSiteUrl } from '@/lib/config';
@@ -25,9 +25,13 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   const p = await load(slug).catch(() => null);
   if (!p) return {};
   const name = locale === 'en' ? (p.name.en ?? p.name.fa) : p.name.fa;
+  const maker = p.manufacturer ? (locale === 'en' ? (p.manufacturer.name.en ?? p.manufacturer.name.fa) : p.manufacturer.name.fa) : null;
+  // A part number in the title: people search for it exactly.
+  const title = p.partNumber ? `${name} ${p.partNumber}${maker ? ` ${maker}` : ''}` : name;
+  const fallback = [name, p.partNumber, maker, ...p.equivalents.slice(0, 5)].filter(Boolean).join(' – ');
   return {
-    title: name,
-    description: (locale === 'en' ? p.description?.en : p.description?.fa) ?? undefined,
+    title,
+    description: ((locale === 'en' ? p.description?.en : p.description?.fa) ?? fallback).slice(0, 300),
     alternates: { canonical: `/${locale}/parts/${p.slug}`, languages: { fa: `/fa/parts/${p.slug}`, en: `/en/parts/${p.slug}` } },
   };
 }
@@ -42,11 +46,16 @@ export default async function ProductPage({ params }: { params: Promise<{ locale
   const name = L === 'en' ? (p.name.en ?? p.name.fa) : p.name.fa;
   const text = (v: { fa: string; en: string | null } | null) => (v ? (L === 'en' ? (v.en ?? v.fa) : v.fa) : null);
   const purchasable = p.availability !== 'OUT_OF_STOCK' && p.maxOrderQuantity > 0 && p.price.kind === 'price';
+  // No price yet: a part from a brand database, offered through a sourcing request.
+  const sourceable = p.price.kind === 'inquiry';
+  const status = purchasable ? p.availability : sourceable ? 'SOURCEABLE' : p.availability;
+  const requestHref = `/request-part?part=${encodeURIComponent(p.name.fa)}${p.partNumber ? `&code=${encodeURIComponent(p.partNumber)}` : ''}`;
 
-  // Structured data only with the real, current IRR price and stock state.
-  const jsonLd = p.price.kind === 'price'
-    ? {
+  // Structured data: the offer only with the real, current IRR price and stock state.
+  const jsonLd = {
         '@context': 'https://schema.org', '@type': 'Product', name, sku: p.sku,
+        ...(p.partNumber ? { mpn: p.partNumber } : {}),
+        ...(p.manufacturer ? { brand: { '@type': 'Brand', name: text(p.manufacturer.name) } } : {}),
         ...(p.primaryImage ? { image: `${publicSiteUrl()}${p.primaryImage.url}` } : {}),
         // Vehicle fitment: the part is a spare part for these vehicles (schema.org isAccessoryOrSparePartFor).
         ...(p.fitments.length ? {
@@ -56,15 +65,18 @@ export default async function ProductPage({ params }: { params: Promise<{ locale
             url: `${publicSiteUrl()}/${L}/cars/${f.vehicle.slug}`,
           })),
         } : {}),
-        offers: {
+        ...(p.price.kind === 'price' ? { offers: {
           '@type': 'Offer', priceCurrency: 'IRR', price: minorToDecimalString(BigInt(p.price.payable.amountMinor), 'IRR'),
           availability: p.availability === 'OUT_OF_STOCK' ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock',
           itemCondition: p.condition === 'NEW' ? 'https://schema.org/NewCondition' : p.condition === 'USED' ? 'https://schema.org/UsedCondition' : 'https://schema.org/RefurbishedCondition',
-        },
-      }
-    : null;
+        } } : {}),
+      };
 
+  const numbers = (list: string[]) => <ul className="flex flex-wrap gap-x-3 gap-y-1" dir="ltr">{list.map((c) => <li key={c}><Code>{c}</Code></li>)}</ul>;
   const specs = [
+    ...(p.partNumber ? [{ term: t('parts.partNumber'), value: <Code>{p.partNumber}</Code> }] : []),
+    ...(p.equivalents.length ? [{ term: t('parts.equivalents'), value: numbers(p.equivalents) }] : []),
+    ...(p.replacements.length ? [{ term: t('parts.replacements'), value: numbers(p.replacements) }] : []),
     { term: t('parts.partType'), value: <span>{t(`partType.${p.partType}`)} <span className="block text-sm font-normal text-steel">{t(`partType.${p.partType}_help`)}</span></span> },
     { term: t('parts.condition'), value: t(`condition.${p.condition}`) },
     { term: t('parts.origin'), value: t(`origin.${p.origin}`) },
@@ -95,7 +107,7 @@ export default async function ProductPage({ params }: { params: Promise<{ locale
       {/* Phones read in DOM order (photo, label, specification, description); from lg the description sits under the photo. */}
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:grid-rows-[auto_1fr] lg:gap-x-10">
         {/* Photo, then «مناسب برای:» right under it. */}
-        <div className="flex flex-col gap-4 lg:col-start-1 lg:row-start-1">
+        <div className="flex min-w-0 flex-col gap-4 lg:col-start-1 lg:row-start-1">
           {p.images[0] ? (
             <ProductGallery images={p.images.map((img) => ({ url: img.url, alt: text(img.alt) || name }))} />
           ) : (
@@ -109,13 +121,13 @@ export default async function ProductPage({ params }: { params: Promise<{ locale
           <FitmentChips fitments={p.fitments} locale={L} />
         </div>
 
-        <div className="flex flex-col gap-6 lg:col-start-2 lg:row-span-2 lg:row-start-1">
+        <div className="flex min-w-0 flex-col gap-6 lg:col-start-2 lg:row-span-2 lg:row-start-1">
           <div className="part-label p-5 sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 pe-4">
               <p className="text-sm text-steel">
                 {t('parts.sku')} <Code className="ms-1.5 text-base text-ink">{p.sku}</Code>
               </p>
-              <StatusBadge status={p.availability} label={t(`availability.${p.availability}`)} />
+              <StatusBadge status={status} label={t(`availability.${status}`)} />
             </div>
             <h1 className="mt-3 text-2xl font-bold md:text-[1.75rem]">
               {name}
@@ -126,12 +138,19 @@ export default async function ProductPage({ params }: { params: Promise<{ locale
               <Badge tone={p.condition === 'NEW' ? 'neutral' : 'warning'}>{t(`condition.${p.condition}`)}</Badge>
               <Badge tone="info">{t(`origin.${p.origin}`)}</Badge>
             </div>
-            <div className="mt-5 border-t border-line-soft pt-5">
-              <Price price={p.price} size="lg" unit={p.unit} />
-            </div>
+            {sourceable ? null : (
+              <div className="mt-5 border-t border-line-soft pt-5">
+                <Price price={p.price} size="lg" unit={p.unit} />
+              </div>
+            )}
             <div className="mt-5">
               {purchasable ? (
                 <AddToCart productId={p.id} max={p.maxOrderQuantity} name={name} unit={p.unit} />
+              ) : sourceable ? (
+                <div className="rounded-[var(--radius-card)] border border-line-soft bg-surface p-4" data-testid="sourceable-box">
+                  <p className="leading-7">{t('parts.sourceableText')}</p>
+                  <ButtonLink href={requestHref} className="mt-3" size="lg">{t('parts.requestSupply')}</ButtonLink>
+                </div>
               ) : (
                 <Alert tone="warning" title={t('parts.notPurchasable')}>
                   <ButtonLink href={`/request-part?part=${encodeURIComponent(p.name.fa)}&similar=${encodeURIComponent(p.sku)}`} className="mt-3">
@@ -149,6 +168,24 @@ export default async function ProductPage({ params }: { params: Promise<{ locale
           </section>
         </div>
 
+        {p.fitments.length ? (
+          <section aria-labelledby="fitment-title" className="card min-w-0 self-start p-5 sm:p-6 lg:col-start-1">
+            <h2 id="fitment-title" className="mb-3 text-lg font-bold">{t('parts.fitmentTable')}</h2>
+            <TableScroll caption={t('parts.fitmentTable')}>
+              <thead><tr><th className={th}>{t('parts.vehicle')}</th><th className={th}>{t('parts.model')}</th><th className={th}>{t('parts.years')}</th><th className={th}>{t('parts.note')}</th></tr></thead>
+              <tbody>
+                {p.fitments.map((f, i) => (
+                  <tr key={`${f.vehicle.slug}-${f.model?.slug ?? ''}-${i}`}>
+                    <td className={td}><Link href={`/cars/${f.vehicle.slug}`} className="font-semibold text-action underline-offset-4 hover:underline">{text(f.vehicle.name)}</Link></td>
+                    <td className={td}>{f.model ? text(f.model.name) : t('parts.wholeVehicle')}</td>
+                    <td className={td}><Ltr>{f.yearFrom ? (f.yearTo && f.yearTo !== f.yearFrom ? `${f.yearFrom}–${f.yearTo}` : String(f.yearFrom)) : '—'}</Ltr></td>
+                    <td className={td}>{f.note ?? '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </TableScroll>
+          </section>
+        ) : null}
         {p.description ? (
           <section aria-labelledby="description-title" className="card self-start p-5 sm:p-6 lg:col-start-1 lg:row-start-2">
             <h2 id="description-title" className="mb-3 text-lg font-bold">{t('parts.description')}</h2>

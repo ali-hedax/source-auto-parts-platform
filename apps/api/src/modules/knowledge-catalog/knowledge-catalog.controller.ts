@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { catalogDocumentCreateSchema, catalogDocumentStatusSchema } from '@hedax/contracts';
 import type { z } from 'zod';
@@ -24,6 +24,10 @@ export class KnowledgeCatalogController {
 
   @Post(':id/extract')
   extract(@Param('id', ParseUUIDPipe) id: string) { return this.catalog.requestExtraction(id); }
+
+  /** «تبدیل به قطعه»: the part form filled from one extracted row (nothing is saved). */
+  @Get(':id/candidates/:ordinal/draft')
+  partDraft(@Param('id', ParseUUIDPipe) id: string, @Param('ordinal', ParseIntPipe) ordinal: number) { return this.catalog.partDraft(id, ordinal); }
 
   @Get(':id/preview')
   preview(@Param('id', ParseUUIDPipe) id: string) { return this.catalog.preview(id); }

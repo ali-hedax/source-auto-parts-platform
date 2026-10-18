@@ -1,7 +1,13 @@
-import { redirect } from '@/i18n/navigation';
+'use client';
 
-/** Bulk photo upload moved into «مرکز دانش و کاتالوگ» as a tab; send old links/bookmarks there. */
-export default async function Page({ params }: { params: Promise<{ locale: string }> }) {
-  const { locale } = await params;
-  redirect({ href: { pathname: '/admin/knowledge-catalog', query: { tab: 'photos' } }, locale });
+import { Suspense } from 'react';
+import { BulkPhotoUpload } from '@/components/admin/bulk-photos';
+
+/** Panel → «قطعات» → «بارگذاری گروهی عکس»: one path, matched by SKU, part number or equivalent. */
+export default function Page() {
+  return (
+    <Suspense>
+      <BulkPhotoUpload />
+    </Suspense>
+  );
 }

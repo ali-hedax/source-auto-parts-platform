@@ -1,5 +1,7 @@
 # Knowledge Catalog — Phase 3 (technical parts catalog)
 
+> **Replaced by [Phase 4 — one «قطعه»](PARTS_UNIFIED_PHASE4.md).** Catalog entries are now parts; `/catalog` addresses redirect (301) to `/parts`. This page describes the Phase 3 design for history only.
+
 Phase 3 turns the knowledge center into a **technical parts catalog**. Each part is a catalog entry. Staff edit entries in the panel, and customers can search and read them on the site at `/catalog`.
 
 A catalog entry is **reference data, not a shop product**. It has no price and no stock. An entry may be linked to one existing shop product, and only by hand. Nothing is turned into a product or linked to one automatically.

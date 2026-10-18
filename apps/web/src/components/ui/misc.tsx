@@ -49,7 +49,7 @@ export function Badge({ tone = 'neutral', children, className }: { tone?: Tone; 
 }
 
 const STATUS_TONE: Record<string, Tone> = {
-  IN_STOCK: 'success', LOW_STOCK: 'warning', OUT_OF_STOCK: 'danger',
+  IN_STOCK: 'success', LOW_STOCK: 'warning', OUT_OF_STOCK: 'danger', SOURCEABLE: 'info',
   SUCCEEDED: 'success', PAID: 'success', DELIVERED: 'success', CONFIRMED: 'success', ACCEPTED: 'success', COMPLETED: 'success', READY: 'success', CONVERTED: 'success', APPROVED: 'success', RESOLVED: 'success', ACTIVE: 'success',
   FAILED: 'danger', CANCELLED: 'danger', REJECTED: 'danger', EXCEPTION: 'danger', EXPIRED: 'danger', SUSPENDED: 'danger',
   AWAITING_PAYMENT: 'warning', PENDING: 'warning', PENDING_VERIFICATION: 'warning', NEEDS_CUSTOMER_INFO: 'warning', ON_HOLD: 'warning', SCANNING: 'warning', REQUESTED: 'warning', UNPAID: 'warning', OPEN: 'warning', PARTIALLY_REFUNDED: 'warning',

@@ -28,6 +28,9 @@ import {
   quantityToSteps,
   stepsToQuantity,
   technicalKey,
+  toAsciiDigits,
+  partNumberKey,
+  type SpecPair,
   type FitmentMatch,
   type UnitRule,
 } from '@hedax/domain';
@@ -39,6 +42,7 @@ import { Prisma, PrismaService, type Tx } from '../../common/prisma.service.js';
 import type { Actor } from '../../common/request-context.js';
 import { STORAGE, type StorageDriver } from '../../common/storage/storage.js';
 import { toJsonSafe } from '../../common/serialize.js';
+import { otherNumbers } from '../catalog/product-numbers.js';
 import { rebuildProductSearch } from '../catalog/product-search.js';
 import { UnitsService } from '../catalog/units.service.js';
 import { VehiclesService } from '../catalog/vehicles.service.js';
@@ -56,6 +60,9 @@ const EXPORT_COLUMNS: readonly ImportColumn[] = [
 const HEADER_HELP_FA: Record<ImportColumn, { help: string; example: string }> = {
   sku: { help: 'کد یکتای کالا در فروشگاه؛ متن (صفرهای ابتدایی حفظ می‌شوند). کلید تشخیص کالای تکراری. اگر فایل کد کالای جدا ندارد، در پنل می‌توانید ستون شماره فنی را به‌عنوان کد کالا انتخاب کنید.', example: '0450102805' },
   technical_number: { help: 'شماره فنی (کد قطعه نزد سازنده)؛ متن. به فهرست کدهای فنی کالا اضافه می‌شود و قابل جست‌وجوست. همان شماره با برند دیگر کالای دیگری است.', example: '0450102805' },
+  equivalent_numbers: { help: 'شماره‌های معادل: همین قطعه از سازنده‌های دیگر؛ جدا با ویرگول. در جست‌وجوی سایت هم پیدا می‌شوند. فقط اضافه می‌شوند (حذف نمی‌شوند).', example: 'WK 512, 0 450 905 133' },
+  replacement_numbers: { help: 'شماره‌هایی که جایگزین این قطعه شده‌اند؛ جدا با ویرگول.', example: '0450102806' },
+  specs: { help: 'مشخصات فنی به شکل «عنوان: مقدار» جدا با «؛» (یا هر کدام در یک خط). اگر پر باشد جای مشخصات قبلی قطعه را می‌گیرد.', example: 'قطر: 80mm؛ طول: 150mm' },
   name_fa: { help: 'نام فارسی قطعه (الزامی برای کالای تازه)', example: 'بلبرینگ چرخ جلو' },
   name_en: { help: 'نام انگلیسی (اختیاری)', example: 'Front wheel bearing' },
   manufacturer_brand: { help: 'نام برند سازنده، همان‌طور که در پنل ثبت شده است (اختیاری)', example: 'ایساکو' },
@@ -79,8 +86,10 @@ const HEADER_HELP_FA: Record<ImportColumn, { help: string; example: string }> = 
 
 /** Columns of the operator template, with the headers operators use (all recognised on import). */
 const TEMPLATE_CORE: ReadonlyArray<readonly [ImportColumn, string]> = [
-  ['sku', 'کد کالا'], ['name_fa', 'نام قطعه'], ['category_code', 'کد دسته'], ['part_type', 'نوع قطعه'], ['condition', 'وضعیت فیزیکی'],
-  ['origin', 'منشا'], ['base_currency', 'ارز پایه'], ['base_price', 'قیمت پایه'], ['on_hand', 'موجودی'], ['unit', 'واحد'], ['vehicle_models', 'کاربرد در خودرو'],
+  ['sku', 'کد کالا'], ['technical_number', 'شماره فنی'], ['name_fa', 'نام قطعه'], ['name_en', 'نام انگلیسی'], ['equivalent_numbers', 'شماره‌های معادل'],
+  ['replacement_numbers', 'شماره‌های جایگزین'], ['manufacturer_brand', 'برند سازنده'], ['category_code', 'کد دسته'], ['vehicle_brand_codes', 'برند خودرو'],
+  ['vehicle_models', 'کاربرد در خودرو'], ['specs', 'مشخصات فنی'], ['description_fa', 'توضیحات'], ['part_type', 'نوع قطعه'], ['condition', 'وضعیت فیزیکی'],
+  ['origin', 'منشا'], ['unit', 'واحد'], ['base_currency', 'ارز پایه'], ['base_price', 'قیمت پایه'], ['on_hand', 'موجودی'],
 ];
 /** Drop-down values (Persian words the importer understands). */
 const TEMPLATE_CHOICES: Partial<Record<ImportColumn, readonly string[]>> = {
@@ -108,7 +117,7 @@ interface StoredSettings {
   clearWhenEmpty: string[];
   manufacturerBrandMapping: Record<string, string>;
   revision: number;
-  commit?: { skipErrorRows: boolean; confirmRepeatAdd: boolean; createVehicles?: boolean; linkSimilar?: string[] };
+  commit?: { skipErrorRows: boolean; skipExisting?: boolean; confirmRepeatAdd: boolean; createVehicles?: boolean; linkSimilar?: string[] };
 }
 
 type StoredSummary = ImportSummaryView & { stockMode?: StockMode; priceUnit?: PriceUnit | null };
@@ -189,7 +198,7 @@ export class ImportsService {
       TEMPLATE_CORE.forEach(([c], i) => {
         const col = sheet.getColumn(i + 1);
         col.width = c === 'name_fa' || c === 'vehicle_models' ? 36 : 16;
-        if (c === 'sku') col.numFmt = '@';
+        if (c === 'sku' || c === 'technical_number' || c === 'equivalent_numbers' || c === 'replacement_numbers') col.numFmt = '@';
         const list = TEMPLATE_CHOICES[c];
         if (list) {
           const letter = col.letter;
@@ -201,9 +210,11 @@ export class ImportsService {
         }
       });
     }
-    examples.addRow(['00123', 'فیلتر روغن پژو ۴۰۵ (فقط نمونه)', 'FILTER', 'اصلی', 'نو', 'داخلی', 'ریال', '1250000', '4', 'عدد', 'پژو ۴۰۵، پژو پارس']);
-    examples.addRow(['TEST-SAMPLE-002', 'لنت ترمز کارکرده (فقط نمونه)', 'BRAKE', 'افترمارکت', 'کارکرده', 'وارداتی', 'درهم', '45.50', '2', 'دست', 'پژو ۲۰۶، دنا پلاس']);
-    examples.addRow(['TEST-SAMPLE-003', 'روغن ترمز (فقط نمونه)', 'BRAKE', 'افترمارکت', 'نو', 'داخلی', 'ریال', '950000', '12.5', 'لیتر', 'سمند، رانا']);
+    examples.addRow(['00123', '15208-65F0A', 'فیلتر روغن پژو ۴۰۵ (فقط نمونه)', '', 'W 7008', '', '', 'FILTER', '', 'پژو ۴۰۵، پژو پارس', 'قطر: 76mm؛ ارتفاع: 79mm', '', 'اصلی', 'نو', 'داخلی', 'عدد', 'ریال', '1250000', '4']);
+    examples.addRow(['TEST-SAMPLE-002', '', 'لنت ترمز کارکرده (فقط نمونه)', '', '', '', '', 'BRAKE', '', 'پژو ۲۰۶، دنا پلاس', '', '', 'افترمارکت', 'کارکرده', 'وارداتی', 'دست', 'درهم', '45.50', '2']);
+    examples.addRow(['TEST-SAMPLE-003', '', 'روغن ترمز (فقط نمونه)', '', '', '', '', 'BRAKE', '', 'سمند، رانا', '', '', 'افترمارکت', 'نو', 'داخلی', 'لیتر', 'ریال', '950000', '12.5']);
+    // Without price and stock: shown on the site with «درخواست تأمین».
+    examples.addRow(['TEST-SAMPLE-004', '0446533471', 'لنت ترمز جلو بدون قیمت (فقط نمونه)', '', 'GDB3425', '04465-33500', '', 'BRAKE', '', 'پژو ۲۰۶ (1390-1400)', 'جنس: سرامیکی', 'بدون قیمت و موجودی: در سایت «درخواست تأمین» نشان داده می‌شود.', 'اصلی', 'نو', 'وارداتی', 'عدد', '', '', '']);
     const help = wb.addWorksheet('راهنما', { views: [{ rightToLeft: true }] });
     help.addRow(['عنوان ستون', 'کلید انگلیسی', 'توضیح', 'نمونه']);
     help.getRow(1).font = { bold: true };
@@ -370,7 +381,8 @@ export class ImportsService {
         if (duplicateColumns.length) return void (await fail('DUPLICATE_COLUMNS'));
         mapping = { ...auto, ...(settings.legacyMapping as Partial<Record<ImportColumn, number>>) };
       }
-      if (mapping.sku === undefined) return void (await fail('SKU_COLUMN_MISSING'));
+      // The SKU column may be left out when the technical number is there: the SKU is then made from it.
+      if (mapping.sku === undefined && mapping.technical_number === undefined) return void (await fail('SKU_COLUMN_MISSING'));
       if (!sheet.rows.length) return void (await fail('NO_DATA_ROWS', { totalRows: 0 }));
       const rows: RawRow[] = sheet.rows.map(({ cells }) => {
         const r: RawRow = {};
@@ -384,11 +396,12 @@ export class ImportsService {
       await this.prisma.importJob.update({ where: { id: jobId }, data: { progress: 30, totalRows: rows.length } });
 
       const codes = (col: 'sku' | 'technical_number') => rows.map((r) => (r[col]?.value === null || r[col]?.value === undefined ? '' : String(r[col]?.value).trim())).filter(Boolean);
-      const skus = [...new Set(codes('sku'))];
       const numericSkus = [...new Set(rows.filter((r) => r.sku?.isNumeric).map((r) => String(r.sku?.value).trim()).filter((s) => /^\d+$/.test(s)))];
-      const [existing, technicalNumbers, categories, brands, manufacturers, zeroPaddedSkus, unitRows, vehicleRows] = await Promise.all([
+      const technicalNumbers = await this.technicalIndex(codes('technical_number'));
+      await this.fillMissingSkus(rows, technicalNumbers);
+      const skus = [...new Set(codes('sku'))];
+      const [existing, categories, brands, manufacturers, zeroPaddedSkus, unitRows, vehicleRows] = await Promise.all([
         this.loadExisting(skus),
-        this.technicalIndex(codes('technical_number').length > 0),
         this.prisma.category.findMany({ where: { active: true }, select: { code: true, nameFa: true, nameEn: true } }),
         this.prisma.vehicleBrand.findMany({ where: { active: true }, select: { code: true, nameFa: true, nameEn: true } }),
         this.prisma.manufacturerBrand.findMany({ where: { active: true }, select: { id: true, normalizedName: true, nameFa: true, nameEn: true } }),
@@ -512,6 +525,7 @@ export class ImportsService {
         include: {
           translations: true, category: true, manufacturerBrand: true, vehicleBrands: { include: { vehicleBrand: true } }, basePrice: true,
           inventory: { where: { warehouseId } }, fitments: true, salesUnit: true, vehicles: { select: { vehicleId: true, modelId: true } },
+          numbers: { orderBy: { sortOrder: 'asc' } },
         },
       });
       for (const p of products) {
@@ -522,13 +536,17 @@ export class ImportsService {
           productId: p.id, version: p.version, nameFa: fa?.name ?? '', nameEn: en?.name ?? null, categoryCode: p.category.code,
           vehicleBrandCodes: p.vehicleBrands.map((v) => v.vehicleBrand.code), manufacturerBrand: p.manufacturerBrand?.nameEn ?? p.manufacturerBrand?.nameFa ?? null,
           manufacturerBrandId: p.manufacturerBrandId, partType: p.partType, condition: p.condition, origin: p.origin,
-          baseCurrency: p.basePrice?.baseCurrency ?? 'IRR', basePriceMinor: p.basePrice?.baseAmountMinor ?? 0n,
+          baseCurrency: p.basePrice?.baseCurrency ?? null, basePriceMinor: p.basePrice?.baseAmountMinor ?? null,
           overridePriceIrrMinor: p.basePrice?.manualIrrMinor ?? null, overridePriceAedMinor: p.basePrice?.manualAedMinor ?? null,
           // Stock in the product's unit (stored as steps of it), as the file writes it.
           onHand: stepsToQuantity(bal?.onHand ?? 0, p.salesUnit), reserved: stepsToQuantity(bal?.reserved ?? 0, p.salesUnit), inventoryVersion: bal?.version ?? 0,
           lowStockThreshold: stepsToQuantity(bal?.lowStockThreshold ?? 0, p.salesUnit),
           unit: p.unit, descriptionFa: fa?.description ?? null, descriptionEn: en?.description ?? null, isActive: p.isSellable,
           oemCodes: p.oemCodes, vehicleModels: p.fitments.map((f) => f.modelText),
+          partNumber: p.partNumber,
+          equivalents: p.numbers.filter((n) => n.kind === 'EQUIVALENT').map((n) => n.number),
+          replacements: p.numbers.filter((n) => n.kind === 'REPLACEMENT').map((n) => n.number),
+          specs: specPairs(p.specs),
           fitmentKeys: p.vehicles.map((f) => `${f.vehicleId}:${f.modelId ?? ''}`),
         });
       }
@@ -536,13 +554,68 @@ export class ImportsService {
     return map;
   }
 
-  /** Every technical number (and SKU) of the catalog under its comparison key, with the product's manufacturer brand. */
-  private async technicalIndex(needed: boolean): Promise<Map<string, Array<{ sku: string; manufacturerBrandId: string | null }>>> {
+  /**
+   * Rows without a SKU but with a technical number: the SKU of the part that already has this number
+   * (same manufacturer when the row names one), else a new SKU made from the number («0450-102-805»),
+   * unique in the catalog and in the file.
+   */
+  private async fillMissingSkus(rows: RawRow[], index: ReadonlyMap<string, ReadonlyArray<{ sku: string; manufacturerBrandId: string | null }>>): Promise<void> {
+    const text = (c: RawRow[keyof RawRow]) => (c?.value === null || c?.value === undefined ? '' : String(c.value).trim());
+    const missing = rows.filter((r) => !text(r.sku) && text(r.technical_number));
+    if (!missing.length) return;
+    const makers = await this.prisma.manufacturerBrand.findMany({ select: { id: true, normalizedName: true, nameFa: true, nameEn: true } });
+    const makerOf = (name: string) => {
+      const n = normalizeSearchText(name);
+      return makers.find((m) => m.normalizedName === n || normalizeSearchText(m.nameFa) === n || (m.nameEn && normalizeSearchText(m.nameEn) === n))?.id ?? null;
+    };
+    const used = new Set(rows.map((r) => text(r.sku).toUpperCase()).filter(Boolean));
+    const wanted = new Map<RawRow, string>();
+    for (const r of missing) {
+      const tech = text(r.technical_number);
+      const maker = text(r.manufacturer_brand) ? makerOf(text(r.manufacturer_brand)) : null;
+      const hits = (index.get(technicalKey(tech)) ?? []).filter((h) => !maker || h.manufacturerBrandId === maker);
+      if (hits.length === 1) {
+        r.sku = { value: hits[0]!.sku };
+        used.add(hits[0]!.sku.toUpperCase());
+        continue;
+      }
+      const base = toAsciiDigits(tech).toUpperCase().replace(/[^A-Z0-9._/-]+/g, '-').replace(/^[-._/]+|-+$/g, '').slice(0, 56);
+      if (base) wanted.set(r, base);
+    }
+    const taken = new Set((await this.prisma.product.findMany({ where: { sku: { in: [...new Set(wanted.values())] } }, select: { sku: true } })).map((p) => p.sku.toUpperCase()));
+    for (const [r, base] of wanted) {
+      let sku = base;
+      for (let i = 2; taken.has(sku.toUpperCase()) || used.has(sku.toUpperCase()); i += 1) sku = `${base}-${i}`;
+      used.add(sku.toUpperCase());
+      r.sku = { value: sku };
+    }
+  }
+
+  /**
+   * The parts that already carry one of the file's technical numbers (as SKU, main number, other
+   * number or older technical code), under the comparison key, with their manufacturer brand. Only
+   * candidate rows are read, so this stays fast with hundreds of thousands of parts.
+   */
+  private async technicalIndex(codes: readonly string[]): Promise<Map<string, Array<{ sku: string; manufacturerBrandId: string | null }>>> {
     const index = new Map<string, Array<{ sku: string; manufacturerBrandId: string | null }>>();
-    if (!needed) return index;
-    const products = await this.prisma.product.findMany({ where: { archivedAt: null }, select: { sku: true, oemCodes: true, manufacturerBrandId: true } });
+    const keys = [...new Set(codes.map(partNumberKey).filter(Boolean))];
+    if (!keys.length) return index;
+    const ids: string[] = [];
+    for (let i = 0; i < keys.length; i += 2000) {
+      const part = keys.slice(i, i + 2000);
+      const rows = await this.prisma.$queryRaw<Array<{ id: string }>>`
+        SELECT p."id" FROM "product" p WHERE p."archived_at" IS NULL AND (
+          p."part_number_key" = ANY(${part}::text[])
+          OR p."id" IN (SELECT pn."product_id" FROM "product_number" pn WHERE pn."number_key" = ANY(${part}::text[]))
+          OR upper(regexp_replace(p."sku", '[^[:alnum:]]', '', 'g')) = ANY(${part}::text[])
+          OR (cardinality(p."oem_codes") > 0 AND EXISTS (SELECT 1 FROM unnest(p."oem_codes") c WHERE upper(regexp_replace(c, '[^[:alnum:]]', '', 'g')) = ANY(${part}::text[]))))`;
+      ids.push(...rows.map((r) => r.id));
+    }
+    const products = ids.length
+      ? await this.prisma.product.findMany({ where: { id: { in: ids } }, select: { sku: true, oemCodes: true, partNumber: true, manufacturerBrandId: true, numbers: { select: { number: true } } } })
+      : [];
     for (const p of products) {
-      for (const code of new Set([p.sku, ...p.oemCodes].map(technicalKey))) {
+      for (const code of new Set([p.sku, p.partNumber ?? '', ...p.oemCodes, ...p.numbers.map((n) => n.number)].map(technicalKey).filter(Boolean))) {
         const list = index.get(code) ?? [];
         list.push({ sku: p.sku, manufacturerBrandId: p.manufacturerBrandId });
         index.set(code, list);
@@ -617,7 +690,7 @@ export class ImportsService {
    * a permission the changes need, or when this exact file was already added to
    * stock (unless confirmed). Repeating the request is a no-op.
    */
-  async requestCommit(actor: Actor, jobId: string, input: { planChecksum: string; skipErrorRows: boolean; confirmRepeatAdd: boolean; createVehicles?: boolean; linkSimilar?: string[] }) {
+  async requestCommit(actor: Actor, jobId: string, input: { planChecksum: string; skipErrorRows: boolean; skipExisting?: boolean; confirmRepeatAdd: boolean; createVehicles?: boolean; linkSimilar?: string[] }) {
     const job = await this.ownJob(actor, jobId);
     if (job.status === 'COMMITTED' || job.status === 'COMMITTING') return { jobId, status: job.status };
     if (job.status !== 'PREVIEW_READY') throw conflict('IMPORT_NOT_READY');
@@ -641,7 +714,7 @@ export class ImportsService {
         where: { id: jobId, status: 'PREVIEW_READY', planChecksum: input.planChecksum },
         data: {
           status: 'COMMITTING', committedById: actor.userId, progress: 0,
-          options: json({ ...settings, commit: { skipErrorRows: input.skipErrorRows, confirmRepeatAdd: input.confirmRepeatAdd, createVehicles: input.createVehicles ?? false, linkSimilar: input.linkSimilar ?? [] } }),
+          options: json({ ...settings, commit: { skipErrorRows: input.skipErrorRows, skipExisting: input.skipExisting ?? false, confirmRepeatAdd: input.confirmRepeatAdd, createVehicles: input.createVehicles ?? false, linkSimilar: input.linkSimilar ?? [] } }),
         },
       });
       if (res.count !== 1) return;
@@ -660,12 +733,15 @@ export class ImportsService {
     const job = await this.prisma.importJob.findUnique({ where: { id: jobId } });
     if (!job || job.status !== 'COMMITTING') return;
     const settings = readSettings(job);
-    const rows = await this.prisma.importRow.findMany({ where: { jobId, action: { in: ['CREATE', 'UPDATE'] } }, orderBy: { rowNumber: 'asc' } });
-    const [skipped, unchanged] = await Promise.all([
+    // «رد» for parts that already exist: their rows are left out (counted as skipped).
+    const skipExisting = settings.commit?.skipExisting ?? false;
+    const rows = await this.prisma.importRow.findMany({ where: { jobId, action: { in: skipExisting ? ['CREATE'] : ['CREATE', 'UPDATE'] } }, orderBy: { rowNumber: 'asc' } });
+    const [skipped, unchanged, existingSkipped] = await Promise.all([
       this.prisma.importRow.count({ where: { jobId, action: 'ERROR' } }),
       this.prisma.importRow.count({ where: { jobId, action: 'UNCHANGED' } }),
+      skipExisting ? this.prisma.importRow.count({ where: { jobId, action: 'UPDATE' } }) : Promise.resolve(0),
     ]);
-    const result = { created: rows.filter((r) => r.action === 'CREATE').length, updated: rows.filter((r) => r.action === 'UPDATE').length, unchanged, skipped, vehiclesCreated: 0, modelsCreated: 0 };
+    const result = { created: rows.filter((r) => r.action === 'CREATE').length, updated: rows.filter((r) => r.action === 'UPDATE').length, unchanged, skipped, existingSkipped, vehiclesCreated: 0, modelsCreated: 0 };
     const fitment = { create: settings.commit?.createVehicles ?? false, linkSimilar: new Set((settings.commit?.linkSimilar ?? []).map((t) => normalizeSearchText(t))), result };
     try {
       await this.prisma.tx(
@@ -690,7 +766,7 @@ export class ImportsService {
             // Progress for large files, written outside this transaction so the panel sees it.
             if (done % 100 === 0) await this.prisma.importJob.update({ where: { id: jobId }, data: { progress: Math.min(95, Math.round((done / rows.length) * 100)) } }).catch(() => undefined);
           }
-          await tx.importRow.updateMany({ where: { jobId, action: { in: ['CREATE', 'UPDATE'] } }, data: { appliedAt: new Date() } });
+          await tx.importRow.updateMany({ where: { jobId, id: { in: rows.map((r) => r.id) } }, data: { appliedAt: new Date() } });
           await tx.importJob.update({
             where: { id: jobId },
             data: { status: 'COMMITTED', committedAt: new Date(), progress: 100, summary: json({ ...((job.summary ?? {}) as object), result }) },
@@ -737,15 +813,20 @@ export class ImportsService {
           manufacturerBrandId: v.manufacturerBrand ? (maps.mfr.get(normalizeSearchText(v.manufacturerBrand)) ?? null) : null,
           partType: v.partType as 'GENUINE', condition: v.condition as 'NEW', origin: v.origin as 'DOMESTIC', unitId: unit.id, unit: unit.name,
           // New products start as drafts: publishing keeps its own rules (price, real photo for used parts).
-          isSellable: v.isActive ?? true, published: false, oemCodes: v.technicalNumber ? [v.technicalNumber] : [],
+          isSellable: v.isActive ?? true, published: false, oemCodes: [],
+          specs: (v.specs ?? []).map((s, i) => ({ key: `spec-${i + 1}`, labelFa: s.label, value: s.value })),
           createdById: job.committedById, updatedById: job.committedById,
         },
       });
       productId = created.id;
+      await this.setMainNumber(tx, productId, v.technicalNumber ?? null);
       await tx.importRow.update({ where: { jobId_rowNumber: { jobId: job.id, rowNumber: row.rowNumber } }, data: { productId } });
-      await tx.productPrice.create({
-        data: { productId, baseCurrency: v.baseCurrency as 'IRR', baseAmountMinor: big(v.basePriceMinor) as bigint, manualIrrMinor: big(v.overridePriceIrrMinor) ?? null, manualAedMinor: big(v.overridePriceAedMinor) ?? null, updatedById: job.committedById },
-      });
+      // The price is optional: without it the part is shown with «درخواست تأمین».
+      if (v.basePriceMinor !== undefined) {
+        await tx.productPrice.create({
+          data: { productId, baseCurrency: (v.baseCurrency ?? 'IRR') as 'IRR', baseAmountMinor: big(v.basePriceMinor) as bigint, manualIrrMinor: big(v.overridePriceIrrMinor) ?? null, manualAedMinor: big(v.overridePriceAedMinor) ?? null, updatedById: job.committedById },
+        });
+      }
       await tx.productTranslation.create({ data: { productId, locale: 'fa', name: v.nameFa as string, description: v.descriptionFa ?? null, aliases: [] } });
       if (v.nameEn) await tx.productTranslation.create({ data: { productId, locale: 'en', name: v.nameEn, description: v.descriptionEn ?? null, aliases: [] } });
       if (v.vehicleBrandCodes?.length) await tx.productVehicleBrand.createMany({ data: v.vehicleBrandCodes.map((c) => ({ productId: productId as string, vehicleBrandId: maps.brandId.get(c) as string })) });
@@ -753,7 +834,7 @@ export class ImportsService {
       await this.inventory.ensureBalance(tx, productId);
     } else {
       if (!productId) throw new DomainError('VERSION_CONFLICT');
-      const current = await tx.product.findUnique({ where: { id: productId }, select: { oemCodes: true, salesUnit: true } });
+      const current = await tx.product.findUnique({ where: { id: productId }, select: { oemCodes: true, partNumberKey: true, salesUnit: true, basePrice: { select: { id: true } } } });
       if (!current) throw new DomainError('VERSION_CONFLICT');
       // A unit change keeps stored quantities meaningful only between units with the same step and decimal rule.
       const unit = v.unit ? await this.units.findByName(v.unit, tx) : null;
@@ -761,7 +842,10 @@ export class ImportsService {
       if (unit && (unit.stepMilli !== current.salesUnit.stepMilli || unit.allowDecimal !== current.salesUnit.allowDecimal)) {
         throw new DomainError('UNIT_CHANGE_LOCKED', `Row ${row.rowNumber}: change the unit in the panel`);
       }
-      const addCode = v.technicalNumber && !current.oemCodes.some((c) => technicalKey(c) === technicalKey(v.technicalNumber as string));
+      // A part without a main number gets this one; otherwise a new number is kept as an older code.
+      const known = [...current.oemCodes].map(technicalKey);
+      const takesMain = !!v.technicalNumber && !current.partNumberKey;
+      const addCode = !!v.technicalNumber && !takesMain && current.partNumberKey !== partNumberKey(v.technicalNumber) && !known.includes(technicalKey(v.technicalNumber));
       const res = await tx.product.updateMany({
         where: { id: productId, version: row.expectedProductVersion ?? -1 },
         data: {
@@ -775,10 +859,17 @@ export class ImportsService {
           ...(unit ? { unitId: unit.id, unit: unit.name } : {}),
           ...(v.isActive !== undefined ? { isSellable: v.isActive } : {}),
           ...(addCode ? { oemCodes: [...current.oemCodes, v.technicalNumber as string] } : {}),
+          ...(v.specs ? { specs: v.specs.map((s, i) => ({ key: `spec-${i + 1}`, labelFa: s.label, value: s.value })) } : {}),
         },
       });
+      if (takesMain) await this.setMainNumber(tx, productId, v.technicalNumber ?? null);
       if (res.count !== 1) throw new DomainError('VERSION_CONFLICT', `Row ${row.rowNumber}: product changed after preview`);
-      if (v.basePriceMinor !== undefined || v.baseCurrency || v.overridePriceIrrMinor !== undefined || v.overridePriceAedMinor !== undefined) {
+      if (!current.basePrice && v.basePriceMinor !== undefined) {
+        // The part had no price: the file gives it one.
+        await tx.productPrice.create({
+          data: { productId, baseCurrency: (v.baseCurrency ?? 'IRR') as 'IRR', baseAmountMinor: BigInt(v.basePriceMinor), manualIrrMinor: big(v.overridePriceIrrMinor) ?? null, manualAedMinor: big(v.overridePriceAedMinor) ?? null, updatedById: job.committedById },
+        });
+      } else if (current.basePrice && (v.basePriceMinor !== undefined || v.baseCurrency || v.overridePriceIrrMinor !== undefined || v.overridePriceAedMinor !== undefined)) {
         await tx.productPrice.update({
           where: { productId },
           data: {
@@ -827,8 +918,28 @@ export class ImportsService {
       });
     }
     if (v.lowStockThreshold !== undefined) await tx.inventoryBalance.updateMany({ where: { productId: productId as string }, data: { lowStockThreshold: steps(v.lowStockThreshold) } });
+    // Equivalent and replacement numbers are only added.
+    if (v.equivalents?.length || v.replacements?.length) {
+      const main = await tx.product.findUniqueOrThrow({ where: { id: productId as string }, select: { partNumberKey: true } });
+      const rows = otherNumbers(main.partNumberKey, v.equivalents ?? [], v.replacements ?? []);
+      const have = await tx.productNumber.count({ where: { productId: productId as string } });
+      if (rows.length) await tx.productNumber.createMany({ data: rows.map((r) => ({ ...r, sortOrder: have + r.sortOrder, productId: productId as string })), skipDuplicates: true });
+    }
     await this.applyFitments(tx, productId as string, v.fitments ?? [], fitment);
     await rebuildProductSearch(tx, productId as string);
+  }
+
+  /** The main technical number, when no other part of the same manufacturer has it (else kept as an older code). */
+  private async setMainNumber(tx: Tx, productId: string, number: string | null): Promise<void> {
+    const key = number ? partNumberKey(number) : '';
+    if (!number || !key) return;
+    const p = await tx.product.findUniqueOrThrow({ where: { id: productId }, select: { manufacturerBrandId: true, oemCodes: true } });
+    const taken = await tx.product.findFirst({ where: { partNumberKey: key, manufacturerBrandId: p.manufacturerBrandId, id: { not: productId } }, select: { id: true } });
+    if (taken) {
+      if (!p.oemCodes.some((c) => technicalKey(c) === technicalKey(number))) await tx.product.update({ where: { id: productId }, data: { oemCodes: [...p.oemCodes, number] } });
+      return;
+    }
+    await tx.product.update({ where: { id: productId }, data: { partNumber: number.slice(0, 80), partNumberKey: key } });
   }
 
   /**
@@ -837,22 +948,22 @@ export class ImportsService {
    * suggested vehicle. Nothing is ever unlinked by an import.
    */
   private async applyFitments(
-    tx: Tx, productId: string, items: readonly FitmentMatch[],
+    tx: Tx, productId: string, items: ReadonlyArray<FitmentMatch & { yearFrom?: number | null; yearTo?: number | null }>,
     fitment: { create: boolean; linkSimilar: ReadonlySet<string>; result: { vehiclesCreated: number; modelsCreated: number } },
   ): Promise<void> {
     for (const f of items) {
       if (f.kind === 'KNOWN') {
-        await this.vehicles.addProductVehicle(tx, productId, f.vehicleId, f.modelId);
+        await this.vehicles.addProductVehicle(tx, productId, f.vehicleId, f.modelId, f);
       } else if (f.kind === 'SIMILAR') {
-        if (fitment.linkSimilar.has(normalizeSearchText(f.text))) await this.vehicles.addProductVehicle(tx, productId, f.suggestion.vehicleId, null);
+        if (fitment.linkSimilar.has(normalizeSearchText(f.text))) await this.vehicles.addProductVehicle(tx, productId, f.suggestion.vehicleId, null, f);
       } else if (fitment.create && f.kind === 'NEW_VEHICLE') {
         const v = await this.vehicles.ensureVehicle(tx, f.vehicleName);
         if (v.created) fitment.result.vehiclesCreated += 1;
-        await this.vehicles.addProductVehicle(tx, productId, v.id, null);
+        await this.vehicles.addProductVehicle(tx, productId, v.id, null, f);
       } else if (fitment.create && f.kind === 'NEW_MODEL') {
         const m = await this.vehicles.ensureModel(tx, f.vehicleId, f.modelName);
         if (m.created) fitment.result.modelsCreated += 1;
-        await this.vehicles.addProductVehicle(tx, productId, f.vehicleId, m.id);
+        await this.vehicles.addProductVehicle(tx, productId, f.vehicleId, m.id, f);
       }
     }
   }
@@ -921,7 +1032,7 @@ export class ImportsService {
       const primary = p.media[0];
       items.push({
         productId: p.id, rowNumber: r.rowNumber, action: r.action === 'CREATE' ? 'CREATE' : 'UPDATE', sku: p.sku, nameFa: fa?.name ?? '',
-        nameEn: p.translations.find((x) => x.locale === 'en')?.name ?? null, technicalNumbers: p.oemCodes,
+        nameEn: p.translations.find((x) => x.locale === 'en')?.name ?? null, technicalNumbers: [...new Set([...(p.partNumber ? [p.partNumber] : []), ...p.oemCodes])],
         brand: p.manufacturerBrand?.nameFa ?? null, condition: p.condition, published: p.published, photoCount: p.media.length,
         primaryPhoto: primary ? { storageKey: primary.storageKey, width: primary.width, height: primary.height, alt: primary.altFa } : null,
         photoRequiredToPublish: p.condition !== 'NEW',
@@ -961,4 +1072,10 @@ export class ImportsService {
     }
     return Buffer.from(await wb.xlsx.writeBuffer());
   }
+}
+
+/** A part's stored specs ({ key, labelFa, value }) as «عنوان: مقدار» pairs (what the import compares). */
+function specPairs(value: Prisma.JsonValue): SpecPair[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((s) => (s && typeof s === 'object' && !Array.isArray(s) && typeof s.labelFa === 'string' && typeof s.value === 'string' ? [{ label: s.labelFa, value: s.value }] : []));
 }

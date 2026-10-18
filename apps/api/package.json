@@ -17,6 +17,7 @@
     "seed:dev": "node --env-file-if-exists=../../.env dist/database/seed-dev.js",
     "seed:base": "node --env-file-if-exists=../../.env dist/database/seed-base.js",
     "owner:bootstrap": "node --env-file-if-exists=../../.env dist/cli/bootstrap-owner.js",
+    "verify:catalog-migration": "node --env-file-if-exists=../../.env dist/cli/verify-catalog-migration.js",
     "openapi:export": "node --env-file-if-exists=../../.env dist/cli/export-openapi.js",
     "db:local": "node scripts/local-db.mjs"
   },

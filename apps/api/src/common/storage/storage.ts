@@ -9,6 +9,8 @@ import type { Readable } from 'node:stream';
 export interface StorageDriver {
   readonly name: string;
   putPrivate(key: string, body: Buffer, contentType: string): Promise<void>;
+  /** A large file already on local disk (e.g. a brand database upload), streamed into the private store. */
+  putPrivateFile(key: string, filePath: string, contentType: string): Promise<void>;
   getPrivate(key: string): Promise<Readable>;
   readPrivate(key: string): Promise<Buffer>;
   deletePrivate(key: string): Promise<void>;

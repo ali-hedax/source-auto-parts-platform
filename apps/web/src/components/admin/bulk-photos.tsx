@@ -1,12 +1,12 @@
 'use client';
 
-import type { CatalogCodeLookupView, ProductCodeLookupView } from '@hedax/contracts';
+import type { ProductCodeLookupView, ProductCodeMatch } from '@hedax/contracts';
 import { MAX_PHOTO_CODES_PER_LOOKUP, photoCodeReadings } from '@hedax/domain';
 import { FolderOpen, ImagePlus, Play, Square, Trash2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useId, useMemo, useRef, useState, type DragEvent } from 'react';
 import { Button } from '@/components/ui/button';
-import { Checkbox, Field, Select } from '@/components/ui/field';
+import { Checkbox, Select } from '@/components/ui/field';
 import { formatBytes } from '@/components/ui/format';
 import { Alert, Badge, Code, Section, TableScroll, td, th } from '@/components/ui/misc';
 import { Link } from '@/i18n/navigation';
@@ -18,20 +18,7 @@ import { useL } from './shell';
 /** Most photos one batch may hold; more can be added after this batch is uploaded and cleared. */
 const MAX_FILES = 2000;
 
-/** Where the photos of this batch go: shop products, technical catalog parts, or both. */
-type Destination = 'products' | 'catalog' | 'both';
-type Kind = 'product' | 'catalog';
-
-interface Target {
-  kind: Kind;
-  id: string;
-  /** SKU of a product, technical number of a catalog part. */
-  code: string;
-  nameFa: string;
-  photoCount: number;
-}
-
-type Status = 'checking' | 'looked' | 'invalid' | 'uploading' | 'done' | 'error';
+type Status = 'checking' | 'ready' | 'ambiguous' | 'notFound' | 'invalid' | 'uploading' | 'done' | 'error';
 
 interface Item {
   key: string;
@@ -41,25 +28,17 @@ interface Item {
   code: string;
   position: number;
   status: Status;
-  /** Every product / catalog part the file name's code belongs to. */
-  products: Target[];
-  entries: Target[];
-  /** Chosen by hand when a code belongs to several. */
-  chosen: Partial<Record<Kind, Target>>;
-  /** Destinations this photo was already saved to (a retry does not send it there again). */
-  saved: Kind[];
+  product?: ProductCodeMatch;
+  choices?: ProductCodeMatch[];
   progress: number;
   error?: string;
 }
 
-const KINDS: Record<Destination, Kind[]> = { products: ['product'], catalog: ['catalog'], both: ['product', 'catalog'] };
-
 /**
- * Bulk photos: the person drops many photos (or a whole folder) whose file names are the parts'
- * technical numbers or SKUs ("0450102805-2.jpg"). Each file is matched to its shop product and/or
- * its technical catalog part (same file-name rules for both), the preview shows where every photo
- * goes, ambiguous codes are chosen by hand, and the photos are uploaded one by one through the same
- * checked endpoints as single photos.
+ * Bulk product photos: the person drops many photos (or a whole folder) whose file
+ * names are the parts' technical numbers or SKUs ("0450102805-2.jpg"). Each file is
+ * matched to its product, ambiguous codes are chosen by hand, and the photos are
+ * uploaded one by one through the same checked endpoint as a single product's photos.
  */
 export function BulkPhotoUpload() {
   const t = useTranslations();
@@ -68,7 +47,6 @@ export function BulkPhotoUpload() {
   const fileInputId = useId();
   const folderInputId = useId();
   const [items, setItems] = useState<Item[]>([]);
-  const [destination, setDestination] = useState<Destination>('products');
   const [dragging, setDragging] = useState(false);
   const [skipExisting, setSkipExisting] = useState(true);
   const [problemsOnly, setProblemsOnly] = useState(false);
@@ -93,17 +71,11 @@ export function BulkPhotoUpload() {
   const lookup = async (batch: Item[]) => {
     const readingsByKey = new Map(batch.map((it) => [it.key, photoCodeReadings(it.name)]));
     const codes = [...new Set([...readingsByKey.values()].flat().map((r) => r.code))];
-    const products: ProductCodeLookupView['matches'] = {};
-    const entries: CatalogCodeLookupView['matches'] = {};
+    const matches: ProductCodeLookupView['matches'] = {};
     try {
       for (let i = 0; i < codes.length; i += MAX_PHOTO_CODES_PER_LOOKUP) {
-        const body = { codes: codes.slice(i, i + MAX_PHOTO_CODES_PER_LOOKUP) };
-        const [p, c] = await Promise.all([
-          api<ProductCodeLookupView>('/admin/products/code-lookup', { method: 'POST', body }),
-          api<CatalogCodeLookupView>('/admin/catalog-entries/code-lookup', { method: 'POST', body }),
-        ]);
-        Object.assign(products, p.matches);
-        Object.assign(entries, c.matches);
+        const res = await api<ProductCodeLookupView>('/admin/products/code-lookup', { method: 'POST', body: { codes: codes.slice(i, i + MAX_PHOTO_CODES_PER_LOOKUP) } });
+        Object.assign(matches, res.matches);
       }
     } catch (e) {
       setMessage({ tone: 'danger', text: errorText(t, e) });
@@ -113,13 +85,11 @@ export function BulkPhotoUpload() {
     setItems((list) => list.map((it) => {
       const readings = readingsByKey.get(it.key);
       if (!readings) return it;
-      // The first reading that matches anything wins (the whole name before "name minus -N").
-      const hit = readings.find((r) => (products[r.code] ?? []).length > 0 || (entries[r.code] ?? []).length > 0) ?? readings[0]!;
-      return {
-        ...it, code: hit.code, position: hit.position, status: 'looked',
-        products: (products[hit.code] ?? []).map((p) => ({ kind: 'product' as const, id: p.id, code: p.sku, nameFa: p.nameFa, photoCount: p.photoCount })),
-        entries: (entries[hit.code] ?? []).map((e) => ({ kind: 'catalog' as const, id: e.id, code: e.partNumber, nameFa: e.nameFa, photoCount: e.photoCount })),
-      };
+      const hit = readings.find((r) => (matches[r.code] ?? []).length > 0);
+      if (!hit) return { ...it, status: 'notFound' };
+      const found = matches[hit.code] ?? [];
+      if (found.length === 1) return { ...it, code: hit.code, position: hit.position, status: 'ready', product: found[0] as ProductCodeMatch };
+      return { ...it, code: hit.code, position: hit.position, status: 'ambiguous', choices: found };
     }));
   };
 
@@ -136,7 +106,7 @@ export function BulkPhotoUpload() {
       if (items.length + added.length >= MAX_FILES) { skipped += 1; continue; }
       seen.add(`${name}|${file.size}`);
       const readings = photoCodeReadings(name);
-      const base: Item = { key: `${name}-${file.size}-${Math.random().toString(36).slice(2)}`, file, name, code: readings[0]?.code ?? name, position: readings[0]?.position ?? 1, status: 'checking', products: [], entries: [], chosen: {}, saved: [], progress: 0 };
+      const base: Item = { key: `${name}-${file.size}-${Math.random().toString(36).slice(2)}`, file, name, code: readings[0]?.code ?? name, position: readings[0]?.position ?? 1, status: 'checking', progress: 0 };
       if (!isImage) added.push({ ...base, status: 'invalid', error: l('فقط JPG، PNG یا WebP.', 'JPG, PNG or WebP only.') });
       else if (file.size > PHOTO_MAX_BYTES) added.push({ ...base, status: 'invalid', error: l('بزرگ‌تر از ۲۰ مگابایت است.', 'Larger than 20 MB.') });
       else if (!readings.length) added.push({ ...base, status: 'invalid', error: l('نام فایل کد ندارد.', 'The file name has no code.') });
@@ -149,51 +119,28 @@ export function BulkPhotoUpload() {
     if (toCheck.length) void lookup(toCheck);
   };
 
-  /** Where one photo goes with the current destination: resolved targets, open choices, skipped ones. */
-  const plan = (it: Item) => {
-    const targets: Target[] = [];
-    const skipped: Target[] = [];
-    const ambiguous: Kind[] = [];
-    for (const kind of KINDS[destination]) {
-      const list = kind === 'product' ? it.products : it.entries;
-      const target = it.chosen[kind] ?? (list.length === 1 ? list[0] : undefined);
-      if (!target) {
-        if (list.length > 1) ambiguous.push(kind);
-        continue;
-      }
-      if (it.saved.includes(kind)) continue;
-      if (skipExisting && target.photoCount > 0) skipped.push(target);
-      else targets.push(target);
-    }
-    return { targets, skipped, ambiguous, found: targets.length + skipped.length + ambiguous.length > 0 || it.saved.length > 0 };
-  };
-  const uploadable = items.filter((it) => (it.status === 'looked' || it.status === 'error') && plan(it).targets.length > 0 && !plan(it).ambiguous.length);
+  const willSkip = (it: Item) => skipExisting && !!it.product && it.product.photoCount > 0;
+  const uploadable = items.filter((it) => (it.status === 'ready' || it.status === 'error') && it.product && !willSkip(it));
 
   const start = async () => {
     setMessage(null);
     stopRequested.current = false;
     setRunning(true);
     // Per part, in position order: the first photo a part gets becomes its main photo.
-    const tasks = uploadable.flatMap((it) => plan(it).targets.map((target) => ({ it, target })))
-      .sort((a, b) => a.target.kind.localeCompare(b.target.kind) || a.target.code.localeCompare(b.target.code) || a.it.position - b.it.position || a.it.name.localeCompare(b.it.name));
+    const queue = [...uploadable].sort((a, b) => (a.product!.id === b.product!.id ? a.position - b.position || a.name.localeCompare(b.name) : a.product!.sku.localeCompare(b.product!.sku)));
     let ok = 0;
     let failed = 0;
-    const savedNow = new Map<string, Kind[]>();
-    for (const { it, target } of tasks) {
+    for (const it of queue) {
       if (stopRequested.current) break;
       patch(it.key, { status: 'uploading', progress: 0, error: undefined });
       const form = new FormData();
       form.append('file', it.file);
-      const url = target.kind === 'product' ? `/admin/products/${target.id}/media` : `/admin/catalog-entries/${target.id}/images`;
       try {
-        await uploadWithProgress<{ id: string }>(url, form, (ratio) => patch(it.key, { progress: ratio })).promise;
-        const saved = [...(savedNow.get(it.key) ?? it.saved), target.kind];
-        savedNow.set(it.key, saved);
-        const left = KINDS[destination].some((k) => !saved.includes(k) && (k === 'product' ? it.products : it.entries).length > 0);
-        patch(it.key, { status: left ? 'looked' : 'done', progress: 1, saved });
+        await uploadWithProgress<{ id: string }>(`/admin/products/${it.product!.id}/media`, form, (ratio) => patch(it.key, { progress: ratio })).promise;
+        patch(it.key, { status: 'done', progress: 1 });
         ok += 1;
       } catch (e) {
-        patch(it.key, { status: 'error', error: errorText(t, e), saved: savedNow.get(it.key) ?? it.saved });
+        patch(it.key, { status: 'error', error: errorText(t, e) });
         failed += 1;
       }
     }
@@ -210,26 +157,17 @@ export function BulkPhotoUpload() {
     if (!running && e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
   };
 
-  const state = (it: Item): 'ready' | 'skipped' | 'ambiguous' | 'notFound' | Exclude<Status, 'looked'> => {
-    if (it.status !== 'looked') return it.status;
-    const p = plan(it);
-    if (p.ambiguous.length) return 'ambiguous';
-    if (p.targets.length) return 'ready';
-    if (p.skipped.length) return 'skipped';
-    return p.found ? 'done' : 'notFound';
-  };
-  const count = (s: ReturnType<typeof state>) => items.filter((it) => state(it) === s).length;
+  const count = (s: Status) => items.filter((it) => it.status === s).length;
+  const skippedCount = items.filter((it) => it.status === 'ready' && willSkip(it)).length;
   const checking = count('checking') > 0;
-  const shown = problemsOnly ? items.filter((it) => ['ambiguous', 'notFound', 'invalid', 'error'].includes(state(it))) : items;
-  const kindLabel = (k: Kind) => (k === 'product' ? l('محصول فروشگاه', 'Shop product') : l('قطعهٔ کاتالوگ', 'Catalog part'));
+  const shown = problemsOnly ? items.filter((it) => ['ambiguous', 'notFound', 'invalid', 'error'].includes(it.status)) : items;
 
   const statusBadge = (it: Item) => {
-    switch (state(it)) {
+    switch (it.status) {
       case 'checking': return <Badge>{l('در حال شناسایی…', 'Looking up…')}</Badge>;
-      case 'ready': return <Badge tone="info">{l('آماده', 'Ready')}</Badge>;
-      case 'skipped': return <Badge>{l('رد می‌شود؛ قطعه عکس دارد', 'Skipped: part has photos')}</Badge>;
+      case 'ready': return willSkip(it) ? <Badge>{l('رد می‌شود؛ قطعه عکس دارد', 'Skipped: part has photos')}</Badge> : <Badge tone="info">{l('آماده', 'Ready')}</Badge>;
       case 'ambiguous': return <Badge tone="warning">{l('چند قطعه با این کد', 'Several parts share this code')}</Badge>;
-      case 'notFound': return <Badge tone="danger">{destination === 'products' ? l('محصولی با این کد نیست', 'No product with this code') : destination === 'catalog' ? l('قطعهٔ کاتالوگی با این کد نیست', 'No catalog part with this code') : l('قطعه‌ای با این کد نیست', 'No part with this code')}</Badge>;
+      case 'notFound': return <Badge tone="danger">{l('قطعه‌ای با این کد نیست', 'No part with this code')}</Badge>;
       case 'invalid': return <Badge tone="danger">{it.error}</Badge>;
       case 'uploading': return <progress className="h-2 w-24" max={1} value={it.progress} aria-label={l('پیشرفت', 'Progress')} />;
       case 'done': return <Badge tone="success">{l('ذخیره شد', 'Saved')}</Badge>;
@@ -237,49 +175,12 @@ export function BulkPhotoUpload() {
     }
   };
 
-  /** «مقصد»: each destination of the photo, or a choice when its code belongs to several parts. */
-  const targets = (it: Item) => {
-    if (it.status === 'checking' || it.status === 'invalid') return <span className="text-steel">—</span>;
-    const rows = KINDS[destination].map((kind) => {
-      const list = kind === 'product' ? it.products : it.entries;
-      const target = it.chosen[kind] ?? (list.length === 1 ? list[0] : undefined);
-      if (target) {
-        const href = kind === 'product' ? `/admin/products/${target.id}` : `/admin/knowledge-catalog?tab=entries&entry=${target.id}`;
-        return (
-          <span key={kind} className="flex flex-col">
-            <span className="text-xs text-steel">{kindLabel(kind)}{it.saved.includes(kind) ? ` · ${l('ذخیره شد', 'saved')}` : ''}</span>
-            <Link href={href} className="font-semibold text-action underline underline-offset-4" dir="auto">{target.nameFa}</Link>
-            <span className="text-xs text-steel"><Code>{target.code}</Code>{target.photoCount ? ` · ${l(`${num(target.photoCount)} عکس`, `${num(target.photoCount)} photos`)}` : ''}</span>
-          </span>
-        );
-      }
-      if (list.length > 1) {
-        return (
-          <Select key={kind} aria-label={kind === 'product' ? l('انتخاب محصول', 'Choose the product') : l('انتخاب قطعهٔ کاتالوگ', 'Choose the catalog part')} defaultValue="" disabled={running}
-            onChange={(e) => { const p = list.find((c) => c.id === e.target.value); if (p) patch(it.key, { chosen: { ...it.chosen, [kind]: p } }); }}>
-            <option value="" disabled>{kind === 'product' ? l('محصول را انتخاب کنید…', 'Choose the product…') : l('قطعهٔ کاتالوگ را انتخاب کنید…', 'Choose the catalog part…')}</option>
-            {list.map((c) => <option key={c.id} value={c.id}>{`${c.nameFa} (${c.code})`}</option>)}
-          </Select>
-        );
-      }
-      return destination === 'both' ? <span key={kind} className="text-xs text-steel">{kindLabel(kind)}: —</span> : null;
-    });
-    return <div className="flex flex-col gap-2">{rows}</div>;
-  };
-
   return (
     <>
       <p className="max-w-3xl text-sm leading-6 text-steel">
-        {l('عکس‌ها را یکجا بکشید و رها کنید یا یک پوشه انتخاب کنید. نام هر فایل باید شمارهٔ فنی یا کد کالای قطعه باشد؛ برای چند عکس از یک قطعه شماره بگذارید: 0450102805-1.jpg، 0450102805-2.jpg. عکس شمارهٔ ۱ عکس اصلی می‌شود. عکس‌ها می‌توانند به محصولات فروشگاه، به قطعات کاتالوگ فنی یا به هر دو بروند (شمارهٔ فنی اصلی یا معادل قطعهٔ کاتالوگ هم شناخته می‌شود).', 'Drop many photos at once or choose a folder. Each file name must be the part’s technical number or SKU; number several photos of one part: 0450102805-1.jpg, 0450102805-2.jpg. Photo 1 becomes the main photo. Photos can go to shop products, technical catalog parts or both (a catalog part’s main or equivalent number is recognised too).')}
+        {l('عکس‌ها را یکجا بکشید و رها کنید یا یک پوشه انتخاب کنید. نام هر فایل باید کد کالا، شمارهٔ فنی یا یکی از شماره‌های معادل قطعه باشد (فاصله و خط تیره مهم نیست)؛ برای چند عکس از یک قطعه شماره بگذارید: 0450102805-1.jpg، 0450102805-2.jpg. عکس شمارهٔ ۱ عکس اصلی می‌شود.', 'Drop many photos at once or choose a folder. Each file name must be the part’s SKU, technical number or one of its equivalent numbers (spaces and dashes do not matter); number several photos of one part: 0450102805-1.jpg, 0450102805-2.jpg. Photo 1 becomes the main photo.')}
       </p>
       <Section title={l('انتخاب عکس‌ها', 'Choose photos')} id="bulk-photos-pick">
-        <Field id="bulk-destination" label={l('عکس‌ها به کجا بروند؟', 'Where do the photos go?')} className="mb-4 max-w-md">
-          <Select id="bulk-destination" value={destination} disabled={running} onChange={(e) => setDestination(e.target.value as Destination)}>
-            <option value="products">{l('محصولات فروشگاه', 'Shop products')}</option>
-            <option value="catalog">{l('قطعات کاتالوگ فنی', 'Technical catalog parts')}</option>
-            <option value="both">{l('هر دو (محصول و قطعهٔ کاتالوگ با همان کد)', 'Both (product and catalog part with the same code)')}</option>
-          </Select>
-        </Field>
         <label
           htmlFor={fileInputId}
           onDragOver={(e) => { e.preventDefault(); if (!running) setDragging(true); }}
@@ -312,9 +213,9 @@ export function BulkPhotoUpload() {
             <Badge tone="info">{l(`آماده: ${num(uploadable.length)}`, `Ready: ${num(uploadable.length)}`)}</Badge>
             {count('done') ? <Badge tone="success">{l(`ذخیره‌شده: ${num(count('done'))}`, `Saved: ${num(count('done'))}`)}</Badge> : null}
             {count('ambiguous') ? <Badge tone="warning">{l(`نیازمند انتخاب: ${num(count('ambiguous'))}`, `Need a choice: ${num(count('ambiguous'))}`)}</Badge> : null}
-            {count('notFound') ? <Badge tone="danger">{l(`بدون مقصد: ${num(count('notFound'))}`, `No destination: ${num(count('notFound'))}`)}</Badge> : null}
+            {count('notFound') ? <Badge tone="danger">{l(`بدون قطعه: ${num(count('notFound'))}`, `No part: ${num(count('notFound'))}`)}</Badge> : null}
             {count('invalid') ? <Badge tone="danger">{l(`فایل نامعتبر: ${num(count('invalid'))}`, `Invalid file: ${num(count('invalid'))}`)}</Badge> : null}
-            {count('skipped') ? <Badge>{l(`رد می‌شود: ${num(count('skipped'))}`, `Skipped: ${num(count('skipped'))}`)}</Badge> : null}
+            {skippedCount ? <Badge>{l(`رد می‌شود: ${num(skippedCount)}`, `Skipped: ${num(skippedCount)}`)}</Badge> : null}
           </div>
           <div className="mb-4 flex flex-wrap items-center gap-3">
             {running ? (
@@ -328,13 +229,26 @@ export function BulkPhotoUpload() {
             <Checkbox id="bulk-problems-only" label={l('فقط موارد دارای مشکل', 'Only problems')} checked={problemsOnly} onChange={(e) => setProblemsOnly(e.target.checked)} />
           </div>
           <TableScroll caption={l('عکس‌های این نوبت', 'Photos in this batch')}>
-            <thead><tr><th className={th}>{l('فایل', 'File')}</th><th className={th}>{l('کد خوانده‌شده', 'Code read')}</th><th className={th}>{l('مقصد', 'Goes to')}</th><th className={th}>{l('وضعیت', 'Status')}</th></tr></thead>
+            <thead><tr><th className={th}>{l('فایل', 'File')}</th><th className={th}>{l('کد خوانده‌شده', 'Code read')}</th><th className={th}>{l('قطعه', 'Part')}</th><th className={th}>{l('وضعیت', 'Status')}</th></tr></thead>
             <tbody>
               {shown.map((it) => (
                 <tr key={it.key}>
                   <td className={td}><span className="block break-all" dir="ltr">{it.name}</span><span className="text-xs text-steel">{formatBytes(it.file.size, locale)}</span></td>
                   <td className={td}><Code>{it.code}</Code>{it.position > 1 ? <span className="ms-2 text-xs text-steel">{l(`عکس ${num(it.position)}`, `photo ${num(it.position)}`)}</span> : null}</td>
-                  <td className={td}>{targets(it)}</td>
+                  <td className={td}>
+                    {it.product ? (
+                      <span className="flex flex-col">
+                        <Link href={`/admin/products/${it.product.id}`} className="font-semibold text-action underline underline-offset-4" dir="auto">{it.product.nameFa}</Link>
+                        <span className="text-xs text-steel">{l('کد کالا', 'SKU')}: <Code>{it.product.sku}</Code>{it.product.photoCount ? ` · ${l(`${num(it.product.photoCount)} عکس`, `${num(it.product.photoCount)} photos`)}` : ''}</span>
+                      </span>
+                    ) : it.status === 'ambiguous' && it.choices ? (
+                      <Select aria-label={l('انتخاب قطعه', 'Choose the part')} defaultValue="" disabled={running}
+                        onChange={(e) => { const p = it.choices?.find((c) => c.id === e.target.value); if (p) patch(it.key, { status: 'ready', product: p }); }}>
+                        <option value="" disabled>{l('قطعه را انتخاب کنید…', 'Choose the part…')}</option>
+                        {it.choices.map((c) => <option key={c.id} value={c.id}>{`${c.nameFa} (${c.sku})`}</option>)}
+                      </Select>
+                    ) : <span className="text-steel">—</span>}
+                  </td>
                   <td className={td}>{statusBadge(it)}</td>
                 </tr>
               ))}

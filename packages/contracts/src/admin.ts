@@ -227,6 +227,8 @@ export const importCommitSchema = z.object({
   planChecksum: z.string().length(64),
   /** Apply only the rows without errors; the others stay listed as not applied (never dropped silently). */
   skipErrorRows: z.boolean().default(false),
+  /** Rows of parts that already exist are left out («رد») instead of updating them («به‌روزرسانی»). */
+  skipExisting: z.boolean().default(false),
   /** The same file was already added to stock (ADD); add it once more anyway. */
   confirmRepeatAdd: z.boolean().default(false),
   /** Create the vehicles and models of «کاربرد در خودرو» that are not in the list yet (listed in the preview). */
@@ -400,6 +402,17 @@ export const catalogDocumentStatusSchema = z.object({
   note: optionalText(500),
 });
 
+/** «تبدیل به قطعه»: the part form filled from an extracted row (nothing is saved). */
+export interface PartDraftView {
+  partNumber: string;
+  nameFa: string;
+  vehicles: Array<{ vehicleId: string; modelId: string | null; vehicleName: string; modelName: string | null }>;
+  /** Vehicle text from the file that matches no vehicle in the panel (shown so it can be added by hand). */
+  unmatchedVehicles: string[];
+  /** A part that already has this technical number (the form opens it instead of a new one). */
+  existingProductId: string | null;
+}
+
 export interface CatalogChunkPreview {
   ordinal: number;
   contentText: string;
@@ -413,7 +426,7 @@ export interface CatalogDocumentView {
   version: string;
   status: CatalogDocumentStatus;
   filename: string;
-  extension: 'pdf' | 'xlsx' | 'csv';
+  extension: 'pdf' | 'xlsx' | 'csv' | 'jpg' | 'jpeg' | 'png' | 'webp';
   sizeBytes: number;
   sha256: string;
   uploadedBy: { id: string; name: string | null; email: string | null };

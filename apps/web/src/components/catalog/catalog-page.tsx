@@ -1,5 +1,5 @@
-import type { CategoryView, SearchResult, VehicleBrandView, VehiclePublicView } from '@hedax/contracts';
-import { SearchX } from 'lucide-react';
+import type { CategoryView, ManufacturerView, SearchResult, VehicleBrandView, VehiclePublicView } from '@hedax/contracts';
+import { SearchX, X } from 'lucide-react';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { ButtonLink } from '@/components/ui/button';
 import { Alert, EmptyState, PageHeader } from '@/components/ui/misc';
@@ -10,7 +10,7 @@ import { CatalogFilters } from './filters';
 import { Pagination } from './pagination';
 import { PartCard } from './part-card';
 
-const KEYS = ['q', 'vehicle', 'model', 'brand', 'category', 'partType', 'condition', 'origin', 'inStock', 'sort', 'page'] as const;
+const KEYS = ['q', 'vehicle', 'model', 'brand', 'maker', 'category', 'partType', 'condition', 'origin', 'inStock', 'sort', 'page'] as const;
 
 export async function CatalogPage({
   searchParams,
@@ -44,11 +44,12 @@ export async function CatalogPage({
   if (fixedVehicle) params.vehicle = fixedVehicle.slug;
   if (!params.vehicle) params.model = undefined;
   const qs = new URLSearchParams(Object.entries({ ...params, currency, pageSize: '24' }).filter((e): e is [string, string] => !!e[1]));
-  const [result, categories, brands, vehicles] = await Promise.all([
+  const [result, categories, brands, vehicles, makers] = await Promise.all([
     serverApi<SearchResult>(`${endpoint}?${qs.toString()}`, { publicCache: 60 }).catch(() => null),
     serverApi<CategoryView[]>('/catalog/categories', { publicCache: 300 }).catch(() => []),
     serverApi<VehicleBrandView[]>('/catalog/vehicle-brands', { publicCache: 300 }).catch(() => []),
     serverApi<VehiclePublicView[]>('/catalog/vehicles', { publicCache: 300 }).catch(() => []),
+    serverApi<ManufacturerView[]>('/catalog/manufacturers', { publicCache: 300 }).catch(() => []),
   ]);
   const name = (n: { fa: string; en: string | null }) => (locale === 'en' ? (n.en ?? n.fa) : n.fa);
   const page = Number(params.page ?? 1) || 1;
@@ -72,7 +73,7 @@ export async function CatalogPage({
       ) : null}
       <div className="grid gap-4 lg:grid-cols-[17rem_minmax(0,1fr)] lg:gap-6">
         <aside className="lg:sticky lg:top-32 lg:max-h-[calc(100vh-9rem)] lg:self-start lg:overflow-y-auto">
-          <CatalogFilters categories={categories} brands={brands} vehicles={vehicles} {...(fixedVehicle ? { fixedVehicle } : {})} current={current} showOrigin={endpoint === '/catalog/products'} />
+          <CatalogFilters categories={categories} brands={brands} makers={makers} vehicles={vehicles} {...(fixedVehicle ? { fixedVehicle } : {})} current={current} showOrigin={endpoint === '/catalog/products'} />
         </aside>
         <div className="min-w-0">
           {!result ? (
@@ -92,9 +93,18 @@ export async function CatalogPage({
             )
           ) : (
             <>
-              <p className="mb-3 text-sm font-medium text-steel" aria-live="polite">
-                {t('common.results', { count: result.total })}
-              </p>
+              <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1">
+                {query ? (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-line-strong bg-white ps-3 text-sm" data-testid="search-term">
+                    {t('search.label')}: <strong className="font-semibold">«{query}»</strong>
+                    <Link href={{ pathname, query: Object.fromEntries(Object.entries(current).filter((e): e is [string, string] => !!e[1] && e[0] !== 'q' && e[0] !== 'page')) }}
+                      className="grid size-9 place-items-center rounded-full text-steel hover:text-ink" aria-label={t('parts.clearSearch')}>
+                      <X aria-hidden className="size-4" />
+                    </Link>
+                  </span>
+                ) : null}
+                <p className="text-sm font-medium text-steel" aria-live="polite">{t('common.results', { count: result.total })}</p>
+              </div>
               <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
                 {result.items.map((p, i) => (
                   <li key={p.id}><PartCard product={p} priority={i < 3} /></li>

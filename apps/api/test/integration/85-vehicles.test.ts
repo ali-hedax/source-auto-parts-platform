@@ -100,7 +100,7 @@ describe('products, «مناسب برای», filter and search', () => {
     await createProduct(owner, { sku: `FIT-C-${run}`, nameFa: `لنت عقب آزمایشی ${run}`, onHand: 3, vehicles: [{ vehicleId: dena.id, modelId: null }] });
 
     const detail = (await anon().get<any>(`/catalog/products/${a.slug}`)).body;
-    expect(detail.fitments).toEqual([{ vehicle: { slug: 'peugeot', name: { fa: 'پژو', en: 'Peugeot' } }, model: { slug: expect.any(String), name: { fa: `۲۰۶ ${run}`, en: null } } }]);
+    expect(detail.fitments).toEqual([{ vehicle: { slug: 'peugeot', name: { fa: 'پژو', en: 'Peugeot' } }, model: { slug: expect.any(String), name: { fa: `۲۰۶ ${run}`, en: null } }, yearFrom: null, yearTo: null, note: null }]);
     expect((await anon().get<any>(`/catalog/products/${b.slug}`)).body.fitments[0]).toMatchObject({ vehicle: { slug: 'peugeot' }, model: null });
 
     const all = await slugsOf('vehicle=peugeot');

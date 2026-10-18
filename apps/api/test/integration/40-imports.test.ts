@@ -138,11 +138,12 @@ describe('A22 — leading-zero SKU, duplicate rows and invalid data', () => {
     const template = await owner.raw('GET', '/admin/imports/template');
     expect(template.status).toBe(200);
     const templateBytes = Buffer.from(await template.arrayBuffer());
-    // The operator template: eleven Persian headers the importer maps (with «واحد» and «کاربرد در خودرو»), SKU as text, Persian drop-downs,
+    // The operator template: nineteen Persian headers the importer maps (technical, equivalent and replacement numbers, maker,
+    // fitment with years, specs, optional price and stock, «واحد»), SKU as text, Persian drop-downs,
     // and its Persian sample rows parse without errors through the same reader and planner.
     const blank = await readSheet(templateBytes, 'xlsx', { sheet: 0, headerRow: 1, maxRows: 10 });
-    expect(blank?.headers).toEqual(['کد کالا', 'نام قطعه', 'کد دسته', 'نوع قطعه', 'وضعیت فیزیکی', 'منشا', 'ارز پایه', 'قیمت پایه', 'موجودی', 'واحد', 'کاربرد در خودرو']);
-    expect(Object.keys(mapHeaders(blank!.headers).mapping).sort()).toEqual(['base_currency', 'base_price', 'category_code', 'condition', 'name_fa', 'on_hand', 'origin', 'part_type', 'sku', 'unit', 'vehicle_models'].sort());
+    expect(blank?.headers).toEqual(['کد کالا', 'شماره فنی', 'نام قطعه', 'نام انگلیسی', 'شماره‌های معادل', 'شماره‌های جایگزین', 'برند سازنده', 'کد دسته', 'برند خودرو', 'کاربرد در خودرو', 'مشخصات فنی', 'توضیحات', 'نوع قطعه', 'وضعیت فیزیکی', 'منشا', 'واحد', 'ارز پایه', 'قیمت پایه', 'موجودی']);
+    expect(Object.keys(mapHeaders(blank!.headers).mapping).sort()).toEqual(['base_currency', 'base_price', 'category_code', 'condition', 'description_fa', 'equivalent_numbers', 'manufacturer_brand', 'name_en', 'name_fa', 'on_hand', 'origin', 'part_type', 'replacement_numbers', 'sku', 'specs', 'technical_number', 'unit', 'vehicle_brand_codes', 'vehicle_models'].sort());
     const templateWb = new ExcelJS.Workbook();
     await templateWb.xlsx.load(templateBytes as never);
     expect(templateWb.worksheets[0]!.getColumn(1).numFmt).toBe('@');
@@ -158,6 +159,8 @@ describe('A22 — leading-zero SKU, duplicate rows and invalid data', () => {
       ['00123', 'CREATE', 'GENUINE', 'NEW', 'DOMESTIC', 'IRR', 'عدد', 4],
       ['TEST-SAMPLE-002', 'CREATE', 'AFTERMARKET', 'USED', 'IMPORTED', 'AED', 'دست', 2],
       ['TEST-SAMPLE-003', 'CREATE', 'AFTERMARKET', 'NEW', 'DOMESTIC', 'IRR', 'لیتر', 12.5],
+      // No price and no stock: a «قابل تأمین» part.
+      ['TEST-SAMPLE-004', 'CREATE', 'GENUINE', 'NEW', 'IMPORTED', undefined, 'عدد', undefined],
     ]);
     expect(samplePlan.rows[1]?.values?.fitments?.map((f) => f.kind)).toEqual(['KNOWN', 'KNOWN']);
     mkdirSync(samples, { recursive: true });
