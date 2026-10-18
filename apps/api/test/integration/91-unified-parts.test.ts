@@ -323,6 +323,24 @@ describe('brand database import', () => {
     expect((await owner.get<any>(`/admin/brand-imports/${first.id}`)).body.canRollback).toBe(true);
   });
 
+  it('the sample file downloads, every column is recognized, and its rows preview as new parts without errors', { timeout: 120_000 }, async () => {
+    const res = await owner.raw('GET', '/admin/brand-imports/sample.xlsx');
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-disposition')).toContain('brand-database-sample.xlsx');
+    const imp = await upload('brand-database-sample.xlsx', Buffer.from(await res.arrayBuffer()), `sample-${run}`);
+    expect(imp.status, imp.failureReason).toBe('AWAITING_MAPPING');
+    expect(imp.mapping).toMatchObject({
+      partNumber: ['شماره فنی'], nameFa: ['نام قطعه'], nameEn: ['نام انگلیسی'], equivalents: ['شماره معادل', 'cross reference'], replacements: ['شماره جایگزین'],
+      category: ['گروه قطعه'], vehicleBrand: ['برند خودرو'], fitment: ['کاربرد در خودرو'], years: ['سال ساخت'], description: ['توضیحات'], specs: ['وزن', 'ابعاد'],
+    });
+    const m = await owner.put<any>(`/admin/brand-imports/${imp.id}/mapping`, { mapping: imp.mapping, options: { publish: false, partType: 'GENUINE', encoding: 'auto' } });
+    expect(m.status, JSON.stringify(m.body)).toBe(200);
+    await drainOutbox(s, ['brand-import.preview'], imp.id);
+    const pv = (await owner.get<any>(`/admin/brand-imports/${imp.id}`)).body;
+    expect(pv.status).toBe('PREVIEW_READY');
+    expect(pv.stats).toMatchObject({ rows: 3, new: 3, error: 0 });
+  });
+
   it('refuses files that are not xlsx, csv or zip, and staff without products.write', async () => {
     const bad = await owner.upload<any>('/admin/brand-imports/upload', { manufacturerBrandId: maker.id, source: 'x' }, [{ name: 'x.pdf', data: Buffer.from('%PDF-1.4'), field: 'file' }]);
     expect(bad.status).toBe(400);

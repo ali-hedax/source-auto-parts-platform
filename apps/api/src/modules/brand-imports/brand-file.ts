@@ -1,6 +1,6 @@
 import { createReadStream } from 'node:fs';
 import { open, stat } from 'node:fs/promises';
-import type { Readable } from 'node:stream';
+import { Readable } from 'node:stream';
 import { TextDecoder } from 'node:util';
 import { createInflateRaw } from 'node:zlib';
 import ExcelJS from 'exceljs';
@@ -38,18 +38,66 @@ function cellText(v: unknown): string {
   return '';
 }
 
+/** The parts of ExcelJS's streaming WorkbookReader used below (they are not in its typings). */
+interface ExcelReaderInternals {
+  _parseRels(entry: Readable): Promise<void>;
+  _parseWorkbook(entry: Readable): Promise<void>;
+  _parseSharedStrings(entry: Readable): AsyncGenerator<unknown>;
+  _parseWorksheet(chunks: AsyncIterable<Buffer>, sheetNo: string): AsyncGenerator<{ eventType: string; value: unknown }>;
+}
+
+/**
+ * xlsx rows, read in a fixed order with our own zip reader: first the sheet list, its links and the
+ * shared strings (the small parts), then each sheet streamed with backpressure through ExcelJS's
+ * sheet parser. ExcelJS's own whole-file streaming walks the zip in file order and, when a sheet
+ * comes before the shared strings (as in files saved by Excel), sometimes loses entries: cells then
+ * come back empty or the reader crashes. Reading by name avoids that.
+ */
 async function* xlsxRecords(path: string): AsyncGenerator<FileRecord> {
-  const reader = new ExcelJS.stream.xlsx.WorkbookReader(path, { sharedStrings: 'cache', hyperlinks: 'ignore', styles: 'ignore', worksheets: 'emit', entries: 'emit' });
+  const entries = await zipEntries(path);
+  if (entries.reduce((s, e) => s + e.size, 0) > 3 * 1024 ** 3) throw new Error('ZIP_TOO_LARGE');
+  const byName = new Map(entries.map((e) => [e.name, e]));
+  const reader = new ExcelJS.stream.xlsx.WorkbookReader(path, { sharedStrings: 'cache', hyperlinks: 'ignore', styles: 'ignore', worksheets: 'emit', entries: 'ignore' });
+  const internals = reader as unknown as ExcelReaderInternals & { sharedStrings?: unknown[]; model?: { sheets?: unknown[] } };
+  const rels = byName.get('xl/_rels/workbook.xml.rels');
+  if (rels) await internals._parseRels(entryStream(path, rels));
+  const book = byName.get('xl/workbook.xml');
+  if (book) await internals._parseWorkbook(entryStream(path, book));
+  internals.model ??= { sheets: [] };
+  const strings = byName.get('xl/sharedStrings.xml');
+  if (strings) for await (const _ of internals._parseSharedStrings(entryStream(path, strings))) { /* filled into reader.sharedStrings */ }
+  internals.sharedStrings ??= [];
+  const sheets = entries
+    .map((e) => ({ e, no: /^xl\/worksheets\/sheet(\d+)\.xml$/.exec(e.name)?.[1] }))
+    .filter((x): x is { e: ZipEntry; no: string } => !!x.no)
+    .sort((a, b) => Number(a.no) - Number(b.no));
   let n = 0;
-  for await (const sheet of reader as AsyncIterable<AsyncIterable<ExcelJS.Row> & { name?: string }>) {
-    n += 1;
-    const source = sheet.name || `Sheet${n}`;
-    for await (const row of sheet) {
-      const values = Array.isArray(row.values) ? (row.values as unknown[]).slice(1) : [];
-      const cells = values.map(cellText);
-      if (cells.some((c) => c.trim() !== '')) yield { source, line: row.number, cells };
+  for (const { e, no } of sheets) {
+    for await (const ev of internals._parseWorksheet(entryStream(path, e), no)) {
+      if (ev.eventType !== 'worksheet') continue;
+      n += 1;
+      const sheet = ev.value as AsyncIterable<ExcelJS.Row> & { name?: string };
+      const source = sheet.name || `Sheet${n}`;
+      yield* sheetRecords(sheet, source);
     }
   }
+}
+
+async function* sheetRecords(sheet: AsyncIterable<ExcelJS.Row>, source: string): AsyncGenerator<FileRecord> {
+  for await (const row of sheet) {
+    const values = Array.isArray(row.values) ? (row.values as unknown[]).slice(1) : [];
+    // Array.from visits empty cells too (map skips the holes of a sparse row).
+    const cells = Array.from(values, cellText);
+    if (cells.some((c) => c.trim() !== '')) yield { source, line: row.number, cells };
+  }
+}
+
+/** One zip entry as a byte stream (stored or deflated), read with backpressure. */
+function entryStream(path: string, e: ZipEntry): Readable {
+  if (e.method !== 0 && e.method !== 8) throw new Error('ZIP_METHOD_NOT_SUPPORTED');
+  if (e.compressedSize === 0) return Readable.from([]);
+  const raw = createReadStream(path, { start: e.offset, end: e.offset + e.compressedSize - 1 });
+  return e.method === 8 ? raw.pipe(createInflateRaw()) : raw;
 }
 
 /** CSV records from a byte stream: encoding from the first 64 KB (or as chosen), separator from the header line. */

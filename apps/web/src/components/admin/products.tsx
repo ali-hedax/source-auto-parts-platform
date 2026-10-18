@@ -2,7 +2,7 @@
 
 import type { AdminProductRow, MoneyDto, PartDraftView, UnitRef, UnitView, VehicleOption } from '@hedax/contracts';
 import { formatQuantity, isValidQuantity, minorToDecimalString, parseDecimalAmount } from '@hedax/domain';
-import { ImagePlus, Images, Plus, X } from 'lucide-react';
+import { DatabaseZap, ImagePlus, Images, Plus, X } from 'lucide-react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -46,6 +46,7 @@ export function ProductsList() {
         description={l('هر قطعه یک‌جا: شمارهٔ فنی و معادل‌ها، کاربرد، مشخصات و عکس؛ قیمت و موجودی اختیاری است. قطعهٔ بدون قیمت در سایت با «درخواست تأمین» نشان داده می‌شود.', 'Every part in one place: technical number and equivalents, fitment, specs and photos; price and stock are optional. A part without a price is shown on the site with “Request this part”.')}
         actions={(
           <div className="flex flex-wrap gap-2">
+            <ButtonLink href="/admin/brand-imports" variant="secondary" icon={<DatabaseZap aria-hidden className="size-4" />}>{l('ورود گروهی قطعه', 'Bulk import parts')}</ButtonLink>
             <ButtonLink href="/admin/product-photos" variant="secondary" icon={<Images aria-hidden className="size-4" />}>{l('بارگذاری گروهی عکس', 'Bulk photos')}</ButtonLink>
             <ButtonLink href="/admin/products/new" icon={<Plus aria-hidden className="size-4" />}>{t('admin.newProduct')}</ButtonLink>
           </div>
