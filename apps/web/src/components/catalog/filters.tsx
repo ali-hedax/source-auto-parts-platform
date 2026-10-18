@@ -1,37 +1,35 @@
 'use client';
 
-import type { CategoryView, VehicleBrandView, VehiclePublicView } from '@hedax/contracts';
+import type { CategoryView, ManufacturerView, VehicleBrandView, VehiclePublicView } from '@hedax/contracts';
 import { ChevronDown, SlidersHorizontal } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useEffect, useRef, useState, useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import { usePathname, useRouter } from '@/i18n/navigation';
-import { Checkbox, Field, Input, Select } from '@/components/ui/field';
+import { Checkbox, Field, Select } from '@/components/ui/field';
 import { Num } from '@/components/ui/format';
 
-export type FilterKey = 'q' | 'vehicle' | 'model' | 'brand' | 'category' | 'partType' | 'condition' | 'origin' | 'inStock' | 'sort';
+export type FilterKey = 'q' | 'vehicle' | 'model' | 'brand' | 'maker' | 'category' | 'partType' | 'condition' | 'origin' | 'inStock' | 'sort';
 
 /**
- * All filters live in the URL, so back/forward restore the exact view.
- * Typing is debounced (~300ms); navigation transitions cancel stale renders.
+ * All filters live in the URL, so back/forward restore the exact view; navigation transitions
+ * cancel stale renders. The search words come from the one search box in the header (`q` is kept).
  * The current values come from the server page as props, so the panel is part
  * of the first HTML chunk and never pushes the results down later (a late
  * streamed panel measured CLS 0.66 on mobile). On small screens it is collapsed
  * behind a button so results are visible first; from `lg` up it is always open.
  */
-export function CatalogFilters({ categories, brands, vehicles = [], fixedVehicle, current, showOrigin = true }: {
-  categories: CategoryView[]; brands: VehicleBrandView[]; vehicles?: VehiclePublicView[]; fixedVehicle?: VehiclePublicView; current: Partial<Record<FilterKey, string>>; showOrigin?: boolean;
+export function CatalogFilters({ categories, brands, makers = [], vehicles = [], fixedVehicle, current, showOrigin = true }: {
+  categories: CategoryView[]; brands: VehicleBrandView[]; makers?: ManufacturerView[]; vehicles?: VehiclePublicView[]; fixedVehicle?: VehiclePublicView; current: Partial<Record<FilterKey, string>>; showOrigin?: boolean;
 }) {
   const t = useTranslations();
   const locale = useLocale() as 'fa' | 'en';
   const pathname = usePathname();
   const router = useRouter();
   const [pending, start] = useTransition();
-  const [q, setQ] = useState(current.q ?? '');
   const [open, setOpen] = useState(false);
-  const active = (['q', 'vehicle', 'model', 'brand', 'category', 'partType', 'condition', 'origin', 'inStock'] as const).filter((k) => current[k]).length;
+  const active = (['vehicle', 'model', 'brand', 'maker', 'category', 'partType', 'condition', 'origin', 'inStock'] as const).filter((k) => current[k]).length;
   // On a vehicle page the vehicle is fixed; only its models can be chosen.
   const chosenVehicle = fixedVehicle ?? vehicles.find((v) => v.slug === current.vehicle);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const update = (patch: Record<string, string | null>) => {
     const next = new URLSearchParams();
@@ -41,11 +39,9 @@ export function CatalogFilters({ categories, brands, vehicles = [], fixedVehicle
     start(() => router.replace(`${pathname}${next.size ? `?${next.toString()}` : ''}`, { scroll: false }));
   };
 
-  useEffect(() => {
-    setQ(current.q ?? '');
-  }, [current.q]);
-
   const name = (n: { fa: string; en: string | null }) => (locale === 'en' ? (n.en ?? n.fa) : n.fa);
+  // Clearing the filters keeps the search words.
+  const cleared = current.q ? `${pathname}?q=${encodeURIComponent(current.q)}` : pathname;
   const clear = 'inline-flex min-h-11 cursor-pointer items-center rounded-[var(--radius-control)] px-2 text-sm font-semibold text-action hover:underline';
 
   return (
@@ -56,7 +52,7 @@ export function CatalogFilters({ categories, brands, vehicles = [], fixedVehicle
           {t('parts.filters')}
           {active ? <span className="grid h-5 min-w-5 place-items-center rounded-full bg-action px-1.5 text-xs font-bold text-white"><Num value={active} /></span> : null}
         </h2>
-        <button type="button" className={clear} onClick={() => start(() => router.replace(pathname, { scroll: false }))}>
+        <button type="button" className={clear} onClick={() => start(() => router.replace(cleared, { scroll: false }))}>
           {t('parts.clearFilters')}
         </button>
       </div>
@@ -73,21 +69,6 @@ export function CatalogFilters({ categories, brands, vehicles = [], fixedVehicle
         <ChevronDown aria-hidden className={`ms-auto size-5 text-steel transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
       <div id="filters-body" className={`${open ? 'flex' : 'hidden'} flex-col gap-4 border-t border-line-soft p-4 lg:flex lg:border-t-0`}>
-        <Field id="filter-q" label={t('search.label')} hint={t('search.hint')}>
-          <Input
-            id="filter-q"
-            type="search"
-            value={q}
-            aria-describedby="filter-q-hint"
-            placeholder={t('search.placeholder')}
-            onChange={(e) => {
-              const value = e.target.value;
-              setQ(value);
-              if (timer.current) clearTimeout(timer.current);
-              timer.current = setTimeout(() => update({ q: value.trim() || null }), 300);
-            }}
-          />
-        </Field>
         {!fixedVehicle && vehicles.length ? (
           <Field id="filter-vehicle" label={t('parts.vehicle')} hint={t('parts.vehicleHint')}>
             <Select id="filter-vehicle" value={current.vehicle ?? ''} aria-describedby="filter-vehicle-hint" onChange={(e) => update({ vehicle: e.target.value || null, model: null })}>
@@ -112,6 +93,14 @@ export function CatalogFilters({ categories, brands, vehicles = [], fixedVehicle
             ))}
           </Select>
         </Field>
+        {makers.length ? (
+          <Field id="filter-maker" label={t('parts.maker')}>
+            <Select id="filter-maker" value={current.maker ?? ''} onChange={(e) => update({ maker: e.target.value || null })}>
+              <option value="">{t('parts.allMakers')}</option>
+              {makers.map((m) => <option key={m.slug} value={m.slug}>{name(m.name)}</option>)}
+            </Select>
+          </Field>
+        ) : null}
         <Field id="filter-category" label={t('parts.category')}>
           <Select id="filter-category" value={current.category ?? ''} onChange={(e) => update({ category: e.target.value })}>
             <option value="">{t('common.all')}</option>
@@ -153,7 +142,7 @@ export function CatalogFilters({ categories, brands, vehicles = [], fixedVehicle
         <button
           type="button"
           className="min-h-11 cursor-pointer rounded-[var(--radius-control)] border border-line-strong text-sm font-semibold transition-colors hover:border-ink hover:bg-surface lg:hidden"
-          onClick={() => start(() => router.replace(pathname, { scroll: false }))}
+          onClick={() => start(() => router.replace(cleared, { scroll: false }))}
         >
           {t('parts.clearFilters')}
         </button>

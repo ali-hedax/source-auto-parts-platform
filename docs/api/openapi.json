@@ -157,7 +157,7 @@
                     "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                   },
                   "newOnHand": {
-                    "type": "integer",
+                    "type": "number",
                     "minimum": 0,
                     "maximum": 10000000
                   },
@@ -281,6 +281,57 @@
         ]
       }
     },
+    "/api/v1/catalog/manufacturers": {
+      "get": {
+        "operationId": "CatalogController_manufacturers",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "catalog"
+        ]
+      }
+    },
+    "/api/v1/catalog/legacy-catalog/{slug}": {
+      "get": {
+        "operationId": "CatalogController_legacyCatalog",
+        "parameters": [
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "catalog"
+        ]
+      }
+    },
+    "/api/v1/catalog/sitemap/pages": {
+      "get": {
+        "operationId": "CatalogController_sitemapPages",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "catalog"
+        ]
+      }
+    },
     "/api/v1/catalog/sitemap": {
       "get": {
         "operationId": "CatalogController_sitemap",
@@ -321,6 +372,37 @@
                   "sku": {
                     "type": "string",
                     "pattern": "^[A-Za-z0-9][A-Za-z0-9._\\-/]{0,63}$"
+                  },
+                  "partNumber": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 80
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "equivalents": {
+                    "default": [],
+                    "maxItems": 50,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 80
+                    }
+                  },
+                  "replacements": {
+                    "default": [],
+                    "maxItems": 50,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 80
+                    }
                   },
                   "slug": {
                     "type": "string",
@@ -402,6 +484,75 @@
                       "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                     }
                   },
+                  "vehicles": {
+                    "default": [],
+                    "maxItems": 100,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "vehicleId": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "modelId": {
+                          "default": null,
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "yearFrom": {
+                          "default": null,
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 1300,
+                              "maximum": 2100
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "yearTo": {
+                          "default": null,
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 1300,
+                              "maximum": 2100
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "note": {
+                          "default": null,
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "maxLength": 200
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "vehicleId"
+                      ]
+                    }
+                  },
                   "partType": {
                     "type": "string",
                     "enum": [
@@ -460,11 +611,10 @@
                       }
                     ]
                   },
-                  "unit": {
-                    "default": "عدد",
+                  "unitId": {
                     "type": "string",
-                    "minLength": 1,
-                    "maxLength": 30
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                   },
                   "packQuantity": {
                     "default": 1,
@@ -514,23 +664,30 @@
                     }
                   },
                   "basePrice": {
-                    "type": "object",
-                    "properties": {
-                      "currency": {
-                        "type": "string",
-                        "enum": [
-                          "IRR",
-                          "AED"
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "type": "string",
+                            "enum": [
+                              "IRR",
+                              "AED"
+                            ]
+                          },
+                          "amountMinor": {
+                            "type": "string",
+                            "pattern": "^\\d{1,20}$"
+                          }
+                        },
+                        "required": [
+                          "currency",
+                          "amountMinor"
                         ]
                       },
-                      "amountMinor": {
-                        "type": "string",
-                        "pattern": "^\\d{1,20}$"
+                      {
+                        "type": "null"
                       }
-                    },
-                    "required": [
-                      "currency",
-                      "amountMinor"
                     ]
                   },
                   "manualPriceIrr": {
@@ -557,9 +714,9 @@
                   },
                   "lowStockThreshold": {
                     "default": 0,
-                    "type": "integer",
+                    "type": "number",
                     "minimum": 0,
-                    "maximum": 1000000
+                    "maximum": 10000000
                   },
                   "isSellable": {
                     "default": true,
@@ -572,13 +729,51 @@
                   }
                 },
                 "required": [
-                  "sku",
                   "nameFa",
                   "categoryId",
                   "partType",
                   "condition",
                   "origin",
-                  "basePrice"
+                  "unitId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/catalog"
+        ]
+      }
+    },
+    "/api/v1/admin/products/code-lookup": {
+      "post": {
+        "operationId": "AdminCatalogController_lookupCodes",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "codes": {
+                    "minItems": 1,
+                    "maxItems": 500,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 80
+                    }
+                  }
+                },
+                "required": [
+                  "codes"
                 ]
               }
             }
@@ -639,6 +834,37 @@
                     "type": "string",
                     "pattern": "^[A-Za-z0-9][A-Za-z0-9._\\-/]{0,63}$"
                   },
+                  "partNumber": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 80
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "equivalents": {
+                    "default": [],
+                    "maxItems": 50,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 80
+                    }
+                  },
+                  "replacements": {
+                    "default": [],
+                    "maxItems": 50,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 80
+                    }
+                  },
                   "slug": {
                     "type": "string",
                     "maxLength": 120,
@@ -719,6 +945,75 @@
                       "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                     }
                   },
+                  "vehicles": {
+                    "default": [],
+                    "maxItems": 100,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "vehicleId": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "modelId": {
+                          "default": null,
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "yearFrom": {
+                          "default": null,
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 1300,
+                              "maximum": 2100
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "yearTo": {
+                          "default": null,
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 1300,
+                              "maximum": 2100
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "note": {
+                          "default": null,
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "maxLength": 200
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "vehicleId"
+                      ]
+                    }
+                  },
                   "partType": {
                     "type": "string",
                     "enum": [
@@ -777,11 +1072,10 @@
                       }
                     ]
                   },
-                  "unit": {
-                    "default": "عدد",
+                  "unitId": {
                     "type": "string",
-                    "minLength": 1,
-                    "maxLength": 30
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                   },
                   "packQuantity": {
                     "default": 1,
@@ -831,23 +1125,30 @@
                     }
                   },
                   "basePrice": {
-                    "type": "object",
-                    "properties": {
-                      "currency": {
-                        "type": "string",
-                        "enum": [
-                          "IRR",
-                          "AED"
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "type": "string",
+                            "enum": [
+                              "IRR",
+                              "AED"
+                            ]
+                          },
+                          "amountMinor": {
+                            "type": "string",
+                            "pattern": "^\\d{1,20}$"
+                          }
+                        },
+                        "required": [
+                          "currency",
+                          "amountMinor"
                         ]
                       },
-                      "amountMinor": {
-                        "type": "string",
-                        "pattern": "^\\d{1,20}$"
+                      {
+                        "type": "null"
                       }
-                    },
-                    "required": [
-                      "currency",
-                      "amountMinor"
                     ]
                   },
                   "manualPriceIrr": {
@@ -874,9 +1175,9 @@
                   },
                   "lowStockThreshold": {
                     "default": 0,
-                    "type": "integer",
+                    "type": "number",
                     "minimum": 0,
-                    "maximum": 1000000
+                    "maximum": 10000000
                   },
                   "isSellable": {
                     "default": true,
@@ -889,13 +1190,12 @@
                   }
                 },
                 "required": [
-                  "sku",
                   "nameFa",
                   "categoryId",
                   "partType",
                   "condition",
                   "origin",
-                  "basePrice"
+                  "unitId"
                 ]
               }
             }
@@ -958,6 +1258,27 @@
       }
     },
     "/api/v1/admin/products/{id}/media": {
+      "get": {
+        "operationId": "AdminCatalogController_media",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/catalog"
+        ]
+      },
       "post": {
         "operationId": "AdminCatalogController_upload",
         "parameters": [
@@ -972,6 +1293,54 @@
         ],
         "responses": {
           "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/catalog"
+        ]
+      }
+    },
+    "/api/v1/admin/products/{id}/media/order": {
+      "put": {
+        "operationId": "AdminCatalogController_reorderMedia",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ids": {
+                    "minItems": 1,
+                    "maxItems": 50,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
+                  }
+                },
+                "required": [
+                  "ids"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
             "description": ""
           }
         },
@@ -1073,16 +1442,16 @@
                     ]
                   },
                   "minQty": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": 9007199254740991
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 10000000
                   },
                   "maxQty": {
                     "anyOf": [
                       {
-                        "type": "integer",
-                        "minimum": 1,
-                        "maximum": 9007199254740991
+                        "type": "number",
+                        "exclusiveMinimum": 0,
+                        "maximum": 10000000
                       },
                       {
                         "type": "null"
@@ -1309,6 +1678,1023 @@
         ]
       }
     },
+    "/api/v1/admin/units": {
+      "get": {
+        "operationId": "UnitsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/units"
+        ]
+      },
+      "post": {
+        "operationId": "UnitsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 30
+                  },
+                  "nameEn": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 30
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "allowDecimal": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "step": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 1000
+                  },
+                  "active": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "sortOrder": {
+                    "default": 0,
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10000
+                  }
+                },
+                "required": [
+                  "name",
+                  "step"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/units"
+        ]
+      }
+    },
+    "/api/v1/admin/units/{id}": {
+      "patch": {
+        "operationId": "UnitsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 30
+                  },
+                  "nameEn": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 30
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "allowDecimal": {
+                    "type": "boolean"
+                  },
+                  "step": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 1000
+                  },
+                  "active": {
+                    "type": "boolean"
+                  },
+                  "sortOrder": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/units"
+        ]
+      },
+      "delete": {
+        "operationId": "UnitsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/units"
+        ]
+      }
+    },
+    "/api/v1/admin/vehicles": {
+      "get": {
+        "operationId": "VehiclesAdminController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/vehicles"
+        ]
+      },
+      "post": {
+        "operationId": "VehiclesAdminController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "nameEn": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 80
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "slug": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{0,69}$"
+                  },
+                  "categoryId": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "sortOrder": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "active": {
+                    "type": "boolean"
+                  },
+                  "seoTitle": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 120
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "seoDescription": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 300
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/vehicles"
+        ]
+      }
+    },
+    "/api/v1/admin/vehicles/options": {
+      "get": {
+        "operationId": "VehiclesAdminController_options",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/vehicles"
+        ]
+      }
+    },
+    "/api/v1/admin/vehicles/quick": {
+      "post": {
+        "operationId": "VehiclesAdminController_quickAdd",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "confirmNew": {
+                    "default": false,
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/vehicles"
+        ]
+      }
+    },
+    "/api/v1/admin/vehicles/{id}/models/quick": {
+      "post": {
+        "operationId": "VehiclesAdminController_quickAddModel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "nameEn": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 80
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "slug": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{0,69}$"
+                  },
+                  "sortOrder": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "active": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/vehicles"
+        ]
+      }
+    },
+    "/api/v1/admin/vehicles/reorder": {
+      "post": {
+        "operationId": "VehiclesAdminController_reorder",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ids": {
+                    "minItems": 1,
+                    "maxItems": 2000,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
+                  }
+                },
+                "required": [
+                  "ids"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/vehicles"
+        ]
+      }
+    },
+    "/api/v1/admin/vehicles/{id}": {
+      "patch": {
+        "operationId": "VehiclesAdminController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "nameEn": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 80
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "slug": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{0,69}$"
+                  },
+                  "categoryId": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "sortOrder": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "active": {
+                    "type": "boolean"
+                  },
+                  "seoTitle": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 120
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "seoDescription": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 300
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/vehicles"
+        ]
+      },
+      "delete": {
+        "operationId": "VehiclesAdminController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/vehicles"
+        ]
+      }
+    },
+    "/api/v1/admin/vehicles/{id}/merge": {
+      "post": {
+        "operationId": "VehiclesAdminController_merge",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "sourceId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  }
+                },
+                "required": [
+                  "sourceId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/vehicles"
+        ]
+      }
+    },
+    "/api/v1/admin/vehicles/{id}/models": {
+      "post": {
+        "operationId": "VehiclesAdminController_createModel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "nameEn": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 80
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "slug": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{0,69}$"
+                  },
+                  "sortOrder": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "active": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/vehicles"
+        ]
+      }
+    },
+    "/api/v1/admin/vehicles/{id}/models/reorder": {
+      "post": {
+        "operationId": "VehiclesAdminController_reorderModels",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ids": {
+                    "minItems": 1,
+                    "maxItems": 2000,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
+                  }
+                },
+                "required": [
+                  "ids"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/vehicles"
+        ]
+      }
+    },
+    "/api/v1/admin/vehicles/{id}/models/{modelId}": {
+      "patch": {
+        "operationId": "VehiclesAdminController_updateModel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "modelId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "nameEn": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 80
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "slug": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{0,69}$"
+                  },
+                  "sortOrder": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "active": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/vehicles"
+        ]
+      },
+      "delete": {
+        "operationId": "VehiclesAdminController_removeModel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "modelId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/vehicles"
+        ]
+      }
+    },
+    "/api/v1/admin/vehicle-categories": {
+      "post": {
+        "operationId": "VehiclesAdminController_createCategory",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "nameEn": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 80
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "slug": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{0,69}$"
+                  },
+                  "sortOrder": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "active": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/vehicles"
+        ]
+      }
+    },
+    "/api/v1/admin/vehicle-categories/reorder": {
+      "post": {
+        "operationId": "VehiclesAdminController_reorderCategories",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ids": {
+                    "minItems": 1,
+                    "maxItems": 2000,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
+                  }
+                },
+                "required": [
+                  "ids"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/vehicles"
+        ]
+      }
+    },
+    "/api/v1/admin/vehicle-categories/{id}": {
+      "patch": {
+        "operationId": "VehiclesAdminController_updateCategory",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "nameEn": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 80
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "slug": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{0,69}$"
+                  },
+                  "sortOrder": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "active": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/vehicles"
+        ]
+      },
+      "delete": {
+        "operationId": "VehiclesAdminController_removeCategory",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/vehicles"
+        ]
+      }
+    },
+    "/api/v1/catalog/vehicles": {
+      "get": {
+        "operationId": "VehiclesPublicController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "catalog"
+        ]
+      }
+    },
+    "/api/v1/catalog/vehicles/{slug}": {
+      "get": {
+        "operationId": "VehiclesPublicController_detail",
+        "parameters": [
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "catalog"
+        ]
+      }
+    },
     "/api/v1/cart": {
       "get": {
         "operationId": "CartController_get",
@@ -1340,9 +2726,9 @@
                     "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                   },
                   "quantity": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": 999
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 10000000
                   }
                 },
                 "required": [
@@ -1553,7 +2939,7 @@
                   },
                   "code": {
                     "type": "string",
-                    "pattern": "^\\d{6}$|^[A-Z0-9]{4}-[A-Z0-9]{4}$"
+                    "pattern": "^[0-9۰-۹]{6}$|^[A-Z0-9۰-۹]{4}-[A-Z0-9۰-۹]{4}$"
                   }
                 },
                 "required": [
@@ -1666,6 +3052,129 @@
       "get": {
         "operationId": "AuthController_me",
         "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/me/name": {
+      "patch": {
+        "operationId": "AuthController_updateOwnName",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "fullName": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 120
+                  }
+                },
+                "required": [
+                  "fullName"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/me/email": {
+      "post": {
+        "operationId": "AuthController_changeOwnEmail",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "maxLength": 200,
+                    "format": "email",
+                    "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                  },
+                  "currentPassword": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "code": {
+                    "type": "string",
+                    "pattern": "^[0-9۰-۹]{6}$"
+                  }
+                },
+                "required": [
+                  "email",
+                  "currentPassword"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/me/password": {
+      "post": {
+        "operationId": "AuthController_changeOwnPassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "currentPassword": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "newPassword": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "code": {
+                    "type": "string",
+                    "pattern": "^[0-9۰-۹]{6}$"
+                  }
+                },
+                "required": [
+                  "currentPassword",
+                  "newPassword"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": ""
@@ -2113,6 +3622,30 @@
                     "type": "boolean",
                     "const": false
                   },
+                  "smsDisabledTypes": {
+                    "default": [],
+                    "maxItems": 8,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "order.paid",
+                        "order.shipped",
+                        "sourcing.submitted",
+                        "sourcing.needs_info",
+                        "quote.sent",
+                        "procurement.paid",
+                        "procurement.delayed",
+                        "procurement.shipped"
+                      ]
+                    }
+                  },
+                  "trashRetentionDays": {
+                    "default": 30,
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 365
+                  },
                   "version": {
                     "type": "integer",
                     "minimum": 0,
@@ -2444,6 +3977,632 @@
         },
         "tags": [
           "settings"
+        ]
+      }
+    },
+    "/api/v1/site/content": {
+      "get": {
+        "operationId": "ContentController_site",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "content"
+        ]
+      }
+    },
+    "/api/v1/site/pages/{slug}": {
+      "get": {
+        "operationId": "ContentController_page",
+        "parameters": [
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "content"
+        ]
+      }
+    },
+    "/api/v1/admin/content": {
+      "get": {
+        "operationId": "ContentController_sections",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "content"
+        ]
+      }
+    },
+    "/api/v1/admin/content/sections/{section}": {
+      "put": {
+        "operationId": "ContentController_updateSection",
+        "parameters": [
+          {
+            "name": "section",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "value": {}
+                },
+                "required": [
+                  "version",
+                  "value"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "content"
+        ]
+      }
+    },
+    "/api/v1/admin/content/faq": {
+      "get": {
+        "operationId": "ContentController_faq",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "content"
+        ]
+      },
+      "post": {
+        "operationId": "ContentController_faqCreate",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "question": {
+                    "type": "object",
+                    "properties": {
+                      "fa": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200
+                      },
+                      "en": {
+                        "type": "string",
+                        "maxLength": 200
+                      }
+                    },
+                    "required": [
+                      "fa",
+                      "en"
+                    ]
+                  },
+                  "answer": {
+                    "type": "object",
+                    "properties": {
+                      "fa": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 2000
+                      },
+                      "en": {
+                        "type": "string",
+                        "maxLength": 2000
+                      }
+                    },
+                    "required": [
+                      "fa",
+                      "en"
+                    ]
+                  },
+                  "visible": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "question",
+                  "answer",
+                  "visible"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "content"
+        ]
+      }
+    },
+    "/api/v1/admin/content/faq/{id}": {
+      "put": {
+        "operationId": "ContentController_faqUpdate",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "question": {
+                    "type": "object",
+                    "properties": {
+                      "fa": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200
+                      },
+                      "en": {
+                        "type": "string",
+                        "maxLength": 200
+                      }
+                    },
+                    "required": [
+                      "fa",
+                      "en"
+                    ]
+                  },
+                  "answer": {
+                    "type": "object",
+                    "properties": {
+                      "fa": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 2000
+                      },
+                      "en": {
+                        "type": "string",
+                        "maxLength": 2000
+                      }
+                    },
+                    "required": [
+                      "fa",
+                      "en"
+                    ]
+                  },
+                  "visible": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "question",
+                  "answer",
+                  "visible"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "content"
+        ]
+      },
+      "delete": {
+        "operationId": "ContentController_faqDelete",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "content"
+        ]
+      }
+    },
+    "/api/v1/admin/content/faq/order": {
+      "post": {
+        "operationId": "ContentController_faqOrder",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ids": {
+                    "minItems": 1,
+                    "maxItems": 200,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
+                  }
+                },
+                "required": [
+                  "ids"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "content"
+        ]
+      }
+    },
+    "/api/v1/admin/content/pages": {
+      "get": {
+        "operationId": "ContentController_pages",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "content"
+        ]
+      },
+      "post": {
+        "operationId": "ContentController_pageCreate",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "slug": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 60,
+                    "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+                  },
+                  "title": {
+                    "type": "object",
+                    "properties": {
+                      "fa": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 120
+                      },
+                      "en": {
+                        "type": "string",
+                        "maxLength": 120
+                      }
+                    },
+                    "required": [
+                      "fa",
+                      "en"
+                    ]
+                  },
+                  "body": {
+                    "type": "object",
+                    "properties": {
+                      "fa": {
+                        "type": "string",
+                        "maxLength": 20000
+                      },
+                      "en": {
+                        "type": "string",
+                        "maxLength": 20000
+                      }
+                    },
+                    "required": [
+                      "fa",
+                      "en"
+                    ]
+                  },
+                  "published": {
+                    "type": "boolean"
+                  },
+                  "showInFooter": {
+                    "type": "boolean"
+                  },
+                  "seoTitle": {
+                    "type": "object",
+                    "properties": {
+                      "fa": {
+                        "type": "string",
+                        "maxLength": 70
+                      },
+                      "en": {
+                        "type": "string",
+                        "maxLength": 70
+                      }
+                    },
+                    "required": [
+                      "fa",
+                      "en"
+                    ]
+                  },
+                  "seoDescription": {
+                    "type": "object",
+                    "properties": {
+                      "fa": {
+                        "type": "string",
+                        "maxLength": 170
+                      },
+                      "en": {
+                        "type": "string",
+                        "maxLength": 170
+                      }
+                    },
+                    "required": [
+                      "fa",
+                      "en"
+                    ]
+                  }
+                },
+                "required": [
+                  "slug",
+                  "title",
+                  "body",
+                  "published",
+                  "showInFooter",
+                  "seoTitle",
+                  "seoDescription"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "content"
+        ]
+      }
+    },
+    "/api/v1/admin/content/pages/{id}": {
+      "get": {
+        "operationId": "ContentController_pageGet",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "content"
+        ]
+      },
+      "put": {
+        "operationId": "ContentController_pageUpdate",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "slug": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 60,
+                    "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+                  },
+                  "title": {
+                    "type": "object",
+                    "properties": {
+                      "fa": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 120
+                      },
+                      "en": {
+                        "type": "string",
+                        "maxLength": 120
+                      }
+                    },
+                    "required": [
+                      "fa",
+                      "en"
+                    ]
+                  },
+                  "body": {
+                    "type": "object",
+                    "properties": {
+                      "fa": {
+                        "type": "string",
+                        "maxLength": 20000
+                      },
+                      "en": {
+                        "type": "string",
+                        "maxLength": 20000
+                      }
+                    },
+                    "required": [
+                      "fa",
+                      "en"
+                    ]
+                  },
+                  "published": {
+                    "type": "boolean"
+                  },
+                  "showInFooter": {
+                    "type": "boolean"
+                  },
+                  "seoTitle": {
+                    "type": "object",
+                    "properties": {
+                      "fa": {
+                        "type": "string",
+                        "maxLength": 70
+                      },
+                      "en": {
+                        "type": "string",
+                        "maxLength": 70
+                      }
+                    },
+                    "required": [
+                      "fa",
+                      "en"
+                    ]
+                  },
+                  "seoDescription": {
+                    "type": "object",
+                    "properties": {
+                      "fa": {
+                        "type": "string",
+                        "maxLength": 170
+                      },
+                      "en": {
+                        "type": "string",
+                        "maxLength": 170
+                      }
+                    },
+                    "required": [
+                      "fa",
+                      "en"
+                    ]
+                  }
+                },
+                "required": [
+                  "slug",
+                  "title",
+                  "body",
+                  "published",
+                  "showInFooter",
+                  "seoTitle",
+                  "seoDescription"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "content"
+        ]
+      },
+      "delete": {
+        "operationId": "ContentController_pageDelete",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "content"
+        ]
+      }
+    },
+    "/api/v1/admin/content/images": {
+      "post": {
+        "operationId": "ContentController_uploadImage",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "content"
         ]
       }
     },
@@ -3942,6 +6101,29 @@
         ]
       }
     },
+    "/api/v1/admin/quotes": {
+      "get": {
+        "operationId": "SourcingController_staffQuotes",
+        "parameters": [
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "sourcing, quotes & procurement"
+        ]
+      }
+    },
     "/api/v1/admin/quotes/{versionId}": {
       "get": {
         "operationId": "SourcingController_staffQuote",
@@ -4175,6 +6357,18 @@
       }
     },
     "/api/v1/admin/imports": {
+      "get": {
+        "operationId": "ImportsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/imports"
+        ]
+      },
       "post": {
         "operationId": "ImportsController_start",
         "parameters": [],
@@ -4248,9 +6442,43 @@
         ]
       }
     },
-    "/api/v1/admin/imports/{id}": {
-      "get": {
-        "operationId": "ImportsController_preview",
+    "/api/v1/admin/imports/inspect": {
+      "post": {
+        "operationId": "ImportsController_inspect",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "attachmentId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  }
+                },
+                "required": [
+                  "attachmentId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/imports"
+        ]
+      }
+    },
+    "/api/v1/admin/imports/{id}/settings": {
+      "put": {
+        "operationId": "ImportsController_configure",
         "parameters": [
           {
             "name": "id",
@@ -4259,11 +6487,228 @@
             "schema": {
               "type": "string"
             }
-          },
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "sheet": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "headerRow": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000
+                  },
+                  "columns": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "maxLength": 40
+                    },
+                    "additionalProperties": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 199
+                    }
+                  },
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "UPDATE_ONLY",
+                      "CREATE_AND_UPDATE"
+                    ]
+                  },
+                  "priceUnit": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "IRR",
+                          "TOMAN",
+                          "AED"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "stockMode": {
+                    "type": "string",
+                    "enum": [
+                      "SET",
+                      "ADD"
+                    ]
+                  },
+                  "defaults": {
+                    "default": {
+                      "categoryCode": null,
+                      "partType": null,
+                      "condition": null,
+                      "origin": null,
+                      "manufacturerBrandId": null,
+                      "vehicleBrandCodes": [],
+                      "unit": null,
+                      "initialOnHand": null
+                    },
+                    "type": "object",
+                    "properties": {
+                      "categoryCode": {
+                        "default": null,
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "maxLength": 40
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "partType": {
+                        "default": null,
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "GENUINE",
+                              "OEM",
+                              "AFTERMARKET"
+                            ]
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "condition": {
+                        "default": null,
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "NEW",
+                              "USED",
+                              "REFURBISHED"
+                            ]
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "origin": {
+                        "default": null,
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "DOMESTIC",
+                              "IMPORTED",
+                              "UNKNOWN"
+                            ]
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "manufacturerBrandId": {
+                        "default": null,
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "vehicleBrandCodes": {
+                        "default": [],
+                        "maxItems": 20,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "maxLength": 40
+                        }
+                      },
+                      "unit": {
+                        "default": null,
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "maxLength": 30
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "initialOnHand": {
+                        "default": null,
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 1000000
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "clearWhenEmpty": {
+                    "default": [],
+                    "maxItems": 20,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "maxLength": 40
+                    }
+                  }
+                },
+                "required": [
+                  "sheet",
+                  "headerRow",
+                  "columns",
+                  "mode",
+                  "priceUnit",
+                  "stockMode"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/imports"
+        ]
+      }
+    },
+    "/api/v1/admin/imports/{id}": {
+      "get": {
+        "operationId": "ImportsController_view",
+        "parameters": [
           {
-            "name": "page",
+            "name": "id",
             "required": true,
-            "in": "query",
+            "in": "path",
             "schema": {
               "type": "string"
             }
@@ -4287,6 +6732,45 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "locale",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/imports"
+        ]
+      }
+    },
+    "/api/v1/admin/imports/{id}/report.xlsx": {
+      "get": {
+        "operationId": "ImportsController_fullReport",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "locale",
+            "required": true,
+            "in": "query",
             "schema": {
               "type": "string"
             }
@@ -4315,8 +6799,76 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "planChecksum": {
+                    "type": "string",
+                    "minLength": 64,
+                    "maxLength": 64
+                  },
+                  "skipErrorRows": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "skipExisting": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "confirmRepeatAdd": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "createVehicles": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "linkSimilar": {
+                    "default": [],
+                    "maxItems": 500,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "maxLength": 120
+                    }
+                  }
+                },
+                "required": [
+                  "planChecksum"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/imports"
+        ]
+      }
+    },
+    "/api/v1/admin/imports/{id}/products": {
+      "get": {
+        "operationId": "ImportsController_products",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
             "description": ""
           }
         },
@@ -4336,6 +6888,394 @@
         },
         "tags": [
           "admin/imports"
+        ]
+      }
+    },
+    "/api/v1/admin/knowledge-catalog": {
+      "get": {
+        "operationId": "KnowledgeCatalogController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/knowledge-catalog"
+        ]
+      },
+      "post": {
+        "operationId": "KnowledgeCatalogController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "attachmentId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "title": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 160
+                  },
+                  "version": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40
+                  }
+                },
+                "required": [
+                  "attachmentId",
+                  "title",
+                  "version"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/knowledge-catalog"
+        ]
+      }
+    },
+    "/api/v1/admin/knowledge-catalog/{id}/extract": {
+      "post": {
+        "operationId": "KnowledgeCatalogController_extract",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/knowledge-catalog"
+        ]
+      }
+    },
+    "/api/v1/admin/knowledge-catalog/{id}/candidates/{ordinal}/draft": {
+      "get": {
+        "operationId": "KnowledgeCatalogController_partDraft",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ordinal",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/knowledge-catalog"
+        ]
+      }
+    },
+    "/api/v1/admin/knowledge-catalog/{id}/preview": {
+      "get": {
+        "operationId": "KnowledgeCatalogController_preview",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/knowledge-catalog"
+        ]
+      }
+    },
+    "/api/v1/admin/knowledge-catalog/{id}/status": {
+      "patch": {
+        "operationId": "KnowledgeCatalogController_updateStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "UPLOADED",
+                      "PENDING_PROCESSING",
+                      "NEEDS_REVIEW",
+                      "APPROVED",
+                      "REJECTED"
+                    ]
+                  },
+                  "note": {
+                    "type": "string",
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "status"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/knowledge-catalog"
+        ]
+      }
+    },
+    "/api/v1/admin/brand-imports": {
+      "get": {
+        "operationId": "BrandImportsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/brand-imports"
+        ]
+      }
+    },
+    "/api/v1/admin/brand-imports/upload": {
+      "post": {
+        "operationId": "BrandImportsController_upload",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/brand-imports"
+        ]
+      }
+    },
+    "/api/v1/admin/brand-imports/{id}": {
+      "get": {
+        "operationId": "BrandImportsController_view",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/brand-imports"
+        ]
+      }
+    },
+    "/api/v1/admin/brand-imports/{id}/mapping": {
+      "put": {
+        "operationId": "BrandImportsController_mapping",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mapping": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "maxLength": 40
+                    },
+                    "additionalProperties": {
+                      "maxItems": 40,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "maxLength": 200
+                      }
+                    }
+                  },
+                  "options": {
+                    "type": "object",
+                    "properties": {
+                      "publish": {
+                        "default": false,
+                        "type": "boolean"
+                      },
+                      "partType": {
+                        "default": "GENUINE",
+                        "type": "string",
+                        "enum": [
+                          "GENUINE",
+                          "OEM",
+                          "AFTERMARKET"
+                        ]
+                      },
+                      "encoding": {
+                        "default": "auto",
+                        "type": "string",
+                        "enum": [
+                          "auto",
+                          "utf-8",
+                          "windows-1256"
+                        ]
+                      }
+                    }
+                  }
+                },
+                "required": [
+                  "mapping",
+                  "options"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/brand-imports"
+        ]
+      }
+    },
+    "/api/v1/admin/brand-imports/{id}/start": {
+      "post": {
+        "operationId": "BrandImportsController_start",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/brand-imports"
+        ]
+      }
+    },
+    "/api/v1/admin/brand-imports/{id}/rollback": {
+      "post": {
+        "operationId": "BrandImportsController_rollback",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/brand-imports"
+        ]
+      }
+    },
+    "/api/v1/admin/brand-imports/{id}/errors.csv": {
+      "get": {
+        "operationId": "BrandImportsController_errors",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/brand-imports"
         ]
       }
     },
@@ -4373,6 +7313,43 @@
         },
         "tags": [
           "notifications"
+        ]
+      }
+    },
+    "/api/v1/integrations/telegram/webhook": {
+      "post": {
+        "operationId": "MessengerBotsController_telegram",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "messenger-bots"
+        ]
+      }
+    },
+    "/api/v1/integrations/bale/webhook/{secret}": {
+      "post": {
+        "operationId": "MessengerBotsController_bale",
+        "parameters": [
+          {
+            "name": "secret",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "messenger-bots"
         ]
       }
     },
@@ -4417,9 +7394,9 @@
                           "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                         },
                         "quantity": {
-                          "type": "integer",
-                          "minimum": 1,
-                          "maximum": 9007199254740991
+                          "type": "number",
+                          "exclusiveMinimum": 0,
+                          "maximum": 10000000
                         }
                       },
                       "required": [
@@ -4558,6 +7535,11 @@
                     "format": "uuid",
                     "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                   },
+                  "paymentReference": {
+                    "type": "string",
+                    "minLength": 4,
+                    "maxLength": 24
+                  },
                   "amountIrr": {
                     "type": "string",
                     "pattern": "^\\d+$"
@@ -4574,7 +7556,6 @@
                   }
                 },
                 "required": [
-                  "paymentAttemptId",
                   "amountIrr",
                   "reason"
                 ]
@@ -4781,6 +7762,18 @@
                     "minLength": 2,
                     "maxLength": 120
                   },
+                  "phone": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "const": ""
+                      },
+                      {
+                        "type": "string",
+                        "pattern": "^\\+?[0-9۰-۹][0-9۰-۹ ()-]{6,19}$"
+                      }
+                    ]
+                  },
                   "roleIds": {
                     "minItems": 1,
                     "maxItems": 10,
@@ -4790,6 +7783,10 @@
                       "format": "uuid",
                       "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                     }
+                  },
+                  "confirmCode": {
+                    "type": "string",
+                    "pattern": "^[0-9۰-۹]{6}$"
                   }
                 },
                 "required": [
@@ -4803,6 +7800,446 @@
         },
         "responses": {
           "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/staff"
+        ]
+      }
+    },
+    "/api/v1/admin/staff/invitations/{id}": {
+      "patch": {
+        "operationId": "StaffController_updateInvitation",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "maxLength": 200,
+                    "format": "email",
+                    "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                  },
+                  "fullName": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 120
+                  },
+                  "phone": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "const": ""
+                      },
+                      {
+                        "type": "string",
+                        "pattern": "^\\+?[0-9۰-۹][0-9۰-۹ ()-]{6,19}$"
+                      }
+                    ]
+                  },
+                  "roleIds": {
+                    "minItems": 1,
+                    "maxItems": 10,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
+                  },
+                  "confirmCode": {
+                    "type": "string",
+                    "pattern": "^[0-9۰-۹]{6}$"
+                  }
+                },
+                "required": [
+                  "email",
+                  "fullName",
+                  "phone",
+                  "roleIds"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/staff"
+        ]
+      }
+    },
+    "/api/v1/admin/staff/invitations/{id}/resend": {
+      "post": {
+        "operationId": "StaffController_resend",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "confirmCode": {
+                    "type": "string",
+                    "pattern": "^[0-9۰-۹]{6}$"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/staff"
+        ]
+      }
+    },
+    "/api/v1/admin/staff/invitations/{id}/revoke": {
+      "post": {
+        "operationId": "StaffController_revoke",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/staff"
+        ]
+      }
+    },
+    "/api/v1/admin/staff/invitations/{id}/erase": {
+      "post": {
+        "operationId": "StaffController_eraseInvitation",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "confirmCode": {
+                    "type": "string",
+                    "pattern": "^[0-9۰-۹]{6}$"
+                  }
+                },
+                "required": [
+                  "confirmCode"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/staff"
+        ]
+      }
+    },
+    "/api/v1/admin/staff/invitations/{id}/trash": {
+      "post": {
+        "operationId": "StaffController_trashInvitation",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/staff"
+        ]
+      }
+    },
+    "/api/v1/admin/staff/invitations/{id}/restore": {
+      "post": {
+        "operationId": "StaffController_restoreInvitation",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/staff"
+        ]
+      }
+    },
+    "/api/v1/admin/staff/invitations/{id}/purge": {
+      "post": {
+        "operationId": "StaffController_purgeInvitation",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "confirmName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "confirmCode": {
+                    "type": "string",
+                    "pattern": "^[0-9۰-۹]{6}$"
+                  }
+                },
+                "required": [
+                  "confirmName",
+                  "confirmCode"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/staff"
+        ]
+      }
+    },
+    "/api/v1/admin/staff/trash": {
+      "get": {
+        "operationId": "StaffController_trashList",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/staff"
+        ]
+      }
+    },
+    "/api/v1/admin/staff/{id}/trash": {
+      "post": {
+        "operationId": "StaffController_moveToTrash",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/staff"
+        ]
+      }
+    },
+    "/api/v1/admin/staff/{id}/restore": {
+      "post": {
+        "operationId": "StaffController_restore",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/staff"
+        ]
+      }
+    },
+    "/api/v1/admin/staff/{id}/purge": {
+      "post": {
+        "operationId": "StaffController_purge",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "confirmName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "confirmCode": {
+                    "type": "string",
+                    "pattern": "^[0-9۰-۹]{6}$"
+                  }
+                },
+                "required": [
+                  "confirmName",
+                  "confirmCode"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/staff"
+        ]
+      }
+    },
+    "/api/v1/admin/staff/options": {
+      "get": {
+        "operationId": "StaffController_staffOptions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/staff"
+        ]
+      }
+    },
+    "/api/v1/admin/staff/{id}/mfa-reset": {
+      "post": {
+        "operationId": "StaffController_resetMfa",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "confirmCode": {
+                    "type": "string",
+                    "pattern": "^[0-9۰-۹]{6}$"
+                  }
+                },
+                "required": [
+                  "confirmCode"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
             "description": ""
           }
         },
@@ -4831,6 +8268,23 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "fullName": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 120
+                  },
+                  "phone": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "const": ""
+                      },
+                      {
+                        "type": "string",
+                        "pattern": "^\\+?[0-9۰-۹][0-9۰-۹ ()-]{6,19}$"
+                      }
+                    ]
+                  },
                   "roleIds": {
                     "minItems": 1,
                     "maxItems": 10,
@@ -4847,6 +8301,10 @@
                   "reason": {
                     "type": "string",
                     "maxLength": 300
+                  },
+                  "confirmCode": {
+                    "type": "string",
+                    "pattern": "^[0-9۰-۹]{6}$"
                   }
                 }
               }
@@ -4979,6 +8437,34 @@
         },
         "tags": [
           "admin/operations"
+        ]
+      }
+    },
+    "/api/v1/admin/mail/status": {
+      "get": {
+        "operationId": "MailAdminController_status",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/mail"
+        ]
+      }
+    },
+    "/api/v1/admin/mail/test": {
+      "post": {
+        "operationId": "MailAdminController_test",
+        "parameters": [],
+        "responses": {
+          "202": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin/mail"
         ]
       }
     }

@@ -1,3 +1,4 @@
+import { createReadStream } from 'node:fs';
 import { Socket } from 'node:net';
 
 export interface ScanResult {
@@ -17,6 +18,8 @@ export interface SignatureInfo {
 export interface MalwareScanner {
   readonly name: string;
   scan(bytes: Buffer): Promise<ScanResult>;
+  /** Large files (brand databases) are streamed from disk instead of being held in memory. */
+  scanFile(path: string): Promise<ScanResult>;
   ping(): Promise<boolean>;
   /** null when the engine has no signatures (development) or does not report them. */
   signatures(): Promise<SignatureInfo | null>;
@@ -79,6 +82,31 @@ export class ClamAvScanner implements MalwareScanner {
       }
       socket.end(Buffer.alloc(4));
     });
+    return this.result(reply);
+  }
+
+  async scanFile(path: string): Promise<ScanResult> {
+    const reply = await this.command((socket) => {
+      socket.write('zINSTREAM\0');
+      // One chunk at a time with backpressure: memory stays bounded whatever the file size.
+      void (async () => {
+        try {
+          for await (const chunk of createReadStream(path, { highWaterMark: 64 * 1024 }) as AsyncIterable<Buffer>) {
+            const len = Buffer.alloc(4);
+            len.writeUInt32BE(chunk.length, 0);
+            socket.write(len);
+            if (!socket.write(chunk)) await new Promise((resolve) => socket.once('drain', resolve));
+          }
+          socket.end(Buffer.alloc(4));
+        } catch (e) {
+          socket.destroy(e as Error);
+        }
+      })();
+    });
+    return this.result(reply);
+  }
+
+  private result(reply: string): ScanResult {
     if (/\bOK$/.test(reply)) return { clean: true, engine: this.name, signature: null };
     const found = /stream: (.+) FOUND$/.exec(reply);
     if (found?.[1]) return { clean: false, engine: this.name, signature: found[1] };
@@ -104,6 +132,10 @@ export class DevNoScanner implements MalwareScanner {
   readonly name = 'none-dev';
 
   async scan(): Promise<ScanResult> {
+    return { clean: true, engine: this.name, signature: null };
+  }
+
+  async scanFile(): Promise<ScanResult> {
     return { clean: true, engine: this.name, signature: null };
   }
 

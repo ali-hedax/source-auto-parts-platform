@@ -74,7 +74,7 @@ export class AttachmentsService {
       const filename = sanitizeDisplayFilename(file.originalname);
       const inspection = inspectFile(filename, new Uint8Array(file.buffer));
       const importOnly = purpose === 'IMPORT' && inspection.kind && !['xlsx', 'csv'].includes(inspection.kind);
-      const catalogOnly = purpose === 'KNOWLEDGE_CATALOG' && inspection.kind && !['pdf', 'xlsx', 'csv'].includes(inspection.kind);
+      const catalogOnly = purpose === 'KNOWLEDGE_CATALOG' && inspection.kind && !['pdf', 'xlsx', 'csv', 'jpeg', 'png', 'webp'].includes(inspection.kind);
       const key = `att/${new Date().toISOString().slice(0, 7).replace('-', '/')}/${randomUUID()}.${inspection.extension || 'bin'}`;
       if (inspection.verdict === 'REJECT' || importOnly || catalogOnly) {
         const rejected = await this.prisma.attachment.create({

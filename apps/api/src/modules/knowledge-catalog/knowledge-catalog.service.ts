@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { CatalogDocumentStatus, CatalogDocumentView } from '@hedax/contracts';
+import type { CatalogDocumentStatus, CatalogDocumentView, PartDraftView } from '@hedax/contracts';
+import { matchFitment, partNumberKey, splitVehicleList } from '@hedax/domain';
 import { AuditService } from '../../common/audit.service.js';
 import { badRequest, conflict, notFound } from '../../common/errors.js';
 import { PrismaService } from '../../common/prisma.service.js';
@@ -9,7 +10,8 @@ import { extractCatalogRows } from './catalog-extraction.js';
 import type { Actor } from '../../common/request-context.js';
 import type { Prisma } from '../../generated/prisma/client.js';
 
-const ALLOWED = ['pdf', 'xlsx', 'csv'] as const;
+// Reference files: factory catalogs (PDF, Excel, CSV) and photos of catalog pages.
+const ALLOWED = ['pdf', 'xlsx', 'csv', 'jpg', 'jpeg', 'png', 'webp'] as const;
 type CatalogRow = Prisma.CatalogDocumentGetPayload<{ include: { attachment: true; uploader: { select: { id: true; fullName: true; email: true } } } }>;
 
 @Injectable()
@@ -112,6 +114,30 @@ export class KnowledgeCatalogService {
   }
 
   /** Restricted by controller RBAC; these are unapproved candidate records, not customer-facing RAG. */
+  /**
+   * «تبدیل به قطعه»: the part form filled from one extracted row. Vehicles are matched to the panel's
+   * list only; anything else is listed so it can be added by hand. Nothing is saved here.
+   */
+  async partDraft(id: string, ordinal: number): Promise<PartDraftView> {
+    const chunk = await this.prisma.catalogDocumentChunk.findUnique({ where: { documentId_ordinal: { documentId: id, ordinal } } });
+    if (!chunk) throw notFound();
+    const meta = (chunk.metadata ?? {}) as { candidatePartNumber?: string | null; candidatePartName?: string | null; candidateVehicle?: string | null };
+    const partNumber = (meta.candidatePartNumber ?? '').trim().slice(0, 80);
+    const known = await this.prisma.vehicle.findMany({ where: { active: true }, include: { models: { where: { active: true } } } });
+    const vehicles: PartDraftView['vehicles'] = [];
+    const unmatchedVehicles: string[] = [];
+    for (const text of splitVehicleList(meta.candidateVehicle ?? '')) {
+      const m = matchFitment(text, known);
+      if (m.kind === 'KNOWN') vehicles.push({ vehicleId: m.vehicleId, modelId: m.modelId, vehicleName: m.vehicleName, modelName: m.modelName });
+      else unmatchedVehicles.push(text);
+    }
+    const key = partNumberKey(partNumber);
+    const existing = key
+      ? await this.prisma.product.findFirst({ where: { archivedAt: null, OR: [{ partNumberKey: key }, { numbers: { some: { numberKey: key } } }] }, select: { id: true } })
+      : null;
+    return { partNumber, nameFa: (meta.candidatePartName ?? '').trim().slice(0, 200), vehicles, unmatchedVehicles, existingProductId: existing?.id ?? null };
+  }
+
   async preview(id: string): Promise<Array<{ ordinal: number; contentText: string; rowStart: number | null; metadata: Prisma.JsonValue }>> {
     const row = await this.prisma.catalogDocument.findUnique({ where: { id }, select: { id: true } });
     if (!row) throw notFound();

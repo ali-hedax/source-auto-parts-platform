@@ -1,13 +1,12 @@
-import type { CatalogEntrySearchResult, CategoryView, ContentButton, HomeSection, SearchResult, VehicleBrandView } from '@hedax/contracts';
+import type { CategoryView, ContentButton, HomeSection, ManufacturerView, SearchResult, VehicleBrandView } from '@hedax/contracts';
 import { localize } from '@hedax/contracts/constants';
-import { ArrowLeft, ArrowRight, CarFront, ChevronLeft, ChevronRight, PackageSearch, Plus, Search, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CarFront, ChevronLeft, ChevronRight, PackageSearch, Plus, ShieldCheck } from 'lucide-react';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { ReactNode } from 'react';
 import { RichText } from '@/components/content/rich-text';
 import { ButtonLink, buttonClass } from '@/components/ui/button';
-import { CatalogHomeSection } from '@/components/catalog/catalog-home';
 import { PartCard } from '@/components/catalog/part-card';
 import { EmptyState } from '@/components/ui/misc';
 import { Link } from '@/i18n/navigation';
@@ -43,12 +42,12 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   setRequestLocale(locale);
   const t = await getTranslations();
   const currency = await displayCurrency();
-  const [content, featured, brands, categories, catalogRecent] = await Promise.all([
+  const [content, featured, brands, categories, makers] = await Promise.all([
     getSiteContent(),
     serverApi<SearchResult>(`/catalog/products?inStock=1&pageSize=8&currency=${currency}`, { publicCache: 60 }).catch(() => null),
     serverApi<VehicleBrandView[]>('/catalog/vehicle-brands', { publicCache: 300 }).catch(() => []),
     serverApi<CategoryView[]>('/catalog/categories', { publicCache: 300 }).catch(() => []),
-    serverApi<CatalogEntrySearchResult>('/catalog/entries?pageSize=4', { publicCache: 60 }).catch(() => null),
+    serverApi<ManufacturerView[]>('/catalog/manufacturers', { publicCache: 300 }).catch(() => []),
   ]);
   if (!content) {
     return <div className="container-page py-12"><EmptyState title={t('pages.errorHint')} /></div>;
@@ -80,20 +79,6 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                 <span className="hedax-hero-eyebrow">{locale === 'fa' ? 'فروشگاه تخصصی قطعات خودرو' : 'YOUR AUTO PARTS SPECIALIST'}</span>
                 <h1 className="max-w-2xl text-[2rem] font-extrabold tracking-tight text-white sm:text-[2.7rem] lg:text-[3.2rem]">{L(s.title)}</h1>
                 {L(s.text) ? <p className="mt-4 max-w-2xl leading-8 text-silver/90 sm:text-lg sm:leading-8">{L(s.text)}</p> : null}
-                <form action={`/${locale}/parts`} method="get" role="search" className="hedax-hero-search mt-8 max-w-2xl">
-                  <label htmlFor="hero-search" className="mb-2 block text-sm font-semibold text-white">{t('search.label')}</label>
-                  <div className="flex flex-col gap-2 rounded-2xl border border-white/15 bg-white/10 p-2 shadow-[0_22px_65px_-25px_rgba(0,0,0,0.65)] backdrop-blur-md sm:flex-row">
-                    <div className="relative min-w-0 flex-1">
-                      <Search aria-hidden className="pointer-events-none absolute inset-y-0 start-4 my-auto size-5 text-steel" />
-                      <input id="hero-search" name="q" type="search" required placeholder={t('search.placeholder')} aria-describedby="hero-search-hint"
-                        className="h-14 w-full rounded-xl border border-transparent bg-white ps-12 pe-4 text-base text-ink shadow-sm placeholder:text-steel/80" />
-                    </div>
-                    <button type="submit" className="inline-flex h-14 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#096ce5] px-7 font-bold text-white shadow-lg shadow-blue-900/25 transition-all hover:bg-[#0967d3] active:bg-[#0967d3]">
-                      {L(s.searchButton)}
-                    </button>
-                  </div>
-                  <p id="hero-search-hint" className="mt-2 text-sm leading-6 text-silver/80">{t('search.hint')}</p>
-                </form>
                 {s.showCategories && topCategories.length ? (
                   <nav aria-labelledby="categories-title" className="mt-7 max-w-2xl">
                     <h2 id="categories-title" className="mb-2.5 text-sm font-semibold text-white">{L(s.categoriesTitle)}</h2>
@@ -137,7 +122,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                   <span className="min-w-0 flex-1"><strong className="block text-base font-bold">{locale === 'fa' ? 'انتخاب خودروی من' : 'Find parts for my car'}</strong><span className="block text-sm text-[#56677d]">{locale === 'fa' ? 'قطعات را بر اساس خودرو پیدا کنید' : 'Browse by vehicle'}</span></span>
                   <Chevron aria-hidden className="size-5 text-[#096ce5]" />
                 </Link>
-                <Link href="/catalog" className="hedax-discovery-card group flex items-center gap-4 rounded-2xl border border-white/20 bg-white/95 p-4 text-[#15243a] shadow-xl transition-all hover:-translate-y-1 hover:border-sky-400">
+                <Link href="/parts" className="hedax-discovery-card group flex items-center gap-4 rounded-2xl border border-white/20 bg-white/95 p-4 text-[#15243a] shadow-xl transition-all hover:-translate-y-1 hover:border-sky-400">
                   <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-[#e9f3ff] text-[#096ce5]"><PackageSearch className="size-6" aria-hidden /></span>
                   <span className="min-w-0 flex-1"><strong className="block text-base font-bold">{locale === 'fa' ? 'کاتالوگ قطعات' : 'Parts catalogue'}</strong><span className="block text-sm text-[#56677d]">{locale === 'fa' ? 'جست‌وجو بر اساس نام یا شماره فنی' : 'Search by part name or number'}</span></span>
                   <Chevron aria-hidden className="size-5 text-[#096ce5]" />
@@ -257,10 +242,31 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
     }
   };
 
-  // The technical catalog (search + newest parts) comes right after the hero (or first, without one).
+  // Browsing by part brand (maker) comes after the vehicle brands (or after the hero, without them).
   const visible = content.home.sections.filter((s) => s.visible);
   const blocks = visible.map(render);
-  blocks.splice(visible.findIndex((s) => s.type === 'hero') + 1, 0, <CatalogHomeSection key="technical-catalog" recent={catalogRecent} />);
+  const after = visible.findIndex((s) => s.type === 'brands');
+  const makersBlock = makers.length ? (
+    <section key="makers" aria-labelledby="makers-title" className="container-page render-lazy pt-14" data-testid="home-makers">
+      <div className="mb-4 flex items-end justify-between gap-4">
+        <h2 id="makers-title" className="text-xl font-bold">{t('home.makersTitle')}</h2>
+        <Link href="/parts" className="inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-action hover:underline">
+          {t('nav.parts')} <Arrow aria-hidden className="size-4" />
+        </Link>
+      </div>
+      <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+        {makers.slice(0, 12).map((m) => (
+          <li key={m.slug}>
+            <Link href={`/parts?maker=${m.slug}`} className="flex h-full min-h-[4.5rem] flex-col justify-center gap-1 rounded-2xl border border-[#e1eaf5] bg-white px-4 py-3 shadow-sm transition-all hover:-translate-y-0.5 hover:border-action">
+              <span className="font-bold leading-6">{name(m.name)}</span>
+              <span className="text-xs text-steel">{t('common.partCount', { count: m.productCount })}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  ) : null;
+  if (makersBlock) blocks.splice(after >= 0 ? after + 1 : visible.findIndex((s) => s.type === 'hero') + 1, 0, makersBlock);
   return <div className="autodoc-inspired-home">{blocks}</div>;
 }
 

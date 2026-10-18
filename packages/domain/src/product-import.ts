@@ -1,7 +1,8 @@
 import { type CurrencyCode, isCurrencyCode, parseDecimalAmount, toAsciiDigits } from './money.js';
 import { normalizeSearchText } from './search-normalize.js';
 import { DEFAULT_UNIT, type UnitRule, parseAmountMilli } from './units.js';
-import { type FitmentMatch, type KnownVehicle, matchFitment, splitVehicleList } from './vehicles.js';
+import { type FitmentMatch, type KnownVehicle, matchFitment } from './vehicles.js';
+import { type SpecPair, parseFitmentList, parseNumberList, parseSpecs, partNumberKey } from './part-numbers.js';
 
 /**
  * Excel/CSV product import validation (spec §12). Pure: the parser produces
@@ -14,13 +15,14 @@ export const IMPORT_COLUMNS = [
   'sku', 'name_fa', 'name_en', 'category_code', 'vehicle_brand_codes', 'manufacturer_brand', 'part_type', 'condition',
   'origin', 'base_currency', 'base_price', 'override_price_irr', 'override_price_aed', 'on_hand', 'low_stock_threshold',
   'unit', 'description_fa', 'description_en', 'is_active', 'technical_number', 'vehicle_models',
+  'equivalent_numbers', 'replacement_numbers', 'specs',
 ] as const;
 export type ImportColumn = (typeof IMPORT_COLUMNS)[number];
 
 /** Column order of the downloadable template and of the mapping screen. */
 export const TEMPLATE_COLUMNS: readonly ImportColumn[] = [
-  'sku', 'technical_number', 'name_fa', 'name_en', 'manufacturer_brand', 'category_code', 'vehicle_brand_codes', 'vehicle_models',
-  'part_type', 'condition', 'origin', 'base_currency', 'base_price', 'on_hand', 'unit', 'low_stock_threshold',
+  'sku', 'technical_number', 'name_fa', 'name_en', 'equivalent_numbers', 'replacement_numbers', 'manufacturer_brand', 'category_code',
+  'vehicle_brand_codes', 'vehicle_models', 'specs', 'part_type', 'condition', 'origin', 'base_currency', 'base_price', 'on_hand', 'unit', 'low_stock_threshold',
   'override_price_irr', 'override_price_aed', 'description_fa', 'description_en', 'is_active',
 ];
 
@@ -48,16 +50,19 @@ export const HEADER_ALIASES: Record<ImportColumn, readonly string[]> = {
   on_hand: ['on_hand', 'موجودی فیزیکی', 'موجودی', 'تعداد', 'تعداد موجودی', 'stock', 'quantity', 'qty'],
   low_stock_threshold: ['low_stock_threshold', 'حد هشدار موجودی', 'حد هشدار'],
   unit: ['unit', 'واحد فروش', 'واحد', 'واحد شمارش'],
-  description_fa: ['description_fa', 'توضیحات فارسی', 'توضیحات', 'مشخصات', 'مشخصات فنی', 'description'],
+  description_fa: ['description_fa', 'توضیحات فارسی', 'توضیحات', 'description'],
   description_en: ['description_en', 'توضیحات انگلیسی'],
   is_active: ['is_active', 'فعال', 'وضعیت فروش'],
   technical_number: ['technical_number', 'شماره فنی', 'کد فنی', 'شماره قطعه', 'پارت نامبر', 'part number', 'part no', 'oem', 'کد oem', 'شماره oem', 'oem code'],
+  equivalent_numbers: ['equivalent_numbers', 'شماره‌های معادل', 'شماره های معادل', 'شماره معادل', 'معادل', 'equivalents', 'cross reference', 'interchange'],
+  replacement_numbers: ['replacement_numbers', 'شماره‌های جایگزین', 'شماره های جایگزین', 'شماره جایگزین', 'جایگزین', 'replacements', 'superseded by'],
+  specs: ['specs', 'مشخصات فنی', 'مشخصات', 'specifications'],
   vehicle_models: ['vehicle_models', 'کاربرد در خودرو', 'کاربرد', 'کاربرد خودرو', 'خودروهای سازگار', 'خودرو سازگار', 'مناسب برای', 'سازگار با', 'خودرو', 'مدل خودرو', 'compatible vehicles'],
 };
 
 /** Columns that must have a value for a new product. The ones in DEFAULTABLE may come from a value chosen for the whole file. */
 export const REQUIRED_ON_CREATE: readonly ImportColumn[] = [
-  'sku', 'name_fa', 'category_code', 'part_type', 'condition', 'origin', 'base_currency', 'base_price',
+  'sku', 'name_fa', 'category_code', 'part_type', 'condition', 'origin',
 ];
 export const DEFAULTABLE_ON_CREATE: readonly ImportColumn[] = [
   'category_code', 'part_type', 'condition', 'origin', 'manufacturer_brand', 'vehicle_brand_codes', 'unit', 'on_hand',
@@ -115,8 +120,9 @@ export interface ExistingProductSnapshot {
   partType: PartType;
   condition: PhysicalCondition;
   origin: Origin;
-  baseCurrency: CurrencyCode;
-  basePriceMinor: bigint;
+  /** Null: the part has no price yet. */
+  baseCurrency: CurrencyCode | null;
+  basePriceMinor: bigint | null;
   overridePriceIrrMinor: bigint | null;
   overridePriceAedMinor: bigint | null;
   onHand: number;
@@ -128,6 +134,11 @@ export interface ExistingProductSnapshot {
   descriptionEn: string | null;
   isActive: boolean;
   oemCodes?: readonly string[];
+  /** Main technical number (null for older parts that only have technical codes). */
+  partNumber?: string | null;
+  equivalents?: readonly string[];
+  replacements?: readonly string[];
+  specs?: readonly SpecPair[];
   vehicleModels?: readonly string[];
   /** The product's fitment as "vehicleId:modelId" ("vehicleId:" for a whole vehicle). */
   fitmentKeys?: readonly string[];
@@ -208,9 +219,14 @@ export interface ParsedImportValues {
   descriptionEn?: string | null;
   isActive?: boolean;
   technicalNumber?: string;
+  /** Equivalent / replacement numbers (only ever added by an import, never removed). */
+  equivalents?: string[];
+  replacements?: string[];
+  /** Technical specs «عنوان: مقدار» (replace the part's specs when the column has a value). */
+  specs?: SpecPair[];
   vehicleModels?: string[];
-  /** «کاربرد در خودرو» items read against the vehicle list. */
-  fitments?: FitmentMatch[];
+  /** «کاربرد در خودرو» items read against the vehicle list, with the years written in brackets. */
+  fitments?: Array<FitmentMatch & { yearFrom?: number | null; yearTo?: number | null }>;
 }
 
 export interface FieldChange {
@@ -631,6 +647,24 @@ function planRow(row: RawRow, rowNumber: number, ctx: ImportContext, skuCounts: 
     else if (techNumber === 'NUMBER') warn('technical_number', 'TECHNICAL_NUMBER_STORED_AS_NUMBER');
   }
 
+  // Other numbers and technical specs.
+  const numberList = (col: ImportColumn, set: (v: string[]) => void) => {
+    const raw = cellText(row[col]);
+    if (!raw) return;
+    const items = parseNumberList(raw).filter((n) => !technical || partNumberKey(n) !== partNumberKey(technical));
+    if (items.length > 50 || items.some((n) => n.length > 80)) err(col, 'TOO_LONG');
+    else if (items.length) set(items);
+  };
+  numberList('equivalent_numbers', (v) => { values.equivalents = v; });
+  numberList('replacement_numbers', (v) => { values.replacements = v; });
+  const specsRaw = cellText(row.specs);
+  if (specsRaw) {
+    const parsed = parseSpecs(specsRaw);
+    if (parsed.invalid.length) err('specs', 'SPECS_INVALID', parsed.invalid.join('، '));
+    else if (parsed.specs.length > 50) err('specs', 'TOO_LONG');
+    else values.specs = parsed.specs;
+  }
+
   // Category: code or name as registered in the panel.
   const category = cellText(row.category_code);
   if (category) {
@@ -658,11 +692,14 @@ function planRow(row: RawRow, rowNumber: number, ctx: ImportContext, skuCounts: 
   const models = cellText(row.vehicle_models);
   if (models && ctx.vehicles) {
     // «پژو ۲۰۶، دنا پلاس, رانا»: known vehicles/models are linked; new ones are listed for confirmation;
-    // a name very similar to an existing vehicle is never created, only suggested.
-    const items = splitVehicleList(models);
-    if (items.length > LIMITS.models || items.some((m) => m.length > LIMITS.model)) err('vehicle_models', 'TOO_LONG');
+    // a name very similar to an existing vehicle is never created, only suggested. Years in brackets
+    // apply to that vehicle: «پژو 405 (1390-1400)».
+    const parsedFit = parseFitmentList(models);
+    const items = parsedFit.items;
+    if (parsedFit.invalid.length) err('vehicle_models', 'FITMENT_INVALID', parsedFit.invalid.join('، '));
+    else if (items.length > LIMITS.models || items.some((m) => m.text.length > LIMITS.model)) err('vehicle_models', 'TOO_LONG');
     else {
-      values.fitments = items.map((item) => matchFitment(item, ctx.vehicles as readonly KnownVehicle[]));
+      values.fitments = items.map((item) => ({ ...matchFitment(item.text, ctx.vehicles as readonly KnownVehicle[]), yearFrom: item.yearFrom, yearTo: item.yearTo }));
       for (const f of values.fitments) {
         if (f.kind === 'SIMILAR') warn('vehicle_models', 'VEHICLE_SIMILAR', `${f.text} → ${f.suggestion.vehicleName}`);
         else if (f.kind === 'NEW_VEHICLE') warn('vehicle_models', 'NEW_VEHICLE', f.vehicleName);
@@ -725,7 +762,7 @@ function planRow(row: RawRow, rowNumber: number, ctx: ImportContext, skuCounts: 
     unit = ctx.priceUnit;
   }
   if (unit) values.baseCurrency = unit === 'AED' ? 'AED' : 'IRR';
-  const priceUnit: PriceUnit | null = unit ?? (existing ? existing.baseCurrency : null);
+  const priceUnit: PriceUnit | null = unit ?? existing?.baseCurrency ?? null;
 
   const shown: { price: ImportRowDisplay['price'] } = { price: null };
   const money = (col: ImportColumn, u: PriceUnit | null, set: (v: bigint | null) => void, nullable: boolean, forDisplay = false) => {
@@ -756,11 +793,15 @@ function planRow(row: RawRow, rowNumber: number, ctx: ImportContext, skuCounts: 
   money('base_price', priceUnit, (v) => { if (v !== null) values.basePriceMinor = v; }, false, true);
   money('override_price_irr', 'IRR', (v) => { values.overridePriceIrrMinor = v; }, true);
   money('override_price_aed', 'AED', (v) => { values.overridePriceAedMinor = v; }, true);
-  if (values.baseCurrency && existing && values.baseCurrency !== existing.baseCurrency && values.basePriceMinor === undefined) {
+  if (values.baseCurrency && existing?.baseCurrency && values.baseCurrency !== existing.baseCurrency && values.basePriceMinor === undefined) {
     err('base_price', 'PRICE_REQUIRED_WHEN_CURRENCY_CHANGES');
   }
   // A unit chosen for the file must not silently become every new product's currency when it has no price.
   if (values.basePriceMinor === undefined && !cur) delete values.baseCurrency;
+  // A manual price needs a base price (in the row or already on the part).
+  const hasBase = values.basePriceMinor !== undefined || (existing?.basePriceMinor ?? null) !== null;
+  if (!hasBase && ((values.overridePriceIrrMinor ?? null) !== null || (values.overridePriceAedMinor ?? null) !== null)) err('base_price', 'BASE_PRICE_REQUIRED_FOR_OVERRIDE');
+  if (values.basePriceMinor !== undefined && values.baseCurrency === undefined && !existing?.baseCurrency) err('base_currency', 'CURRENCY_REQUIRED');
 
   // Stock
   let stockDisplay: ImportRowDisplay['stock'] = null;
@@ -851,7 +892,7 @@ function planRow(row: RawRow, rowNumber: number, ctx: ImportContext, skuCounts: 
     name: values.nameFa ?? (cellText(row.name_fa) || existing?.nameFa || null),
     technicalNumber: values.technicalNumber ?? (codeText(row.technical_number) || null),
     brand: values.manufacturerBrand ?? (mb || existing?.manufacturerBrand || null),
-    price: shown.price ?? (existing ? { amountMinor: existing.basePriceMinor.toString(), currency: existing.baseCurrency, fromToman: false } : null),
+    price: shown.price ?? (existing?.basePriceMinor != null && existing.baseCurrency ? { amountMinor: existing.basePriceMinor.toString(), currency: existing.baseCurrency, fromToman: false } : null),
     stock: stockDisplay,
     defaults: usedDefaults,
   };
@@ -885,7 +926,7 @@ function diff(e: ExistingProductSnapshot, v: ParsedImportValues): FieldChange[] 
   cmp('condition', e.condition, v.condition);
   cmp('origin', e.origin, v.origin);
   cmp('baseCurrency', e.baseCurrency, v.baseCurrency);
-  cmp('basePriceMinor', e.basePriceMinor, v.basePriceMinor, v.baseCurrency ?? e.baseCurrency);
+  cmp('basePriceMinor', e.basePriceMinor, v.basePriceMinor, v.baseCurrency ?? e.baseCurrency ?? undefined);
   cmp('overridePriceIrrMinor', e.overridePriceIrrMinor, v.overridePriceIrrMinor, 'IRR');
   cmp('overridePriceAedMinor', e.overridePriceAedMinor, v.overridePriceAedMinor, 'AED');
   cmp('onHand', e.onHand, v.onHand);
@@ -897,15 +938,24 @@ function diff(e: ExistingProductSnapshot, v: ParsedImportValues): FieldChange[] 
   cmp('isActive', e.isActive, v.isActive);
   // Technical numbers and compatible vehicles are only ever added by an import, never removed.
   const oem = e.oemCodes ?? [];
-  if (v.technicalNumber && !oem.some((c) => technicalKey(c) === technicalKey(v.technicalNumber as string))) {
-    out.push({ field: 'technicalNumber', before: oem.length ? oem.join('، ') : null, after: [...oem, v.technicalNumber].join('، ') });
+  const known = [...oem, e.partNumber ?? '', ...(e.equivalents ?? []), ...(e.replacements ?? [])].map(partNumberKey);
+  if (v.technicalNumber && !known.includes(partNumberKey(v.technicalNumber))) {
+    out.push({ field: 'technicalNumber', before: e.partNumber ?? (oem.length ? oem.join('، ') : null), after: v.technicalNumber });
+  }
+  for (const [field, list, have] of [['equivalents', v.equivalents, e.equivalents], ['replacements', v.replacements, e.replacements]] as const) {
+    const added = (list ?? []).filter((n) => !known.includes(partNumberKey(n)) && !(have ?? []).some((h) => partNumberKey(h) === partNumberKey(n)));
+    if (added.length) out.push({ field, before: have?.length ? have.join('، ') : null, after: [...(have ?? []), ...added].join('، ') });
+  }
+  if (v.specs) {
+    const text = (list: readonly SpecPair[]) => list.map((x) => `${x.label}: ${x.value}`).join('؛ ');
+    if (text(v.specs) !== text(e.specs ?? [])) out.push({ field: 'specs', before: e.specs?.length ? text(e.specs) : null, after: text(v.specs) });
   }
   const models = e.vehicleModels ?? [];
   const added = (v.vehicleModels ?? []).filter((m) => !models.some((x) => normalizeSearchText(x) === normalizeSearchText(m)));
   if (added.length) out.push({ field: 'vehicleModels', before: models.length ? models.join('، ') : null, after: [...models, ...added].join('، ') });
   // Fitment is only ever added by an import (never removed); new and similar names count as changes to review.
   const have = new Set(e.fitmentKeys ?? []);
-  const newFits = (v.fitments ?? []).filter((f) => f.kind !== 'KNOWN' || !have.has(`${f.vehicleId}:${f.modelId ?? ''}`));
+  const newFits = (v.fitments ?? []).filter((f) => f.kind !== 'KNOWN' || !have.has(`${f.vehicleId}:${f.modelId ?? ''}`) || f.yearFrom != null);
   if (newFits.length) out.push({ field: 'fitments', before: null, after: newFits.map((f) => f.text).join('، ') });
   return out;
 }
@@ -917,6 +967,9 @@ function diff(e: ExistingProductSnapshot, v: ParsedImportValues): FieldChange[] 
  */
 const IMPORT_CODE_TEXT: Readonly<Record<string, { fa: string; en: string }>> = {
   REQUIRED: { fa: 'این ستون الزامی است.', en: 'This column is required.' },
+  SPECS_INVALID: { fa: 'مشخصات فنی باید «عنوان: مقدار» باشد و با «؛» جدا شود؛ این بخش‌ها درست نیست:', en: 'Specs must be “label: value”, separated by “;”; these parts are not:' },
+  FITMENT_INVALID: { fa: 'سال یا خودرو در «کاربرد در خودرو» درست نیست (سال را در پرانتز بنویسید: پژو 405 (1390-1400)):', en: 'A year or vehicle in the fitment column is not valid (write years in brackets: Peugeot 405 (2011-2021)):' },
+  BASE_PRICE_REQUIRED_FOR_OVERRIDE: { fa: 'قیمت دستی بدون قیمت پایه ممکن نیست؛ قیمت پایه را هم وارد کنید.', en: 'A manual price needs a base price too.' },
   REQUIRED_FOR_NEW: {
     fa: 'برای ثبت کالای تازه لازم است؛ آن را در فایل وارد کنید یا در مرحلهٔ تطبیق ستون‌ها یک مقدار برای همهٔ کالاهای تازهٔ این فایل انتخاب کنید.',
     en: 'Needed to create a new product: add it to the file, or choose one value for all new products of this file in the mapping step.',
@@ -1003,6 +1056,7 @@ const FIELD_COLUMN: Readonly<Record<keyof ParsedImportValues, ImportColumn>> = {
   basePriceMinor: 'base_price', overridePriceIrrMinor: 'override_price_irr', overridePriceAedMinor: 'override_price_aed', onHand: 'on_hand',
   onHandAdd: 'on_hand', lowStockThreshold: 'low_stock_threshold', unit: 'unit', descriptionFa: 'description_fa', descriptionEn: 'description_en',
   isActive: 'is_active', technicalNumber: 'technical_number', vehicleModels: 'vehicle_models', fitments: 'vehicle_models',
+  equivalents: 'equivalent_numbers', replacements: 'replacement_numbers', specs: 'specs',
 };
 
 export function importFieldLabel(field: string, locale: 'fa' | 'en'): string {
