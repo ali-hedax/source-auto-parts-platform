@@ -2,7 +2,7 @@ import type { ProductCard } from '@hedax/contracts';
 import { fitmentLabels } from '@hedax/domain';
 import { ImageOff } from 'lucide-react';
 import Image from 'next/image';
-import { getLocale, getTranslations } from 'next-intl/server';
+import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { Price } from '@/components/ui/format';
 import { Badge, Code, StatusBadge } from '@/components/ui/misc';
@@ -13,9 +13,9 @@ import { Badge, Code, StatusBadge } from '@/components/ui/misc';
  * up it is a card with a 4:3 picture. A missing photo shows the drawing-sheet placeholder
  * and says so — no stand-in picture.
  */
-export async function PartCard({ product, priority = false }: { product: ProductCard; priority?: boolean }) {
-  const t = await getTranslations();
-  const locale = (await getLocale()) as 'fa' | 'en';
+export function PartCard({ product, priority = false }: { product: ProductCard; priority?: boolean }) {
+  const t = useTranslations();
+  const locale = useLocale() as 'fa' | 'en';
   const name = locale === 'en' ? (product.name.en ?? product.name.fa) : product.name.fa;
   const brandNames = product.vehicleBrands.map((b) => (locale === 'en' ? (b.name.en ?? b.name.fa) : b.name.fa)).join('، ');
   // «کاربرد: دنا، سمند، پژو 405»; older cached responses without fitments show nothing.

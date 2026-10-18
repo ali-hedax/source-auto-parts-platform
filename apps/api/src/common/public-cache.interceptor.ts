@@ -17,6 +17,8 @@ export class PublicCacheInterceptor implements NestInterceptor {
     if (context.getType() !== 'http') return next.handle();
     const req = context.switchToHttp().getRequest<Request>();
     const url = req.originalUrl ?? req.url;
+    // Autosaving private drafts and uploading library images must not churn the storefront cache.
+    if (/\/admin\/content\/builder(?:\/[^/?]+)?(?:\?|$)/.test(url) || /\/admin\/content\/media(?:\/|\?|$)/.test(url)) return next.handle();
     const relevant = req.method === 'GET' ? SETTLING_READ.test(url) : AFFECTS_PUBLIC.test(url);
     if (!relevant) return next.handle();
     return next.handle().pipe(tap({ next: () => this.cache.invalidate() }));

@@ -1,3 +1,6 @@
+import { localize } from '@hedax/contracts/constants';
+import { getPublishedBuilder, getBuilderData } from '@/lib/builder-server';
+import { BuilderView } from '@/components/builder/view';
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { ContactDetails } from '@/components/layout/contact-details';
@@ -7,6 +10,8 @@ import { getSiteContent, seoMetadata } from '@/lib/site-content';
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
+  const visual = await getPublishedBuilder('contact');
+  if (visual) return { title: localize(visual.title, locale), description: localize(visual.description, locale) };
   const t = await getTranslations({ locale });
   return seoMetadata(await getSiteContent(), 'contact', locale, t('pages.contactTitle'));
 }
@@ -15,6 +20,8 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 export default async function ContactPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const visual = await getPublishedBuilder('contact');
+  if (visual) return <BuilderView document={visual} data={await getBuilderData(visual)} locale={locale} />;
   const t = await getTranslations();
   const L = locale as 'fa' | 'en';
   const contact = (await getSiteContent())?.contact;

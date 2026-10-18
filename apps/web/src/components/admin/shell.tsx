@@ -109,6 +109,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
         { href: '/admin/fx', label: t('fx'), icon: Landmark, perm: 'fx.manage' },
         { href: '/admin/shipping', label: t('shipping'), icon: Truck, perm: 'shipping.manage' },
         { href: '/admin/content', label: t('siteContent'), icon: LayoutTemplate, perm: 'content.manage' },
+        { href: '/admin/appearance', label: locale === 'fa' ? 'مدیریت ظاهر سایت' : 'Website appearance', icon: LayoutTemplate, perm: 'content.manage' },
         { href: '/admin/policies', label: t('policies'), icon: FileText, perm: 'content.manage' },
         { href: '/admin/calendar', label: t('calendar'), icon: CalendarDays, perm: 'settings.manage' },
         { href: '/admin/settings', label: t('settings'), icon: Settings, perm: 'settings.manage' },

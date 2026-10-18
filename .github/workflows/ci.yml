@@ -48,3 +48,7 @@ jobs:
         run: pnpm typecheck
       - name: Domain, contracts and API unit tests
         run: pnpm test:unit
+      - name: Visual builder and existing CMS integration tests
+        run: pnpm --filter @hedax/api exec vitest run --config vitest.integration.config.ts test/integration/81-site-content.test.ts test/integration/82-visual-builder.test.ts
+      - name: Production web build
+        run: pnpm --filter @hedax/web build

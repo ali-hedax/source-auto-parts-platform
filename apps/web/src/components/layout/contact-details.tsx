@@ -1,9 +1,9 @@
 import type { ContactContent } from '@hedax/contracts';
 import { localize } from '@hedax/contracts/constants';
-import { getTranslations } from 'next-intl/server';
+import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { DefinitionList, Ltr } from '@/components/ui/misc';
-import { faDigits } from '@/lib/site-content';
+const faDigits = (text: string) => text.replace(/[0-9]/g, d => '۰۱۲۳۴۵۶۷۸۹'[Number(d)]!);
 
 type Locale = 'fa' | 'en';
 
@@ -19,8 +19,8 @@ function mapHref(c: ContactContent): string | null {
  * page so both always show the same thing. Numbers sit in a left-to-right isolate so their digits
  * and "+" never reorder inside Persian text. Empty items are left out.
  */
-export async function ContactDetails({ contact, locale, variant, linkClassName = '' }: { contact: ContactContent; locale: Locale; variant: 'page' | 'footer'; linkClassName?: string }) {
-  const t = await getTranslations();
+export function ContactDetails({ contact, locale, variant, linkClassName = '' }: { contact: ContactContent; locale: Locale; variant: 'page' | 'footer'; linkClassName?: string }) {
+  const t = useTranslations();
   const link = (href: string, children: ReactNode, external = false) => (
     <a href={href} className={linkClassName} {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>{children}</a>
   );

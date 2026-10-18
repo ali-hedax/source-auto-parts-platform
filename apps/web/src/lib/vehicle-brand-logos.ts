@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 const LOGO_DIR = join(process.cwd(), 'public', 'brand', 'vehicle-brands');
@@ -15,4 +15,25 @@ export function vehicleBrandLogo(slug: string): string | null {
     if (existsSync(join(LOGO_DIR, `${slug}.${ext}`))) return `/brand/vehicle-brands/${slug}.${ext}`;
   }
   return null;
+}
+
+/**
+ * Every brand emblem present in `public/brand/vehicle-brands`, as slug → public path (same preference
+ * order as `vehicleBrandLogo`). Read on the server and handed to views that also render in the browser
+ * (the visual builder's live preview), where the filesystem is not available.
+ */
+export function vehicleBrandLogoMap(): Record<string, string> {
+  const map: Record<string, string> = {};
+  let files: string[];
+  try {
+    files = readdirSync(LOGO_DIR);
+  } catch {
+    return map;
+  }
+  for (const ext of [...EXTENSIONS].reverse()) {
+    for (const file of files) {
+      if (file.endsWith(`.${ext}`)) map[file.slice(0, -(ext.length + 1))] = `/brand/vehicle-brands/${file}`;
+    }
+  }
+  return map;
 }
