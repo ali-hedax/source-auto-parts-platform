@@ -20,6 +20,8 @@ export async function PartCard({ product, priority = false }: { product: Product
   const brandNames = product.vehicleBrands.map((b) => (locale === 'en' ? (b.name.en ?? b.name.fa) : b.name.fa)).join('، ');
   // «کاربرد: دنا، سمند، پژو 405»; older cached responses without fitments show nothing.
   const usedIn = fitmentLabels(product.fitments ?? [], locale).join(locale === 'en' ? ', ' : '، ');
+  // No price or no stock: «قابل تأمین» (a sourcing request instead of buying now).
+  const status = product.purchasable === false ? 'SOURCEABLE' : product.availability;
   return (
     <article className="group h-full overflow-hidden rounded-[var(--radius-card)] border border-line-soft bg-white transition-colors duration-150 hover:border-line-strong">
       <Link href={`/parts/${product.slug}`} className="grid h-full grid-cols-[6.5rem_minmax(0,1fr)] focus-visible:outline-offset-[-3px] sm:flex sm:flex-col">
@@ -46,12 +48,13 @@ export async function PartCard({ product, priority = false }: { product: Product
             <span className="whitespace-nowrap text-xs text-steel">
               {t('parts.sku')}: <Code className="text-ink/80">{product.sku}</Code>
             </span>
-            <StatusBadge status={product.availability} label={t(`availability.${product.availability}`)} />
+            <StatusBadge status={status} label={t(`availability.${status}`)} />
           </div>
           <h3 className="line-clamp-2 font-bold leading-7 group-hover:text-action">
             {name}
             {locale === 'en' && !product.name.en ? <span className="block text-xs font-normal text-steel">({t('common.englishFallback')})</span> : null}
           </h3>
+          {product.partNumber ? <p className="truncate text-xs text-steel">{t('parts.partNumber')}: <Code className="text-ink/80">{product.partNumber}</Code></p> : null}
           {brandNames ? <p className="truncate text-sm text-steel">{t('parts.vehicleBrands')}: {brandNames}</p> : null}
           {usedIn ? <p className="line-clamp-1 text-xs text-steel" title={usedIn} data-testid="card-fitment">{t('parts.usedIn')}: {usedIn}</p> : null}
           <div className="flex flex-wrap gap-1">
@@ -60,7 +63,9 @@ export async function PartCard({ product, priority = false }: { product: Product
             {product.origin === 'IMPORTED' ? <Badge tone="info">{t('origin.IMPORTED')}</Badge> : null}
           </div>
           <div className="mt-auto border-t border-line-soft pt-2.5 sm:pt-3">
-            <Price price={product.price} unit={product.unit} />
+            {product.price.kind === 'inquiry'
+              ? <span className="text-sm font-semibold text-action" data-testid="card-sourceable">{t('parts.requestSupply')}</span>
+              : <Price price={product.price} unit={product.unit} />}
           </div>
         </div>
       </Link>

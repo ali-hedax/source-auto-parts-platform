@@ -6,6 +6,8 @@ import {
   S3Client,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { createReadStream } from 'node:fs';
+import { stat } from 'node:fs/promises';
 import type { Readable } from 'node:stream';
 import type { StorageDriver } from './storage.js';
 
@@ -39,6 +41,12 @@ export class S3StorageDriver implements StorageDriver {
 
   async putPrivate(key: string, body: Buffer, contentType: string): Promise<void> {
     await this.client.send(new PutObjectCommand({ Bucket: this.cfg.privateBucket, Key: key, Body: body, ContentType: contentType }));
+  }
+
+  async putPrivateFile(key: string, filePath: string, contentType: string): Promise<void> {
+    // A single PUT streams the file (up to 5 GB); the length is known from the file on disk.
+    const { size } = await stat(filePath);
+    await this.client.send(new PutObjectCommand({ Bucket: this.cfg.privateBucket, Key: key, Body: createReadStream(filePath), ContentLength: size, ContentType: contentType }));
   }
 
   async getPrivate(key: string): Promise<Readable> {

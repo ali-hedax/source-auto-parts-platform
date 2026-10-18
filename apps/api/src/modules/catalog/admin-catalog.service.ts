@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import sharp, { type OutputInfo } from 'sharp';
 import type { AdminProductRow, ProductCodeLookupView, ProductCodeMatch, ProductMediaView, ProductUpsert } from '@hedax/contracts';
-import { DomainError, IMAGE_KINDS, describePriceSource as describePrice, inspectFile, normalizeSearchText, technicalKey } from '@hedax/domain';
+import { DomainError, IMAGE_KINDS, compactSearchText, describePriceSource as describePrice, inspectFile, normalizeSearchText, partNumberKey } from '@hedax/domain';
 import type { z } from 'zod';
 import type { mediaUpdateSchema, priceRuleSchema } from '@hedax/contracts';
 import { AuditService } from '../../common/audit.service.js';
@@ -12,6 +12,7 @@ import { SCANNER, type MalwareScanner } from '../../common/storage/scanner.js';
 import { STORAGE, type StorageDriver } from '../../common/storage/storage.js';
 import { InventoryService } from '../inventory/inventory.service.js';
 import { PricingService } from '../pricing/pricing.service.js';
+import { assertPartNumberFree, setProductNumbers, skuFromPartNumber } from './product-numbers.js';
 import { rebuildProductSearch } from './product-search.js';
 import { UnitsService, fromSteps, toSteps, unitRef } from './units.service.js';
 import { VehiclesService } from './vehicles.service.js';
@@ -43,12 +44,13 @@ export class AdminCatalogService {
     const where: Prisma.ProductWhereInput = {
       ...(q.archived ? { archivedAt: { not: null } } : { archivedAt: null }),
       ...(q.published === undefined ? {} : { published: q.published }),
-      ...(q.q ? { OR: [{ sku: { contains: q.q, mode: 'insensitive' } }, { searchText: { contains: normalizeSearchText(q.q) } }] } : {}),
+      // Name, SKU, technical number or any other number (spaces, dashes and Persian digits do not matter).
+      ...(q.q ? { OR: [{ sku: { contains: q.q, mode: 'insensitive' } }, { searchText: { contains: normalizeSearchText(q.q) } }, ...(compactSearchText(q.q) ? [{ searchCompact: { contains: compactSearchText(q.q) } }] : [])] } : {}),
     };
     const [rows, total, rate] = await Promise.all([
       this.prisma.product.findMany({
         where,
-        include: { translations: true, category: true, salesUnit: true, basePrice: true, priceRules: { where: { active: true } }, inventory: { where: { warehouseId } } },
+        include: { translations: true, category: true, manufacturerBrand: true, salesUnit: true, basePrice: true, priceRules: { where: { active: true } }, inventory: { where: { warehouseId } }, _count: { select: { media: { where: { deletedAt: null } } } } },
         orderBy: { updatedAt: 'desc' },
         skip: (q.page - 1) * q.pageSize,
         take: q.pageSize,
@@ -66,9 +68,12 @@ export class AdminCatalogService {
           nameFa: p.translations.find((t) => t.locale === 'fa')?.name ?? '',
           nameEn: p.translations.find((t) => t.locale === 'en')?.name ?? null,
           categoryName: p.category.nameFa,
+          partNumber: p.partNumber ?? p.oemCodes[0] ?? null,
+          manufacturer: p.manufacturerBrand?.nameFa ?? null,
           published: p.published,
           archived: !!p.archivedAt,
-          basePrice: { currency: p.basePrice?.baseCurrency ?? 'IRR', amountMinor: (p.basePrice?.baseAmountMinor ?? 0n).toString() },
+          basePrice: p.basePrice ? { currency: p.basePrice.baseCurrency, amountMinor: p.basePrice.baseAmountMinor.toString() } : null,
+          photoCount: p._count.media,
           priceSource: describePrice(this.pricing.resolve(p.basePrice, p.priceRules, 1, null, rate, p.salesUnit.stepMilli)),
           // Quantities in the product's unit (stored as steps of it).
           unit: unitRef(p.salesUnit),
@@ -91,6 +96,7 @@ export class AdminCatalogService {
         translations: true,
         vehicleBrands: true,
         vehicles: { include: { vehicle: true, model: true } },
+        numbers: { orderBy: { sortOrder: 'asc' } },
         salesUnit: true,
         media: { where: { deletedAt: null }, orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }] },
         basePrice: true,
@@ -119,7 +125,10 @@ export class AdminCatalogService {
       categoryId: p.categoryId,
       manufacturerBrandId: p.manufacturerBrandId,
       vehicleBrandIds: p.vehicleBrands.map((v) => v.vehicleBrandId),
-      vehicles: p.vehicles.map((v) => ({ vehicleId: v.vehicleId, modelId: v.modelId, vehicleName: v.vehicle.name, modelName: v.model?.name ?? null })),
+      vehicles: p.vehicles.map((v) => ({ vehicleId: v.vehicleId, modelId: v.modelId, yearFrom: v.yearFrom, yearTo: v.yearTo, note: v.note, vehicleName: v.vehicle.name, modelName: v.model?.name ?? null })),
+      partNumber: p.partNumber,
+      equivalents: p.numbers.filter((n) => n.kind === 'EQUIVALENT').map((n) => n.number),
+      replacements: p.numbers.filter((n) => n.kind === 'REPLACEMENT').map((n) => n.number),
       partType: p.partType,
       condition: p.condition,
       origin: p.origin,
@@ -187,14 +196,20 @@ export class AdminCatalogService {
         const count = await tx.vehicleBrand.count({ where: { id: { in: input.vehicleBrandIds } } });
         if (count !== new Set(input.vehicleBrandIds).size) throw badRequest('UNKNOWN_VEHICLE_BRAND');
       }
-      const priceData = {
-        baseCurrency: input.basePrice.currency,
-        baseAmountMinor: BigInt(input.basePrice.amountMinor),
-        manualIrrMinor: input.manualPriceIrr ? BigInt(input.manualPriceIrr) : null,
-        manualAedMinor: input.manualPriceAed ? BigInt(input.manualPriceAed) : null,
-        updatedById: actorId,
-      };
-      if (priceData.baseAmountMinor <= 0n) throw badRequest('ZERO_PRICE_NOT_ALLOWED', 'Base price must be greater than zero');
+      // The price is optional: a part without one is shown with «درخواست تأمین».
+      const priceData = input.basePrice
+        ? {
+            baseCurrency: input.basePrice.currency,
+            baseAmountMinor: BigInt(input.basePrice.amountMinor),
+            manualIrrMinor: input.manualPriceIrr ? BigInt(input.manualPriceIrr) : null,
+            manualAedMinor: input.manualPriceAed ? BigInt(input.manualPriceAed) : null,
+            updatedById: actorId,
+          }
+        : null;
+      if (priceData && priceData.baseAmountMinor <= 0n) throw badRequest('ZERO_PRICE_NOT_ALLOWED', 'Base price must be greater than zero');
+      const partNumber = input.partNumber?.replace(/\s+/g, ' ').trim() || null;
+      const partKey = partNumber ? partNumberKey(partNumber) || null : null;
+      if (partKey) await assertPartNumberFree(tx, partKey, input.manufacturerBrandId ?? null, id ?? undefined);
       const current = id ? await tx.product.findUnique({ where: { id }, select: { unitId: true, salesUnit: true } }) : null;
       const unit = await this.units.usable(input.unitId, current?.unitId ?? null, tx);
       if (current && current.unitId !== unit.id) await this.assertUnitChangeAllowed(tx, id!, current.salesUnit, unit);
@@ -210,6 +225,8 @@ export class AdminCatalogService {
         unit: unit.name,
         packQuantity: input.packQuantity,
         oemCodes: input.oemCodes,
+        partNumber: partKey ? partNumber : null,
+        partNumberKey: partKey,
         specs: input.specs as Prisma.InputJsonValue,
         isSellable: input.isSellable,
         updatedById: actorId,
@@ -222,25 +239,30 @@ export class AdminCatalogService {
         if (!existing) throw notFound();
         if (input.version === undefined) throw badRequest('VERSION_REQUIRED');
         before = { sku: existing.sku, price: existing.basePrice };
-        if (existing.sku !== input.sku) {
+        const sku = input.sku || existing.sku;
+        if (existing.sku !== sku) {
           const orders = await tx.orderItem.count({ where: { productId: id } });
           if (orders > 0) throw conflict('SKU_LOCKED', 'SKU of a product with orders cannot change');
         }
         const slug = input.slug ? await this.uniqueSlug(tx, input.slug, id) : existing.slug;
         const res = await tx.product.updateMany({
           where: { id, version: input.version },
-          data: { ...common, sku: input.sku, slug, version: { increment: 1 } },
+          data: { ...common, sku, slug, version: { increment: 1 } },
         });
         if (res.count !== 1) throw new DomainError('VERSION_CONFLICT', 'The product was changed by someone else');
         productId = id;
-        await tx.productPrice.upsert({ where: { productId }, create: { productId, ...priceData }, update: { ...priceData, version: { increment: 1 } } });
+        if (priceData) await tx.productPrice.upsert({ where: { productId }, create: { productId, ...priceData }, update: { ...priceData, version: { increment: 1 } } });
+        else await tx.productPrice.deleteMany({ where: { productId } });
       } else {
-        const slug = await this.uniqueSlug(tx, input.slug || slugify(input.nameEn ?? '') || slugify(input.sku));
-        const created = await tx.product.create({ data: { ...common, sku: input.sku, slug: slug || slugify(input.sku), createdById: actorId } });
+        const sku = input.sku || (await skuFromPartNumber(tx, partNumber));
+        if (await tx.product.findUnique({ where: { sku }, select: { id: true } })) throw conflict('SKU_EXISTS', 'Another part has this SKU');
+        const slug = await this.uniqueSlug(tx, input.slug || slugify(input.nameEn ?? '') || slugify(sku));
+        const created = await tx.product.create({ data: { ...common, sku, slug: slug || slugify(sku), createdById: actorId } });
         productId = created.id;
-        await tx.productPrice.create({ data: { productId, ...priceData } });
+        if (priceData) await tx.productPrice.create({ data: { productId, ...priceData } });
         await this.inventory.ensureBalance(tx, productId);
       }
+      await setProductNumbers(tx, productId, partKey, input.equivalents, input.replacements);
 
       await tx.inventoryBalance.updateMany({ where: { productId }, data: { lowStockThreshold: lowStockSteps } });
       await tx.productTranslation.upsert({
@@ -268,7 +290,7 @@ export class AdminCatalogService {
         entityType: 'product',
         entityId: productId,
         before,
-        after: { sku: input.sku, price: priceData, unit: unit.name, vehicles: input.vehicles.length },
+        after: { sku: input.sku ?? null, partNumber: common.partNumber, price: priceData, unit: unit.name, vehicles: input.vehicles.length },
       });
       const fresh = await tx.product.findUniqueOrThrow({ where: { id: productId }, select: { version: true } });
       return { id: productId, version: fresh.version };
@@ -298,7 +320,7 @@ export class AdminCatalogService {
       if (!p) throw notFound();
       if (published) {
         if (p.archivedAt) throw conflict('ARCHIVED', 'Archived products cannot be published');
-        if (!p.basePrice) throw badRequest('PRICE_REQUIRED', 'Set a price before publishing');
+        // A part without a price may be published: the site offers «درخواست تأمین» for it.
         if (p.condition !== 'NEW' && p.media.length === 0) {
           throw badRequest('REAL_PHOTO_REQUIRED', 'Used/refurbished items need a real photo of the item before publishing');
         }
@@ -334,23 +356,34 @@ export class AdminCatalogService {
 
   /** Serializes photo changes of one product (parallel uploads would otherwise both become the main photo). */
   /**
-   * Bulk photos: the products each code belongs to. A code matches a product's SKU or
-   * one of its technical numbers, compared like the Excel import does (case, spaces and
-   * separators ignored). Archived products are left out; a shared code returns all its products.
+   * Bulk photos: the parts each code belongs to. A code matches a part's SKU, its main technical
+   * number, an equivalent / replacement number or an older technical code, compared by
+   * partNumberKey (case, spaces, dashes and Persian digits ignored). Archived parts are left out; a
+   * shared code returns all its parts. Only candidate rows are read (indexes on the number keys).
    */
   async lookupCodes(codes: readonly string[]): Promise<ProductCodeLookupView> {
     const wanted = new Map<string, string[]>();
     for (const code of new Set(codes)) {
-      const key = technicalKey(code);
+      const key = partNumberKey(code);
       if (!key) continue;
       wanted.set(key, [...(wanted.get(key) ?? []), code]);
     }
     const matches: Record<string, ProductCodeMatch[]> = Object.fromEntries([...new Set(codes)].map((c) => [c, []]));
     if (!wanted.size) return { matches };
-    const products = await this.prisma.product.findMany({ where: { archivedAt: null }, select: { id: true, sku: true, oemCodes: true } });
+    const keys = [...wanted.keys()];
+    const candidates = await this.prisma.$queryRaw<Array<{ id: string }>>`
+      SELECT p."id" FROM "product" p
+      WHERE p."archived_at" IS NULL AND (
+        p."part_number_key" = ANY(${keys}::text[])
+        OR p."id" IN (SELECT pn."product_id" FROM "product_number" pn WHERE pn."number_key" = ANY(${keys}::text[]))
+        OR upper(regexp_replace(p."sku", '[^[:alnum:]]', '', 'g')) = ANY(${keys}::text[])
+        OR (cardinality(p."oem_codes") > 0 AND EXISTS (SELECT 1 FROM unnest(p."oem_codes") c WHERE upper(regexp_replace(c, '[^[:alnum:]]', '', 'g')) = ANY(${keys}::text[]))))`;
+    const products = candidates.length
+      ? await this.prisma.product.findMany({ where: { id: { in: candidates.map((c) => c.id) } }, select: { id: true, sku: true, oemCodes: true, partNumber: true, numbers: { select: { number: true } } } })
+      : [];
     const hits = new Map<string, Set<string>>();
     for (const p of products) {
-      for (const key of new Set([p.sku, ...p.oemCodes].map(technicalKey))) {
+      for (const key of new Set([p.sku, p.partNumber ?? '', ...p.oemCodes, ...p.numbers.map((n) => n.number)].map(partNumberKey))) {
         if (!wanted.has(key)) continue;
         hits.set(key, (hits.get(key) ?? new Set<string>()).add(p.id));
       }

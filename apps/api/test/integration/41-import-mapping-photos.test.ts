@@ -144,11 +144,11 @@ describe('a supplier price list (technical number, title, price in rial) — map
     const done = await commit(owner, job, { skipErrorRows: true });
     expect(done.res.status).toBe(201);
     expect(done.job.status).toBe('COMMITTED');
-    expect(done.job.summary.result).toEqual({ created: 2, updated: 0, unchanged: 0, skipped: 3, vehiclesCreated: 0, modelsCreated: 0 });
+    expect(done.job.summary.result).toEqual({ created: 2, updated: 0, existingSkipped: 0, unchanged: 0, skipped: 3, vehiclesCreated: 0, modelsCreated: 0 });
     const created = await products([code(2), `5${digits}`]);
     expect(created).toHaveLength(2);
     const mirror = created.find((p: any) => p.sku === code(2));
-    expect(mirror).toMatchObject({ published: false, oemCodes: [code(2)], manufacturerBrandId: brandId, partType: 'GENUINE', condition: 'NEW', origin: 'UNKNOWN' });
+    expect(mirror).toMatchObject({ published: false, partNumber: code(2), manufacturerBrandId: brandId, partType: 'GENUINE', condition: 'NEW', origin: 'UNKNOWN' });
     expect(mirror.basePrice).toMatchObject({ baseCurrency: 'IRR', baseAmountMinor: 250_000_000n });
     expect(mirror.inventory[0].onHand).toBe(0);
     expect(await products([code(1), code(3)])).toHaveLength(0);

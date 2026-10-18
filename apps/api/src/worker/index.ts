@@ -15,9 +15,9 @@ import { SourcingModule } from '../modules/sourcing/sourcing.module.js';
 import { TrashModule } from '../modules/trash/trash.module.js';
 import { OutboxDispatcher } from './outbox-dispatcher.js';
 import { KnowledgeCatalogModule } from '../modules/knowledge-catalog/knowledge-catalog.module.js';
-import { CatalogEntriesModule } from '../modules/catalog-entries/catalog-entries.module.js';
-import { CatalogImportService } from '../modules/catalog-entries/catalog-import.service.js';
 import { KnowledgeCatalogService } from '../modules/knowledge-catalog/knowledge-catalog.service.js';
+import { BrandImportsModule } from '../modules/brand-imports/brand-imports.module.js';
+import { BrandImportsService } from '../modules/brand-imports/brand-imports.service.js';
 import { MessengerBotsModule } from '../modules/messenger-bots/messenger-bots.module.js';
 import { MessengerBotsService } from '../modules/messenger-bots/messenger-bots.service.js';
 
@@ -27,7 +27,7 @@ import { MessengerBotsService } from '../modules/messenger-bots/messenger-bots.s
  * PDFs, reconciliation) never run inside a web request.
  */
 @Module({
-  imports: [CommonModule, MailModule, PaymentsModule, OrdersModule, SourcingModule, AttachmentsModule, ImportsModule, NotificationsModule, TrashModule, MessengerBotsModule, KnowledgeCatalogModule, CatalogEntriesModule],
+  imports: [CommonModule, MailModule, PaymentsModule, OrdersModule, SourcingModule, AttachmentsModule, ImportsModule, NotificationsModule, TrashModule, MessengerBotsModule, KnowledgeCatalogModule, BrandImportsModule],
   providers: [OutboxDispatcher, QuoteDocumentService],
 })
 export class WorkerModule {}
@@ -37,8 +37,11 @@ export async function createWorkerContext() {
   const app = await NestFactory.createApplicationContext(WorkerModule, { logger: new JsonLogger(env.LOG_LEVEL) });
   app.enableShutdownHooks();
   app.get(OutboxDispatcher).register('catalog.extract', (payload) => app.get(KnowledgeCatalogService).extract(String(payload.documentId)));
-  app.get(OutboxDispatcher).register('catalog-entries.import.parse', (payload) => app.get(CatalogImportService).parse(String(payload.jobId)));
-  app.get(OutboxDispatcher).register('catalog-entries.import.commit', (payload) => app.get(CatalogImportService).commit(String(payload.jobId)));
+  // Brand database imports: the heavy steps (reading large files, writing in batches, undo) run here.
+  app.get(OutboxDispatcher).register('brand-import.inspect', (p) => app.get(BrandImportsService).inspect(String(p.importId)));
+  app.get(OutboxDispatcher).register('brand-import.preview', (p) => app.get(BrandImportsService).preview(String(p.importId)));
+  app.get(OutboxDispatcher).register('brand-import.run', (p) => app.get(BrandImportsService).run(String(p.importId)));
+  app.get(OutboxDispatcher).register('brand-import.rollback', (p) => app.get(BrandImportsService).undo(String(p.importId)));
   app.get(OutboxDispatcher).register('messenger.reply', (payload) => app.get(MessengerBotsService).deliver(payload));
   return {
     app,

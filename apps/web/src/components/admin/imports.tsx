@@ -125,7 +125,7 @@ export function ImportsPage() {
 
   return (
     <>
-      <PageHeader title={t('admin.imports')} description={l('مشخصات، قیمت و موجودی قطعات را از Excel وارد کنید؛ پیش از هر تغییری پیش‌نمایش را می‌بینید و پس از ثبت برای هر قطعه عکس می‌گذارید.', 'Bring parts’ details, prices and stock in from Excel: you see a preview before anything changes, then add photos to each part.')} actions={<TemplateLinks />} />
+      <PageHeader title={t('admin.imports')} description={l('قطعه‌ها را از Excel وارد کنید: شمارهٔ فنی، شماره‌های معادل و جایگزین، کاربرد با سال، مشخصات و — به‌دلخواه — قیمت و موجودی. قطعهٔ بدون قیمت در سایت «قابل تأمین» است. پیش از هر تغییری پیش‌نمایش خطاها و تکراری‌ها را می‌بینید. نمونهٔ فایل را از دکمهٔ بالا بگیرید.', 'Bring parts in from Excel: part number, equivalent and replacement numbers, fitment with years, specs and — optionally — price and stock. A part without a price is “can be sourced” on the site. You see errors and duplicates in a preview before anything changes. Get the sample file from the button above.')} actions={<TemplateLinks />} />
       <Steps current={1} />
       <Section title={t('admin.uploadImport')} id="imp-upload">
         <label
@@ -806,6 +806,7 @@ function CommitSection({ job: j, me, onDone }: { job: ImportJobView; me: MeView 
   const [createVehicles, setCreateVehicles] = useState(true);
   const [linkSimilar, setLinkSimilar] = useState<string[]>(() => (fleet?.similar ?? []).map((x) => x.text));
   const [confirming, setConfirming] = useState(false);
+  const [skipExisting, setSkipExisting] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const missing = (s.requiredPermissions ?? []).filter((p) => me && !me.permissions.includes(p));
@@ -819,7 +820,7 @@ function CommitSection({ job: j, me, onDone }: { job: ImportJobView; me: MeView 
     setBusy(true);
     setError(null);
     try {
-      await api(`/admin/imports/${j.jobId}/commit`, { method: 'POST', body: { planChecksum: j.planChecksum, skipErrorRows: skip, confirmRepeatAdd: repeat, createVehicles: hasNew && createVehicles, linkSimilar } });
+      await api(`/admin/imports/${j.jobId}/commit`, { method: 'POST', body: { planChecksum: j.planChecksum, skipErrorRows: skip, confirmRepeatAdd: repeat, createVehicles: hasNew && createVehicles, linkSimilar, skipExisting } });
       setConfirming(false);
       onDone();
     } catch (e) {
@@ -846,6 +847,17 @@ function CommitSection({ job: j, me, onDone }: { job: ImportJobView; me: MeView 
               <p>{l('دو راه دارید: فایل را اصلاح و دوباره بارگذاری کنید (گزارش خطا را دریافت کنید)، یا صریحاً انتخاب کنید که فقط ردیف‌های بدون خطا ثبت شوند. ردیف خطادار بی‌صدا حذف نمی‌شود و در گزارش با دلیلش می‌ماند.', 'Either correct the file and upload it again (download the error report), or explicitly choose to apply only the rows without errors. Rows with errors are never dropped silently; they stay in the report with their reason.')}</p>
               <Checkbox id="imp-skip" className="mt-2" label={l(`فقط ${num(applicable)} ردیف بدون خطا ثبت شود`, `Apply only the ${num(applicable)} rows without errors`)} checked={skip} onChange={(e) => setSkip(e.target.checked)} />
             </Alert>
+          ) : null}
+          {s.update ? (
+            <fieldset className="mb-4 rounded-[var(--radius-control)] border border-line-soft p-3" data-testid="imp-existing">
+              <legend className="px-1 font-semibold">{l(`${num(s.update)} قطعه از قبل در فروشگاه هست`, `${num(s.update)} parts already exist in the shop`)}</legend>
+              {([[false, l('به‌روز شوند', 'Update them')], [true, l('رد شوند (فقط قطعه‌های تازه ثبت شود)', 'Skip them (add only new parts)')]] as const).map(([value, label]) => (
+                <label key={String(value)} className="flex min-h-11 cursor-pointer items-center gap-3">
+                  <input type="radio" name="imp-existing" checked={skipExisting === value} onChange={() => setSkipExisting(value)} className="size-5 accent-[var(--color-action)]" />
+                  {label}
+                </label>
+              ))}
+            </fieldset>
           ) : null}
           {j.repeatAdd ? (
             <Alert tone="warning" className="mb-4" title={l('همین فایل قبلاً به موجودی افزوده شده است', 'This same file was already added to stock')}>

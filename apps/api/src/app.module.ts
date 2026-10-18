@@ -21,7 +21,7 @@ import { ContentModule } from './modules/content/content.module.js';
 import { SourcingModule } from './modules/sourcing/sourcing.module.js';
 import { MessengerBotsModule } from './modules/messenger-bots/messenger-bots.module.js';
 import { KnowledgeCatalogModule } from './modules/knowledge-catalog/knowledge-catalog.module.js';
-import { CatalogEntriesModule } from './modules/catalog-entries/catalog-entries.module.js';
+import { BrandImportsModule } from './modules/brand-imports/brand-imports.module.js';
 
 @Module({
   imports: [
@@ -42,7 +42,7 @@ import { CatalogEntriesModule } from './modules/catalog-entries/catalog-entries.
     SourcingModule,
     ImportsModule,
     KnowledgeCatalogModule,
-    CatalogEntriesModule,
+    BrandImportsModule,
     NotificationsModule,
     MessengerBotsModule,
     ReturnsModule,

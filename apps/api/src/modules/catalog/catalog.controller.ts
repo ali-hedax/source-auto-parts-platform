@@ -75,9 +75,31 @@ export class CatalogController {
     return this.catalog.vehicleBrands();
   }
 
-  @Get('sitemap')
-  sitemap(@Res({ passthrough: true }) res: Response) {
+  /** Part brands (makers) with published parts: «مرور بر اساس سازنده» and the maker filter. */
+  @Get('manufacturers')
+  manufacturers(@Res({ passthrough: true }) res: Response) {
+    res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+    return this.catalog.manufacturers();
+  }
+
+  /** /catalog/[slug] of the former technical catalog → the part's slug (the web answers with 301). */
+  @Get('legacy-catalog/:slug')
+  async legacyCatalog(@Param('slug') slug: string, @Res({ passthrough: true }) res: Response) {
+    const found = await this.catalog.legacyCatalogSlug(slug.slice(0, 120));
+    if (!found) throw notFound();
+    res.setHeader('Cache-Control', 'public, s-maxage=3600');
+    return found;
+  }
+
+  @Get('sitemap/pages')
+  sitemapPages(@Res({ passthrough: true }) res: Response) {
     res.setHeader('Cache-Control', 'public, s-maxage=600');
-    return this.catalog.sitemapEntries();
+    return this.catalog.sitemapPages();
+  }
+
+  @Get('sitemap')
+  sitemap(@Query('page') page: string | undefined, @Res({ passthrough: true }) res: Response) {
+    res.setHeader('Cache-Control', 'public, s-maxage=600');
+    return this.catalog.sitemapEntries(Math.min(Math.max(Number(page ?? 0) || 0, 0), 1000));
   }
 }

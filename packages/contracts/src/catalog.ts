@@ -23,6 +23,8 @@ export const productListQuerySchema = z.object({
   /** With `vehicle`: one model's slug; parts for that model plus parts for the whole vehicle. */
   model: z.string().max(80).optional(),
   category: z.string().max(64).optional(),
+  /** Manufacturer (part brand) slug. */
+  maker: z.string().max(80).optional(),
   partType: partTypeSchema.optional(),
   condition: conditionSchema.optional(),
   origin: originSchema.optional(),
@@ -111,6 +113,10 @@ export interface ProductCard {
   origin: Origin;
   category: BrandRef | null;
   vehicleBrands: BrandRef[];
+  /** Main technical number («0450-102-805»), or the first technical code of older parts. */
+  partNumber: string | null;
+  /** Can be bought now (price, stock, sellable). Otherwise the site offers «درخواست تأمین» («قابل تأمین»). */
+  purchasable: boolean;
   /**
    * «کاربرد»: active vehicles and models the part fits, in the panel's order. The card shows them
    * as one line («کاربرد: دنا، سمند، پژو 405»), the product page as «مناسب برای:» chips.
@@ -125,6 +131,10 @@ export interface ProductCard {
 }
 
 export interface ProductDetail extends ProductCard {
+  /** Same part from other makers (and older technical codes of the part). */
+  equivalents: string[];
+  /** Numbers that replace this part. */
+  replacements: string[];
   description: LocalizedText | null;
   technicalNotes: LocalizedText | null;
   packQuantity: number;
@@ -143,6 +153,14 @@ export interface CategoryView {
   slug: string;
   name: LocalizedText;
   parentSlug: string | null;
+  productCount: number;
+}
+
+/** A part brand (maker) for «مرور بر اساس سازنده» on the home page and the maker filter. */
+export interface ManufacturerView {
+  slug: string;
+  name: LocalizedText;
+  /** Published parts of this maker. */
   productCount: number;
 }
 
@@ -168,7 +186,12 @@ export interface SearchResult {
 // ---------------------------------------------------------------------------
 
 export const productUpsertSchema = z.object({
-  sku: skuSchema,
+  /** Empty on create: made from the technical number. */
+  sku: skuSchema.optional(),
+  /** Main technical number; unique per manufacturer brand (spaces, dashes and Persian digits do not matter). */
+  partNumber: z.string().trim().max(80).optional().nullable(),
+  equivalents: z.array(z.string().trim().min(1).max(80)).max(50).default([]),
+  replacements: z.array(z.string().trim().min(1).max(80)).max(50).default([]),
   slug: slugSchema.optional(),
   nameFa: z.string().trim().min(2).max(200),
   nameEn: z.string().trim().max(200).optional().nullable(),
@@ -191,7 +214,8 @@ export const productUpsertSchema = z.object({
   packQuantity: z.number().int().min(1).max(10_000).default(1),
   oemCodes: z.array(z.string().trim().min(1).max(64)).max(30).default([]),
   specs: z.array(z.object({ key: z.string().max(64), labelFa: z.string().max(100), labelEn: z.string().max(100).optional(), value: z.string().max(300) })).max(50).default([]),
-  basePrice: z.object({ currency: currencySchema, amountMinor: amountMinorSchema }),
+  /** Optional: a part without a price is shown with «درخواست تأمین» instead of «افزودن به سبد». */
+  basePrice: z.object({ currency: currencySchema, amountMinor: amountMinorSchema }).nullable().optional(),
   manualPriceIrr: amountMinorSchema.optional().nullable(),
   manualPriceAed: amountMinorSchema.optional().nullable(),
   /** In the product's unit (e.g. 2.5 litres). */
@@ -264,9 +288,13 @@ export interface AdminProductRow {
   nameFa: string;
   nameEn: string | null;
   categoryName: string | null;
+  partNumber: string | null;
+  manufacturer: string | null;
   published: boolean;
   archived: boolean;
-  basePrice: MoneyDto;
+  /** Null: no price (shown on the site with «درخواست تأمین»). */
+  basePrice: MoneyDto | null;
+  photoCount: number;
   priceSource: string;
   /** Stock figures below are in this unit. */
   unit: UnitRef;

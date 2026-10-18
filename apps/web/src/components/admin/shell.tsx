@@ -4,7 +4,7 @@ import * as RDialog from '@radix-ui/react-dialog';
 import Image from 'next/image';
 import type { MeView } from '@hedax/contracts';
 import {
-  BarChart3, BookOpen, Boxes, Car, CalendarDays, CircleUser, ClipboardList, CreditCard, FileSpreadsheet, FileText, Gauge, History, Landmark, LayoutTemplate, LogOut, MessageSquare,
+  BarChart3, BookOpen, Boxes, DatabaseZap, Car, CalendarDays, CircleUser, ClipboardList, CreditCard, FileSpreadsheet, FileText, Gauge, History, Landmark, LayoutTemplate, LogOut, MessageSquare,
   Menu, Package, Receipt, RotateCcw, Ruler, ScrollText, Settings, ShieldCheck, Store, Tags, Truck, Users, UserCog, Wallet, X,
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
@@ -73,6 +73,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
         { href: '/admin/vehicles', label: t('vehicles'), icon: Car, perm: 'vehicles.manage' },
         { href: '/admin/inventory', label: t('inventory'), icon: Boxes, perm: 'inventory.read' },
         { href: '/admin/imports', label: t('imports'), icon: FileSpreadsheet, perm: 'imports.run' },
+        { href: '/admin/brand-imports', label: t('brandImports'), icon: DatabaseZap, perm: 'imports.run' },
         { href: '/admin/knowledge-catalog', label: t('knowledgeCatalog'), icon: BookOpen, perm: ['imports.run', 'products.write'] },
       ],
     },
