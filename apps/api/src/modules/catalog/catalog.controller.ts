@@ -36,6 +36,15 @@ export class CatalogController {
     res.setHeader('Cache-Control', actor ? 'private, no-store' : 'public, s-maxage=60, stale-while-revalidate=300');
   }
 
+  @Get('collections/:kind')
+  collection(@Param('kind') kind: string, @Query() query: Record<string, string>, @OptionalActor() actor: Actor | null, @Res({ passthrough: true }) res: Response) {
+    const k = z.enum(['bestsellers', 'discounts', 'selected-products', 'offers']).parse(kind);
+    const q = z.object({ currency: z.enum(['IRR', 'AED']).default('IRR'), limit: z.coerce.number().int().min(1).max(24).default(8), slugs: z.string().max(3000).default('') }).parse(query);
+    const slugs = z.array(z.string().regex(/^[a-z0-9-]{1,120}$/)).max(24).parse(q.slugs ? q.slugs.split(',') : []);
+    this.cache(res, actor);
+    return this.catalog.collection(k, slugs, this.viewer(actor, q.currency), q.limit);
+  }
+
   @Get('products')
   async list(@Query(zod(listQuery)) q: z.infer<typeof listQuery>, @OptionalActor() actor: Actor | null, @Res({ passthrough: true }) res: Response) {
     if (q.q) await this.limits.hit(LIMITS.searchPerIp, currentContext()?.ipHash);

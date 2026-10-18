@@ -1,6 +1,6 @@
 import type { CatalogEntrySearchResult } from '@hedax/contracts';
 import { ArrowLeft, ArrowRight, BookOpenText, Search } from 'lucide-react';
-import { getLocale, getTranslations } from 'next-intl/server';
+import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { CatalogEntryCard } from './catalog-entry-card';
 
@@ -8,9 +8,9 @@ import { CatalogEntryCard } from './catalog-entry-card';
  * Home page → «کاتالوگ فنی قطعات»: a search box that opens /catalog with the query, and the latest
  * published catalog parts. A plain form (GET), so it works before any script has loaded.
  */
-export async function CatalogHomeSection({ recent }: { recent: CatalogEntrySearchResult | null }) {
-  const t = await getTranslations('technicalCatalog');
-  const locale = await getLocale();
+export function CatalogHomeSection({ recent }: { recent: CatalogEntrySearchResult | null }) {
+  const t = useTranslations('technicalCatalog');
+  const locale = useLocale();
   const Arrow = locale === 'fa' ? ArrowLeft : ArrowRight;
   return (
     <section aria-labelledby="catalog-home-title" className="container-page render-lazy pt-14" data-testid="catalog-home">

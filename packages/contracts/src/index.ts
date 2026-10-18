@@ -8,3 +8,4 @@ export * from './admin.js';
 export * from './content.js';
 export * from './vehicles.js';
 export * from './catalog-entries.js';
+export * from './builder.js';

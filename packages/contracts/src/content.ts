@@ -18,6 +18,7 @@ export const contentLinkSchema = z
   .string()
   .trim()
   .max(500)
+  .refine(v => !v.includes('\\') && Array.from(v).every(c => c.charCodeAt(0) >= 32 && c.charCodeAt(0) !== 127), { message: 'INVALID_LINK' })
   .refine(
     (v) => v === '' || /^\/(?!\/)[^\s]*$/.test(v) || /^https?:\/\/[^\s/$.?#][^\s]*$/i.test(v) || /^mailto:[^\s@]+@[^\s@]+\.[^\s@]+$/i.test(v) || /^tel:\+?[0-9,]+$/.test(v),
     { message: 'INVALID_LINK' },

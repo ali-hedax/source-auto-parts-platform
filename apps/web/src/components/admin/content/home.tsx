@@ -25,7 +25,7 @@ function ButtonFields({ id, path, value, onChange, errors, label }: { id: string
 }
 
 /** Editor for one section, by type. `path` is where its fields are in the saved value (for errors). */
-function SectionEditor({ section, onChange, errors, path }: { section: HomeSection; onChange: (s: HomeSection) => void; errors: FieldErrors; path: string }) {
+export function SectionEditor({ section, onChange, errors, path }: { section: HomeSection; onChange: (s: HomeSection) => void; errors: FieldErrors; path: string }) {
   const l = useL();
   const id = `h-${section.id}`;
   switch (section.type) {

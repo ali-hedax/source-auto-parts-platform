@@ -2,7 +2,7 @@ import type { CatalogEntryCard as Entry } from '@hedax/contracts';
 import { fitmentLabels } from '@hedax/domain';
 import { ImageOff, ShoppingBag } from 'lucide-react';
 import Image from 'next/image';
-import { getLocale, getTranslations } from 'next-intl/server';
+import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { Badge, Code } from '@/components/ui/misc';
 
@@ -11,9 +11,9 @@ import { Badge, Code } from '@/components/ui/misc';
  * name, part brand and «کاربرد» in one line. Same layout as the shop's part card: a compact row on
  * phones, a card with a 4:3 picture from `sm` up. No price or stock: a catalog entry is a reference.
  */
-export async function CatalogEntryCard({ entry, priority = false }: { entry: Entry; priority?: boolean }) {
-  const t = await getTranslations('technicalCatalog');
-  const locale = (await getLocale()) as 'fa' | 'en';
+export function CatalogEntryCard({ entry, priority = false }: { entry: Entry; priority?: boolean }) {
+  const t = useTranslations('technicalCatalog');
+  const locale = useLocale() as 'fa' | 'en';
   const text = (n: { fa: string; en: string | null }) => (locale === 'en' ? (n.en ?? n.fa) : n.fa);
   const name = text(entry.name);
   const usedIn = fitmentLabels(entry.fitments, locale).join(locale === 'en' ? ', ' : '، ');

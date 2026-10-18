@@ -2218,6 +2218,46 @@ model SiteSetting {
   @@map("site_setting")
 }
 
+/// Structured visual pages: draft is never returned by public endpoints.
+model VisualPage {
+  slug          String    @id @db.VarChar(60)
+  draft         Json
+  published     Json?
+  version       Int       @default(0)
+  publishedAt   DateTime? @map("published_at") @db.Timestamptz(3)
+  publishedBy   String?   @map("published_by") @db.VarChar(160)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  revisions     VisualRevision[]
+  @@map("visual_page")
+}
+
+model VisualRevision {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  pageSlug  String   @map("page_slug") @db.VarChar(60)
+  document  Json
+  action    String   @db.VarChar(30)
+  actorId   String   @map("actor_id") @db.Uuid
+  actorName String   @map("actor_name") @db.VarChar(160)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  page      VisualPage @relation(fields: [pageSlug], references: [slug], onDelete: Restrict)
+  @@index([pageSlug, createdAt])
+  @@map("visual_revision")
+}
+
+model VisualMedia {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  url       String   @unique @db.VarChar(500)
+  name      String   @db.VarChar(160)
+  alt       Json
+  category  String   @default("") @db.VarChar(60)
+  width     Int
+  height    Int
+  bytes     Int
+  archived  Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  @@map("visual_media")
+}
+
 /// The trash: items removed in the panel that can still be restored. Only `kind` + `entityId` point to
 /// the item (staff today; products can use it later). The item itself is purged when restore is no longer
 /// possible (manually, or by the daily job after site settings → trash retention days).
