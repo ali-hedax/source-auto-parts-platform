@@ -54,6 +54,31 @@ export class CatalogService {
     @Inject(ENV) private readonly env: Env,
   ) {}
 
+  /** Builder collections use the same publication checks, stock and viewer-specific prices. */
+  async collection(kind: string, slugs: string[], viewer: Viewer, limit: number): Promise<ProductCard[]> {
+    const warehouseId = await this.inventory.defaultWarehouseId();
+    const rate = await this.pricing.currentRate();
+    let ids: string[] | undefined;
+    if (kind === 'bestsellers') {
+      const rows = await this.prisma.$queryRaw<Array<{ product_id: string }>>`SELECT oi.product_id FROM order_item oi JOIN "order" o ON o.id = oi.order_id WHERE o.payment_status = 'PAID' AND o.cancelled_at IS NULL GROUP BY oi.product_id HAVING SUM(oi.quantity - oi.returned_quantity) > 0 ORDER BY SUM(oi.quantity - oi.returned_quantity) DESC LIMIT ${limit}`;
+      ids = rows.map(r => r.product_id);
+      if (!ids.length) return [];
+    }
+    if (['selected-products', 'offers'].includes(kind) && !slugs.length) return [];
+    const products = await this.prisma.product.findMany({
+      where: { published: true, archivedAt: null, ...(ids ? { id: { in: ids } } : {}), ...(slugs.length ? { slug: { in: slugs } } : {}),
+        ...(kind === 'discounts' ? { priceRules: { some: { active: true, customerGroupId: null, minQty: { lte: 1 } } } } : {}) },
+      include: productInclude(warehouseId), orderBy: { publishedAt: 'desc' }, take: kind === 'discounts' ? 200 : limit,
+    });
+    if (ids) products.sort((a, b) => ids!.indexOf(a.id) - ids!.indexOf(b.id));
+    return products.filter(p => {
+      if (kind !== 'discounts') return true;
+      const base = this.pricing.toView(this.pricing.resolve(p.basePrice, [], 1, null, rate, p.salesUnit.stepMilli), 'IRR');
+      const actual = this.toCard(p, { approvedGroupId: null, display: 'IRR' }, rate).price;
+      return base.kind === 'price' && actual.kind === 'price' && BigInt(actual.payable.amountMinor) < BigInt(base.payable.amountMinor);
+    }).slice(0, limit).map(p => this.toCard(p, viewer, rate));
+  }
+
   private text(fa: string | null | undefined, en: string | null | undefined): LocalizedText {
     return { fa: fa ?? '', en: en ?? null };
   }

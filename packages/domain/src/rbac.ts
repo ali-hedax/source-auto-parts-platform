@@ -43,6 +43,7 @@ export const PERMISSIONS = {
   'shipping.manage': 'Configure shipping methods and costs',
   'settings.manage': 'Edit site settings and policies',
   'content.manage': 'Edit public site content: texts, images, contact, FAQ, pages, SEO',
+  'content.publish': 'Publish visual pages and restore published revisions',
   'reports.read': 'View sales and operations reports',
   'reports.financial': 'View financial collection/refund reports',
   'audit.read': 'Read audit log',

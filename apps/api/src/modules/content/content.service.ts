@@ -274,6 +274,7 @@ export class ContentService {
     }
     const key = `content/${purpose}/${randomUUID()}.${rule.format}`;
     const url = await this.storage.putPublic(key, output, rule.format === 'png' ? 'image/png' : 'image/webp');
+    await this.prisma.visualMedia.create({ data: { url, name: file.originalname.slice(0, 160), alt: { fa: '', en: '' }, width, height, bytes: output.length } });
     await this.prisma.tx((tx: Tx) => this.audit.record(tx, { action: 'content.image.uploaded', entityType: 'content_image', entityId: key, after: { purpose, url, width, height, bytes: output.length } }));
     return { url, width, height, bytes: output.length };
   }

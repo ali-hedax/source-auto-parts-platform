@@ -1,3 +1,5 @@
+import { getPublishedBuilder, getBuilderData } from '@/lib/builder-server';
+import { BuilderView } from '@/components/builder/view';
 import { localize } from '@hedax/contracts/constants';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
@@ -9,6 +11,8 @@ import { getContentPage, getSiteContent } from '@/lib/site-content';
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
+  const visual = await getPublishedBuilder('about');
+  if (visual) return { title: localize(visual.title, locale), description: localize(visual.description, locale) };
   const page = await getContentPage('about');
   if (!page) return {};
   const description = localize(page.seoDescription, locale);
@@ -19,6 +23,8 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 export default async function AboutPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const visual = await getPublishedBuilder('about');
+  if (visual) return <BuilderView document={visual} data={await getBuilderData(visual)} locale={locale} />;
   const t = await getTranslations();
   const [page, content] = await Promise.all([getContentPage('about'), getSiteContent()]);
   if (!page) notFound();
