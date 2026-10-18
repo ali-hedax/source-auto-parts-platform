@@ -92,6 +92,10 @@ test.describe('panel: one place for parts', () => {
   test('brand database import: history, counts and undo', async ({ page }) => {
     await page.goto('/fa/admin/brand-imports');
     await expect(page.getByRole('heading', { name: 'ورود دیتابیس برند', level: 1 })).toBeVisible();
+    // A step-by-step guide and the sample file come first.
+    await expect(page.getByRole('heading', { name: /راهنما: ورود گروهی قطعه‌ها/ })).toBeVisible();
+    await expect(page.getByTestId('brand-sample')).toHaveAttribute('href', '/api/v1/admin/brand-imports/sample.xlsx');
+    await expect(page.locator('section[aria-labelledby="bi-guide"] ol > li')).toHaveCount(5);
     await page.getByRole('link', { name: 'toyota-parts.csv' }).click();
     await expect(page.getByText('انجام شد')).toBeVisible();
     await expect(page.getByRole('button', { name: 'برگرداندن این ورود' })).toBeVisible();
@@ -108,5 +112,12 @@ test.describe('panel: one place for parts', () => {
     await expect(page.getByRole('heading', { name: 'مرکز دانش (فایل‌های مرجع)', level: 1 })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'قطعات کاتالوگ' })).toHaveCount(0);
     await expect(page.getByText(/OCR|embedding/)).toHaveCount(0);
+    // Where catalogs used to be uploaded, the bulk paths and their sample files are one click away.
+    const bulk = page.getByTestId('kc-bulk');
+    await expect(bulk.getByRole('link', { name: 'ورود دیتابیس برند' })).toHaveAttribute('href', '/fa/admin/brand-imports');
+    await expect(bulk.getByRole('link', { name: 'فایل نمونه' })).toHaveAttribute('href', '/api/v1/admin/brand-imports/sample.xlsx');
+    await expect(bulk.getByRole('link', { name: 'قالب Excel' })).toHaveAttribute('href', '/api/v1/admin/imports/template');
+    await page.goto('/fa/admin/products');
+    await expect(page.getByRole('link', { name: 'ورود گروهی قطعه' })).toHaveAttribute('href', '/fa/admin/brand-imports');
   });
 });
