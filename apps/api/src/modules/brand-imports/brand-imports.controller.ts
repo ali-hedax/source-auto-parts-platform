@@ -11,6 +11,7 @@ import { badRequest } from '../../common/errors.js';
 import type { Actor } from '../../common/request-context.js';
 import { ApiZodBody, zod } from '../../common/zod.js';
 import { BrandImportsService, MAX_BRAND_FILE_BYTES } from './brand-imports.service.js';
+import { brandSampleWorkbook } from './brand-sample.js';
 
 /**
  * Panel → «ورود دیتابیس برند». Seeing imports needs imports.run; uploading, mapping, running and
@@ -25,6 +26,17 @@ export class BrandImportsController {
   @Get()
   list() {
     return this.imports.list();
+  }
+
+  /** «دریافت فایل نمونه»: an Excel file with the column titles that are recognized automatically. */
+  @RequirePermissions('imports.run')
+  @Get('sample.xlsx')
+  async sample(@Res() res: Response) {
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="brand-database-sample.xlsx"');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.send(await brandSampleWorkbook());
   }
 
   /** One large file (≤150 MB) written to a temporary file, never held in memory; fields: manufacturerBrandId, source. */

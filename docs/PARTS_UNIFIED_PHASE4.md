@@ -149,6 +149,7 @@ The script:
 
 | Route | Purpose |
 |---|---|
+| `GET /sample.xlsx` | «دریافت فایل نمونه»: one sheet whose column titles are recognized automatically, with fake sample rows. |
 | `POST /upload` | multipart `file`, `manufacturerBrandId`, `source`. Up to 150 MB. The file is streamed to a temporary file, never held in memory. It is checked by ClamAV (streamed) and stored privately. Returns `{ id }`. |
 | `GET /`, `GET /:id` | History; one import with outline, mapping, preview, stats and progress. |
 | `PUT /:id/mapping` | `{ mapping, options }`. The mapping is saved for the maker + source, then the preview is queued. |
@@ -158,7 +159,8 @@ The script:
 
 **Files and columns**
 
-- **File types:** xlsx (read as a stream with the ExcelJS `WorkbookReader`), csv, or a zip of csv files. The zip reader has its own guard against zip bombs.
+- **File types:** xlsx, csv, or a zip of csv files.
+- **xlsx reading:** our own zip reader opens the file by entry name. It reads the sheet list, links and shared strings first, then streams each sheet with backpressure through ExcelJS's sheet parser. ExcelJS's whole-file streaming walks the zip in file order and, when a sheet comes before the shared strings (as in files saved by Excel), sometimes lost entries: cells came back empty or the read crashed. Measured: 200,000 rows in 3 s. The zip reader has its own guard against zip bombs.
 - **Encoding:** csv may be UTF-8 or Windows-1256 (detected, or chosen by the user). With Windows-1256, Arabic ي/ك become Persian ی/ک.
 - **Column mapping:** suggested from the header names (`suggestBrandMapping`). Equivalents, replacements, fitment and specs may each use several columns; fitment columns are combined.
 

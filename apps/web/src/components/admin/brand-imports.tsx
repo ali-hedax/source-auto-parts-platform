@@ -112,6 +112,7 @@ function BrandImportsHome() {
           'Import a maker’s whole parts list (e.g. Toyota or Hyundai) at once: an xlsx, a csv, or a zip of csv files, up to 150 MB. You map the columns once and the mapping is saved for that brand. Imported parts have no price and appear on the site as “can be sourced”. Importing again updates the earlier parts instead of duplicating them; price, stock and manual photos are never changed.',
         )}
       />
+      <ImportGuide />
       <Section title={l('ورود جدید', 'New import')} id="bi-upload">
         <form onSubmit={submit} className="grid gap-4 md:grid-cols-2" noValidate>
           <Async state={taxonomy}>
@@ -164,6 +165,45 @@ function BrandImportsHome() {
         </Async>
       </Section>
     </div>
+  );
+}
+
+/** The whole path in five steps, with the sample file, so nobody has to guess what to do first. */
+function ImportGuide() {
+  const l = useL();
+  const steps: Array<[string, string]> = [
+    ['فایل نمونه را دریافت کنید و ببینید هر ستون چه چیزی است. فایل خودتان (لیست کارخانه) را لازم نیست تغییر دهید؛ فقط سطر اول آن عنوان ستون‌ها باشد.', 'Download the sample to see what each column holds. Your own file (the maker’s list) need not change; only its first row must hold the column titles.'],
+    ['پایین همین صفحه برند سازنده را انتخاب کنید، منبع را بنویسید (مثلاً «کاتالوگ رسمی ۱۴۰۵») و فایل را بارگذاری کنید.', 'Below, choose the part brand, enter the source (e.g. “Official catalog 2026”) and upload the file.'],
+    ['ستون‌ها را بررسی کنید: هر ستون فایل به کدام مورد می‌رود. فقط «شمارهٔ فنی» لازم است؛ بقیه اختیاری است.', 'Check the columns: which file column goes to which item. Only “Part number” is required.'],
+    ['پیش‌نمایش را ببینید: تعداد قطعهٔ جدید، به‌روزرسانی، تکراری و خطا. اگر درست بود «شروع ورود» را بزنید.', 'Look at the preview: new, updated, duplicate and error counts. If it is right, press “Start the import”.'],
+    ['ورود در پس‌زمینه انجام می‌شود. در پایان گزارش خطاها را دانلود کنید. اگر اشتباهی شد، «برگرداندن این ورود» همه‌چیز را به حالت قبل برمی‌گرداند.', 'The import runs in the background. At the end, download the error report. If something went wrong, “Undo this import” puts everything back.'],
+  ];
+  return (
+    <Section
+      title={l('راهنما: ورود گروهی قطعه‌ها در ۵ مرحله', 'Guide: bulk import in 5 steps')}
+      id="bi-guide"
+      actions={(
+        <a href="/api/v1/admin/brand-imports/sample.xlsx" download data-testid="brand-sample"
+          className="inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-control)] bg-action px-4 text-sm font-semibold text-white transition-colors hover:bg-action-hover">
+          <Download aria-hidden className="size-4" />{l('دریافت فایل نمونه (Excel)', 'Download the sample (Excel)')}
+        </a>
+      )}
+    >
+      <ol className="flex flex-col gap-3">
+        {steps.map(([fa, en], i) => (
+          <li key={fa} className="flex gap-3">
+            <span aria-hidden className="grid size-7 shrink-0 place-items-center rounded-full bg-action/10 text-sm font-bold text-action"><Num value={i + 1} /></span>
+            <span className="leading-7">{l(fa, en)}</span>
+          </li>
+        ))}
+      </ol>
+      <p className="mt-4 border-t border-line-soft pt-3 text-sm text-steel">
+        {l('فقط چند قطعه دارید یا قیمت و موجودی هم می‌خواهید وارد کنید؟ از ', 'Only a few parts, or prices and stock too? Use ')}
+        <Link href="/admin/imports" className="font-semibold text-action underline underline-offset-4">{l('ورود Excel', 'Excel import')}</Link>
+        {l(' استفاده کنید (قالب آن همان‌جا دانلود می‌شود). برای یک قطعه: ', ' (its template downloads there). For one part: ')}
+        <Link href="/admin/products/new" className="font-semibold text-action underline underline-offset-4">{l('قطعهٔ جدید', 'New part')}</Link>.
+      </p>
+    </Section>
   );
 }
 

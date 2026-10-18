@@ -1,7 +1,7 @@
 'use client';
 
 import type { AttachmentView, CatalogChunkPreview, CatalogDocumentStatus, CatalogDocumentView } from '@hedax/contracts';
-import { BookOpen, Download, FileUp } from 'lucide-react';
+import { BookOpen, DatabaseZap, Download, FileSpreadsheet, FileUp } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Fragment, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,7 @@ import { Alert, EmptyState, PageHeader, Section, StatusBadge, TableScroll, td, t
 import { api, uploadWithProgress } from '@/lib/api/client';
 import { errorText, isApiError } from '@/lib/api/errors';
 import { useApi } from '@/lib/use-api';
-import { useRouter } from '@/i18n/navigation';
+import { Link, useRouter } from '@/i18n/navigation';
 import { useL } from './shell';
 
 const MAX_BYTES = 20 * 1024 * 1024;
@@ -214,7 +214,42 @@ export function KnowledgeCatalogPage() {
           'Keep factory catalogs (PDF, Excel, CSV) and photos of catalog pages here so they are always at hand. From the rows of an Excel or CSV file you can make a part with “Make a part”. To add many parts at once, use “Excel import” or “Brand database import”.',
         )}
       />
+      <BulkImportPointer />
       <CatalogDocuments onConvert={convert} />
     </div>
+  );
+}
+
+/**
+ * Files here are kept for reference only and do not become parts by themselves. Bulk imports have
+ * their own pages with a sample file, so the person is sent there with one click.
+ */
+function BulkImportPointer() {
+  const l = useL();
+  const card = 'flex flex-col gap-2 rounded-[var(--radius-card)] border border-line-soft bg-white p-4';
+  const button = 'inline-flex min-h-11 items-center gap-2 self-start rounded-[var(--radius-control)] px-4 text-sm font-semibold';
+  return (
+    <section aria-labelledby="kc-bulk-title" className="rounded-[var(--radius-card)] border border-action/30 bg-action/5 p-4 sm:p-5" data-testid="kc-bulk">
+      <h2 id="kc-bulk-title" className="text-lg font-bold">{l('می‌خواهید قطعه‌های یک کاتالوگ را گروهی وارد کنید؟', 'Want to add the parts of a catalog in bulk?')}</h2>
+      <p className="mt-1 text-sm leading-7 text-steel">{l('فایل‌هایی که در این صفحه بارگذاری می‌کنید فقط برای مراجعه نگه داشته می‌شوند و خودبه‌خود قطعه نمی‌شوند. برای اینکه قطعه‌ها در «قطعات» و در سایت بیایند، یکی از این دو راه را بروید:', 'Files uploaded on this page are kept for reference only; they do not become parts by themselves. To get the parts into «Parts» and onto the site, take one of these two paths:')}</p>
+      <div className="mt-3 grid gap-3 md:grid-cols-2">
+        <div className={card}>
+          <p className="font-semibold">{l('لیست کامل یک سازنده (صدها یا هزاران قطعه، بدون قیمت)', 'A maker’s full list (hundreds or thousands of parts, no price)')}</p>
+          <p className="text-sm text-steel">{l('فایل Excel یا CSV کارخانه را همان‌طور که هست وارد کنید؛ ستون‌ها را یک بار تعیین می‌کنید.', 'Import the maker’s Excel or CSV file as it is; you map the columns once.')}</p>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/admin/brand-imports" className={`${button} bg-action text-white hover:bg-action-hover`}><DatabaseZap aria-hidden className="size-4" />{l('ورود دیتابیس برند', 'Brand database import')}</Link>
+            <a href="/api/v1/admin/brand-imports/sample.xlsx" download className={`${button} border border-line-strong bg-white text-ink hover:border-ink`}><Download aria-hidden className="size-4" />{l('فایل نمونه', 'Sample file')}</a>
+          </div>
+        </div>
+        <div className={card}>
+          <p className="font-semibold">{l('چند قطعه، همراه با قیمت و موجودی', 'A few parts, with price and stock')}</p>
+          <p className="text-sm text-steel">{l('قالب Excel را دریافت کنید، پر کنید و بارگذاری کنید؛ پیش از ثبت پیش‌نمایش را می‌بینید.', 'Download the Excel template, fill it in and upload it; you see a preview before anything is saved.')}</p>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/admin/imports" className={`${button} bg-action text-white hover:bg-action-hover`}><FileSpreadsheet aria-hidden className="size-4" />{l('ورود Excel', 'Excel import')}</Link>
+            <a href="/api/v1/admin/imports/template" download className={`${button} border border-line-strong bg-white text-ink hover:border-ink`}><Download aria-hidden className="size-4" />{l('قالب Excel', 'Excel template')}</a>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
