@@ -1,7 +1,8 @@
 import EmbeddedPostgres from 'embedded-postgres';
 import { execFileSync } from 'node:child_process';
 import { createHash, randomBytes } from 'node:crypto';
-import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, rmSync, statSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, statSync } from 'node:fs';
+import { chmod, cp, mkdir, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -44,7 +45,7 @@ const backupDir = path.join(work, 'backup');
 const PORT = Number(process.env.TEST_RESTORE_PG_PORT ?? 55434);
 const PASSWORD = 'hedax-restore-test-only';
 const postgresLog: string[] = [];
-const stage = (name: string) => console.info(`[restore drill] ${name}`);
+const stage = (name: string) => console.info(`[restore drill ${new Date().toISOString()}] ${name}`);
 const directoryMode = (dir: string) => (statSync(dir).mode & 0o777).toString(8);
 const pgOptions = {
   databaseDir: dataDir, user: 'hedax', password: PASSWORD, port: PORT, persistent: true, authMethod: 'scram-sha-256' as const,
@@ -71,22 +72,22 @@ function assertOwnedPath(target: string) {
 }
 
 /** Node's recursive copy created a 0755 root on Linux, which PostgreSQL refuses. */
-function copyTree(source: string, destination: string) {
+async function copyTree(source: string, destination: string) {
   assertOwnedPath(source);
   assertOwnedPath(destination);
   const mode = statSync(source).mode & 0o777;
   // Create the root with its source permissions before copying any private data.
-  mkdirSync(destination, { recursive: true, mode });
-  cpSync(source, destination, { recursive: true });
+  await mkdir(destination, { recursive: true, mode });
+  await cp(source, destination, { recursive: true });
   if (process.platform !== 'win32') {
-    chmodSync(destination, mode);
+    await chmod(destination, mode);
     expect(directoryMode(destination)).toBe(mode.toString(8));
   }
 }
 
-function removeOwned(target: string) {
+async function removeOwned(target: string) {
   assertOwnedPath(target);
-  rmSync(target, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
+  await rm(target, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
 }
 
 async function startPostgres(phase: string) {
@@ -132,7 +133,7 @@ afterAll(async () => {
     // rather than waiting 180 seconds for an event that has already happened.
     if (!failedToStart) await pg?.stop();
     stage('cleanup: remove owned test files');
-    removeOwned(work);
+    await removeOwned(work);
   }
 });
 
@@ -171,18 +172,18 @@ describe('A32 — restoring the database and file backup', () => {
     await pg!.stop();
     pg = null;
     stage('cold backup: copy database and private files');
-    copyTree(dataDir, path.join(backupDir, 'data'));
-    copyTree(storageDir, path.join(backupDir, 'storage'));
+    await copyTree(dataDir, path.join(backupDir, 'data'));
+    await copyTree(storageDir, path.join(backupDir, 'storage'));
     stage(`cold backup: directory mode ${directoryMode(path.join(backupDir, 'data'))}`);
 
     // 3) Disaster: both are gone.
-    removeOwned(dataDir);
-    removeOwned(storageDir);
+    await removeOwned(dataDir);
+    await removeOwned(storageDir);
     expect(existsSync(dataDir) || existsSync(storageDir)).toBe(false);
 
     // 4) Restore and start again.
-    copyTree(path.join(backupDir, 'data'), dataDir);
-    copyTree(path.join(backupDir, 'storage'), storageDir);
+    await copyTree(path.join(backupDir, 'data'), dataDir);
+    await copyTree(path.join(backupDir, 'storage'), storageDir);
     pg = new EmbeddedPostgres(pgOptions);
     await startPostgres('restored');
     t = await bootApp();
