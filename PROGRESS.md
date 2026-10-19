@@ -8,6 +8,16 @@
 
 ## نقطهٔ فعلی
 
+- **TEST-02، علت بازتولیدشده در Linux:** اجرای تشخیصی
+  [39216172835](https://github.com/ali-hedax/source-auto-parts-platform/actions/runs/39216172835)
+  روی `f24630e` نشان داد مجوز PGDATA از `0700` به `0755` در کپی backup تبدیل می‌شود
+  و نسخهٔ restore نیز `0755` است. PostgreSQL با `FATAL: data directory ... has invalid
+  permissions` خارج شد؛ dependency خطای خالی می‌داد و stop دوباره روی child خارج‌شده
+  موجب timeout ثانویهٔ ۱۸۰ ثانیه‌ای بود. این تشخیص اکنون صرفاً حدس نیست.
+- **Implemented Pending Verification:** کپی، مجوز ریشهٔ منبع را پیش از کپی و پس از
+  آن حفظ/بررسی می‌کند؛ cleanup روی startup شکست‌خورده منتظر خروج دوباره نمی‌ماند و
+  خطاهای shutdown دیگر مخفی نمی‌شوند. مسیر موقت یکتا و copy/remove محدود به همان
+  پوشهٔ تحت مالکیت آزمون شد. هیچ کد برنامه، schema یا ساختار اصلی تغییر نکرد.
 - ادامهٔ TEST-02 طبق درخواست مالک: Git و PR #28 با HEAD `c8eb406` تطبیق داده شدند؛
   فقط ثبت نهایی قبلی این فایل محلی بود و حفظ شد. بررسی فعلی فقط backup در Linux
   است؛ سناریوهای تکمیل‌شدهٔ Import/نمونه دوباره اجرا نمی‌شوند مگر CI به‌طور خودکار.
@@ -15,6 +25,10 @@
   اضافه شد. dependency هنگام خروج child پیش از readiness با `undefined` reject
   می‌کند؛ لاگ قبلی علت اصلی را پنهان کرده بود. مرحلهٔ مستقل suite `60` به CI موجود
   افزوده شد تا شکست قابل تکرار/تشخیص باشد؛ هیچ assertion یا timeout کاهش/حذف نشد.
+- تشخیص در commit `f24630ec9648d1be9759b7ec095241b2fd69e4ba` روی همین feature
+  ثبت/ارسال شد؛ run Linux
+  [39216172835](https://github.com/ali-hedax/source-auto-parts-platform/actions/runs/39216172835)
+  در حال اجراست. lint فقط فایل تغییرکرده و `git diff --check` موفق بودند.
 - **آخرین نتیجه:** CI روی HEAD `c8eb406d355adcbf4a7982b3c80b75898a5b98af`
   [موفق شد](https://github.com/ali-hedax/source-auto-parts-platform/actions/runs/39208551626):
   ۲۲۸ تست واحد (domain 128، contracts 12، API 88)، پنج suite Import/کاتالوگ با
