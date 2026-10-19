@@ -42,6 +42,21 @@
   و شمارش انتهایی test قدیمی از ۳ به ۵ رسید. هیچ کد برنامه یا دادهٔ واقعی درگیر
   نیست. اصلاح محلی regression را روی manufacturer اختصاصی می‌برد و suite کامل 94
   اکنون دوباره اجرا می‌شود. تا CI commit بعدی سبز نشود، PR آمادهٔ بررسی نهایی نیست.
+- **Completed & Tested محلی — رفع CI:** suite کامل `94-brand-workbooks` پس از
+  isolation، ۳ تست موفق، exit 0، 53.35 ثانیه؛ ESLint همان فایل و `git diff --check`
+  نیز موفق. اصلاح و checkpoint در `c3f7fbe443a56a51e62bcc4d72d6b19df3633683`
+  ثبت و روی feature ارسال شدند. CI تازه باید فقط همین SHA را تأیید کند؛ run شکست‌خورده
+  `39229762264` متعلق به `e4aff78` است و جایگزین نمی‌شود.
+- CI جدید `39253160464` دقیقاً روی `c3f7fbe` ایجاد شده و در زمان این checkpoint
+  در حال اجراست؛ PR #28 همچنان Draft، OPEN و `MERGEABLE` است. فقط همین فایل
+  پس از ثبت وضعیت CI در working tree تغییر دارد.
+- **Completed & Tested — CI نهایی اصلاح:** run `39253160464` روی
+  `c3f7fbe443a56a51e62bcc4d72d6b19df3633683` کاملاً موفق شد. build API/shared،
+  lint، typecheck، unit، Catalog/Import (شامل suite 94)، CMS، backup/restore
+  disposable و production web build همگی success هستند. run قبلی شکست‌خورده صرفاً
+  تاریخچهٔ isolation test است و با این run رفع شده است. PR از نظر CI/review فنی
+  آماده است، اما برای انتشار Production آماده/مجاز نیست تا Preview مستقل و
+  acceptance مستقر و سپس تأیید صریح مالک تکمیل شود.
 - **Blocked External — Preview، بررسی فقط‌خواندنی تکرار شد:** DNS همچنان
   `DNS_ERROR_RCODE_NAME_ERROR` و TCP/443 بدون RemoteAddress است. هیچ تغییر DNS/
   سرور/Production و هیچ درخواست نوشتنی Preview انجام نشد. برنامهٔ راه‌اندازی
