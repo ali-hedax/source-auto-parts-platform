@@ -8,6 +8,107 @@
 
 ## نقطهٔ فعلی
 
+### آماده‌سازی امن Preview مستقل — 2026-10-19
+
+- **Completed & Tested — بازیابی checkpoint:** HEAD/remote برابر
+  `6475e92460485662c069ece144f8d9a0f9828d8c`، شاخه
+  `refactor/source-enterprise-upgrade` و PR #28 در حالت `OPEN`/Draft/
+  `MERGEABLE` هستند. CI آخرین HEAD، run `39253616669`، موفق است. فقط همین
+  فایل پس از ثبت این بررسی تغییر محلی دارد؛ هیچ test سبز قبلی تکرار نشد.
+- **Completed & Tested — DNS فقط‌خواندنی:** NS دامنهٔ apex در Arvan (`r` و `j`
+  زیر `ns.arvancdn.ir`) است و apex از HTTPS پاسخ 200 می‌دهد. اما
+  `preview.sourcebyhedax.ir` در resolver محلی و دو resolver عمومی مستقل
+  (`1.1.1.1` و `8.8.8.8`) برای A/CNAME، `NXDOMAIN` است. یک hostname تصادفی زیر
+  همین دامنه نیز `NXDOMAIN` است؛ wildcard عمومی هم مشاهده نشد. بنابراین مانع
+  فعلی نبودن رکورد عمومی Preview است، نه صرفاً cache محلی. هیچ DNS/سرور/Production
+  تغییر نکرد.
+- **Completed & Tested — بررسی read-only استقرار:** `infra/docker-compose.yml`
+  stack کامل جدا (PostgreSQL، Redis/BullMQ، ClamAV، API، worker، web، Caddy و
+  volumeهای داده) و `.env.example` متغیرهای staging/storage/provider را دارد.
+  `APP_ENV=staging` در اعتبارسنجی برنامه production محسوب نمی‌شود؛ simulator
+  پرداخت و `dev-log` پیامک برای دادهٔ آزمایشی مجازند، ولی در production ممنوع‌اند.
+  actual `.env` یا هر secret خوانده/نمایش داده نشد.
+- **Requires Owner Decision — topology Preview:** Compose فعلی نام پروژهٔ ثابت
+  `hedax` و publish پورت‌های 80/443 دارد. اجرای آن کنار Production روی یک Docker
+  host بدون project/port/reverse-proxy جدا تضاد دارد. امن‌ترین topology یک host یا
+  Docker context مستقل Preview است؛ هم‌مکانی فقط با طراحی reviewشدهٔ proxy مرکزی،
+  project/volumeهای preview و عدم publish پورت‌های رقیب قابل بررسی است.
+- **Blocked External — storage/media isolation:** Caddyfile موجود profile
+  Production است و `/media/*` را به bucket عمومی Production proxy می‌کند. این
+  فایل نباید برای Preview بی‌تغییر استفاده شود. پیش از deploy باید profile/override
+  جدا و reviewشده‌ای وجود داشته باشد که به local preview volume یا bucketهای
+  preview مستقل اشاره کند؛ bucket، private prefix و credentialهای Production
+  هرگز reuse نشوند.
+- **Blocked External — موارد واقعاً مفقود:** مقصد Preview (host/context و روش
+  دسترسی عملیاتی)، رکورد DNS و TTL، topology routing/TLS، فایل محیط حفاظت‌شده با
+  رازهای تازه، DB/Redis/queue مستقل، storage namespace مستقل، و شواهد readiness
+  سرور هنوز ارائه نشده‌اند. ابزار `cloud_environment.environment_status` نیز در
+  این جلسه در دسترس نبود و در workspace ویندوز فایل policy مدیریت‌شده وجود نداشت؛
+  نتیجهٔ DNS فقط مشاهدهٔ عمومی است، نه دسترسی زیرساخت.
+- **برنامهٔ اجرایی پیشنهادی، بدون اجرای آن:**
+  1. مالک/اپراتور مقصد مستقل Preview و اینکه آیا host از Production جداست را
+     تعیین کند؛ اگر همان host است، طرح proxy/port و project `hedax-preview` باید
+     پیش از تغییر review شود.
+  2. یک رکورد DNS A/AAAA یا CNAME برای `preview.sourcebyhedax.ir` به مقصد Preview
+     ثبت شود و propagation فقط‌خواندنی تأیید گردد. این کار تغییر DNS و نیازمند
+     تأیید صریح مالک است.
+  3. یک فایل محیط خارج از Git روی مقصد ساخته شود: `APP_ENV=staging`،
+     `PUBLIC_BASE_URL=https://preview.sourcebyhedax.ir`، رازهای تازه و مجزا،
+     providerهای آزمایشی (`PAYMENT_PROVIDER=simulator`، `SMS_PROVIDER=dev-log`،
+     `MAIL_PROVIDER=none`) و بدون هر credential Production. مقادیر در chat یا
+     PROGRESS ثبت نشوند.
+  4. DB و Redis/BullMQ فقط در volume/context Preview ایجاد شوند؛ هیچ connection
+     string، backup یا dump Production برای seed استفاده نشود. دادهٔ پایه فقط پس
+     از بازبینی reference-only بودن آن و حساب/دادهٔ synthetic ساخته شود.
+  5. قبل از start، profile رسانهٔ Preview آماده و review شود: bucketهای private/
+     public جدا یا volume محلی Preview، و Caddy بدون proxy bucket Production.
+  6. پس از تأیید صریح مالک برای عملیات Preview، SHA reviewشدهٔ PR با API/worker
+     هم‌نسخه deploy، migrationهای reviewشده اجرا، سپس readiness داخلی، TLS،
+     login synthetic، import preview/run/error/Undo و پاک‌بودن queue/storage
+     بررسی شوند. نتیجهٔ غیرمحرمانه ثبت شود.
+- **قدم بعدی:** تا دریافت اطلاعات عملیاتی غیرمحرمانه و تأیید مالک برای تغییر DNS/
+  ساخت Preview، فقط می‌توان پیکربندی Preview را به‌شکل reviewable آماده کرد؛ هیچ
+  deployment، migration، import یا تغییر Production/PR Merge مجاز نیست.
+
+### پروفایل reviewable Preview — 2026-10-19
+
+- **Completed & Tested — پیکربندی بدون تغییر خارجی:**
+  `infra/docker-compose.preview.yml`، `infra/caddy/Caddyfile.preview` و
+  `infra/preview.env.example` افزوده شدند و `docs/PREVIEW_ISOLATION_PROFILE.md`
+  نحوه و مرز استفاده را ثبت می‌کند. overlay نام Compose را به `hedax-preview`
+  تغییر می‌دهد؛ بنابراین network و volumeهای PostgreSQL، Redis/BullMQ، storage،
+  ClamAV و Caddy با نام جدا ایجاد خواهند شد. اجرای آن فقط روی ingress/host مستقل
+  مجاز است؛ عمداً برای hostی که Caddy Production پورت 80/443 را دارد طراحی نشده است.
+- **Completed & Tested — ایزوله‌سازی رفتار:** API/worker/tools در profile جدید
+  `APP_ENV=staging` و local storage دارند؛ payment، SMS، mail و Telegram/Bale
+  صریحاً خاموش‌اند. Caddy Preview به API محلی برای `/media/` reverse-proxy می‌کند
+  و هیچ endpoint/bucket تولیدی ندارد، کل host را با credential جدا حفاظت می‌کند،
+  header `noindex` دارد و namespace webhook را 404 می‌کند. template محیط فقط نام
+  متغیرها را دارد و secret ندارد.
+- **Completed & Tested — اعتبارسنجی محلی:**
+  `docker compose -f infra/docker-compose.yml -f infra/docker-compose.preview.yml
+  --env-file infra/preview.env.example config` با مقادیر ساختگی غیرمحرمانه موفق
+  شد؛ خروجی project `hedax-preview_default` و volumeهای
+  `hedax-preview_{pgdata,redisdata,storage,...}` را نشان داد. سپس
+  `caddy validate` در container موقت `--network none` با hash آزمایشی موفق شد؛
+  هیچ stack/container ماندگار، پورت، DNS، سرور یا Production تغییر نکرد.
+- **Incomplete / external:** مقصد مستقل Preview، هدف DNS و TTL، روش دسترسی
+  اپراتوری، فایل محیط حفاظت‌شده با secretهای تازه، و مجوز صریح مالک برای ایجاد
+  DNS/deploy هنوز موجود نیست. `seed-base` فقط metadata پایهٔ ایمن دارد؛
+  `seed-dev` در staging رد می‌شود، پس روش ایجاد catalog/media کاملاً synthetic و
+  برچسب‌دار هنوز پیش‌نیاز جداگانه است. archive خصوصی Hyundai/Kia، dump/backup و
+  هر دادهٔ کاربر/سفارش/تأمین‌کنندهٔ Production برای Preview ممنوع‌اند.
+- **فایل‌های تغییرکردهٔ محلی:** `PROGRESS.md`،
+  `docs/PREVIEW_ISOLATION_PROFILE.md`، `infra/docker-compose.preview.yml`،
+  `infra/caddy/Caddyfile.preview` و `infra/preview.env.example`. هنوز commit/push
+  نشده‌اند و checkpoint بعدی باید همهٔ آن‌ها را همراه با این ثبت در Draft PR
+  قرار دهد؛ هیچ CI یا وضعیت PR تا این لحظه تغییر نکرده است.
+- **قدم بعدی دقیق:** مالک باید فقط اطلاعات غیرمحرمانهٔ زیر را مشخص کند: آیا
+  Preview host/ingress مستقل است یا هم‌مکانی نیاز به طرح proxy دارد؛ target مورد
+  تأیید DNS چیست؛ و آیا ایجاد record و deploy پس از review مجاز است. پس از آن
+  ابتدا فقط همان topology/DNS review می‌شود؛ پیش از هر write عملیاتی تأیید صریح
+  جداگانه لازم است.
+
 ### ادامهٔ آمادگی انتشار — 2026-10-19
 
 - شروع این جلسه: Git روی `d5b649f` با origin همگام، فقط ثبت نهایی PROGRESS محلی
@@ -57,6 +158,15 @@
   تاریخچهٔ isolation test است و با این run رفع شده است. PR از نظر CI/review فنی
   آماده است، اما برای انتشار Production آماده/مجاز نیست تا Preview مستقل و
   acceptance مستقر و سپس تأیید صریح مالک تکمیل شود.
+- checkpoint CI در `6475e92460485662c069ece144f8d9a0f9828d8c` commit/push شد؛
+  هر run تازه‌ای که GitHub برای این commit صرفاً مستنداتی آغاز کند باید جدا از
+  CI سبز کد `c3f7fbe` ثبت شود. Git پس از این ثبت محلی فقط همین فایل را تغییرشده
+  نشان می‌دهد.
+- **Completed & Tested — CI آخرین HEAD:** run `39253616669` روی
+  `6475e92460485662c069ece144f8d9a0f9828d8c` نیز کاملاً success شد. بنابراین
+  آخرین HEAD، CI سبز، Draft/OPEN و `MERGEABLE` است. این نتیجه پس از commit برای
+  حفظ checkpoint محلی ثبت شده؛ فقط `PROGRESS.md` dirty است و عمداً commit تازه‌ای
+  ایجاد نمی‌شود تا CI تکراری بی‌دلیل شروع نشود.
 - **Blocked External — Preview، بررسی فقط‌خواندنی تکرار شد:** DNS همچنان
   `DNS_ERROR_RCODE_NAME_ERROR` و TCP/443 بدون RemoteAddress است. هیچ تغییر DNS/
   سرور/Production و هیچ درخواست نوشتنی Preview انجام نشد. برنامهٔ راه‌اندازی
