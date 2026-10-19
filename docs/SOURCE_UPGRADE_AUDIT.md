@@ -33,7 +33,7 @@ not fresh evidence for this branch.
 | IMP-05 | Untrusted CSV report values could be interpreted as spreadsheet formulas. | **Completed & Tested locally:** suite 93 checks neutralization. |
 | CAT-01 | Invalid/inactive or unscoped vehicle models could return unrelated catalog results. | **Completed & Tested locally:** `85-vehicles` in the 24-test integration run. |
 | TEST-01 | Windows test teardown failed after all assertions passed. | **Completed & Tested locally:** temporary directory ownership, async removal/retry and path checks were corrected; the same three suites then exited 0. The original OS lock cause was not proved. |
-| TEST-02 | Linux full integration exposed a backup-restore test failure and teardown timeout. | **Open, release blocker:** run 39206844504 on `96ac35a` had 149 passing tests, one failed and one skipped. `60-backup-restore` failed and afterAll hit 180 seconds. Root cause remains unproved; Windows baseline is not Linux recovery evidence. |
+| TEST-02 | Linux backup-restore failed because the copied PGDATA root had invalid permissions; dependency cleanup obscured it. | **Completed & Tested:** diagnostic run 39216172835 proved `0700 → 0755`; PostgreSQL FATAL caused an already-exited-child stop wait. Root-mode preservation and asynchronous fixture I/O passed Windows and Linux CI 39225452667 on `767183f`. See [the root-cause report](TEST_02_BACKUP_REPORT.md). |
 | IMP-07 | Interrupted import replay could lose counters/reports or revisit a product after its number changed. | **Completed & Tested locally:** atomic row checkpoint and guarded delivery implemented; seven recovery tests pass within the 25-test related integration run. Fault injection is described below. |
 | VERIFY-01 | Final local checks and remote delivery evidence must be kept distinct. | Browser, typecheck, lint and full workspace build passed after execution resumed. Consult PROGRESS for the inspected remote CI commit/result. Preview remains unverified. |
 
@@ -50,6 +50,7 @@ acceptance evidence are in the disposition table above.
 | IMP-05 | Medium: exported untrusted cells could become spreadsheet formulas. | CSV quoting alone does not neutralize formula-leading characters. | Prefix dangerous values while preserving valid report CSV; tested formula payloads must remain text. |
 | CAT-01 | Medium: model filters could show unrelated parts. | Invalid/inactive and unscoped model selections were not constrained correctly. | Keep valid combinations working while invalid combinations return no unrelated results. |
 | TEST-01 | Medium: Windows teardown failure obscured assertion success. | Competing cleanup ownership, no retry, swallowed shutdown failure. | Disposable path ownership, explicit stop failure and exit status; a green assertion count cannot hide failed teardown. |
+| TEST-02 | High for recovery-verification confidence; no demonstrated production-backup defect. | Copied PGDATA root became `0755`; undefined startup rejection and waiting for an already-fired child exit obscured the permission error. | Preserve/assert copied root mode, retain restore integrity assertions, keep cleanup responsive and surface startup/shutdown failures; dedicated Linux backup CI and Windows regression pass. |
 | IMP-07 | High: interrupted/competing runs could corrupt counts, reports or duplicate technical parts after edits. | Product commits and job progress/errors were separate; retries replayed from zero. | Atomic checkpoint, stale delivery rejection, preserved errors/edits and conservative legacy recovery; seven integration cases pass. |
 
 ## IMP-07: interrupted import / duplicate delivery
@@ -107,7 +108,8 @@ product/error/change writes roll back. The seven tests and related suites
 | Latest browser | Two affected import tests passed, exit 0, 1.3 minutes; a new fixture server was required (`CI=true`). The 390-pixel mobile screenshot was visually inspected; no horizontal overflow. |
 | Latest lint | First run failed on three console statements in two Git-ignored `.local-run` diagnostic scripts. ESLint now excludes that existing private runtime directory; rerun passed, exit 0. No production source rule was relaxed. |
 | Full workspace build | `pnpm build` passed, exit 0: contracts/domain, API, Next production build (167 static pages generated), worker. This only builds locally; it does not deploy. |
-| Initial remote CI | Run 39206844504 failed (exit 1). Linux pnpm forwarded a literal `--` in the script invocation, so Vitest ran all integration files instead of the selected five. Of 151 tests, 149 passed, one failed and one skipped; backup/restore timed out. The portable `pnpm exec vitest ...` command is being verified, not a fix for the backup failure itself. |
+| Initial remote CI | Run 39206844504 failed (exit 1). Linux pnpm forwarded a literal `--` in the script invocation, so Vitest ran all integration files instead of the selected five. Of 151 tests, 149 passed, one failed and one skipped; backup/restore timed out. Portable invocation was verified separately on `c8eb406`; the backup root cause was then fixed under TEST-02. |
+| TEST-02 reproduction and fix | Linux diagnostic run 39216172835 failed with invalid `0755` permissions and a secondary stop timeout. Linux run 39223797071 passed with original/backup/restored PGDATA `0700`. Windows passed the asynchronous fixture, exit 0, total 115.03 s; final Linux CI 39225452667 on `767183f` also passed. Earlier Windows synchronous-I/O timeout remains in the report. |
 | Supplier archive | Read-only parser check: 44 files, 54 sheets, 16,204 nonempty rows, 39 sheets requiring header review. No database import. |
 | Remote checks | [Draft PR #28](https://github.com/ali-hedax/source-auto-parts-platform/pull/28) is open and unmerged. [PR checks](https://github.com/ali-hedax/source-auto-parts-platform/pull/28/checks) run against the feature head; PROGRESS records the inspected run/commit and actual outcome. No isolated preview deployment. |
 
@@ -123,8 +125,8 @@ performance benchmark exists for these changes.
 
 ## Delivery conditions
 
-Resolve TEST-02 and complete remaining acceptance checks before calling this change release-ready.
-IMP-07 is resolved for the tested local scenarios. Confirm isolated preview database/storage/queues and simulator
+TEST-02 and IMP-07 are resolved for the tested scenarios. Complete remaining
+acceptance checks before calling this change release-ready. Confirm isolated preview database/storage/queues and simulator
 providers before writing preview data. Keep licensed VIN/Microcat integration
 and any real paid/messaging provider blocked until authorized access is known.
 Production deployment, migrations, data imports and release-triggering merges

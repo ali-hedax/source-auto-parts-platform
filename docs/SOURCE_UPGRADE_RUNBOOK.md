@@ -62,8 +62,10 @@ needed to obtain remote evidence. Local results are not remote CI results.
 Use `pnpm exec vitest ...` for portable file selection: on Linux the prior
 `test:integration -- ...` invocation forwarded a literal `--`, causing Vitest 5
 to ignore the intended file filters and run the whole integration suite. That
-unexpected run exposed a separate Linux backup-restore timeout; it remains open
-and is recorded in PROGRESS. A green targeted import job does not resolve it.
+unexpected run exposed TEST-02. Its root cause and cross-platform verification
+are recorded in [TEST_02_BACKUP_REPORT.md](TEST_02_BACKUP_REPORT.md) and PROGRESS.
+Backup/restore now has its own explicit CI step; a green targeted import job alone
+does not establish recovery readiness.
 
 ## Isolated preview prerequisites
 
