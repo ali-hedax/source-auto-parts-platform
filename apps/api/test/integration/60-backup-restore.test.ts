@@ -1,7 +1,7 @@
 import EmbeddedPostgres from 'embedded-postgres';
 import { execFileSync } from 'node:child_process';
 import { createHash, randomBytes } from 'node:crypto';
-import { cpSync, existsSync, mkdirSync, rmSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, rmSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -41,23 +41,42 @@ const storageDir = path.join(work, 'storage');
 const backupDir = path.join(work, 'backup');
 const PORT = Number(process.env.TEST_RESTORE_PG_PORT ?? 55434);
 const PASSWORD = 'hedax-restore-test-only';
+const postgresLog: string[] = [];
+const stage = (name: string) => console.info(`[restore drill] ${name}`);
+const directoryMode = (dir: string) => (statSync(dir).mode & 0o777).toString(8);
 const pgOptions = {
   databaseDir: dataDir, user: 'hedax', password: PASSWORD, port: PORT, persistent: true, authMethod: 'scram-sha-256' as const,
   initdbFlags: ['--encoding=UTF8', process.platform === 'win32' ? '--locale=en-US' : '--locale=C.UTF-8'],
   // io_method=sync: no I/O worker processes. On Windows an orphaned PostgreSQL 18 io_worker kept
   // the port after stop, so the restart on the restored data failed (seen 2026-10-05).
   postgresFlags: ['-c', 'listen_addresses=127.0.0.1', '-c', 'timezone=Asia/Tehran', '-c', 'io_method=sync'],
-  onLog: () => undefined, onError: () => undefined,
+  onLog: (message: string) => {
+    postgresLog.push(message.trim());
+    if (postgresLog.length > 20) postgresLog.shift();
+  },
+  onError: () => undefined,
 };
 let pg: EmbeddedPostgres | null = null;
 let t: TestApp | null = null;
+
+async function startPostgres(phase: string) {
+  stage(`${phase}: PostgreSQL startup; directory mode ${directoryMode(dataDir)}`);
+  postgresLog.length = 0;
+  try { await pg!.start(); }
+  catch {
+    // embedded-postgres rejects with undefined when the child exits before readiness.
+    // This cluster contains synthetic test data only; never log its connection/password.
+    throw new Error(`${phase}: PostgreSQL failed before readiness\n${postgresLog.join('\n')}`);
+  }
+  stage(`${phase}: PostgreSQL ready`);
+}
 
 beforeAll(async () => {
   rmSync(work, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
   mkdirSync(work, { recursive: true });
   pg = new EmbeddedPostgres(pgOptions);
   await pg.initialise();
-  await pg.start();
+  await startPostgres('initial');
   await pg.createDatabase('hedax_restore');
   // This file's own database, file store, owner and owner-session state.
   Object.assign(process.env, {
@@ -74,8 +93,11 @@ beforeAll(async () => {
 }, 300_000);
 
 afterAll(async () => {
+  stage('cleanup: close application');
   await t?.close().catch(() => undefined);
+  stage('cleanup: stop PostgreSQL');
   await pg?.stop().catch(() => undefined);
+  stage('cleanup: remove owned test files');
   rmSync(work, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
 });
 
@@ -84,6 +106,7 @@ const sha = (b: Buffer) => createHash('sha256').update(b).digest('hex');
 describe('A32 — restoring the database and file backup', () => {
   it('orders, messages, files and permissions are usable after restore', async () => {
     // 1) Real activity.
+    stage('create synthetic activity');
     t = await bootApp();
     const s = await services(t);
     const owner = await loginOwner(t);
@@ -106,11 +129,15 @@ describe('A32 — restoring the database and file backup', () => {
     expect(before.order.status).toBe('CONFIRMED');
 
     // 2) Clean shutdown and cold backup of database directory + private files.
+    stage('cold backup: close application');
     await t.close();
     t = null;
+    stage('cold backup: stop PostgreSQL');
     await pg!.stop();
+    stage('cold backup: copy database and private files');
     cpSync(dataDir, path.join(backupDir, 'data'), { recursive: true });
     cpSync(storageDir, path.join(backupDir, 'storage'), { recursive: true });
+    stage(`cold backup: directory mode ${directoryMode(path.join(backupDir, 'data'))}`);
 
     // 3) Disaster: both are gone.
     rmSync(dataDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
@@ -121,11 +148,12 @@ describe('A32 — restoring the database and file backup', () => {
     cpSync(path.join(backupDir, 'data'), dataDir, { recursive: true });
     cpSync(path.join(backupDir, 'storage'), storageDir, { recursive: true });
     pg = new EmbeddedPostgres(pgOptions);
-    await pg.start();
+    await startPostgres('restored');
     t = await bootApp();
     const s2 = await services(t);
 
     // 5) Verify.
+    stage('verify restored activity, permissions and files');
     const after = await s2.prisma.$queryRaw<Array<Record<string, bigint>>>`SELECT (SELECT count(*) FROM "order") AS orders, (SELECT count(*) FROM "message") AS messages, (SELECT count(*) FROM "attachment") AS files, (SELECT count(*) FROM "user_role") AS grants, (SELECT count(*) FROM "audit_log") AS audit`;
     expect(after).toEqual(before.counts);
     const again = await loginCustomerAgain(t, s2, customer.mobile);
