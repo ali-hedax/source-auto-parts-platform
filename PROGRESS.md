@@ -1,6 +1,6 @@
 # Source by HEDAX — وضعیت و نقطهٔ ادامه
 
-آخرین به‌روزرسانی: 2026-10-19، ساعت 09:21، Asia/Tehran (+03:30).
+آخرین به‌روزرسانی: 2026-10-19، ساعت 09:40، Asia/Tehran (+03:30).
 
 این فایل مرجع ادامهٔ کار است. ابتدای هر جلسه، ابتدا این فایل و وضعیت واقعی Git
 بررسی شوند. پس از هر مرحلهٔ مهم، نتیجه، خطاها، فایل‌ها و قدم بعدی به‌روز شوند.
@@ -25,6 +25,19 @@
   `origin/refactor/source-enterprise-upgrade` است. [Draft PR #28](https://github.com/ali-hedax/source-auto-parts-platform/pull/28)
   باز و ادغام‌نشده است. CI راه‌دور [39206636901](https://github.com/ali-hedax/source-auto-parts-platform/actions/runs/39206636901)
   آغاز شده و نتیجهٔ نهایی آن هنوز در این checkpoint ثبت نشده است.
+- checkpoint لینک PR و upstream در `96ac35a` commit و push شد؛ کد همان
+  `8c1869d` است. بررسی CI باید برای HEAD `96ac35a16026247a3790d7e331b780ac93a1fc4b`
+  انجام شود، نه صرفاً اجرای قبلی. این ثبتِ نتیجه پس از commit ممکن است تنها تغییر
+  محلی `PROGRESS.md` باشد؛ هیچ کد ثبت‌نشده‌ای نباید از این مرحله باقی بماند.
+- **شکست CI راه‌دور در HEAD `96ac35a`:** اجرای
+  [39206844504](https://github.com/ali-hedax/source-auto-parts-platform/actions/runs/39206844504)
+  exit 1 داشت. lint/typecheck/unit موفق بودند، ولی به‌علت تفاوت forwarding دستور
+  pnpm در Linux، `--` به Vitest رسید و فیلتر پنج فایل نادیده گرفته شد. کل integration
+  اجرا شد: ۱۴۹ تست موفق، یک failed، یک skipped؛ suite بازیابی backup (`60`) timeout
+  داد (هم تست و هم teardown ناموفق گزارش شدند). این failure رفع‌شده محسوب نمی‌شود.
+- فرمان CI به `pnpm --filter @hedax/api exec vitest run --config ...` تغییر کرد؛
+  هدف همچنان همان پنج suite است. افزایش timeout یا حذف assertion انجام نشد.
+  شکست Linuxِ backup مستقل از این اصلاح فرمان، یک مورد بازِ مانع انتشار است.
 - lint اولیه فقط سه خطای console در دو اسکریپت خصوصی ignored در `.local-run` داشت.
   این مسیر runtime از قبل در Git نادیده گرفته می‌شد؛ اکنون از ESLint نیز مستثنا شد.
   اجرای مجدد lint موفق بود؛ قواعد source برنامه ضعیف نشدند.
@@ -66,7 +79,7 @@
   `AGENTS.md` ریشه برای همین منظور ایجاد شدند.
 - شاخهٔ کاری: `refactor/source-enterprise-upgrade`.
 - commit پیاده‌سازی: `8c1869de1d41313f0d1fb0a3a7b6ba0f2e62eb00`.
-  HEAD بازبینی‌شده پس از اسناد: `d125e310be0ef590d22914627d017ba17c0e3fc7`.
+  HEAD بازبینی‌شده پس از checkpoint PR: `96ac35a16026247a3790d7e331b780ac93a1fc4b`.
 - مبنای تغییرات کد: `d205e373478b628f377feb4915dd19477d0f4eae`
   (ادغام PR #26، visual website builder).
 - شاخه از `origin/main` به‌روز ایجاد شده؛ upstream فعلی شاخهٔ feature روی origin است.
@@ -123,6 +136,7 @@
 | `pnpm lint` پس از IMP-07 | اجرای اول سه خطای diagnostic خصوصی؛ پس از استثنای `.local-run/**` اجرای مجدد موفق، exit 0 |
 | مرورگرِ مرحلهٔ workbook | با `CI=true` و فیلتر `brand database import\|workbook mapping`: دو تست موفق، exit 0، 1.3 دقیقه؛ تصویر موبایل بررسی شد؛ fixture، نه backend واقعی |
 | `pnpm build` کل workspace | موفق، exit 0؛ shared/API، Next production build با ۱۶۷ صفحهٔ static و worker؛ فقط build محلی، نه انتشار |
+| CI راه‌دور روی `96ac35a` | ناموفق، exit 1؛ lint/typecheck/unit موفق؛ اجرای ناخواستهٔ کل integration: ۱۴۹ موفق، یک failed و یک skipped، 621.07 ثانیه؛ شکست در `60-backup-restore`، همراه timeout afterAll 180 ثانیه. موفقیت ۱۴۹ assertion به معنی موفقیت job نیست |
 
 ## پیاده‌سازی جاری — Implemented Pending Verification
 
@@ -178,6 +192,10 @@
    هماهنگ‌کردن ignore مسیر runtime رفع شد؛ CI راه‌دور PR #28 هنوز نتیجهٔ نهایی ندارد.
 7. پذیرش سازگاری UI ورودهای قدیمی چندمنبعی و آزمون قطع/cleanup در برخورد با حدود
    منابع XLS باقی است؛ این موارد شکاف پوشش‌اند و به‌عنوان خرابی مشاهده‌شده ثبت نمی‌شوند.
+8. **TEST-02، باز و مانع انتشار:** timeout آزمون backup/restore در Linux CI دیده شد؛
+   علت اصلی آن هنوز اثبات نشده است. فیلتر فرمان CI اصلاح شد، ولی این کار رفع شکست
+   backup نیست. بررسی بعدی باید هدفمند روی suite `60` در Linux و با trace shutdown
+   باشد؛ baseline موفق ویندوز جایگزین این بررسی نیست. تست/teardown آن تغییر نکرده‌اند.
 
 ## فایل‌های تغییرکرده در این مرحله
 
@@ -235,10 +253,12 @@
 
 1. IMP-07 و کنترل‌های محلی تکمیل شدند؛ تکرار نشوند مگر تغییر/خطای جدیدی وجود داشته باشد.
    کد و اسناد commit/push و Draft PR #28 ساخته شده‌اند؛ artifacts نیز پاک‌سازی شده‌اند.
-2. CI راه‌دورِ Draft PR بررسی و نتیجه ثبت شود؛ قبول محلی را به‌جای CI ثبت نکنید.
+2. اصلاح forwarding فرمان CI commit/push شود و نتیجهٔ اجرای جدید روی HEAD جدید
+   بررسی شود؛ CI قبلی شکست خورد و نباید موفق ثبت شود.
    push شاخهٔ `refactor/**` به‌تنهایی CI را فعال نمی‌کند؛ workflow روی PR یا dispatch اجرا می‌شود.
-3. پذیرش UI ورودهای قدیمی چندمنبعی و کنترل termination/cleanup هنگام عبور XLS از
-   حد منابع، کار محلی ناتمام بعدی هستند؛ سپس جدایی محیط Preview بررسی شود.
+3. TEST-02 (backup/restore در Linux) با اجرای هدفمند و trace ریشه‌یابی شود؛ سپس
+   پذیرش UI ورودهای قدیمی چندمنبعی و کنترل termination/cleanup هنگام عبور XLS از
+   حد منابع. Preview/انتشار تا رفع موارد باز آماده اعلام نشود.
 4. تست‌های موفق فقط با تغییر جدید یا دلیل مشخص تکرار شوند؛ baseline کامل بی‌دلیل تکرار نشود.
 5. Preview تنها پس از تأیید جدایی محیط و دسترسی موجود؛ Production تنها با تأیید مالک.
 
@@ -280,3 +300,10 @@
 - 2026-10-19 09:21 +03:30: اسناد در `d125e31` ثبت؛ feature با مقصد صریح push و
   Draft PR #28 ایجاد شد. upstream feature اصلاح شد. workflow موجود فقط CI است؛
   اجرای راه‌دور شروع شد. main، Preview و Production ادغام/منتشر/تغییر داده نشدند.
+- 2026-10-19 09:23 +03:30: لینک PR و وضعیت upstream در commit صرفاً مستنداتی
+  `96ac35a` ثبت و push شد. Git پیش از ثبت این نتیجه تمیز و با origin هماهنگ بود؛
+  بررسی CI باید به آخرین HEAD متصل باشد. Draft هنوز باز و ادغام‌نشده است.
+- 2026-10-19 09:40 +03:30: CI روی `96ac35a` شکست خورد: literal `--` در Linux
+  موجب اجرای کل suite و آشکارشدن timeout مستقل backup شد. فرمان هدفمند به exec
+  Vitest تغییر کرد؛ شکست backup تحت TEST-02 باز و مانع انتشار ثبت شد. هیچ تستی
+  skip یا timeoutی برای سبزکردن job افزایش داده نشد.

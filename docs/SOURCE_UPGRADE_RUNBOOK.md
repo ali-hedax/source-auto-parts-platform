@@ -35,7 +35,7 @@ only where new changes or identified concerns warrant it. The recovery and
 related suites passed together (25 tests, exit 0). Relevant commands:
 
 ```powershell
-pnpm --filter @hedax/api test:integration -- test/integration/91-unified-parts.test.ts test/integration/93-brand-import-integrity.test.ts test/integration/94-brand-workbooks.test.ts test/integration/95-brand-import-recovery.test.ts
+pnpm --filter @hedax/api exec vitest run --config vitest.integration.config.ts test/integration/91-unified-parts.test.ts test/integration/93-brand-import-integrity.test.ts test/integration/94-brand-workbooks.test.ts test/integration/95-brand-import-recovery.test.ts
 pnpm build
 ```
 
@@ -59,6 +59,11 @@ origin; keep the feature destination explicit for future pushes.
 The CI workflow now includes integrity suites 85/91/93/94/95. Its push filter does
 not match `refactor/**`; opening a feature PR or explicitly dispatching CI is
 needed to obtain remote evidence. Local results are not remote CI results.
+Use `pnpm exec vitest ...` for portable file selection: on Linux the prior
+`test:integration -- ...` invocation forwarded a literal `--`, causing Vitest 5
+to ignore the intended file filters and run the whole integration suite. That
+unexpected run exposed a separate Linux backup-restore timeout; it remains open
+and is recorded in PROGRESS. A green targeted import job does not resolve it.
 
 ## Isolated preview prerequisites
 
