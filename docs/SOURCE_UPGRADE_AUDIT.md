@@ -46,7 +46,7 @@ acceptance evidence are in the disposition table above.
 | IMP-01 | High: later catalog edits could be lost during Undo. | Snapshots lacked a safe product-version guard; preserved records could repeat. | Version increments and relation restoration: preserve later edits and commercial use, restore only matching versions, finish repeated Undo safely. |
 | IMP-02 | High: overlapping maker jobs or partial success could mislead staff. | State transitions were not sufficiently serialized or failure-aware. | Maker-level scheduling and audit: reject overlapping jobs; partial failure must remain FAILED and recoverable by Undo. |
 | IMP-03 | Medium: supplied XLS/workbook archive was unusable or misinterpreted. | CSV-only ZIP dispatch and first-row/shared-layout assumptions. | Reader/layout changes: mixed files, leading zeroes, explicit headers/no-header, excluded sources, no commercial price/stock writes. |
-| IMP-04 | High for untrusted-file resource exposure; medium for number corruption. | Unbounded/insufficiently checked archive metadata and lost numeric formats. | Reject forged directory/decompression and path traversal; preserve explicit padding; resource-limit cleanup remains a coverage gap. |
+| IMP-04 | High for untrusted-file resource exposure; medium for number corruption. | Unbounded/insufficiently checked archive metadata and lost numeric formats. | Reject forged directory/decompression and path traversal; preserve explicit padding. XLS limit/cancellation cleanup now has real-worker regressions and supervisor fault injection; not exhaustive hostile-file coverage. |
 | IMP-05 | Medium: exported untrusted cells could become spreadsheet formulas. | CSV quoting alone does not neutralize formula-leading characters. | Prefix dangerous values while preserving valid report CSV; tested formula payloads must remain text. |
 | CAT-01 | Medium: model filters could show unrelated parts. | Invalid/inactive and unscoped model selections were not constrained correctly. | Keep valid combinations working while invalid combinations return no unrelated results. |
 | TEST-01 | Medium: Windows teardown failure obscured assertion success. | Competing cleanup ownership, no retry, swallowed shutdown failure. | Disposable path ownership, explicit stop failure and exit status; a green assertion count cannot hide failed teardown. |
@@ -118,10 +118,14 @@ not exercise the real backend. The local backup test does not establish that the
 owner's current production backups can be restored. The sample totals count raw
 nonempty rows, including headings/preambles, not accepted parts or unique numbers.
 
-Additional acceptance gaps: backward compatibility of old multi-source mapping
-screens and resource-limit termination/cleanup under hostile XLS input. They
-remain unverified; they are not reported as observed defects. No before/after
-performance benchmark exists for these changes.
+The old multi-source UI compatibility gap is fixed in the existing editor, with
+exact-save-payload browser acceptance and a legacy-JSON API regression. XLS
+resource termination/cleanup now has ten targeted tests: real BIFF limits,
+cancellation and ZIP spool removal, plus supervisor timeout/error/exit fault
+injection. A real heap exhaustion was not induced; these checks do not establish
+an OS sandbox or total-process RSS cap. No before/after performance benchmark
+exists. See [PR #28 readiness](PR_28_RELEASE_READINESS.md) for current evidence,
+retained UI limits and unresolved Preview/owner release gates.
 
 ## Delivery conditions
 

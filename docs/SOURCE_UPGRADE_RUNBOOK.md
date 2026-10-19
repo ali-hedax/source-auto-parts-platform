@@ -69,6 +69,13 @@ does not establish recovery readiness.
 
 ## Isolated preview prerequisites
 
+The 2026-10-19 acceptance pass closes the old multi-source editor and targeted
+XLS cleanup checks locally. See [PR #28 readiness](PR_28_RELEASE_READINESS.md).
+The local preview DNS lookup returned `DNS_ERROR_RCODE_NAME_ERROR`; no confirmed
+isolated deployment was available. Do not treat that result as proof of global
+site availability or database isolation. Obtain the current URL and nonsecret
+deployment/isolation evidence before writing to any preview destination.
+
 Record nonsecret evidence of separate preview database, Redis/queues, file or
 bucket namespace, host routing and credentials managed outside the repository.
 Use simulator payment/messaging providers and synthetic accounts. Existing

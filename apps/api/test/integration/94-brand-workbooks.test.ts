@@ -42,6 +42,37 @@ async function previewAndRun(view: any) {
 }
 
 describe('reviewed workbook sources', () => {
+  it('accepts per-source mapping and exclusion for old inspections without sampled header metadata', async () => {
+    const zip = new JSZip()
+      .file('one.csv', `Part No,Name\nOLD-${run}-A,first\n`)
+      .file('two.csv', `Code,Description\nOLD-${run}-B,second\n`)
+      .file('excluded.csv', 'Other,Label\nOLD-EXCLUDED,skip\n');
+    const view = await upload(await zip.generateAsync({ type: 'nodebuffer' }), `old-inspection-${run}`);
+    const { sources: _sources, ...oldOptions } = view.options;
+    const oldOutline = view.outline.map((source: any) => ({
+      name: source.name, headers: source.headers, samples: source.samples,
+      encoding: source.encoding, delimiter: source.delimiter,
+    }));
+    await s.prisma.brandImport.update({ where: { id: view.id }, data: {
+      outline: oldOutline, options: oldOptions, mapping: { partNumber: ['Part No'], nameEn: ['Name'] },
+    } });
+    const old = (await owner.get<any>(`/admin/brand-imports/${view.id}`)).body;
+    expect(old.options.sources).toBeUndefined();
+    expect(old.outline.every((source: any) => source.sampleRows === undefined && source.headerRow === undefined)).toBe(true);
+    old.options.sources = {
+      'one.csv': { enabled: true, headerRow: 1, mapping: { partNumber: ['Part No'], nameEn: ['Name'] } },
+      'two.csv': { enabled: true, headerRow: 1, mapping: { partNumber: ['Code'], nameEn: ['Description'] } },
+      'excluded.csv': { enabled: false, headerRow: 1, mapping: {} },
+    };
+    const { preview, done } = await previewAndRun(old);
+    expect(preview.stats).toMatchObject({ rows: 2, new: 2, error: 0 });
+    expect(done.stats.created).toBe(2);
+    const parts = await s.prisma.product.findMany({ where: { sourceBrandImportId: view.id }, include: { translations: true } });
+    expect(parts.map((part: any) => [part.partNumber, part.translations.find((text: any) => text.locale === 'en')?.name]).sort()).toEqual([
+      [`OLD-${run}-A`, 'first'], [`OLD-${run}-B`, 'second'],
+    ]);
+  });
+
   it('imports different sheet layouts, excludes another maker, ignores old prices, and reuses a headerless profile', async () => {
     const book = new ExcelJS.Workbook();
     const sheet = book.addWorksheet('Parts');

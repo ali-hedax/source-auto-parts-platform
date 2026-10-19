@@ -364,7 +364,18 @@ function MappingEditor({ v, working, onSave }: { v: BrandImportView; working: bo
   const l = useL();
   const t = useTranslations();
   const [sharedMapping, setMapping] = useState<Record<string, string[]>>(v.mapping);
-  const [options, setOptions] = useState<BrandImportOptions>(v.options);
+  const [options, setOptions] = useState<BrandImportOptions>(() => ({
+    ...v.options,
+    // Older inspections stored only a shared mapping. Adapt them in the editor,
+    // preserving valid columns per source without changing persisted records on load.
+    sources: Object.fromEntries((v.outline ?? []).map(source => [source.name,
+      v.options.sources?.[source.name] ?? {
+        enabled: true,
+        headerRow: source.headerRow ?? 1,
+        mapping: reuseBrandMapping(v.mapping, source.headers).mapping as Record<string, string[]>,
+      },
+    ])),
+  }));
   const [sourceName, setSourceName] = useState(v.outline?.[0]?.name ?? '');
   const first = v.outline?.find(s => s.name === sourceName) ?? v.outline?.[0];
   const choice = first ? options.sources?.[first.name] : undefined;
@@ -401,7 +412,7 @@ function MappingEditor({ v, working, onSave }: { v: BrandImportView; working: bo
             <option value={0}>{l('بدون عنوان؛ همهٔ ردیف‌ها داده هستند', 'No header; every row contains data')}</option>
             {first.sampleRows.map(r => <option key={r.line} value={r.line}>{l('ردیف', 'Row')} {r.line}: {r.cells.filter(Boolean).slice(0, 3).join(' / ').slice(0, 100)}</option>)}
           </Select>
-        </Field> : null}
+        </Field> : <p className="text-sm text-steel">{l('عنوان ستون‌ها قبلاً خوانده شده است. برای تغییر ردیف عنوان، فایل را دوباره بارگذاری کنید.', 'Column headers were inspected previously. Upload the file again to change the header row.')}</p>}
         {first.needsHeaderReview ? <Alert tone="warning" title={l('عنوان ستون‌ها قطعی تشخیص داده نشد؛ نمونه و ردیف عنوان را بررسی کنید.', 'The header could not be identified confidently. Review the sample and header row.')} /> : null}
       </div> : null}
       {v.missingColumns.length ? <Alert tone="warning" className="mb-3" title={l(`این ستون‌های ذخیره‌شده در این فایل نیستند: ${v.missingColumns.join('، ')}`, `These saved columns are not in this file: ${v.missingColumns.join(', ')}`)} /> : null}

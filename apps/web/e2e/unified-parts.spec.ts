@@ -164,4 +164,43 @@ test.describe('panel: one place for parts', () => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     await page.screenshot({ path: 'test-results/workbook-mapping-fa-mobile.png', fullPage: true });
   });
+
+  test('legacy multi-source mapping saves independent columns and exclusions without header samples', async ({ page }) => {
+    const id = '00000000-0000-7000-8000-00000000b102';
+    await page.route(`**/api/v1/admin/brand-imports/${id}`, async route => {
+      const response = await route.fetch();
+      const view = await response.json();
+      view.outline = [
+        { name: 'one.csv', headers: ['Part No', 'Name'], samples: [['000001', 'first']] },
+        { name: 'two.csv', headers: ['Code', 'Description'], samples: [['000002', 'second']] },
+        { name: 'excluded.csv', headers: ['Other'], samples: [['skip']] },
+      ];
+      view.mapping = { partNumber: ['Part No'], nameEn: ['Name'] };
+      delete view.options.sources;
+      await route.fulfill({ response, json: view });
+    });
+    await page.route(`**/api/v1/admin/brand-imports/${id}/mapping`, route => route.fulfill({ json: { status: 'PREVIEWING' } }));
+    await page.goto(`/fa/admin/brand-imports?id=${id}`);
+    const save = page.getByRole('button', { name: 'ذخیرهٔ ستون‌ها و پیش‌نمایش' });
+    await expect(save).toBeDisabled();
+    await expect(page.locator('#bi-header-row')).toHaveCount(0);
+    await expect(page.getByText('عنوان ستون‌ها قبلاً خوانده شده است.', { exact: false })).toBeVisible();
+    await page.locator('#bi-source').selectOption('two.csv');
+    await page.locator('#bi-partNumber').selectOption('Code');
+    await page.locator('#bi-nameEn').selectOption('Description');
+    await page.locator('#bi-source').selectOption('excluded.csv');
+    await page.locator('#bi-source-enabled').uncheck();
+    await page.locator('#bi-source').selectOption('one.csv');
+    await expect(page.locator('#bi-partNumber')).toHaveValue('Part No');
+    await expect(save).toBeEnabled();
+    await page.setViewportSize({ width: 390, height: 844 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    const request = page.waitForRequest(r => r.url().endsWith(`/${id}/mapping`) && r.method() === 'PUT');
+    await save.click();
+    expect((await request).postDataJSON().options.sources).toEqual({
+      'one.csv': { enabled: true, headerRow: 1, mapping: { partNumber: ['Part No'], nameEn: ['Name'] } },
+      'two.csv': { enabled: true, headerRow: 1, mapping: { partNumber: ['Code'], nameEn: ['Description'], description: ['Description'] } },
+      'excluded.csv': { enabled: false, headerRow: 1, mapping: {} },
+    });
+  });
 });

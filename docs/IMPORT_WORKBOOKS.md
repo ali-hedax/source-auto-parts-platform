@@ -56,8 +56,11 @@ The API rejects unknown sources, unavailable header rows, missing mapped columns
 missing part-number mappings and a selection with no enabled source. Exact
 repeated table headings are skipped; arbitrary prose, merged-cell layouts or
 later changes in column layout are not automatically repaired. Old imports without
-sample metadata retain their original first-row interpretation; their multi-source
-UI compatibility remains an acceptance check.
+sample metadata retain their original first-row interpretation. The editor now
+adapts their shared mapping per source, supports independent mapping/exclusion,
+and explains that changing the header row requires a new upload. This is covered
+by fixture browser acceptance and a disposable-database API regression; see the
+[PR #28 readiness report](PR_28_RELEASE_READINESS.md) for limits and release gates.
 
 ## Data boundaries
 
