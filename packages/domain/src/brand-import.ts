@@ -10,8 +10,8 @@ import { compactSearchText } from './search-normalize.js';
  */
 
 export const BRAND_FIELDS = [
-  { key: 'partNumber', fa: 'شمارهٔ فنی', en: 'Part number', multi: false, required: true, aliases: ['part number', 'part no', 'partno', 'part #', 'pn', 'oem', 'oem number', 'oem no', 'شماره فنی', 'شماره قطعه', 'کد فنی', 'پارت نامبر', 'number', 'item number', 'material'] },
-  { key: 'nameFa', fa: 'نام فارسی', en: 'Persian name', multi: false, required: false, aliases: ['نام فارسی', 'نام قطعه', 'نام', 'شرح فارسی', 'عنوان'] },
+  { key: 'partNumber', fa: 'شمارهٔ فنی', en: 'Part number', multi: false, required: true, aliases: ['part number', 'part no', 'partno', 'part #', 'pn', 'oem', 'oem number', 'oem no', 'شماره فنی', 'شماره قطعه', 'کد فنی', 'کد کالا', 'فنی', 'پارت نامبر', 'number', 'item number', 'material'] },
+  { key: 'nameFa', fa: 'نام فارسی', en: 'Persian name', multi: false, required: false, aliases: ['نام فارسی', 'نام قطعه', 'نام کالا', 'نام', 'شرح فارسی', 'عنوان'] },
   { key: 'nameEn', fa: 'نام انگلیسی', en: 'English name', multi: false, required: false, aliases: ['name', 'part name', 'description en', 'english name', 'name en', 'designation', 'نام انگلیسی'] },
   { key: 'equivalents', fa: 'شماره‌های معادل', en: 'Equivalent numbers', multi: true, required: false, aliases: ['equivalent', 'equivalents', 'cross reference', 'cross ref', 'interchange', 'alternative', 'alt number', 'oe number', 'معادل', 'شماره معادل', 'شماره های معادل'] },
   { key: 'replacements', fa: 'شماره‌های جایگزین', en: 'Replacement numbers', multi: true, required: false, aliases: ['replacement', 'replaced by', 'superseded by', 'supersession', 'new number', 'جایگزین', 'شماره جایگزین', 'شماره های جایگزین'] },
@@ -30,6 +30,40 @@ export type BrandField = (typeof BRAND_FIELDS)[number]['key'];
 export type BrandMapping = Partial<Record<BrandField, string[]>>;
 
 const headerKey = (h: string) => compactSearchText(h);
+
+/** Stable labels for every column, including blanks and duplicate titles. Never merge columns. */
+export function brandColumnHeaders(cells: readonly string[], width = cells.length): string[] {
+  const used = new Set<string>();
+  return Array.from({ length: width }, (_, i) => {
+    const base = (cells[i] ?? '').replace(/\s+/g, ' ').trim().slice(0, 180) || `Column ${i + 1}`;
+    let label = base;
+    for (let n = 2; used.has(label); n++) label = `${base} [${n}]`;
+    used.add(label);
+    return label;
+  });
+}
+
+export interface BrandSampleRow { line: number; cells: string[] }
+
+/** Suggest within a bounded sample; a lone OEM value in a data row is not a header. */
+export function selectBrandHeader(rows: readonly BrandSampleRow[], selected?: number): { headerRow: number; headers: string[]; needsReview: boolean } {
+  const width = Math.max(0, ...rows.map(r => r.cells.length));
+  if (selected === 0) return { headerRow: 0, headers: brandColumnHeaders([], width), needsReview: false };
+  if (selected !== undefined) {
+    const row = rows.find(r => r.line === selected);
+    if (!row) throw new Error('HEADER_ROW_NOT_IN_SAMPLE');
+    return { headerRow: row.line, headers: brandColumnHeaders(row.cells, width), needsReview: false };
+  }
+  let best = rows[0];
+  let bestScore = 0;
+  for (const row of rows) {
+    const mapping = suggestBrandMapping(row.cells);
+    const score = Object.keys(mapping).length;
+    const oneColumn = row.cells.filter(c => c.trim()).length === 1 && row === rows[0];
+    if (mapping.partNumber?.length && (score >= 2 || oneColumn) && score > bestScore) { best = row; bestScore = score; }
+  }
+  return { headerRow: best?.line ?? 0, headers: brandColumnHeaders(best?.cells ?? [], width), needsReview: bestScore === 0 };
+}
 
 /** Suggested mapping from the header names; a header is used once, in the order of BRAND_FIELDS. */
 export function suggestBrandMapping(headers: readonly string[]): BrandMapping {

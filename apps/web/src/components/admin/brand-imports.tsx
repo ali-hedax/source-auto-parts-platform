@@ -1,7 +1,7 @@
 'use client';
 
 import type { BrandImportListItem, BrandImportOptions, BrandImportStats, BrandImportStatus, BrandImportView } from '@hedax/contracts';
-import { BRAND_FIELDS } from '@hedax/domain';
+import { BRAND_FIELDS, reuseBrandMapping, selectBrandHeader } from '@hedax/domain';
 import { DatabaseZap, Download, FileUp, Play, Undo2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -54,6 +54,16 @@ function useIssueText() {
     UNKNOWN_VEHICLE: ['خودرو در پنل نیست (اضافه نمی‌شود)', 'Vehicle is not in the panel (not added)'],
     YEAR_INVALID: ['سال نامعتبر است', 'Invalid year'],
     FITMENT_INVALID: ['کاربرد قابل خواندن نیست', 'Fitment could not be read'],
+    IMPORT_RECOVERY_REVIEW_REQUIRED: ['این ورود قدیمی نقطهٔ ادامهٔ امن ندارد. داده‌ها و گزارش حفظ شده‌اند؛ پیش از ورود دوباره، نتیجه و امکان بازگردانی را بررسی کنید.', 'This older import has no safe recovery point. Its data and report were preserved. Review the result and available Undo before importing again.'],
+    ZIP_HAS_NO_SPREADSHEET: ['فایل ZIP باید شامل XLSX، XLS یا CSV باشد.', 'The ZIP must contain XLSX, XLS or CSV files.'],
+    ZIP_UNSUPPORTED_SPREADSHEET: ['ZIP تو در تو یا فایل XLSM/XLSB پذیرفته نمی‌شود؛ فایل‌ها را جداگانه به XLSX تبدیل کنید.', 'Nested ZIP and XLSM/XLSB files are not supported. Convert the workbooks to XLSX first.'],
+    XLS_TOO_LARGE: ['فایل XLS بیش از حد بزرگ است؛ آن را به چند فایل XLSX تقسیم کنید. سقف XLS برابر ۳۲ مگابایت است.', 'The XLS is too large. Split it into XLSX files. XLS files are limited to 32 MB.'],
+    WORKBOOK_TOO_LARGE: ['یکی از فایل‌های داخل ZIP بزرگ‌تر از حد مجاز است؛ آن را تقسیم کنید.', 'A workbook inside the ZIP exceeds the size limit. Split it into smaller files.'],
+    XLS_PROCESSING_LIMIT: ['خواندن XLS از حد حافظه عبور کرد یا متوقف شد؛ فایل را بررسی و به XLSX تبدیل کنید.', 'The XLS reader stopped or reached its memory limit. Check the file and convert it to XLSX.'],
+    XLS_TIME_LIMIT: ['خواندن XLS بیش از حد طول کشید؛ فایل کوچک‌تر یا XLSX بارگذاری کنید.', 'Reading the XLS took too long. Upload a smaller file or an XLSX.'],
+    XLS_UNREADABLE: ['فایل XLS قابل خواندن نیست؛ فایل بدون رمز را با فرمت XLSX ذخیره کنید.', 'The XLS could not be read. Save an unencrypted XLSX copy.'],
+    WORKBOOK_FORMAT_MISMATCH: ['محتوای فایل با پسوند آن مطابقت ندارد؛ فایل Excel معتبر بارگذاری کنید.', 'The file content does not match its extension. Upload a valid Excel workbook.'],
+    FILE_TOO_MANY_COLUMNS: ['فایل بیش از ۲۰۰ ستون دارد؛ ستون‌های غیرضروری را از نسخهٔ ورود حذف کنید.', 'The file has more than 200 columns. Remove unused columns from your import copy.'],
   };
   return (code: string) => (map[code] ? l(...map[code]) : code);
 }
@@ -85,7 +95,7 @@ function BrandImportsHome() {
     if (!maker) return setError(l('برند سازنده را انتخاب کنید.', 'Choose the part brand.'));
     if (!source.trim()) return setError(l('منبع داده را بنویسید (مثلاً «کاتالوگ رسمی ۱۴۰۵»).', 'Enter the data source (e.g. “Official catalog 2026”).'));
     if (!file) return setError(l('یک فایل انتخاب کنید.', 'Choose a file.'));
-    if (!/\.(xlsx|csv|zip)$/i.test(file.name)) return setError(l('فقط فایل xlsx، csv یا zip شامل فایل‌های csv.', 'Only an xlsx, a csv, or a zip of csv files.'));
+    if (!/\.(xlsx|xls|csv|zip)$/i.test(file.name)) return setError(l('فقط فایل xlsx، xls، csv یا zip شامل این فایل‌ها.', 'Only xlsx, xls, csv, or a zip containing these files.'));
     if (file.size > MAX_BYTES) return setError(l('حجم فایل نباید بیشتر از ۱۵۰ مگابایت باشد.', 'The file must not exceed 150 MB.'));
     setBusy(true);
     try {
@@ -108,8 +118,8 @@ function BrandImportsHome() {
       <PageHeader
         title={l('ورود دیتابیس برند', 'Brand database import')}
         description={l(
-          'فهرست کامل قطعه‌های یک سازنده (مثل تویوتا یا هیوندای) را یک‌جا وارد کنید: فایل xlsx، csv یا zip شامل چند csv، تا ۱۵۰ مگابایت. ستون‌ها را یک بار تعیین می‌کنید و برای همان برند ذخیره می‌شود. قطعه‌های واردشده قیمت ندارند و در سایت «قابل تأمین» نشان داده می‌شوند. ورود دوباره، قطعه‌های قبلی را به‌روز می‌کند و تکراری نمی‌سازد؛ قیمت، موجودی و عکس‌های دستی هرگز عوض نمی‌شود.',
-          'Import a maker’s whole parts list (e.g. Toyota or Hyundai) at once: an xlsx, a csv, or a zip of csv files, up to 150 MB. You map the columns once and the mapping is saved for that brand. Imported parts have no price and appear on the site as “can be sourced”. Importing again updates the earlier parts instead of duplicating them; price, stock and manual photos are never changed.',
+          'فهرست قطعه‌های یک سازنده را وارد کنید: XLSX، XLS، CSV یا ZIP شامل این فایل‌ها. ستون‌ها و ردیف عنوان هر شیت را بررسی کنید؛ تنظیمات برای همان برند و منبع ذخیره می‌شود. قطعه‌های جدید قیمت ندارند و ورود دوباره رکورد تکراری نمی‌سازد. قیمت، موجودی و عکس‌های دستی تغییر نمی‌کند.',
+          'Import one manufacturer’s parts list: XLSX, XLS, CSV, or a ZIP containing these files. Review each sheet’s header and column mapping; settings are saved for that brand and source. New parts have no price, and repeated imports do not create duplicates. Existing prices, stock and photos are preserved.',
         )}
       />
       <ImportGuide />
@@ -128,8 +138,8 @@ function BrandImportsHome() {
           <Field id="bi-source" label={l('منبع داده', 'Data source')} required hint={l('ستون‌ها برای هر «برند + منبع» جدا ذخیره می‌شوند.', 'The mapping is saved per brand and source.')}>
             <Input id="bi-source" value={source} maxLength={120} onChange={(e) => setSource(e.target.value)} disabled={busy} />
           </Field>
-          <Field id="bi-file" label={l('فایل', 'File')} required hint={l('xlsx، csv (UTF-8 یا Windows-1256) یا zip شامل csv؛ حداکثر ۱۵۰ مگابایت.', 'xlsx, csv (UTF-8 or Windows-1256) or a zip of csv files; up to 150 MB.')} className="md:col-span-2">
-            <Input id="bi-file" type="file" accept=".xlsx,.csv,.zip" onChange={(e) => setFile(e.target.files?.[0] ?? null)} disabled={busy} />
+          <Field id="bi-file" label={l('فایل', 'File')} required hint={l('XLSX، CSV یا ZIP تا ۱۵۰ مگابایت؛ هر XLS حداکثر ۳۲ مگابایت. CSV با UTF-8 یا Windows-1256.', 'XLSX, CSV or ZIP up to 150 MB; each XLS up to 32 MB. CSV supports UTF-8 or Windows-1256.')} className="md:col-span-2">
+            <Input id="bi-file" type="file" accept=".xlsx,.xls,.csv,.zip" onChange={(e) => setFile(e.target.files?.[0] ?? null)} disabled={busy} />
           </Field>
           {error ? <Alert tone="danger" title={error} className="md:col-span-2" /> : null}
           <div className="md:col-span-2">
@@ -172,11 +182,11 @@ function BrandImportsHome() {
 function ImportGuide() {
   const l = useL();
   const steps: Array<[string, string]> = [
-    ['فایل نمونه را دریافت کنید و ببینید هر ستون چه چیزی است. فایل خودتان (لیست کارخانه) را لازم نیست تغییر دهید؛ فقط سطر اول آن عنوان ستون‌ها باشد.', 'Download the sample to see what each column holds. Your own file (the maker’s list) need not change; only its first row must hold the column titles.'],
+    ['فایل نمونه را دریافت کنید و ببینید هر ستون چه چیزی است. اگر فایل شما عنوان یا چند شیت دارد، پس از بارگذاری ردیف عنوان و شیت‌های موردنیاز را انتخاب کنید.', 'Download the sample to see what each column holds. After uploading, choose the header row and sheets you want to include.'],
     ['پایین همین صفحه برند سازنده را انتخاب کنید، منبع را بنویسید (مثلاً «کاتالوگ رسمی ۱۴۰۵») و فایل را بارگذاری کنید.', 'Below, choose the part brand, enter the source (e.g. “Official catalog 2026”) and upload the file.'],
     ['ستون‌ها را بررسی کنید: هر ستون فایل به کدام مورد می‌رود. فقط «شمارهٔ فنی» لازم است؛ بقیه اختیاری است.', 'Check the columns: which file column goes to which item. Only “Part number” is required.'],
     ['پیش‌نمایش را ببینید: تعداد قطعهٔ جدید، به‌روزرسانی، تکراری و خطا. اگر درست بود «شروع ورود» را بزنید.', 'Look at the preview: new, updated, duplicate and error counts. If it is right, press “Start the import”.'],
-    ['ورود در پس‌زمینه انجام می‌شود. در پایان گزارش خطاها را دانلود کنید. اگر اشتباهی شد، «برگرداندن این ورود» همه‌چیز را به حالت قبل برمی‌گرداند.', 'The import runs in the background. At the end, download the error report. If something went wrong, “Undo this import” puts everything back.'],
+    ['ورود در پس‌زمینه انجام می‌شود. در پایان گزارش را دانلود کنید. «برگرداندن این ورود» تغییرات قابل بازگشت را برمی‌گرداند؛ قطعه‌های ویرایش‌شده یا استفاده‌شده در فروش حفظ و در گزارش مشخص می‌شوند.', 'The import runs in the background. Download the report when it finishes. Undo reverses eligible changes; parts edited or used in commerce afterwards are preserved and listed in the report.'],
   ];
   return (
     <Section
@@ -210,7 +220,7 @@ function ImportGuide() {
 function StatsLine({ stats, errorCount }: { stats: BrandImportStats; errorCount: number }) {
   const l = useL();
   const parts: Array<[string, number | undefined]> = [
-    [l('جدید', 'new'), stats.created], [l('به‌روز', 'updated'), stats.updated], [l('حذف', 'deleted'), stats.deleted], [l('بازگردانده', 'restored'), stats.restored],
+    [l('جدید', 'new'), stats.created], [l('به‌روز', 'updated'), stats.updated], [l('حذف', 'deleted'), stats.deleted], [l('بازگردانده', 'restored'), stats.restored], [l('حفظ‌شده', 'preserved'), stats.preserved],
   ];
   const shown = parts.filter(([, n]) => n !== undefined);
   return (
@@ -244,7 +254,7 @@ function ImportView({ v, reload }: { v: BrandImportView; reload: () => Promise<v
     setWorking(true);
     try { await fn(); await reload(); } catch (e) { setError(errorText(t, e)); } finally { setWorking(false); }
   };
-  const editable = v.status === 'AWAITING_MAPPING' || v.status === 'PREVIEW_READY' || v.status === 'FAILED';
+  const editable = v.status === 'AWAITING_MAPPING' || v.status === 'PREVIEW_READY';
   const pct = v.totalRows ? Math.min(100, Math.round((v.processedRows / v.totalRows) * 100)) : 0;
 
   return (
@@ -260,7 +270,7 @@ function ImportView({ v, reload }: { v: BrandImportView; reload: () => Promise<v
         {v.createdBy ? <span className="text-sm text-steel">{v.createdBy} — <DateTime iso={v.createdAt} withTime /></span> : null}
       </div>
       {error ? <Alert tone="danger" title={error} /> : null}
-      {v.failureReason ? <Alert tone="danger" title={l('کار متوقف شد', 'The import stopped')}><Code>{v.failureReason}</Code></Alert> : null}
+      {v.failureReason ? <Alert tone="danger" title={l('کار متوقف شد', 'The import stopped')}>{issueText(v.failureReason)}</Alert> : null}
       {v.status === 'RUNNING' || v.status === 'QUEUED' ? (
         <Section title={l('پیشرفت', 'Progress')} id="bi-progress">
           <progress className="h-3 w-full" max={100} value={pct} aria-label={l('پیشرفت ورود', 'Import progress')} />
@@ -286,11 +296,12 @@ function ImportView({ v, reload }: { v: BrandImportView; reload: () => Promise<v
           <Button className="mt-3" loading={working} icon={<Play aria-hidden className="size-4" />} onClick={() => void act(() => api(`/admin/brand-imports/${v.id}/start`, { method: 'POST' }))}>{l('شروع ورود', 'Start the import')}</Button>
         </Section>
       ) : null}
-      {v.status === 'COMPLETED' || v.status === 'ROLLED_BACK' ? (
+      {v.status === 'COMPLETED' || v.status === 'FAILED' || v.status === 'ROLLED_BACK' ? (
         <Section title={l('نتیجه', 'Result')} id="bi-result">
           <StatsLine stats={v.stats} errorCount={v.errorCount} />
           {v.stats.unknownVehicles ? <p className="mt-2 text-sm text-steel">{l('خودروهایی که در پنل نبودند (کاربردشان ثبت نشد)', 'Vehicles not in the panel (their fitment was not added)')}: <Num value={v.stats.unknownVehicles} /></p> : null}
           {v.stats.archived ? <p className="mt-2 text-sm text-steel">{l('قطعه‌هایی که در این مدت فروخته، قیمت‌گذاری یا عکس‌دار شده بودند حذف نشدند و بایگانی شدند', 'Parts sold, priced or photographed meanwhile were archived instead of deleted')}: <Num value={v.stats.archived} /></p> : null}
+          {v.stats.preserved ? <Alert tone="warning" title={l('بعضی قطعه‌ها بدون تغییر حفظ شدند', 'Some parts were preserved unchanged')} className="mt-3">{l('این قطعه‌ها پس از ورود تغییر کرده‌اند، در فروش استفاده شده‌اند یا سابقهٔ کافی برای بازگردانی امن ندارند. جزئیات در گزارش CSV آمده است.', 'These parts changed after import, were used in commerce, or lack a safe undo checkpoint. See the CSV report for details.')}</Alert> : null}
         </Section>
       ) : null}
       <div className="flex flex-wrap gap-3">
@@ -302,7 +313,7 @@ function ImportView({ v, reload }: { v: BrandImportView; reload: () => Promise<v
         {v.canRollback ? (
           <Button variant="secondary" loading={working} icon={<Undo2 aria-hidden className="size-4" />}
             onClick={() => {
-              if (window.confirm(l('قطعه‌هایی که این ورود ساخته حذف می‌شوند و قطعه‌هایی که به‌روز کرده به حالت قبل برمی‌گردند. ادامه می‌دهید؟', 'Parts this import created are deleted and parts it updated are restored. Continue?'))) {
+              if (window.confirm(l('تغییرات این ورود برای قطعه‌های دست‌نخورده بازگردانده می‌شود. قطعه‌های ویرایش‌شده، استفاده‌شده در فروش یا فاقد سابقهٔ بازگردانی امن حفظ و گزارش می‌شوند. ادامه می‌دهید؟', 'Undo this import for untouched parts? Later edits, commercial use and parts without a safe undo checkpoint will be preserved and reported.'))) {
                 void act(() => api(`/admin/brand-imports/${v.id}/rollback`, { method: 'POST' }));
               }
             }}>
@@ -352,23 +363,54 @@ function PreviewTable({ v, issueText }: { v: BrandImportView; issueText: (code: 
 function MappingEditor({ v, working, onSave }: { v: BrandImportView; working: boolean; onSave: (mapping: Record<string, string[]>, options: BrandImportOptions) => void }) {
   const l = useL();
   const t = useTranslations();
-  const headers = useMemo(() => [...new Set((v.outline ?? []).flatMap((s) => s.headers).filter(Boolean))], [v.outline]);
-  const [mapping, setMapping] = useState<Record<string, string[]>>(v.mapping);
+  const [sharedMapping, setMapping] = useState<Record<string, string[]>>(v.mapping);
   const [options, setOptions] = useState<BrandImportOptions>(v.options);
-  const set = (key: string, cols: string[]) => setMapping((m) => ({ ...m, [key]: cols }));
-  const first = v.outline?.[0];
+  const [sourceName, setSourceName] = useState(v.outline?.[0]?.name ?? '');
+  const first = v.outline?.find(s => s.name === sourceName) ?? v.outline?.[0];
+  const choice = first ? options.sources?.[first.name] : undefined;
+  const headers = useMemo(() => first?.sampleRows && choice
+    ? selectBrandHeader(first.sampleRows, choice.headerRow).headers
+    : first?.headers ?? [], [first, choice]);
+  const mapping = choice?.mapping ?? sharedMapping;
+  const set = (key: string, cols: string[]) => {
+    if (choice && first) setOptions(o => ({ ...o, sources: { ...o.sources, [first.name]: { ...choice, mapping: { ...mapping, [key]: cols } } } }));
+    else setMapping(m => ({ ...m, [key]: cols }));
+  };
   const missingPartNumber = !(mapping.partNumber ?? []).length;
+  const enabledSources = (v.outline ?? []).filter(s => options.sources?.[s.name]?.enabled !== false);
+  const incomplete = enabledSources.filter(s => !(options.sources?.[s.name]?.mapping ?? sharedMapping).partNumber?.length);
 
   return (
     <Section title={l('ستون‌ها', 'Columns')} id="bi-mapping">
       <p className="mb-3 text-sm text-steel">{l('برای هر مورد، ستون فایل را انتخاب کنید. پیشنهادها از روی نام ستون‌ها پر شده‌اند. برای شماره‌های معادل، کاربرد و مشخصات می‌توانید چند ستون انتخاب کنید (ستون‌های کاربرد با هم ترکیب می‌شوند).', 'Pick the file column for each item. Suggestions are filled from the column names. For equivalents, fitment and specs you can pick several columns (fitment columns are combined).')}</p>
+      <p className="mb-3 text-sm text-steel">{l('هر ورود فقط برای برند سازندهٔ انتخاب‌شده است. شیت‌های مربوط به برندهای دیگر را کنار بگذارید. قیمت و موجودی این فایل‌ها در ورود فنی استفاده نمی‌شود.', 'Each import belongs to the selected part manufacturer. Exclude sheets for other manufacturers. Technical import does not use price or stock columns.')}</p>
+      {(v.outline?.length ?? 0) > 1 ? <Field id="bi-source" label={l('فایل / شیت برای بررسی ستون‌ها', 'File / sheet to review')} className="mb-4">
+        <Select id="bi-source" value={sourceName} onChange={e => setSourceName(e.target.value)}>
+          {v.outline?.map(s => <option key={s.name} value={s.name}>{s.name}{options.sources?.[s.name]?.enabled === false ? l(' — کنار گذاشته‌شده', ' — excluded') : ''}</option>)}
+        </Select>
+      </Field> : null}
+      {choice && first ? <div className="mb-4 grid gap-3 md:grid-cols-2">
+        <Checkbox id="bi-source-enabled" label={l('ردیف‌های این شیت وارد شوند', 'Include this sheet')} checked={choice.enabled}
+          onChange={e => setOptions(o => ({ ...o, sources: { ...o.sources, [first.name]: { ...choice, enabled: e.target.checked } } }))} />
+        {first.sampleRows ? <Field id="bi-header-row" label={l('ردیف عنوان ستون‌ها', 'Column header row')}>
+          <Select id="bi-header-row" value={choice.headerRow} onChange={e => {
+            const selected = selectBrandHeader(first.sampleRows!, Number(e.target.value));
+            const nextMapping = reuseBrandMapping(mapping, selected.headers).mapping;
+            setOptions(o => ({ ...o, sources: { ...o.sources, [first.name]: { ...choice, headerRow: selected.headerRow, mapping: nextMapping as Record<string, string[]> } } }));
+          }}>
+            <option value={0}>{l('بدون عنوان؛ همهٔ ردیف‌ها داده هستند', 'No header; every row contains data')}</option>
+            {first.sampleRows.map(r => <option key={r.line} value={r.line}>{l('ردیف', 'Row')} {r.line}: {r.cells.filter(Boolean).slice(0, 3).join(' / ').slice(0, 100)}</option>)}
+          </Select>
+        </Field> : null}
+        {first.needsHeaderReview ? <Alert tone="warning" title={l('عنوان ستون‌ها قطعی تشخیص داده نشد؛ نمونه و ردیف عنوان را بررسی کنید.', 'The header could not be identified confidently. Review the sample and header row.')} /> : null}
+      </div> : null}
       {v.missingColumns.length ? <Alert tone="warning" className="mb-3" title={l(`این ستون‌های ذخیره‌شده در این فایل نیستند: ${v.missingColumns.join('، ')}`, `These saved columns are not in this file: ${v.missingColumns.join(', ')}`)} /> : null}
       {first ? (
         <details className="mb-4">
           <summary className="cursor-pointer text-sm font-semibold">{l('نمونهٔ ردیف‌های فایل', 'Sample rows of the file')} ({first.name}{first.encoding ? ` · ${first.encoding}` : ''})</summary>
           <TableScroll caption={l('نمونهٔ فایل', 'File sample')}>
-            <thead><tr>{first.headers.map((h) => <th key={h} className={th} dir="auto">{h}</th>)}</tr></thead>
-            <tbody>{first.samples.map((row, i) => <tr key={i}>{row.map((c, j) => <td key={j} className={td} dir="auto">{c}</td>)}</tr>)}</tbody>
+            <thead><tr>{headers.map((h) => <th key={h} className={th} dir="auto">{h}</th>)}</tr></thead>
+            <tbody>{(choice && first.sampleRows ? first.sampleRows.filter(r => r.line > choice.headerRow).slice(0, 5).map(r => r.cells) : first.samples).map((row, i) => <tr key={i}>{headers.map((_, j) => <td key={j} className={td} dir="auto">{row[j] ?? ''}</td>)}</tr>)}</tbody>
           </TableScroll>
         </details>
       ) : null}
@@ -413,7 +455,8 @@ function MappingEditor({ v, working, onSave }: { v: BrandImportView; working: bo
           </Select>
         </Field>
       </div>
-      <Button className="mt-4" loading={working} disabled={missingPartNumber} onClick={() => onSave(Object.fromEntries(Object.entries(mapping).filter(([, c]) => c.length)), options)}>
+      {incomplete.length ? <p role="status" className="mt-3 text-sm text-danger">{l('برای این شیت‌ها شمارهٔ فنی را تعیین کنید یا آن‌ها را کنار بگذارید: ', 'Map the part number or exclude these sheets: ')}{incomplete.map(s => s.name).join('، ')}</p> : null}
+      <Button className="mt-4" loading={working} disabled={!enabledSources.length || incomplete.length > 0} onClick={() => onSave(Object.fromEntries(Object.entries(sharedMapping).filter(([, c]) => c.length)), options)}>
         {l('ذخیرهٔ ستون‌ها و پیش‌نمایش', 'Save columns and preview')}
       </Button>
     </Section>

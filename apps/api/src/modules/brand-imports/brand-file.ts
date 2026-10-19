@@ -1,14 +1,20 @@
-import { createReadStream } from 'node:fs';
-import { open, stat } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { createReadStream, createWriteStream } from 'node:fs';
+import { mkdtemp, open, rm, stat } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 import { TextDecoder } from 'node:util';
 import { createInflateRaw } from 'node:zlib';
 import ExcelJS from 'exceljs';
 import { CsvStreamParser, detectDelimiter, detectEncoding, type TextEncodingName } from '@hedax/domain';
+import { zeroPaddedInteger } from '../imports/number-format.js';
+import { legacyXlsRecords, MAX_XLS_BYTES } from './legacy-xls.js';
 
 /**
- * Streaming readers for brand databases: memory stays bounded by one row (plus ExcelJS's shared
- * strings for xlsx), whatever the file size. Formulas are never evaluated; only stored values are read.
+ * Streaming CSV/XLSX readers; legacy XLS uses a bounded worker thread. Formulas are
+ * never evaluated; only stored values are read. Archive workbooks are spooled one at a time.
  */
 export interface FileRecord {
   /** Sheet name, or the csv file's name (inside a zip). */
@@ -40,6 +46,7 @@ function cellText(v: unknown): string {
 
 /** The parts of ExcelJS's streaming WorkbookReader used below (they are not in its typings). */
 interface ExcelReaderInternals {
+  _parseStyles(entry: Readable): Promise<void>;
   _parseRels(entry: Readable): Promise<void>;
   _parseWorkbook(entry: Readable): Promise<void>;
   _parseSharedStrings(entry: Readable): AsyncGenerator<unknown>;
@@ -57,7 +64,9 @@ async function* xlsxRecords(path: string): AsyncGenerator<FileRecord> {
   const entries = await zipEntries(path);
   if (entries.reduce((s, e) => s + e.size, 0) > 3 * 1024 ** 3) throw new Error('ZIP_TOO_LARGE');
   const byName = new Map(entries.map((e) => [e.name, e]));
-  const reader = new ExcelJS.stream.xlsx.WorkbookReader(path, { sharedStrings: 'cache', hyperlinks: 'ignore', styles: 'ignore', worksheets: 'emit', entries: 'ignore' });
+  if (byName.size !== entries.length || !byName.has('xl/workbook.xml')) throw new Error('XLSX_INVALID');
+  if (entries.some((e) => /\/(sharedStrings|styles|workbook)\.xml$/.test(e.name) && e.size > 64 * 1024 * 1024)) throw new Error('XLSX_METADATA_TOO_LARGE');
+  const reader = new ExcelJS.stream.xlsx.WorkbookReader(path, { sharedStrings: 'cache', hyperlinks: 'ignore', styles: 'cache', worksheets: 'emit', entries: 'ignore' });
   const internals = reader as unknown as ExcelReaderInternals & { sharedStrings?: unknown[]; model?: { sheets?: unknown[] } };
   const rels = byName.get('xl/_rels/workbook.xml.rels');
   if (rels) await internals._parseRels(entryStream(path, rels));
@@ -67,6 +76,8 @@ async function* xlsxRecords(path: string): AsyncGenerator<FileRecord> {
   const strings = byName.get('xl/sharedStrings.xml');
   if (strings) for await (const _ of internals._parseSharedStrings(entryStream(path, strings))) { /* filled into reader.sharedStrings */ }
   internals.sharedStrings ??= [];
+  const styles = byName.get('xl/styles.xml');
+  if (styles) await internals._parseStyles(entryStream(path, styles));
   const sheets = entries
     .map((e) => ({ e, no: /^xl\/worksheets\/sheet(\d+)\.xml$/.exec(e.name)?.[1] }))
     .filter((x): x is { e: ZipEntry; no: string } => !!x.no)
@@ -86,8 +97,12 @@ async function* xlsxRecords(path: string): AsyncGenerator<FileRecord> {
 async function* sheetRecords(sheet: AsyncIterable<ExcelJS.Row>, source: string): AsyncGenerator<FileRecord> {
   for await (const row of sheet) {
     const values = Array.isArray(row.values) ? (row.values as unknown[]).slice(1) : [];
+    if (values.length > 200) throw new Error('FILE_TOO_MANY_COLUMNS');
     // Array.from visits empty cells too (map skips the holes of a sparse row).
-    const cells = Array.from(values, cellText);
+    const cells = Array.from(values, (v, i) => {
+      const value = v && typeof v === 'object' && 'result' in v ? (v as { result: unknown }).result : v;
+      return zeroPaddedInteger(value, row.getCell(i + 1).numFmt) ?? cellText(v);
+    });
     if (cells.some((c) => c.trim() !== '')) yield { source, line: row.number, cells };
   }
 }
@@ -97,7 +112,23 @@ function entryStream(path: string, e: ZipEntry): Readable {
   if (e.method !== 0 && e.method !== 8) throw new Error('ZIP_METHOD_NOT_SUPPORTED');
   if (e.compressedSize === 0) return Readable.from([]);
   const raw = createReadStream(path, { start: e.offset, end: e.offset + e.compressedSize - 1 });
-  return e.method === 8 ? raw.pipe(createInflateRaw()) : raw;
+  const decoded = e.method === 8 ? raw.pipe(createInflateRaw()) : raw;
+  raw.on('error', (error) => decoded.destroy(error));
+  // Do not trust the central directory's expansion claim. Enforce it while streaming.
+  return Readable.from((async function* () {
+    let size = 0;
+    try {
+      for await (const chunk of decoded) {
+        size += (chunk as Buffer).length;
+        if (size > e.size) throw new Error('ZIP_SIZE_MISMATCH');
+        yield chunk;
+      }
+      if (size !== e.size) throw new Error('ZIP_SIZE_MISMATCH');
+    } finally {
+      decoded.destroy();
+      raw.destroy();
+    }
+  })());
 }
 
 /** CSV records from a byte stream: encoding from the first 64 KB (or as chosen), separator from the header line. */
@@ -151,11 +182,18 @@ async function zipEntries(path: string): Promise<ZipEntry[]> {
     const cdSize = tail.readUInt32LE(eocd + 12);
     const cdOffset = tail.readUInt32LE(eocd + 16);
     if (count > 500) throw new Error('ZIP_TOO_MANY_FILES');
+    // Bounds must be checked before allocating attacker-controlled sizes or reading offsets.
+    const directoryEnd = size - tailLen + eocd;
+    if (tail.readUInt16LE(eocd + 4) !== 0 || tail.readUInt16LE(eocd + 6) !== 0 ||
+        tail.readUInt16LE(eocd + 8) !== count || cdSize > 16 * 1024 * 1024 ||
+        cdSize < count * 46 || cdOffset + cdSize > directoryEnd) throw new Error('ZIP_INVALID');
     const cd = Buffer.alloc(cdSize);
     await fh.read(cd, 0, cdSize, cdOffset);
     const out: ZipEntry[] = [];
     for (let p = 0, i = 0; i < count; i += 1) {
+      if (p + 46 > cd.length) throw new Error('ZIP_INVALID');
       if (cd.readUInt32LE(p) !== 0x02014b50) throw new Error('ZIP_INVALID');
+      if (cd.readUInt16LE(p + 8) & 1) throw new Error('ZIP_ENCRYPTED');
       const method = cd.readUInt16LE(p + 10);
       const compressedSize = cd.readUInt32LE(p + 20);
       const uncompressed = cd.readUInt32LE(p + 24);
@@ -163,12 +201,25 @@ async function zipEntries(path: string): Promise<ZipEntry[]> {
       const extraLen = cd.readUInt16LE(p + 30);
       const commentLen = cd.readUInt16LE(p + 32);
       const local = cd.readUInt32LE(p + 42);
-      const name = cd.subarray(p + 46, p + 46 + nameLen).toString('utf8');
+      if (p + 46 + nameLen + extraLen + commentLen > cd.length || local + 30 > cdOffset) throw new Error('ZIP_INVALID');
+      const rawName = cd.subarray(p + 46, p + 46 + nameLen);
+      let name: string;
+      try { name = new TextDecoder('utf-8', { fatal: true }).decode(rawName); }
+      catch {
+        // Old ZIP names do not declare their codepage reliably. Keep a stable identity
+        // from the original bytes instead of guessing Persian text or merging replacements.
+        const ext = /\.[a-z0-9]+$/i.exec(rawName.toString('latin1'))?.[0] ?? '';
+        name = `legacy-${createHash('sha256').update(rawName).digest('hex').slice(0, 20)}${ext}`;
+      }
+      const rawPath = rawName.toString('latin1');
+      if (/(^[/\\]|^[a-z]:|(^|[/\\])\.\.([/\\]|$)|\0)/i.test(rawPath) ||
+          ((cd.readUInt32LE(p + 38) >>> 16) & 0xf000) === 0xa000) throw new Error('ZIP_INVALID_NAMES');
       p += 46 + nameLen + extraLen + commentLen;
       const lh = Buffer.alloc(30);
       await fh.read(lh, 0, 30, local);
       if (lh.readUInt32LE(0) !== 0x04034b50) throw new Error('ZIP_INVALID');
       const offset = local + 30 + lh.readUInt16LE(26) + lh.readUInt16LE(28);
+      if (offset + compressedSize > cdOffset || (compressedSize === 0 && uncompressed !== 0)) throw new Error('ZIP_INVALID');
       out.push({ name, method, compressedSize, size: uncompressed, offset });
     }
     return out;
@@ -177,19 +228,41 @@ async function zipEntries(path: string): Promise<ZipEntry[]> {
   }
 }
 
-/** Every CSV inside a zip (folders, hidden and macOS files are skipped), in the zip's order. */
-async function* zipRecords(path: string, encoding: 'auto' | TextEncodingName, info: (source: string, i: SourceInfo) => void): AsyncGenerator<FileRecord> {
-  const entries = (await zipEntries(path)).filter((e) => /\.csv$/i.test(e.name) && !e.name.endsWith('/') && !/(^|\/)(__MACOSX|\.)/.test(e.name));
-  if (!entries.length) throw new Error('ZIP_HAS_NO_CSV');
+/** A bounded source identity also fits the database's 200-character row reference. */
+function sourceName(name: string): string {
+  return name.length <= 180 ? name : `${name.slice(0, 155)}~${createHash('sha256').update(name).digest('hex').slice(0, 20)}`;
+}
+
+/** CSV/XLSX/XLS files in ZIP order. Never extract an archive path onto the filesystem. */
+async function* zipRecords(archivePath: string, encoding: 'auto' | TextEncodingName, info: (source: string, i: SourceInfo) => void): AsyncGenerator<FileRecord> {
+  const all = (await zipEntries(archivePath)).filter(e => !e.name.endsWith('/') && !/(^|[/\\])(__MACOSX|\.)/.test(e.name));
+  if (all.some(e => /\.(zip|xlsm|xlsb)$/i.test(e.name))) throw new Error('ZIP_UNSUPPORTED_SPREADSHEET');
+  const entries = all.filter(e => /\.(csv|xlsx|xls)$/i.test(e.name));
+  if (!entries.length) throw new Error('ZIP_HAS_NO_SPREADSHEET');
+  if (new Set(entries.map((e) => e.name)).size !== entries.length) throw new Error('ZIP_INVALID_NAMES');
   // Zip-bomb guard: at most 3 GB of text in all, and no file 200 times larger than its compressed form.
   const total = entries.reduce((s, e) => s + e.size, 0);
   if (total > 3 * 1024 ** 3 || entries.some((e) => e.compressedSize > 0 && e.size / e.compressedSize > 200)) throw new Error('ZIP_TOO_LARGE');
   for (const e of entries) {
     if (e.method !== 0 && e.method !== 8) throw new Error('ZIP_METHOD_NOT_SUPPORTED');
-    const raw: Readable = createReadStream(path, e.compressedSize ? { start: e.offset, end: e.offset + e.compressedSize - 1 } : { start: e.offset, end: e.offset });
-    const bytes = e.compressedSize === 0 ? (async function* () {})() : e.method === 8 ? raw.pipe(createInflateRaw()) : raw;
-    const source = e.name.split('/').pop() as string;
-    yield* csvRecords(bytes as AsyncIterable<Buffer>, source, encoding, (i) => info(source, i));
+    const extension = e.name.toLowerCase().split('.').pop()!;
+    const source = sourceName(e.name);
+    if (extension === 'csv') {
+      yield* csvRecords(entryStream(archivePath, e), source, encoding, (i) => info(source, i));
+      continue;
+    }
+    if (e.size > (extension === 'xls' ? MAX_XLS_BYTES : 150 * 1024 * 1024)) throw new Error('WORKBOOK_TOO_LARGE');
+    const dir = await mkdtemp(path.join(tmpdir(), 'hedax-brand-workbook-'));
+    const file = path.join(dir, `workbook.${extension}`);
+    try {
+      await pipeline(entryStream(archivePath, e), createWriteStream(file, { flags: 'wx' }));
+      if (await brandFileKind(file, `workbook.${extension}`) !== extension) throw new Error('WORKBOOK_FORMAT_MISMATCH');
+      const records = extension === 'xlsx' ? xlsxRecords(file) : legacyXlsRecords(file);
+      for await (const rec of records) yield { ...rec, source: sourceName(`${source} / ${rec.source}`) };
+    } finally {
+      // dir is created by mkdtemp under the OS temporary directory, never from an archive name.
+      await rm(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+    }
   }
 }
 
@@ -199,19 +272,24 @@ async function* zipRecords(path: string, encoding: 'auto' | TextEncodingName, in
  */
 export async function* readBrandFile(path: string, extension: string, encoding: 'auto' | TextEncodingName = 'auto', info: (source: string, i: SourceInfo) => void = () => undefined): AsyncGenerator<FileRecord> {
   if (extension === 'xlsx') yield* xlsxRecords(path);
+  else if (extension === 'xls') {
+    if (await brandFileKind(path, 'workbook.xls') !== 'xls') throw new Error('WORKBOOK_FORMAT_MISMATCH');
+    yield* legacyXlsRecords(path);
+  }
   else if (extension === 'zip') yield* zipRecords(path, encoding, info);
   else if (extension === 'csv') yield* csvRecords(createReadStream(path), 'file.csv', encoding, (i) => info('file.csv', i));
   else throw new Error('FORMAT_NOT_SUPPORTED');
 }
 
 /** File type from the first bytes: zip-based xlsx vs plain zip is decided by the name; csv is text. */
-export async function brandFileKind(path: string, filename: string): Promise<'xlsx' | 'zip' | 'csv' | null> {
+export async function brandFileKind(path: string, filename: string): Promise<'xlsx' | 'xls' | 'zip' | 'csv' | null> {
   const fh = await open(path, 'r');
   try {
-    const head = Buffer.alloc(4);
-    await fh.read(head, 0, 4, 0);
+    const head = Buffer.alloc(8);
+    await fh.read(head, 0, 8, 0);
     const isZip = head.readUInt32LE(0) === 0x04034b50;
     const ext = filename.toLowerCase().split('.').pop();
+    if (ext === 'xls') return head.equals(Buffer.from('d0cf11e0a1b11ae1', 'hex')) ? 'xls' : null;
     if (isZip) return ext === 'xlsx' ? 'xlsx' : ext === 'zip' ? 'zip' : null;
     if (ext !== 'csv' && ext !== 'txt') return null;
     // A text file: no NUL bytes in the first 64 KB.

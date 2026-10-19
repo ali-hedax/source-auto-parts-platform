@@ -1,7 +1,8 @@
 import EmbeddedPostgres from 'embedded-postgres';
 import { execFileSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { appendFileSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { appendFileSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -37,16 +38,18 @@ let workDir = '';
 
 /** Starts a throwaway PostgreSQL, migrates, seeds and creates the first owner. */
 export default async function setup(project: TestProject): Promise<() => Promise<void>> {
-  workDir = path.join(apiRoot, '.local-pg', `test-${process.pid}`);
-  rmSync(workDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
-  mkdirSync(workDir, { recursive: true });
+  const testRoot = path.join(apiRoot, '.local-pg');
+  mkdirSync(testRoot, { recursive: true });
+  workDir = mkdtempSync(path.join(testRoot, `test-${process.pid}-`));
   writeFileSync(traceFile, `run started ${new Date().toISOString()}\n`);
   pg = new EmbeddedPostgres({
     databaseDir: path.join(workDir, 'data'),
     user: 'hedax',
     password: PASSWORD,
     port: PORT,
-    persistent: false,
+    // The harness owns cleanup of the entire throwaway directory. Avoid a second,
+    // non-retrying removal inside embedded-postgres.stop() on Windows.
+    persistent: true,
     authMethod: 'scram-sha-256',
     initdbFlags: ['--encoding=UTF8', process.platform === 'win32' ? '--locale=en-US' : '--locale=C.UTF-8'],
     // A non-UTC server zone on purpose: the application must not depend on the server's TimeZone.
@@ -99,7 +102,13 @@ export default async function setup(project: TestProject): Promise<() => Promise
   run(['dist/database/seed-dev.js']);
 
   return async () => {
-    await pg?.stop().catch(() => undefined);
-    rmSync(workDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
+    // Do not hide a failed shutdown or remove a cluster that may still be running.
+    await pg?.stop();
+    const target = path.resolve(workDir);
+    if (path.dirname(target) !== testRoot || !path.basename(target).startsWith(`test-${process.pid}-`)) {
+      throw new Error('Refusing to remove a directory outside this test run');
+    }
+    // Async retries let pending file/child-process close callbacks run before retrying.
+    await rm(target, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
   };
 }

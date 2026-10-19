@@ -1,4 +1,5 @@
 import { tmpdir } from 'node:os';
+import { rm } from 'node:fs/promises';
 import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Put, Res, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags } from '@nestjs/swagger';
@@ -43,10 +44,13 @@ export class BrandImportsController {
   @RequirePermissions('imports.run', 'products.write')
   @Post('upload')
   @UseInterceptors(FileInterceptor('file', { storage: diskStorage({ destination: tmpdir() }), limits: { fileSize: MAX_BRAND_FILE_BYTES, files: 1, fields: 5 } }))
-  upload(@CurrentActor() actor: Actor, @UploadedFile() file: Express.Multer.File | undefined, @Body() raw: Record<string, unknown>) {
+  async upload(@CurrentActor() actor: Actor, @UploadedFile() file: Express.Multer.File | undefined, @Body() raw: Record<string, unknown>) {
     if (!file) throw badRequest('FILE_REQUIRED');
     const body = brandImportUploadSchema.safeParse(raw);
-    if (!body.success) throw badRequest('VALIDATION_FAILED', 'Choose the manufacturer brand and the data source');
+    if (!body.success) {
+      await rm(file.path, { force: true });
+      throw badRequest('VALIDATION_FAILED', 'Choose the manufacturer brand and the data source');
+    }
     return this.imports.upload(actor, { path: file.path, originalname: file.originalname, size: file.size }, body.data);
   }
 

@@ -218,10 +218,14 @@ export class CatalogService {
     if (query.vehicle) {
       // A vehicle includes its models; a model also includes parts for the whole vehicle.
       const modelFilter = query.model
-        ? Prisma.sql`AND (pv."model_id" IS NULL OR pv."model_id" IN (SELECT vm."id" FROM "vehicle_model" vm WHERE vm."vehicle_id" = v."id" AND vm."slug" = ${query.model}))`
-        : Prisma.empty;
+        ? Prisma.sql`AND EXISTS (SELECT 1 FROM "vehicle_model" vm WHERE vm."vehicle_id" = v."id" AND vm."slug" = ${query.model} AND vm."active"
+            AND (pv."model_id" IS NULL OR pv."model_id" = vm."id"))`
+        : Prisma.sql`AND (pv."model_id" IS NULL OR EXISTS (SELECT 1 FROM "vehicle_model" vm WHERE vm."id" = pv."model_id" AND vm."vehicle_id" = v."id" AND vm."active"))`;
       conditions.push(Prisma.sql`EXISTS (SELECT 1 FROM "product_vehicle" pv JOIN "vehicle" v ON v."id" = pv."vehicle_id"
         WHERE pv."product_id" = p."id" AND v."slug" = ${query.vehicle} AND v."active" ${modelFilter})`);
+    } else if (query.model) {
+      // Model slugs are scoped to a vehicle. An incomplete filter must not return unrelated parts.
+      conditions.push(Prisma.sql`FALSE`);
     }
     if (query.category) {
       conditions.push(Prisma.sql`c."slug" = ${query.category} OR EXISTS (SELECT 1 FROM "category" pc WHERE pc."id" = c."parent_id" AND pc."slug" = ${query.category})`);
