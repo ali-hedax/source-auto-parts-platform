@@ -32,6 +32,21 @@
   [docs/PR_28_RELEASE_READINESS.md](docs/PR_28_RELEASE_READINESS.md).
 - قدم بعدی: ثبت/ارسال همین تغییرات روی feature، تطبیق CI آخرین HEAD و شرح PR؛
   سپس دریافت شواهد Preview مستقل و پذیرش همان نسخه. انتشار آماده نیست.
+- تغییرات این مرحله در `e4aff78977c51527e2cccd809dca4d2fe9900920` ثبت و روی
+  همان `origin/refactor/source-enterprise-upgrade` ارسال شدند. push موفق است؛
+  اولین read فوری GitHub هنوز HEAD قبلی `d5b649f` را برگرداند، بنابراین CI قبلی
+  به‌عنوان تأیید این commit معرفی نمی‌شود. منتظر تطبیق HEAD/CI جدید هستیم.
+- **خطای CI روی e4aff78، در حال رفع:** run `39229762264` در مرحلهٔ Catalog/import
+  شکست خورد، در حالی‌که build/lint/typecheck/unit موفق بودند. علت assertion قدیمی
+  suite 94 بود: regression تازه دو قطعه را با همان manufacturer مشترک ایجاد می‌کرد
+  و شمارش انتهایی test قدیمی از ۳ به ۵ رسید. هیچ کد برنامه یا دادهٔ واقعی درگیر
+  نیست. اصلاح محلی regression را روی manufacturer اختصاصی می‌برد و suite کامل 94
+  اکنون دوباره اجرا می‌شود. تا CI commit بعدی سبز نشود، PR آمادهٔ بررسی نهایی نیست.
+- **Blocked External — Preview، بررسی فقط‌خواندنی تکرار شد:** DNS همچنان
+  `DNS_ERROR_RCODE_NAME_ERROR` و TCP/443 بدون RemoteAddress است. هیچ تغییر DNS/
+  سرور/Production و هیچ درخواست نوشتنی Preview انجام نشد. برنامهٔ راه‌اندازی
+  Preview در `docs/PR_28_RELEASE_READINESS.md` و runbook باقی است؛ برای اجرا به
+  نشانی/زیرساخت مستقل و شواهد غیرمحرمانهٔ isolation نیاز است.
 - نتیجهٔ میانی: هر ۱۰ تست XLS موفق؛ lint و typecheck کل workspace موفق شدند.
   تست جدید API ابتدا به علت assertion روی `product.nameEn` شکست خورد؛ نام انگلیسی
   در `translations` ذخیره می‌شود، assertion به همان مدل واقعی اصلاح شد. مرورگر
@@ -77,7 +92,7 @@
   پذیرش UI قدیمی و cleanup هدفمند XLS در ادامهٔ همین جلسه تکمیل شدند؛ بررسی مالک
   و تأیید صریح انتشار نیز لازم است. backup فعلی سرور هدف با این تست مصنوعی اثبات نشد.
 
-### Git و دامنهٔ این checkpoint
+### سابقهٔ Git در checkpoint بسته‌شدهٔ TEST-02؛ HEAD جاری بالاست
 
 - شاخه: `refactor/source-enterprise-upgrade`؛ upstream:
   `origin/refactor/source-enterprise-upgrade`.

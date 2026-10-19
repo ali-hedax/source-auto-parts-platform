@@ -21,8 +21,8 @@ beforeAll(async () => {
 });
 afterAll(async () => { await app?.close(); });
 
-async function upload(bytes: Buffer, source: string) {
-  const up = await owner.upload<any>('/admin/brand-imports/upload', { manufacturerBrandId: makerId, source }, [{ name: 'books.zip', data: bytes, field: 'file' }]);
+async function upload(bytes: Buffer, source: string, manufacturerBrandId = makerId) {
+  const up = await owner.upload<any>('/admin/brand-imports/upload', { manufacturerBrandId, source }, [{ name: 'books.zip', data: bytes, field: 'file' }]);
   expect(up.status, JSON.stringify(up.body)).toBe(201);
   await drainOutbox(s, ['brand-import.inspect'], up.body.id);
   return (await owner.get<any>(`/admin/brand-imports/${up.body.id}`)).body;
@@ -43,11 +43,14 @@ async function previewAndRun(view: any) {
 
 describe('reviewed workbook sources', () => {
   it('accepts per-source mapping and exclusion for old inspections without sampled header metadata', async () => {
+    // Keep this regression independent of the existing maker/profile count assertions.
+    const maker = await owner.post<any>('/admin/manufacturer-brands', { nameFa: `Old inspection ${run}`, active: true });
+    expect(maker.status).toBe(201);
     const zip = new JSZip()
       .file('one.csv', `Part No,Name\nOLD-${run}-A,first\n`)
       .file('two.csv', `Code,Description\nOLD-${run}-B,second\n`)
       .file('excluded.csv', 'Other,Label\nOLD-EXCLUDED,skip\n');
-    const view = await upload(await zip.generateAsync({ type: 'nodebuffer' }), `old-inspection-${run}`);
+    const view = await upload(await zip.generateAsync({ type: 'nodebuffer' }), `old-inspection-${run}`, maker.body.id);
     const { sources: _sources, ...oldOptions } = view.options;
     const oldOutline = view.outline.map((source: any) => ({
       name: source.name, headers: source.headers, samples: source.samples,
