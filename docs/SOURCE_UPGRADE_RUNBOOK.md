@@ -52,9 +52,9 @@ listed in PROGRESS. The current run's generated changes were already reconciled:
 the XLSX differences were timestamps/synthetic run identifiers, and Next's build
 restored its declaration file. Do not repeat that cleanup without new changes.
 Do not reset the working tree. Check whitespace, record
-actual check exit codes, and commit a reviewable feature change. Branch upstream
-is currently `origin/main`: use an explicit feature branch destination for a
-future push. No commit/push is implied by this document.
+actual check exit codes, and commit a reviewable feature change. Code and documents
+were committed/pushed for Draft PR #28. Upstream is now the feature branch on
+origin; keep the feature destination explicit for future pushes.
 
 The CI workflow now includes integrity suites 85/91/93/94/95. Its push filter does
 not match `refactor/**`; opening a feature PR or explicitly dispatching CI is

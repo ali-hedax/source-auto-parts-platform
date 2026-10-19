@@ -34,7 +34,7 @@ not fresh evidence for this branch.
 | CAT-01 | Invalid/inactive or unscoped vehicle models could return unrelated catalog results. | **Completed & Tested locally:** `85-vehicles` in the 24-test integration run. |
 | TEST-01 | Windows test teardown failed after all assertions passed. | **Completed & Tested locally:** temporary directory ownership, async removal/retry and path checks were corrected; the same three suites then exited 0. The original OS lock cause was not proved. |
 | IMP-07 | Interrupted import replay could lose counters/reports or revisit a product after its number changed. | **Completed & Tested locally:** atomic row checkpoint and guarded delivery implemented; seven recovery tests pass within the 25-test related integration run. Fault injection is described below. |
-| VERIFY-01 | Final local checks and remote delivery evidence must be kept distinct. | Browser, typecheck, lint and full workspace build passed after execution resumed. Remote CI and preview remain unverified. |
+| VERIFY-01 | Final local checks and remote delivery evidence must be kept distinct. | Browser, typecheck, lint and full workspace build passed after execution resumed. Consult PROGRESS for the inspected remote CI commit/result. Preview remains unverified. |
 
 Severity below is a local engineering assessment of the inspected paths, not an
 assertion that the deployed site experienced these failures. Fixes and executed
@@ -107,7 +107,7 @@ product/error/change writes roll back. The seven tests and related suites
 | Latest lint | First run failed on three console statements in two Git-ignored `.local-run` diagnostic scripts. ESLint now excludes that existing private runtime directory; rerun passed, exit 0. No production source rule was relaxed. |
 | Full workspace build | `pnpm build` passed, exit 0: contracts/domain, API, Next production build (167 static pages generated), worker. This only builds locally; it does not deploy. |
 | Supplier archive | Read-only parser check: 44 files, 54 sheets, 16,204 nonempty rows, 39 sheets requiring header review. No database import. |
-| Remote checks | No PR/remote CI or isolated preview deployment yet. |
+| Remote checks | [Draft PR #28](https://github.com/ali-hedax/source-auto-parts-platform/pull/28) is open and unmerged. [PR checks](https://github.com/ali-hedax/source-auto-parts-platform/pull/28/checks) run against the feature head; PROGRESS records the inspected run/commit and actual outcome. No isolated preview deployment. |
 
 API tests use disposable PostgreSQL and synthetic data. Fixture browser tests do
 not exercise the real backend. The local backup test does not establish that the
