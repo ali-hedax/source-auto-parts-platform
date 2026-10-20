@@ -1,6 +1,6 @@
 # Source by HEDAX — وضعیت و نقطهٔ ادامه
 
-آخرین به‌روزرسانی: 2026-10-20، ادامهٔ آمادگی انتشار مستقیم، Asia/Tehran (+03:30).
+آخرین به‌روزرسانی: 2026-10-20، انتشار واقعی Production، Asia/Tehran (+03:30).
 
 این فایل مرجع ادامهٔ کار است. ابتدای هر جلسه، ابتدا این فایل و وضعیت واقعی Git
 بررسی شوند. پس از هر مرحلهٔ مهم، نتیجه، خطاها، فایل‌ها و قدم بعدی به‌روز شوند.
@@ -8,7 +8,50 @@
 
 ## نقطهٔ فعلی
 
-### ادامهٔ انتشار مستقیم Production — 2026-10-20
+### انتشار Production — 2026-10-20، 09:25 Asia/Tehran
+
+- **Completed & Tested — تصمیم و Git:** مالک پس از دریافت طرح/ریسک‌ها، صریحاً
+  Merge، انتشار و commit/push را تأیید کرد. PR #28 با guard روی SHA
+  `883df80db8febd1eadf308967c3b079adbf9a3ab` ادغام شد. merge commit برابر
+  `0c6e94cc30a92065b563402f7b3415c876b8ab0b` و tree آن دقیقاً برابر candidate است.
+  CI feature، run `39373413011`، و CI main پس از merge، run `39376889261`، SUCCESS شدند.
+- **Completed & Tested — انتشار واقعی:** در 05:49 UTC ورودی API/web متوقف،
+  Importهای فعال عادی/برند و outbox تخلیه، سپس worker قدیمی متوقف شد. API، worker
+  و web هماهنگ با سه image آمادهٔ revision `883df80` جایگزین شدند. هیچ migration،
+  تغییر DNS/storage policy، restore زنده یا ورود فایل تأمین‌کننده انجام نشد.
+- **Completed & Tested — سلامت پس از انتشار:** readiness شامل database/Redis/
+  storage/scanner سالم و امضاهای scanner تازه؛ صفحات www، فارسی، انگلیسی، قطعات
+  و ورود کارکنان HTTPS/200 هستند. www به apex فارسی هدایت می‌شود. API/web healthy،
+  worker running و restart count هر سه صفر است. دسترسی بدون ورود به فهرست و فایل
+  نمونهٔ Import با 401 رد شد. مالک شخصاً وارد مدیریت شد و dashboard واقعی باز شد. مشاهدهٔ 05:55 UTC دوباره سلامت هفت سرویس، صفر restart، صفر job ناتمام و صفر خط error سطح برنامه را تأیید کرد؛ یک فایل عمومی S3 از مسیر سایت 200 و دانلود یک attachment خصوصی واقعی بدون ورود 401 بود.
+- **Completed & Tested — ماندگاری و بازگشت:** checkout سرور روی branch
+  `deploy/pr28-20261020` و merge commit بالا قرار گرفت؛ resolved Compose پیش/پس
+  دقیقاً برابر بود. imageهای قبلی با tag مستقل محفوظ‌اند؛ tagهای عادی سه سرویس
+  به candidate اشاره می‌کنند. wrapper ثابت `/opt/hedax-compose-current` همان طرح
+  انتشار را اجرا می‌کند. restart policy موجود حفظ شد؛ سرویس‌های داده دست‌نخورده‌اند.
+- **Completed & Tested — بازیابی:** بکاپ کامل
+  `pr28-complete-20261020T050208Z`، رمزگشایی واقعی روی رایانهٔ مالک، restore ایزولهٔ
+  ۹۹ جدول/۱۸ migration و تطبیق ۶۷ آبجکت موفق بودند؛ نسخهٔ رمزگذاری‌شدهٔ خارج از
+  سرور نیز با hash برابر تأیید شد. جزئیات و شکست رفع‌شدهٔ harness در تاریخچه پایین‌اند.
+- **Blocked External — پذیرش Import زنده:** در baseline هیچ manufacturer ثبت
+  نشده بود (count=0). برند مشخصاً آزمایشی «آزمون انتشار PR28» از UI و با audit
+  ساخته شد. هنگام انتخاب CSV مصنوعی دو ردیفی، مرورگر مجوز upload را با علت
+  «user declined permission» رد کرد. فایل upload نشده، job ساخته نشده و Import/
+  Undo هنوز آزموده نشده‌اند. مسیر جایگزین برای دورزدن منع upload استفاده نشد.
+  مالک می‌تواند فایل مصنوعی آماده را شخصاً در فرم انتخاب/بارگذاری کند؛ سپس فقط
+  همان job با publish=false پیش‌نمایش/اجرا/Undo و نتیجه ثبت شود. برند آزمون پس از
+  پایان آزمون غیرفعال شود؛ سابقه/audit حفظ شود. دانلود مجاز فایل خصوصی واقعی
+  هنوز جداگانه تأیید نشده و با موفقیت restore یا ورود مالک اشتباه گرفته نشود.
+- **Deferred Later — عملیات دوره‌ای و سرویس‌ها:** بکاپ روزانهٔ موجود هنوز S3
+  را پوشش نمی‌دهد و کلید قبلی آن پیدا نشده است؛ بکاپ کامل فعلی این شکاف دوره‌ای
+  را حل نمی‌کند. payment/SMS provider هنوز none است؛ checkout/OTP واقعی آماده
+  اعلام نمی‌شود. Preview عمومی مستقر نشده؛ این ریسک در تأیید مالک ارائه شد.
+- **قدم بعدی:** تکمیل پذیرش مصنوعی از همان فرم پس از upload توسط مالک، سپس ثبت
+  نتیجهٔ پذیرش در Git. کد مستقر همان 883df80 است؛ ثبت این checkpoint صرفاً مستنداتی است. baseline/XLS/TEST-02 یا ساخت imageها تکرار نشوند.
+  rollback کد دادهٔ جدید را معکوس نمی‌کند؛ worker قدیمی تنها پس از reconciliation
+  jobهای جدید مجاز است. restore مخرب نیازمند تصمیم جداگانه دربارهٔ داده‌های تازه است.
+
+### تاریخچهٔ آمادگی انتشار مستقیم — 2026-10-20 (با انتشار بالا جایگزین شد)
 
 - **Completed & Tested — Git/دامنهٔ کار:** کد PR #28 روی
   `3343dcbaaa1d520c817809317ac6a4ceed8f1d56` و مبنا `d205e37` است؛ PR باز، Draft
@@ -61,10 +104,49 @@
   گرفته شود. ورودی Import مهار، jobها تخلیه و API/worker/web هماهنگ جایگزین شوند؛
   imageهای قبلی با شناسهٔ ثابت حفظ شوند. rollback کد، دادهٔ Import را معکوس
   نمی‌کند و worker قدیمی نباید job جدید مصرف کند. restore مخرب تصمیم جداگانه لازم دارد.
-- **قدم بعدی دقیق:** commit/push همین دو سند روی feature بدون Merge، ساخت
-  candidate مستقل و بررسی CI، سپس ارائهٔ بستهٔ مشخص برای تأیید نهایی مالک.
-  پس از تأیید، rollout و تست نهایی طبق طرح بررسی‌شده انجام شود. برای ورود مالک
-  یا OTP، کاربر خودش در صفحهٔ امن اقدام کند؛ چیزی در چت درخواست نشود.
+- **Checkpoint ثبت/ارسال‌شده:** فقط دو سند PROGRESS/readiness در commit 883df80db8febd1eadf308967c3b079adbf9a3ab ثبت و روی feature ارسال شدند؛ کد برنامه تغییر نکرد. GitHub connector یک خطای transport داد؛ read از gh و ls-remote همان مبدأ/مقصد را تأیید کرد. candidate همین SHA در مسیر مستقل و با نام imageهای جدا در حال build است؛ container برنامه در برابر Production شروع نشده است. CI این SHA باید جدا از CI قبلی بررسی شود. این خط پس از commit تغییر محلی PROGRESS است.
+- **Completed & Tested — CI آخرین feature:** run 39373413011 روی SHA 883df80db8febd1eadf308967c3b079adbf9a3ab کاملاً SUCCESS شد؛ PR Draft/OPEN/CLEAN است. نخستین build candidate پیش از ساخت با unknown flag --progress متوقف شد چون Buildx روی سرور نصب نبود. log حفظ شده؛ ابزار رسمی Docker Buildx با digest انتشار در tooling اختصاصی candidate آماده می‌شود، بدون تغییر daemon یا سرویس‌های Production. فقط ساخت بسته تکرار خواهد شد؛ restore و baseline تکرار نمی‌شوند.
+- **Completed & Tested — بستهٔ نهایی:** هر سه image API/worker/web از
+  `883df80db8febd1eadf308967c3b079adbf9a3ab` ساخته و با همین revision برچسب‌گذاری
+  شدند. hash آرشیو source روی سرور و مبدأ محلی برابر است. imageها با نام جدا
+  نگهداری می‌شوند؛ سرویس زنده همچنان نسخهٔ قبلی را اجرا می‌کند. ماژول‌های
+  Import/reader در API و worker hash برابر دارند. ابزار رسمی Buildx فقط در
+  tooling مستقل candidate قرار گرفت؛ daemon/config عمومی Docker تغییر نکرد.
+- **Completed & Tested — smoke داخل بسته:** XLS واقعیِ کاملاً مصنوعی با دو ردیف
+  در container بدون شبکه خوانده شد؛ dependency همان SheetJS 0.20.3 است و شمارهٔ
+  000123 درست حفظ شد. تلاش اولِ smoke، --input-type=module را به worker eval
+  ارث می‌داد و require در آن محیط تعریف نبود؛ همان ReferenceError با worker
+  کوچک جدا بازتولید شد. اجرای آزمون از فایل با execArgv معمول Production موفق
+  شد؛ کد برنامه و imageها تغییر/دوباره ساخته نشدند. log شکست اولیه محفوظ است.
+- **Completed & Tested — طرح rollout/rollback:** Compose هر دو طرح فقط image سه
+  سرویس و pull_policy=never را عوض می‌کند؛ environment، network و volumeها برابر
+  baseline باقی می‌مانند. شناسه‌های image قدیمی موجود و rollback reviewable است.
+  helper اجرا نشده و تنها syntax آن بررسی شده است. پیش از جایگزینی، API/web
+  متوقف، تمام jobهای Import معمولی/برند و outbox تخلیه، سپس worker قدیمی متوقف
+  می‌شود تا نسخه‌های worker مخلوط نشوند. هیچ migration یا restore زنده در طرح نیست.
+- **Completed & Tested — وضعیت نهایی قبل از تأیید:** CI آخرین feature، run
+  `39373413011`، SUCCESS و PR #28 همان SHA، OPEN/Draft/CLEAN است. سرویس‌های قدیمی
+  healthy و scannerSignatures=fresh بود؛ صف event فعال/منتظر صفر بود. Importهای
+  معمولی موجود FAILED/AWAITING_MAPPING/PREVIEW_READY/COMMITTED بودند و مورد فعال
+  نداشتند؛ هیچ‌کدام دستی تغییر وضعیت داده نشدند.
+- **Requires Owner Decision — تنها قدم اجرایی بعدی:** تأیید صریح نهایی مالک برای
+  Merge PR #28 روی SHA دقیق 883df80 و انتشار همین سه image آماده لازم است. طرح
+  شامل وقفهٔ کوتاه احتمالی، کنترل سلامت/صف‌ها، ورود کارکنان توسط خود مالک و تست
+  فایل مصنوعی کوچک با Undo فقط همان job است؛ آرشیو تأمین‌کننده وارد نمی‌شود.
+  نبود Preview عمومی و کار بعدی بکاپ دوره‌ای باید در تصمیم مالک دیده شوند.
+  rollback کد دادهٔ تازه را معکوس نمی‌کند؛ بازگشت worker قدیمی تنها پس از بررسی
+  jobهای جدید مجاز است. restore مخربِ دادهٔ زنده تأیید جداگانه می‌خواهد.
+- **Completed & Tested — کنترل نهایی 2026-10-20 ساعت 09:14 Asia/Tehran:** هر ۱۸
+  checksum migration با source candidate برابر، Import فعال معمولی/برند و outbox
+  ناتمام صفر، صفحات عمومی و ورود HTTPS/200 بودند. readiness وابستگی‌ها سالم و
+  امضاهای scanner تازه بود؛ سرویس‌ها همچنان imageهای قدیمی را اجرا می‌کردند.
+  نخستین پرس‌وجوی آخر فقط به علت escaping کوتیشن در shell خطای syntax داشت و
+  هیچ داده‌ای عوض نشد؛ با اجرای آرگومان‌های SQL از helper Python، همان کنترل
+  هدفمند موفق شد. طرح دقیق تصمیم انتشار در خروجی RELEASE_NEXT_STEP همین گفتگو
+  آماده است. اکنون فقط تأیید نهایی مالک برای Merge/rollout/تست مصنوعی منتظر است.
+- **ثبت محلی پس از commit:** این نتایج ساخت/طرح در PROGRESS و readiness محلی
+  ثبت می‌شوند؛ remote HEAD/کد/imageها همچنان 883df80 هستند. CI سبز همان SHA است.
+  برای ثبت هر خط نتیجه commit/CI تکراری ساخته نشود. هیچ Merge یا rollout انجام نشده است.
 
 ### آماده‌سازی امن Preview مستقل — 2026-10-19
 
@@ -583,3 +665,5 @@ TEST-02 و کنترل‌های موفق بالا دوباره اجرا یا پی
   و CI همان HEAD (`39226951115`) موفق شد. ۱۴ پیوند محلی و UTF-8/whitespace پنج سند
   بررسی شدند؛ موفق. همهٔ کد و گزارش‌ها در PR هستند؛ فقط این ثبت نهایی نتیجه در
   PROGRESS محلی باقی است. TEST-02 تکمیل شد؛ هیچ Merge یا تغییر Production انجام نشد.
+
+- **Completed & Tested — final owner approval / merge 2026-10-20 09:18 Asia/Tehran:** مالک صریحاً انتشار و commit/push نهایی را تأیید کرد. PR #28 با guard روی SHA 883df80 ادغام شد؛ merge commit 0c6e94cc30a92065b563402f7b3415c876b8ab0b و tree آن دقیقاً برابر candidate است. تأیید شامل تست مصنوعی و Undo همان job است. rollout اکنون قدم جاری است؛ restore مخرب مجاز نشده است.

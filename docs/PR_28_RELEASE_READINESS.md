@@ -1,10 +1,8 @@
 # PR #28 release readiness — 2026-10-20
 
-**Production release: candidate build and final owner approval pending.** The PR remains Draft and unmerged. This session performed preparation only; no preview or production deployment,
-service/configuration change, migration or supplier database import was made.
-See [PROGRESS](../PROGRESS.md) for the exact inspected Git head and CI run.
+**Production deployed; live Import/Undo acceptance pending browser upload permission.** The owner explicitly approved the merge and live rollout; PR #28 is merged and the candidate is running. See the Actual Production release section and [PROGRESS](../PROGRESS.md) for precise results and the remaining check. No supplier database was imported.
 
-## Remaining acceptance scope
+## Completed regression acceptance
 
 TEST-02 and the previous baseline were already complete and were not manually
 rerun. This pass addresses legacy XLS worker supervision and old multi-source UI
@@ -45,7 +43,7 @@ pauses during downstream consumption, not a total job wall-clock deadline.
 - Fixture browser acceptance and disposable-database API tests do not constitute
   acceptance of a publicly deployed Preview.
 
-## Production preflight — 2026-10-20
+## Historical preflight — 2026-10-20 (superseded by actual release below)
 
 The owner prefers a direct Production release; provisioning Preview is no longer
 the next requested action. No publicly deployed Preview acceptance is claimed.
@@ -87,10 +85,16 @@ concrete changes, risks and rollback have been presented.
    release backup does not change that schedule or certify older archives. Private
    and public bucket versioning were disabled at their dated panel observations;
    no storage policy was changed. No ongoing full-backup guarantee is claimed.
-7. **Implemented Pending Verification — immutable candidate.** Build matching API,
-   worker and web images from the reviewed commit without starting app services
-   against live data/queues. Verify packaged legacy-XLS worker operation in an
-   isolated container, record image IDs and confirm CI on the final feature SHA.
+7. **Completed & Tested — immutable candidate.** Matching API, worker and web
+   images were built from `883df80db8febd1eadf308967c3b079adbf9a3ab`. Source archive
+   hashes and image revision labels matched; packaged import-module hashes match
+   between API and worker. A real synthetic BIFF XLS passed through the packaged
+   reader in a network-isolated container with leading zeros preserved. The first
+   harness inherited `--input-type=module`, reproduced as a separate ReferenceError;
+   production-style file execution passed without an application change/rebuild.
+   CI run `39373413011` on the same head passed. Rollout/rollback Compose plans
+   change only the three image references and pull policy; environment, networks
+   and volumes remain equal. No new app service has been started against live data.
 8. **Requires Owner Decision — merge, rollout and final acceptance.** Present the
    candidate, CI, recovery evidence and the lack of publicly deployed Preview
    acceptance, then obtain explicit final approval. Preserve old image IDs,
@@ -107,3 +111,37 @@ dependency or production configuration is introduced by this acceptance pass.
 Follow the [release/rollback runbook](SOURCE_UPGRADE_RUNBOOK.md) and retain the
 [TEST-02 evidence](TEST_02_BACKUP_REPORT.md). Do not repeat completed baselines or
 supplier parsing unless a new change/failure justifies it.
+
+## Actual Production release — 2026-10-20
+
+**Completed & Tested.** After the concrete risks and recovery plan were presented,
+the owner explicitly approved merge, live rollout and commit/push. PR #28 merged
+as `0c6e94cc30a92065b563402f7b3415c876b8ab0b`; its tree equals the approved
+candidate `883df80db8febd1eadf308967c3b079adbf9a3ab`. CI runs `39373413011`
+(candidate) and `39376889261` (merged main) both passed.
+
+The old API/web were stopped, active standard/brand imports and pending outbox
+events drained, and the old worker stopped before all three candidate images
+started together at 05:49 UTC. No migration or live restore ran. Readiness and
+public HTTPS pages passed; API/web are healthy, worker runs, and all three have
+zero restarts. Anonymous import-list and sample-download requests return 401.
+The owner personally signed in and the real admin dashboard loaded.
+
+The server checkout now points to the merge commit on `deploy/pr28-20261020`;
+resolved Compose configuration is equal before/after checkout. Previous image IDs
+remain tagged; normal app image tags now point at the candidate. The persistent
+`/opt/hedax-compose-current` wrapper uses the reviewed image override. Database,
+Redis, scanner, ingress, environment and volumes were preserved.
+
+**Blocked External — live import acceptance.** The deployed database initially
+contained zero manufacturers. An explicitly named release-test manufacturer was
+created through the authenticated UI, retaining its audit record. The browser
+then refused the synthetic two-row CSV upload with “user declined permission”.
+No upload/job/import occurred; no workaround was attempted. The owner has the
+synthetic file and can upload it personally. Preview, publish=false commit, Undo
+of only that job, and deactivation of the synthetic manufacturer remain pending.
+Authorized real private-file download has not been certified by the public/401
+checks. The scheduled S3 backup gap and unavailable payment/SMS providers remain
+deferred; this release is not a claim that every operational feature is ready.
+
+At 05:55 UTC all seven services remained running/healthy as applicable with zero restarts, no unfinished imports/outbox, and no application error-level log lines. An actual public S3 object served through the site returned 200 with nonempty content. Download of an actual READY private attachment without authentication returned 401; authenticated download remains unverified.
