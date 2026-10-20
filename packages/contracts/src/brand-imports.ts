@@ -20,6 +20,13 @@ export const brandImportOptionsSchema = z.object({
   partType: partTypeSchema.default('GENUINE'),
   /** CSV text encoding; auto = UTF-8 when valid, else Windows-1256. */
   encoding: z.enum(['auto', 'utf-8', 'windows-1256']).default('auto'),
+  /** Optional per-sheet/file choices. Omitted sources use the shared mapping for legacy clients. */
+  sources: z.record(z.string().max(190), z.object({
+    enabled: z.boolean(),
+    /** 0 = no header. Other values must identify a row in the inspected sample. */
+    headerRow: z.number().int().min(0).max(1_048_576),
+    mapping: brandMappingSchema,
+  })).refine(s => Object.keys(s).length <= 500).optional(),
 });
 export type BrandImportOptions = z.infer<typeof brandImportOptionsSchema>;
 
@@ -41,6 +48,10 @@ export interface BrandImportSourceOutline {
   samples: string[][];
   encoding: string | null;
   delimiter: string | null;
+  /** Absent on imports inspected before per-source mapping was introduced. */
+  headerRow?: number;
+  needsHeaderReview?: boolean;
+  sampleRows?: Array<{ line: number; cells: string[] }>;
 }
 
 export interface BrandImportPreviewRow {
@@ -65,8 +76,10 @@ export interface BrandImportStats {
   unchanged?: number;
   /** Vehicles in the file that are not in the panel (not created; listed in the error report). */
   unknownVehicles?: number;
-  /** After an undo: parts deleted, and parts kept archived because they were sold, priced or photographed meanwhile. */
+  /** After undo: untouched parts deleted/restored, later edits and commercial use preserved. */
   deleted?: number;
+  preserved?: number;
+  /** Historical imports only. New undo operations keep used parts unchanged. */
   archived?: number;
   restored?: number;
 }

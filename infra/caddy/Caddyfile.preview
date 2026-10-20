@@ -1,0 +1,65 @@
+# HEDAX Preview reverse proxy. This file is mounted only by
+# docker-compose.preview.yml; it deliberately does not refer to Production S3.
+# Public Preview media is served by the isolated API's local storage volume.
+#
+# Preview is password-protected and sends a noindex header. The integration
+# webhook namespace is denied even if a protected environment is misconfigured.
+
+{
+	email {$ACME_EMAIL}
+	log default {
+		format filter {
+			request>uri regexp /api/v1/integrations/.* /api/v1/integrations/REDACTED
+			wrap json
+		}
+	}
+}
+
+{$HEDAX_DOMAIN} {
+	encode zstd gzip
+
+	# Kept only in the protected Preview environment, never in Git.
+	basic_auth {
+		{$PREVIEW_BASIC_AUTH_USER} {$PREVIEW_BASIC_AUTH_HASH}
+	}
+
+	# Preview neither receives nor forwards live messenger webhooks.
+	@integration_webhook path /api/v1/integrations/*
+	respond @integration_webhook 404
+
+	handle /api/v1/admin/brand-imports/upload {
+		request_body {
+			max_size 160MB
+		}
+		reverse_proxy api:4000
+	}
+
+	handle /api/* {
+		request_body {
+			max_size 60MB
+		}
+		reverse_proxy api:4000
+	}
+
+	# Do not use handle_path here: Nest's local driver owns /media/ and exposes
+	# only its public directory. Private attachments remain authenticated API routes.
+	handle /media/* {
+		reverse_proxy api:4000
+	}
+
+	handle {
+		reverse_proxy web:3000
+	}
+
+	header {
+		X-Robots-Tag "noindex, nofollow, noarchive"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}

@@ -2,6 +2,7 @@ import ExcelJS from 'exceljs';
 import JSZip from 'jszip';
 import type { ImportSheetOutline } from '@hedax/contracts';
 import type { RawCell } from '@hedax/domain';
+import { zeroPaddedInteger } from './number-format.js';
 
 /** Widest sheet read (columns); wider sheets are cut, which the mapping screen shows. */
 export const MAX_COLUMNS = 60;
@@ -85,7 +86,12 @@ async function loadWorkbook(bytes: Buffer): Promise<ExcelJS.Workbook> {
 
 function rowCells(row: ExcelJS.Row, width: number): RawCell[] {
   const cells: RawCell[] = [];
-  for (let c = 1; c <= width; c += 1) cells.push(toRawCell(row.getCell(c).value));
+  for (let c = 1; c <= width; c += 1) {
+    const source = row.getCell(c);
+    const raw = toRawCell(source.value);
+    const padded = zeroPaddedInteger(raw.value, source.numFmt);
+    cells.push(padded === null ? raw : { ...raw, value: padded });
+  }
   return cells;
 }
 

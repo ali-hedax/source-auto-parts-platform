@@ -10,7 +10,7 @@ import type {
 } from '@hedax/contracts';
 import {
   type BrandMapping, type BrandRowValues, type KnownVehicle, applyBrandMapping, brandMappingProblems, buildSearchDocument, matchFitment,
-  normalizeSearchText, reuseBrandMapping, suggestBrandMapping,
+  normalizeSearchText, reuseBrandMapping, suggestBrandMapping, neutralizeSpreadsheetText, selectBrandHeader,
 } from '@hedax/domain';
 import { AuditService } from '../../common/audit.service.js';
 import { badRequest, conflict, notFound } from '../../common/errors.js';
@@ -32,6 +32,45 @@ const MAX_ERRORS = 50_000;
 const PREVIEW_ROWS = 40;
 const PREVIEW_ERRORS = 15;
 const DEFAULT_OPTIONS: BrandImportOptions = { publish: false, partType: 'GENUINE', encoding: 'auto' };
+const EMPTY_PREFIX = createHash('sha256').digest('hex');
+type RunCounters = Required<Pick<BrandImportStats, 'created' | 'updated' | 'unchanged' | 'duplicate' | 'error' | 'unknownVehicles'>>;
+interface RunCheckpoint { version: 1; prefixHash: string; errorsSaved: number }
+type RunStats = BrandImportStats & { runCheckpoint?: RunCheckpoint };
+interface RunBatch {
+  from: number;
+  to: number;
+  previousHash: string;
+  prefixHash: string;
+  rows: Array<{ rowRef: string; values: BrandRowValues }>;
+  errors: Prisma.BrandImportErrorCreateManyInput[];
+  duplicate: number;
+  error: number;
+}
+const emptyRunCounters = (): RunCounters => ({ created: 0, updated: 0, unchanged: 0, duplicate: 0, error: 0, unknownVehicles: 0 });
+const initialRunStats = (stats: Prisma.JsonValue): Prisma.InputJsonValue => ({
+  ...(stats as object | null), ...emptyRunCounters(), runCheckpoint: { version: 1, prefixHash: EMPTY_PREFIX, errorsSaved: 0 },
+});
+/** The cursor and counters must describe exactly the same committed raw rows. */
+function runState(imp: { stats: Prisma.JsonValue; processedRows: number }): { stats: RunCounters; checkpoint: RunCheckpoint } | null {
+  const stored = (imp.stats ?? {}) as RunStats;
+  const checkpoint = stored.runCheckpoint;
+  const counters = emptyRunCounters();
+  for (const key of Object.keys(counters) as Array<keyof RunCounters>) {
+    const value = stored[key];
+    if (value === undefined || !Number.isSafeInteger(value) || value < 0) return null;
+    counters[key] = value;
+  }
+  if (!checkpoint || checkpoint.version !== 1 || !/^[a-f0-9]{64}$/.test(checkpoint.prefixHash) ||
+      !Number.isSafeInteger(checkpoint.errorsSaved) || checkpoint.errorsSaved < 0 || checkpoint.errorsSaved > MAX_ERRORS ||
+      !Number.isSafeInteger(imp.processedRows) || imp.processedRows < 0 ||
+      counters.created + counters.updated + counters.unchanged + counters.duplicate + counters.error !== imp.processedRows ||
+      (imp.processedRows === 0 && checkpoint.prefixHash !== EMPTY_PREFIX)) return null;
+  return { stats: counters, checkpoint };
+}
+/** A competing delivery advanced the cursor. Retry through the outbox; never mark its work failed or done. */
+class ImportRunMoved extends Error {
+  constructor() { super('BRAND_IMPORT_PROGRESS_CHANGED'); }
+}
 
 type ImportRow = Prisma.BrandImportGetPayload<{ include: { manufacturerBrand: true } }>;
 interface Lookups {
@@ -45,6 +84,8 @@ interface Lookups {
 }
 /** The technical fields an import may change, as they were before it (restored by «برگرداندن این ورود»). */
 interface Snapshot {
+  /** Product version after this import. Absent on legacy imports: undo must preserve those parts. */
+  rollbackVersion?: number;
   partNumber: string | null;
   partNumberKey: string | null;
   nameFa: string | null;
@@ -93,13 +134,13 @@ export class BrandImportsService {
       if (!maker) throw badRequest('UNKNOWN_MANUFACTURER_BRAND', 'Choose a manufacturer brand from the list');
       if (file.size > MAX_BRAND_FILE_BYTES) throw badRequest('BRAND_FILE_TOO_LARGE');
       const kind = await brandFileKind(file.path, file.originalname);
-      if (!kind) throw badRequest('BRAND_FILE_FORMAT', 'Only xlsx, csv or a zip of csv files');
+      if (!kind) throw badRequest('BRAND_FILE_FORMAT', 'Only xlsx, xls, csv or a zip of these files');
       const scan = await this.scanner.scanFile(file.path);
       if (!scan.clean) throw badRequest('FILE_REJECTED', 'The file did not pass the security scan');
       const hash = createHash('sha256');
       for await (const chunk of createReadStream(file.path)) hash.update(chunk as Buffer);
       const storageKey = `brand-imports/${randomUUID()}.${kind}`;
-      await this.storage.putPrivateFile(storageKey, file.path, kind === 'csv' ? 'text/csv' : 'application/zip');
+      await this.storage.putPrivateFile(storageKey, file.path, kind === 'csv' ? 'text/csv' : kind === 'xls' ? 'application/vnd.ms-excel' : 'application/zip');
       const profile = await this.prisma.brandImportProfile.findUnique({ where: { manufacturerBrandId_source: { manufacturerBrandId: maker.id, source: body.source } } });
       const imp = await this.prisma.tx(async (tx) => {
         const attachment = await tx.attachment.create({
@@ -133,10 +174,26 @@ export class BrandImportsService {
     const imp = await this.prisma.brandImport.findUnique({ where: { id } });
     if (!imp) throw notFound();
     if (!['AWAITING_MAPPING', 'PREVIEW_READY'].includes(imp.status)) throw conflict('BRAND_IMPORT_NOT_EDITABLE', 'This import is already running or finished');
-    const problems = brandMappingProblems(mapping as BrandMapping, this.headersOf(imp.outline as BrandImportSourceOutline[] | null));
+    const outline = (imp.outline as BrandImportSourceOutline[] | null) ?? [];
+    const problems: string[] = [];
+    if (Object.keys(options.sources ?? {}).some(name => !outline.some(s => s.name === name))) problems.push('UNKNOWN_SOURCE');
+    let enabled = 0;
+    for (const source of outline) {
+      const choice = options.sources?.[source.name];
+      if (choice?.enabled === false) continue;
+      enabled++;
+      let headers = source.headers;
+      try {
+        if (choice && source.sampleRows) headers = selectBrandHeader(source.sampleRows, choice.headerRow).headers;
+        else if (choice && choice.headerRow !== (source.headerRow ?? 1)) problems.push('HEADER_ROW_NOT_IN_SAMPLE');
+      } catch { problems.push('HEADER_ROW_NOT_IN_SAMPLE'); }
+      problems.push(...brandMappingProblems((choice?.mapping ?? mapping) as BrandMapping, headers).map(p => `${source.name}:${p}`));
+    }
+    if (!enabled) problems.push('NO_SOURCE_SELECTED');
     if (problems.length) throw badRequest('MAPPING_INVALID', 'The column mapping is not complete', { problems });
     await this.prisma.tx(async (tx) => {
-      await tx.brandImport.update({ where: { id }, data: { mapping, options, status: 'PREVIEWING', preview: Prisma.DbNull, stats: {} } });
+      const moved = await tx.brandImport.updateMany({ where: { id, status: { in: ['AWAITING_MAPPING', 'PREVIEW_READY'] } }, data: { mapping, options, status: 'PREVIEWING', preview: Prisma.DbNull, stats: {} } });
+      if (moved.count !== 1) throw conflict('BRAND_IMPORT_NOT_EDITABLE');
       // Saved for this brand and source: applied automatically next time.
       await tx.brandImportProfile.upsert({
         where: { manufacturerBrandId_source: { manufacturerBrandId: imp.manufacturerBrandId, source: imp.source } },
@@ -151,7 +208,14 @@ export class BrandImportsService {
 
   async start(actor: Actor, id: string) {
     await this.prisma.tx(async (tx) => {
-      const moved = await tx.brandImport.updateMany({ where: { id, status: 'PREVIEW_READY' }, data: { status: 'QUEUED' } });
+      const imp = await tx.brandImport.findUnique({ where: { id } });
+      if (!imp) throw notFound();
+      await tx.$queryRaw`SELECT "id" FROM "manufacturer_brand" WHERE "id" = ${imp.manufacturerBrandId}::uuid FOR UPDATE`;
+      const busy = await tx.brandImport.findFirst({ where: { manufacturerBrandId: imp.manufacturerBrandId, status: { in: ['QUEUED', 'RUNNING', 'ROLLING_BACK'] } }, select: { id: true } });
+      if (busy) throw conflict('BRAND_IMPORT_BUSY', 'Wait for the current import or undo of this brand to finish');
+      const moved = await tx.brandImport.updateMany({ where: { id, status: 'PREVIEW_READY' }, data: {
+        status: 'QUEUED', startedAt: new Date(), processedRows: 0, stats: initialRunStats(imp.stats),
+      } });
       if (moved.count !== 1) throw conflict('BRAND_IMPORT_NOT_READY', 'The preview is not ready, or the import already ran');
       await this.outbox.enqueue(tx, { type: 'brand-import.run', aggregateType: 'brand_import', aggregateId: id, payload: { importId: id }, dedupeKey: `brand-import-run:${id}` });
       await this.audit.record(tx, { action: 'brand_import.started', entityType: 'brand_import', entityId: id, actorId: actor.userId });
@@ -160,22 +224,21 @@ export class BrandImportsService {
   }
 
   /** Only the latest import of a brand that is not undone (later imports may have built on it). */
-  private async latestOf(manufacturerBrandId: string): Promise<string | null> {
-    const last = await this.prisma.brandImport.findFirst({
-      where: { manufacturerBrandId, status: { in: ['COMPLETED', 'RUNNING', 'QUEUED', 'ROLLING_BACK'] } },
-      orderBy: { createdAt: 'desc' }, select: { id: true, status: true },
+  private async latestOf(manufacturerBrandId: string, db: Pick<PrismaService, 'brandImport'> = this.prisma): Promise<string | null> {
+    const last = await db.brandImport.findFirst({
+      where: { manufacturerBrandId, OR: [{ status: { in: ['COMPLETED', 'RUNNING', 'QUEUED', 'ROLLING_BACK'] } }, { status: 'FAILED', startedAt: { not: null } }] },
+      orderBy: [{ startedAt: { sort: 'desc', nulls: 'last' } }, { createdAt: 'desc' }, { id: 'desc' }], select: { id: true, status: true },
     });
-    return last?.status === 'COMPLETED' ? last.id : null;
+    return last && ['COMPLETED', 'FAILED'].includes(last.status) ? last.id : null;
   }
 
   async rollback(actor: Actor, id: string) {
     const imp = await this.prisma.brandImport.findUnique({ where: { id } });
     if (!imp) throw notFound();
-    if (imp.status !== 'COMPLETED' || (await this.latestOf(imp.manufacturerBrandId)) !== id) {
-      throw conflict('BRAND_IMPORT_ROLLBACK_NOT_ALLOWED', 'Only the latest finished import of a brand can be undone');
-    }
     await this.prisma.tx(async (tx) => {
-      const moved = await tx.brandImport.updateMany({ where: { id, status: 'COMPLETED' }, data: { status: 'ROLLING_BACK', rolledBackById: actor.userId } });
+      await tx.$queryRaw`SELECT "id" FROM "manufacturer_brand" WHERE "id" = ${imp.manufacturerBrandId}::uuid FOR UPDATE`;
+      if ((await this.latestOf(imp.manufacturerBrandId, tx)) !== id) throw conflict('BRAND_IMPORT_ROLLBACK_NOT_ALLOWED', 'Only the latest finished import of a brand can be undone');
+      const moved = await tx.brandImport.updateMany({ where: { id, status: { in: ['COMPLETED', 'FAILED'] } }, data: { status: 'ROLLING_BACK', rolledBackById: actor.userId } });
       if (moved.count !== 1) throw conflict('BRAND_IMPORT_ROLLBACK_NOT_ALLOWED');
       await this.outbox.enqueue(tx, { type: 'brand-import.rollback', aggregateType: 'brand_import', aggregateId: id, payload: { importId: id }, dedupeKey: `brand-import-rollback:${id}` });
       await this.audit.record(tx, { action: 'brand_import.rollback_requested', entityType: 'brand_import', entityId: id });
@@ -191,7 +254,7 @@ export class BrandImportsService {
     const [user, errorCount, latest] = await Promise.all([
       this.prisma.user.findUnique({ where: { id: imp.createdById }, select: { fullName: true, email: true } }),
       this.prisma.brandImportError.count({ where: { importId: imp.id } }),
-      imp.status === 'COMPLETED' ? this.latestOf(imp.manufacturerBrandId) : Promise.resolve(null),
+      ['COMPLETED', 'FAILED'].includes(imp.status) ? this.latestOf(imp.manufacturerBrandId) : Promise.resolve(null),
     ]);
     const outline = (imp.outline as BrandImportSourceOutline[] | null) ?? null;
     const stats = (imp.stats ?? {}) as BrandImportStats & { missingColumns?: string[] };
@@ -229,7 +292,7 @@ export class BrandImportsService {
   async errorReport(id: string): Promise<string> {
     if (!(await this.prisma.brandImport.findUnique({ where: { id }, select: { id: true } }))) throw notFound();
     const rows = await this.prisma.brandImportError.findMany({ where: { importId: id }, orderBy: { createdAt: 'asc' }, take: MAX_ERRORS });
-    const q = (s: string) => `"${s.replace(/"/g, '""')}"`;
+    const q = (s: string) => `"${neutralizeSpreadsheetText(s).replace(/"/g, '""')}"`;
     const lines = [['ردیف', 'شماره فنی', 'خطا', 'جزئیات'].map(q).join(','), ...rows.map((r) => [r.rowRef, r.partNumber ?? '', r.codes.join(' '), r.detail ?? ''].map(q).join(','))];
     return `${String.fromCharCode(0xfeff)}${lines.join('\r\n')}\r\n`;
   }
@@ -247,21 +310,37 @@ export class BrandImportsService {
     return { file, extension: a.extension, cleanup: () => rm(dir, { recursive: true, force: true }) };
   }
 
-  /** Records as { header: cell } per row; the first record of each sheet / csv file is its header row. */
-  private async *rows(imp: { attachmentId: string; options: Prisma.JsonValue }, info?: (source: string, i: SourceInfo) => void): AsyncGenerator<{ rowRef: string; cells: Record<string, string> }> {
+  /** Use the exact inspected/reviewed header and mapping for each source. */
+  private async *rows(imp: { attachmentId: string; options: Prisma.JsonValue; outline: Prisma.JsonValue }, info?: (source: string, i: SourceInfo) => void): AsyncGenerator<{ rowRef: string; source: string; cells: Record<string, string> }> {
     const { file, extension, cleanup } = await this.localFile(imp);
     const encoding = ((imp.options as BrandImportOptions | null)?.encoding ?? 'auto') as 'auto' | 'utf-8' | 'windows-1256';
     try {
-      const headers = new Map<string, string[]>();
+      const options = imp.options as BrandImportOptions | null;
+      const sources = new Map(((imp.outline as BrandImportSourceOutline[] | null) ?? []).map(s => {
+        const choice = options?.sources?.[s.name];
+        const selected = choice && s.sampleRows ? selectBrandHeader(s.sampleRows, choice.headerRow) : { headers: s.headers, headerRow: s.headerRow };
+        return [s.name, { ...selected, enabled: choice?.enabled !== false }];
+      }));
+      const legacyHeaders = new Map<string, string[]>();
       for await (const rec of readBrandFile(file, extension, encoding, info)) {
-        const h = headers.get(rec.source);
+        const source = sources.get(rec.source);
+        if (!source || !source.enabled) continue;
+        let h = source.headers;
+        if (source.headerRow !== undefined) {
+          if (rec.line <= source.headerRow) continue;
+        } else {
+          // Existing imports keep their original first-row interpretation.
+          h = legacyHeaders.get(rec.source) ?? [];
+          if (!h.length) { legacyHeaders.set(rec.source, rec.cells.map(c => c.replace(/\s+/g, ' ').trim())); continue; }
+        }
         if (!h) {
-          headers.set(rec.source, rec.cells.map((c) => c.replace(/\s+/g, ' ').trim()));
           continue;
         }
-        const cells: Record<string, string> = {};
+        if (rec.cells.length > 200) throw new Error('FILE_TOO_MANY_COLUMNS');
+        if (rec.cells.every((c, i) => c.replace(/\s+/g, ' ').trim() === h[i])) continue; // repeated table heading
+        const cells: Record<string, string> = Object.create(null) as Record<string, string>;
         h.forEach((name, i) => { if (name && cells[name] === undefined) cells[name] = rec.cells[i] ?? ''; });
-        yield { rowRef: `${rec.source}:${rec.line}`, cells };
+        yield { rowRef: `${rec.source}:${rec.line}`, source: rec.source, cells };
       }
     } finally {
       await cleanup();
@@ -278,7 +357,7 @@ export class BrandImportsService {
     if (!imp || imp.status !== 'INSPECTING') return;
     try {
       const { file, extension, cleanup } = await this.localFile(imp);
-      const sources = new Map<string, BrandImportSourceOutline>();
+      const sources = new Map<string, BrandImportSourceOutline & { count: number }>();
       let total = 0;
       try {
         const encoding = ((imp.options as BrandImportOptions | null)?.encoding ?? 'auto') as 'auto' | 'utf-8' | 'windows-1256';
@@ -287,24 +366,41 @@ export class BrandImportsService {
           let s = sources.get(rec.source);
           if (!s) {
             const i = info.get(rec.source);
-            s = { name: rec.source, headers: rec.cells.map((c) => c.replace(/\s+/g, ' ').trim()), samples: [], encoding: i?.encoding ?? null, delimiter: i?.delimiter ?? null };
+            if (sources.size >= 500) throw new Error('FILE_TOO_MANY_SOURCES');
+            s = { name: rec.source, headers: [], samples: [], sampleRows: [], count: 0, encoding: i?.encoding ?? null, delimiter: i?.delimiter ?? null };
             sources.set(rec.source, s);
-            continue;
           }
-          total += 1;
-          if (s.samples.length < 5) s.samples.push(rec.cells.slice(0, 60).map((c) => c.slice(0, 120)));
+          if (rec.cells.length > 200) throw new Error('FILE_TOO_MANY_COLUMNS');
+          s.count++;
+          if (s.sampleRows!.length < 20) s.sampleRows!.push({ line: rec.line, cells: rec.cells.map(c => c.slice(0, 200)) });
         }
       } finally {
         await cleanup();
       }
-      const outline = [...sources.values()];
+      const outline = [...sources.values()].map(({ count, ...s }) => {
+        let selected = selectBrandHeader(s.sampleRows!);
+        const previous = (imp.options as BrandImportOptions | null)?.sources?.[s.name];
+        // A saved headerless layout keeps its first data row on re-import. A newly
+        // detected real header takes precedence, so a changed format still gets reviewed.
+        if (previous?.headerRow === 0 && selected.needsReview) selected = selectBrandHeader(s.sampleRows!, 0);
+        total += count - s.sampleRows!.filter(r => r.line <= selected.headerRow).length;
+        return { ...s, headers: selected.headers, headerRow: selected.headerRow, needsHeaderReview: selected.needsReview,
+          samples: s.sampleRows!.filter(r => r.line > selected.headerRow).slice(0, 5).map(r => r.cells) };
+      });
       const headers = this.headersOf(outline);
       if (!headers.length || total === 0) return void (await this.fail(id, 'NO_DATA_ROWS'));
       const profile = await this.prisma.brandImportProfile.findUnique({ where: { manufacturerBrandId_source: { manufacturerBrandId: imp.manufacturerBrandId, source: imp.source } } });
       const reused = profile ? reuseBrandMapping(profile.mapping as BrandMapping, headers) : { mapping: suggestBrandMapping(headers), missing: [] };
+      const priorOptions = (imp.options as BrandImportOptions | null) ?? DEFAULT_OPTIONS;
+      const sourceOptions = Object.fromEntries(outline.map(s => {
+        const prior = priorOptions.sources?.[s.name];
+        const perSource = reuseBrandMapping((prior?.mapping ?? reused.mapping) as BrandMapping, s.headers);
+        return [s.name, { enabled: prior?.enabled ?? true, headerRow: s.headerRow, mapping: perSource.mapping }];
+      }));
       await this.prisma.brandImport.update({
         where: { id },
-        data: { status: 'AWAITING_MAPPING', outline: outline as unknown as Prisma.InputJsonValue, mapping: reused.mapping, totalRows: total, stats: { missingColumns: reused.missing } },
+        data: { status: 'AWAITING_MAPPING', outline: outline as unknown as Prisma.InputJsonValue, mapping: reused.mapping,
+          options: { ...priorOptions, sources: sourceOptions }, totalRows: total, stats: { missingColumns: reused.missing } },
       });
     } catch (e) {
       this.logger.warn(`brand import ${id} inspect failed: ${e instanceof Error ? e.message : String(e)}`);
@@ -372,11 +468,12 @@ export class BrandImportsService {
         }
         batch = [];
       };
-      for await (const { rowRef, cells } of this.rows(imp)) {
+      for await (const { rowRef, source, cells } of this.rows(imp)) {
         stats.rows += 1;
-        const { values, issues } = applyBrandMapping(cells, mapping);
+        const rowMapping = (imp.options as BrandImportOptions | null)?.sources?.[source]?.mapping ?? mapping;
+        const { values, issues } = applyBrandMapping(cells, rowMapping as BrandMapping);
         const row: BrandImportPreviewRow = {
-          rowRef, state: 'ERROR', partNumber: values?.partNumber ?? (cells[mapping.partNumber?.[0] ?? ''] ?? '').slice(0, 80), nameFa: values?.nameFa ?? null,
+          rowRef, state: 'ERROR', partNumber: values?.partNumber ?? (cells[rowMapping.partNumber?.[0] ?? ''] ?? '').slice(0, 80), nameFa: values?.nameFa ?? null,
           equivalents: values?.equivalents.slice(0, 5) ?? [], fitments: values?.fitments.map((f) => (f.yearFrom ? `${f.text} (${f.yearFrom}-${f.yearTo})` : f.text)).slice(0, 5) ?? [],
           specs: values?.specs.map((s) => `${s.label}: ${s.value}`).slice(0, 5) ?? [], issues,
         };
@@ -409,75 +506,116 @@ export class BrandImportsService {
   }
 
   /** Imports every row, in batches of 500 (each batch one transaction), with progress. Safe to run again after a crash. */
+  private async beginRun(id: string) {
+    return this.prisma.tx(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "brand_import" WHERE "id" = ${id}::uuid FOR UPDATE`;
+      const imp = await tx.brandImport.findUnique({ where: { id } });
+      if (!imp || !['QUEUED', 'RUNNING'].includes(imp.status)) return null;
+      if (!runState(imp)) {
+        // An old RUNNING job may have committed products even when processedRows is zero.
+        // Only an untouched legacy queue entry is safe to initialize automatically.
+        const fresh = imp.status === 'QUEUED' && imp.processedRows === 0 &&
+          !(imp.stats as RunStats | null)?.runCheckpoint &&
+          await tx.brandImportChange.count({ where: { importId: id } }) === 0 &&
+          await tx.brandImportError.count({ where: { importId: id } }) === 0;
+        if (!fresh) {
+          await tx.brandImport.update({ where: { id }, data: { status: 'FAILED', finishedAt: new Date(), failureReason: 'IMPORT_RECOVERY_REVIEW_REQUIRED' } });
+          await this.audit.record(tx, { action: 'brand_import.failed', entityType: 'brand_import', entityId: id, actorKind: 'SYSTEM', after: { reason: 'IMPORT_RECOVERY_REVIEW_REQUIRED' } });
+          return null;
+        }
+        imp.stats = initialRunStats(imp.stats) as Prisma.JsonValue;
+      }
+      return tx.brandImport.update({ where: { id }, data: { status: 'RUNNING', stats: imp.stats as Prisma.InputJsonValue } });
+    });
+  }
+
   async run(id: string): Promise<void> {
-    const claimed = await this.prisma.brandImport.updateMany({ where: { id, status: { in: ['QUEUED', 'RUNNING'] } }, data: { status: 'RUNNING', startedAt: new Date() } });
-    if (claimed.count !== 1) return;
-    const imp = await this.prisma.brandImport.findUniqueOrThrow({ where: { id } });
+    const imp = await this.beginRun(id);
+    if (!imp) return;
     const mapping = imp.mapping as BrandMapping;
     const options = { ...DEFAULT_OPTIONS, ...((imp.options as object | null) ?? {}) } as BrandImportOptions;
-    const stats = { created: 0, updated: 0, unchanged: 0, duplicate: 0, error: 0, unknownVehicles: 0 };
+    const state = runState(imp)!;
+    let committed = imp.processedRows;
+    let committedHash = state.checkpoint.prefixHash;
     try {
       const lk = await this.lookups(imp.manufacturerBrandId);
-      await this.prisma.brandImportError.deleteMany({ where: { importId: id } });
       const seen = new Set<string>();
+      const prefix = createHash('sha256');
       let processed = 0;
-      let errorRows: Prisma.BrandImportErrorCreateManyInput[] = [];
-      let errorsSaved = 0;
-      const saveErrors = async () => {
-        if (!errorRows.length) return;
-        const room = Math.max(0, MAX_ERRORS - errorsSaved);
-        if (room) await this.prisma.brandImportError.createMany({ data: errorRows.slice(0, room) });
-        errorsSaved += Math.min(room, errorRows.length);
-        errorRows = [];
-      };
-      let batch: Array<{ rowRef: string; values: BrandRowValues }> = [];
+      let batch: RunBatch = { from: committed, to: committed, previousHash: committedHash, prefixHash: committedHash, rows: [], errors: [], duplicate: 0, error: 0 };
       const flush = async () => {
-        if (batch.length) {
-          const res = await this.applyBatch(imp.id, batch, lk, options);
-          stats.created += res.created;
-          stats.updated += res.updated;
-          stats.unchanged += res.unchanged;
-          stats.unknownVehicles += res.unknownVehicles.length;
-          for (const u of res.unknownVehicles) errorRows.push({ importId: id, rowRef: u.rowRef, partNumber: u.partNumber, codes: ['UNKNOWN_VEHICLE'], detail: u.text.slice(0, 300) });
-        }
-        batch = [];
-        await saveErrors();
-        await this.prisma.brandImport.update({ where: { id }, data: { processedRows: processed, stats: { ...((imp.stats as object | null) ?? {}), ...stats } } });
+        if (processed === committed) return;
+        batch.to = processed;
+        batch.prefixHash = prefix.copy().digest('hex');
+        if (!await this.applyBatch(imp.id, batch, lk, options)) throw new ImportRunMoved();
+        committed = processed;
+        committedHash = batch.prefixHash;
+        batch = { from: committed, to: committed, previousHash: committedHash, prefixHash: committedHash, rows: [], errors: [], duplicate: 0, error: 0 };
       };
-      for await (const { rowRef, cells } of this.rows(imp)) {
+      for await (const { rowRef, source, cells } of this.rows(imp)) {
         processed += 1;
-        const { values, issues } = applyBrandMapping(cells, mapping);
+        prefix.update(JSON.stringify([rowRef, source, cells]) + '\n');
+        const rowMapping = options.sources?.[source]?.mapping ?? mapping;
+        const { values, issues } = applyBrandMapping(cells, rowMapping as BrandMapping);
+        // Reconstruct duplicate detection from the original rows, never from mutable products.
+        if (processed <= imp.processedRows) {
+          if (values) seen.add(values.partNumberKey);
+          if (processed === imp.processedRows && prefix.copy().digest('hex') !== state.checkpoint.prefixHash) throw new Error('IMPORT_SOURCE_CHANGED');
+          continue;
+        }
         if (!values) {
-          stats.error += 1;
-          errorRows.push({ importId: id, rowRef, partNumber: (cells[mapping.partNumber?.[0] ?? ''] ?? '').slice(0, 120) || null, codes: issues });
-          continue;
+          batch.error += 1;
+          batch.errors.push({ importId: id, rowRef, partNumber: (cells[rowMapping.partNumber?.[0] ?? ''] ?? '').slice(0, 120) || null, codes: issues });
+        } else if (seen.has(values.partNumberKey)) {
+          batch.duplicate += 1;
+          batch.errors.push({ importId: id, rowRef, partNumber: values.partNumber.slice(0, 120), codes: ['DUPLICATE_IN_FILE'] });
+        } else {
+          seen.add(values.partNumberKey);
+          batch.rows.push({ rowRef, values });
         }
-        if (seen.has(values.partNumberKey)) {
-          stats.duplicate += 1;
-          errorRows.push({ importId: id, rowRef, partNumber: values.partNumber.slice(0, 120), codes: ['DUPLICATE_IN_FILE'] });
-          continue;
-        }
-        seen.add(values.partNumberKey);
-        batch.push({ rowRef, values });
-        if (batch.length >= BATCH) await flush();
+        // Bound batches by all input rows, including invalid rows and duplicates.
+        if (processed - committed >= BATCH) await flush();
       }
+      if (processed < imp.processedRows) throw new Error('IMPORT_SOURCE_CHANGED');
       await flush();
       await this.prisma.tx(async (tx) => {
-        await tx.brandImport.update({ where: { id }, data: { status: 'COMPLETED', finishedAt: new Date(), processedRows: processed, totalRows: processed, stats: { ...((imp.stats as object | null) ?? {}), ...stats } } });
-        await this.audit.record(tx, { action: 'brand_import.completed', entityType: 'brand_import', entityId: id, actorKind: 'SYSTEM', after: stats });
+        await tx.$queryRaw`SELECT "id" FROM "brand_import" WHERE "id" = ${id}::uuid FOR UPDATE`;
+        const current = await tx.brandImport.findUniqueOrThrow({ where: { id } });
+        const latest = runState(current);
+        if (current.status !== 'RUNNING' || current.processedRows !== committed || latest?.checkpoint.prefixHash !== committedHash) throw new ImportRunMoved();
+        await tx.brandImport.update({ where: { id }, data: { status: 'COMPLETED', finishedAt: new Date(), totalRows: processed } });
+        await this.audit.record(tx, { action: 'brand_import.completed', entityType: 'brand_import', entityId: id, actorKind: 'SYSTEM', after: latest.stats });
       });
       this.publicCache.invalidate();
     } catch (e) {
-      this.logger.warn(`brand import ${id} run failed: ${e instanceof Error ? e.message : String(e)}`);
-      // Batches already written stay (each is complete), and the import can be undone as usual.
-      await this.prisma.brandImport.update({ where: { id }, data: { status: 'COMPLETED', finishedAt: new Date(), failureReason: 'STOPPED_WITH_ERROR', stats: { ...((imp.stats as object | null) ?? {}), ...stats } } });
+      // A stale delivery must not acknowledge an active winner to the outbox, nor fail its job.
+      if (e instanceof ImportRunMoved) throw e;
+      this.logger.warn(`brand import ${id} run failed`);
+      const recorded = await this.prisma.tx(async (tx) => {
+        await tx.$queryRaw`SELECT "id" FROM "brand_import" WHERE "id" = ${id}::uuid FOR UPDATE`;
+        const current = await tx.brandImport.findUniqueOrThrow({ where: { id } });
+        const latest = runState(current);
+        // An uncertain commit may have succeeded after the caller lost its connection.
+        // Leave that checkpoint recoverable and let outbox retry, preserving durable stats.
+        if (current.status !== 'RUNNING' || current.processedRows !== committed || latest?.checkpoint.prefixHash !== committedHash) return false;
+        await tx.brandImport.update({ where: { id }, data: { status: 'FAILED', finishedAt: new Date(), failureReason: 'STOPPED_WITH_ERROR' } });
+        await this.audit.record(tx, { action: 'brand_import.failed', entityType: 'brand_import', entityId: id, actorKind: 'SYSTEM', after: latest.stats });
+        return true;
+      });
       this.publicCache.invalidate();
+      if (!recorded) throw e;
     }
   }
 
   /** One batch: new parts are created in bulk; existing parts only get technical information completed. */
-  private async applyBatch(importId: string, rows: Array<{ rowRef: string; values: BrandRowValues }>, lk: Lookups, options: BrandImportOptions) {
+  private async applyBatch(importId: string, batch: RunBatch, lk: Lookups, options: BrandImportOptions) {
     return this.prisma.tx(async (tx) => {
+      // Compare-and-advance is inside the product/error transaction. A stale delivery writes nothing.
+      await tx.$queryRaw`SELECT "id" FROM "brand_import" WHERE "id" = ${importId}::uuid FOR UPDATE`;
+      const imp = await tx.brandImport.findUniqueOrThrow({ where: { id: importId } });
+      const state = runState(imp);
+      if (imp.status !== 'RUNNING' || imp.processedRows !== batch.from || state?.checkpoint.prefixHash !== batch.previousHash) return false;
+      const rows = batch.rows;
       const keys = rows.map((r) => r.values.partNumberKey);
       const existing = await tx.product.findMany({
         where: { manufacturerBrandId: lk.makerId, partNumberKey: { in: keys } },
@@ -560,7 +698,7 @@ export class BrandImportsService {
         for (const n of other) numbers.push({ ...n, productId });
         for (const veh of vehicles) links.push({ ...veh, productId });
         if (vehicleBrandId) brandLinks.push({ productId, vehicleBrandId });
-        changes.push({ importId, productId, action: 'CREATED' });
+        changes.push({ importId, productId, action: 'CREATED', before: { rollbackVersion: 0 } });
       }
       if (products.length) {
         await tx.product.createMany({ data: products });
@@ -576,6 +714,10 @@ export class BrandImportsService {
       let unchanged = 0;
       for (const r of rows.filter((x) => !freshKeys.has(x.values.partNumberKey) && byKey.has(x.values.partNumberKey))) {
         const p = byKey.get(r.values.partNumberKey)!;
+        // A retry must not refresh a part again or replace its original undo checkpoint.
+        if (p.brandImportChanges.length) { unchanged += 1; continue; }
+        const [locked] = await tx.$queryRaw<Array<{ version: number }>>`SELECT "version" FROM "product" WHERE "id" = ${p.id}::uuid FOR UPDATE`;
+        if (locked?.version !== p.version) throw conflict('VERSION_CONFLICT', 'The part changed while it was being imported');
         const v = r.values;
         const fa = p.translations.find((t) => t.locale === 'fa');
         const en = p.translations.find((t) => t.locale === 'en');
@@ -628,13 +770,27 @@ export class BrandImportsService {
           changed = true;
         }
         if (!changed) { unchanged += 1; continue; }
-        if (Object.keys(data).length) await tx.product.update({ where: { id: p.id }, data: { ...data, version: { increment: 1 } } });
+        // Relation-only changes must also advance the version used by the editor and undo.
+        const applied = await tx.product.updateMany({ where: { id: p.id, version: p.version }, data: { ...data, version: { increment: 1 } } });
+        if (applied.count !== 1) throw conflict('VERSION_CONFLICT', 'The part changed while it was being imported');
         // The state before this import's first change to the part (a rerun after a crash keeps the original).
-        if (!p.brandImportChanges.length) await tx.brandImportChange.create({ data: { importId, productId: p.id, action: 'UPDATED', before: before as unknown as Prisma.InputJsonValue } });
+        await tx.brandImportChange.create({ data: { importId, productId: p.id, action: 'UPDATED', before: { ...before, rollbackVersion: p.version + 1 } as unknown as Prisma.InputJsonValue } });
         await rebuildProductSearch(tx, p.id);
         updated += 1;
       }
-      return { created: products.length, updated, unchanged, unknownVehicles };
+      const errors = [...batch.errors, ...unknownVehicles.map(u => ({ importId, rowRef: u.rowRef, partNumber: u.partNumber, codes: ['UNKNOWN_VEHICLE'], detail: u.text.slice(0, 300) }))];
+      const saved = errors.slice(0, Math.max(0, MAX_ERRORS - state.checkpoint.errorsSaved));
+      if (saved.length) await tx.brandImportError.createMany({ data: saved });
+      const stats: RunCounters = {
+        created: state.stats.created + products.length, updated: state.stats.updated + updated, unchanged: state.stats.unchanged + unchanged,
+        duplicate: state.stats.duplicate + batch.duplicate, error: state.stats.error + batch.error,
+        unknownVehicles: state.stats.unknownVehicles + unknownVehicles.length,
+      };
+      await tx.brandImport.update({ where: { id: importId }, data: {
+        processedRows: batch.to, stats: { ...((imp.stats as object | null) ?? {}), ...stats,
+          runCheckpoint: { version: 1, prefixHash: batch.prefixHash, errorsSaved: state.checkpoint.errorsSaved + saved.length } },
+      } });
+      return true;
     }, { timeoutMs: 300_000 });
   }
 
@@ -646,42 +802,49 @@ export class BrandImportsService {
   }
 
   /**
-   * «برگرداندن این ورود»: parts it created are deleted (or archived when they were sold, priced,
-   * stocked or photographed meanwhile); parts it updated get their technical fields back.
+   * Undo only untouched parts. Later edits and business use are preserved and reported.
+   * The import row serializes retries; consuming each change and saving progress are atomic.
    */
   async undo(id: string): Promise<void> {
     const imp = await this.prisma.brandImport.findUnique({ where: { id } });
     if (!imp || imp.status !== 'ROLLING_BACK') return;
-    const result = { deleted: 0, archived: 0, restored: 0 };
     for (;;) {
-      const changes = await this.prisma.brandImportChange.findMany({ where: { importId: id }, take: BATCH, orderBy: { createdAt: 'asc' } });
-      if (!changes.length) break;
-      await this.prisma.tx(async (tx) => {
+      const finished = await this.prisma.tx(async (tx) => {
+        await tx.$queryRaw`SELECT "id" FROM "brand_import" WHERE "id" = ${id}::uuid FOR UPDATE`;
+        const current = await tx.brandImport.findUniqueOrThrow({ where: { id } });
+        if (current.status !== 'ROLLING_BACK') return true;
+        const stats = (current.stats ?? {}) as BrandImportStats;
+        const result = { deleted: stats.deleted ?? 0, restored: stats.restored ?? 0, preserved: stats.preserved ?? 0 };
+        const changes = await tx.brandImportChange.findMany({ where: { importId: id }, take: BATCH, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] });
+        if (!changes.length) {
+          await tx.brandImport.update({ where: { id }, data: { status: 'ROLLED_BACK', rolledBackAt: new Date() } });
+          await this.audit.record(tx, { action: 'brand_import.rolled_back', entityType: 'brand_import', entityId: id, actorKind: 'SYSTEM', after: result });
+          return true;
+        }
         await tx.$executeRaw`SET LOCAL hedax.allow_product_delete = 'on'`;
         for (const c of changes) {
-          if (c.action === 'CREATED') {
-            const p = await tx.product.findUnique({
+          await tx.$queryRaw`SELECT "id" FROM "product" WHERE "id" = ${c.productId}::uuid FOR UPDATE`;
+          const p = await tx.product.findUnique({
               where: { id: c.productId },
               select: {
-                id: true, basePrice: { select: { id: true } },
+                id: true, version: true, basePrice: { select: { id: true } },
                 _count: { select: { orderItems: true, cartItems: true, media: true, priceRules: true, movements: true, reservations: true } },
                 inventory: { select: { onHand: true } },
               },
-            });
-            if (!p) continue;
-            const used = p.basePrice || Object.values(p._count).some((n) => n > 0) || p.inventory.some((i) => i.onHand !== 0);
-            if (used) {
-              await tx.product.update({ where: { id: p.id }, data: { archivedAt: new Date(), published: false, partNumberKey: null, sourceBrandImportId: null, version: { increment: 1 } } });
-              result.archived += 1;
-            } else {
-              await tx.brandImportChange.deleteMany({ where: { productId: p.id } });
+          });
+          const b = c.before as unknown as Snapshot | null;
+          const used = p && c.action === 'CREATED' && (p.basePrice || Object.values(p._count).some((n) => n > 0) || p.inventory.some((i) => i.onHand !== 0));
+          if (p && (b?.rollbackVersion === undefined || p.version !== b.rollbackVersion || used)) {
+            result.preserved += 1;
+            await tx.brandImportError.create({ data: {
+              importId: id, rowRef: `rollback:${p.id}`, codes: ['ROLLBACK_PRESERVED'],
+              detail: b?.rollbackVersion === undefined ? 'Legacy import has no safe undo checkpoint' : 'Part changed or entered commerce after import',
+            } });
+          } else if (p && c.action === 'CREATED') {
               await tx.inventoryBalance.deleteMany({ where: { productId: p.id } });
               await tx.product.delete({ where: { id: p.id } });
               result.deleted += 1;
-            }
-          } else {
-            const b = c.before as unknown as Snapshot | null;
-            if (b) {
+          } else if (p && b) {
               await tx.product.update({ where: { id: c.productId }, data: { specs: (b.specs ?? []) as Prisma.InputJsonValue, categoryId: b.categoryId, ...(b.partNumberKey === null ? { partNumber: null, partNumberKey: null } : {}), version: { increment: 1 } } });
               if (b.nameFa !== null) await tx.productTranslation.updateMany({ where: { productId: c.productId, locale: 'fa' }, data: { name: b.nameFa, description: b.descriptionFa } });
               if (b.nameEn === null) await tx.productTranslation.deleteMany({ where: { productId: c.productId, locale: 'en' } });
@@ -694,17 +857,15 @@ export class BrandImportsService {
               if (b.vehicleBrandIds.length) await tx.productVehicleBrand.createMany({ data: b.vehicleBrandIds.map((vehicleBrandId) => ({ productId: c.productId, vehicleBrandId })) });
               await rebuildProductSearch(tx, c.productId);
               result.restored += 1;
-            }
-            await tx.brandImportChange.delete({ where: { id: c.id } });
           }
+          // Also consume preserved/missing records. Otherwise the next batch repeats forever.
+          await tx.brandImportChange.deleteMany({ where: { id: c.id } });
         }
-        await tx.brandImport.update({ where: { id }, data: { stats: { ...((imp.stats as object | null) ?? {}), ...result } } });
+        await tx.brandImport.update({ where: { id }, data: { stats: { ...stats, ...result } } });
+        return false;
       }, { timeoutMs: 300_000 });
+      if (finished) break;
     }
-    await this.prisma.tx(async (tx) => {
-      await tx.brandImport.update({ where: { id }, data: { status: 'ROLLED_BACK', rolledBackAt: new Date(), stats: { ...((imp.stats as object | null) ?? {}), ...result } } });
-      await this.audit.record(tx, { action: 'brand_import.rolled_back', entityType: 'brand_import', entityId: id, actorKind: 'SYSTEM', after: result });
-    });
     this.publicCache.invalidate();
   }
 }

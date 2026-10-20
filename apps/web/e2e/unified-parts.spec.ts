@@ -120,4 +120,87 @@ test.describe('panel: one place for parts', () => {
     await page.goto('/fa/admin/products');
     await expect(page.getByRole('link', { name: 'ورود گروهی قطعه' })).toHaveAttribute('href', '/fa/admin/brand-imports');
   });
+
+  test('workbook mapping keeps source choices separate and requires every included sheet to have a part number', async ({ page }) => {
+    const id = '00000000-0000-7000-8000-00000000b102';
+    const modern = 'modern.xlsx / Parts';
+    const legacy = 'legacy.xls / Parts';
+    const modernRows = [{ line: 1, cells: ['Supplier title'] }, { line: 2, cells: ['Part No', 'Name'] }, { line: 3, cells: ['000001', 'Sample part'] }];
+    const legacyRows = [{ line: 1, cells: ['000002', 'Other sample'] }, { line: 2, cells: ['000003', 'Third sample'] }];
+    await page.route(`**/api/v1/admin/brand-imports/${id}`, async route => {
+      const response = await route.fetch();
+      const view = await response.json();
+      view.outline = [
+        { name: modern, headers: ['Part No', 'Name'], headerRow: 2, samples: [['000001', 'Sample part']], sampleRows: modernRows, encoding: null, delimiter: null },
+        { name: legacy, headers: ['000002', 'Other sample'], headerRow: 1, needsHeaderReview: true, samples: [['000003', 'Third sample']], sampleRows: legacyRows, encoding: null, delimiter: null },
+      ];
+      view.options.sources = {
+        [modern]: { enabled: true, headerRow: 2, mapping: { partNumber: ['Part No'], nameEn: ['Name'] } },
+        [legacy]: { enabled: true, headerRow: 1, mapping: {} },
+      };
+      await route.fulfill({ response, json: view });
+    });
+    await page.goto(`/fa/admin/brand-imports?id=${id}`);
+    const save = page.getByRole('button', { name: 'ذخیرهٔ ستون‌ها و پیش‌نمایش' });
+    await expect(save).toBeDisabled();
+    await page.locator('#bi-source').selectOption(legacy);
+    await page.locator('#bi-header-row').selectOption('0');
+    await page.locator('#bi-partNumber').selectOption('Column 1');
+    await page.locator('#bi-nameEn').selectOption('Column 2');
+    await expect(save).toBeEnabled();
+    await page.locator('#bi-source').selectOption(modern);
+    await expect(page.locator('#bi-partNumber')).toHaveValue('Part No');
+    await expect(page.locator('#bi-header-row')).toHaveValue('2');
+    await page.locator('#bi-source').selectOption(legacy);
+    await expect(page.locator('#bi-partNumber')).toHaveValue('Column 1');
+    await page.locator('#bi-source-enabled').uncheck();
+    await expect(save).toBeEnabled();
+    await page.locator('#bi-source').selectOption(modern);
+    await page.locator('#bi-source-enabled').uncheck();
+    await expect(save).toBeDisabled();
+    await page.locator('#bi-source-enabled').check();
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(save).toBeEnabled();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await page.screenshot({ path: 'test-results/workbook-mapping-fa-mobile.png', fullPage: true });
+  });
+
+  test('legacy multi-source mapping saves independent columns and exclusions without header samples', async ({ page }) => {
+    const id = '00000000-0000-7000-8000-00000000b102';
+    await page.route(`**/api/v1/admin/brand-imports/${id}`, async route => {
+      const response = await route.fetch();
+      const view = await response.json();
+      view.outline = [
+        { name: 'one.csv', headers: ['Part No', 'Name'], samples: [['000001', 'first']] },
+        { name: 'two.csv', headers: ['Code', 'Description'], samples: [['000002', 'second']] },
+        { name: 'excluded.csv', headers: ['Other'], samples: [['skip']] },
+      ];
+      view.mapping = { partNumber: ['Part No'], nameEn: ['Name'] };
+      delete view.options.sources;
+      await route.fulfill({ response, json: view });
+    });
+    await page.route(`**/api/v1/admin/brand-imports/${id}/mapping`, route => route.fulfill({ json: { status: 'PREVIEWING' } }));
+    await page.goto(`/fa/admin/brand-imports?id=${id}`);
+    const save = page.getByRole('button', { name: 'ذخیرهٔ ستون‌ها و پیش‌نمایش' });
+    await expect(save).toBeDisabled();
+    await expect(page.locator('#bi-header-row')).toHaveCount(0);
+    await expect(page.getByText('عنوان ستون‌ها قبلاً خوانده شده است.', { exact: false })).toBeVisible();
+    await page.locator('#bi-source').selectOption('two.csv');
+    await page.locator('#bi-partNumber').selectOption('Code');
+    await page.locator('#bi-nameEn').selectOption('Description');
+    await page.locator('#bi-source').selectOption('excluded.csv');
+    await page.locator('#bi-source-enabled').uncheck();
+    await page.locator('#bi-source').selectOption('one.csv');
+    await expect(page.locator('#bi-partNumber')).toHaveValue('Part No');
+    await expect(save).toBeEnabled();
+    await page.setViewportSize({ width: 390, height: 844 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    const request = page.waitForRequest(r => r.url().endsWith(`/${id}/mapping`) && r.method() === 'PUT');
+    await save.click();
+    expect((await request).postDataJSON().options.sources).toEqual({
+      'one.csv': { enabled: true, headerRow: 1, mapping: { partNumber: ['Part No'], nameEn: ['Name'] } },
+      'two.csv': { enabled: true, headerRow: 1, mapping: { partNumber: ['Code'], nameEn: ['Description'], description: ['Description'] } },
+      'excluded.csv': { enabled: false, headerRow: 1, mapping: {} },
+    });
+  });
 });

@@ -151,6 +151,23 @@ describe('products, «مناسب برای», filter and search', () => {
     }
   });
 
+  it('unknown, inactive and unscoped model filters never broaden compatibility', async () => {
+    const v = await owner.post<any>('/admin/vehicles', { name: `Compatibility ${run}` });
+    const m = await owner.post<any>(`/admin/vehicles/${v.body.id}/models`, { name: `Trim ${run}` });
+    const list = (await owner.get<any>('/admin/vehicles')).body.vehicles.find((x: any) => x.id === v.body.id);
+    const modelSlug = list.models.find((x: any) => x.id === m.body.id).slug;
+    await createProduct(owner, { sku: `FIT-GENERAL-${run}`, nameFa: 'Whole vehicle', onHand: 1, vehicles: [{ vehicleId: v.body.id, modelId: null }] });
+    await createProduct(owner, { sku: `FIT-MODEL-${run}`, nameFa: 'Specific model', onHand: 1, vehicles: [{ vehicleId: v.body.id, modelId: m.body.id }] });
+    expect(await slugsOf(`vehicle=${list.slug}&model=${modelSlug}`)).toEqual(expect.arrayContaining([`FIT-GENERAL-${run}`, `FIT-MODEL-${run}`]));
+    expect(await slugsOf(`vehicle=${list.slug}&model=missing-model`)).toEqual([]);
+    expect(await slugsOf(`model=${modelSlug}`)).toEqual([]);
+    expect((await owner.patch(`/admin/vehicles/${v.body.id}/models/${m.body.id}`, { active: false })).status).toBe(200);
+    expect(await slugsOf(`vehicle=${list.slug}&model=${modelSlug}`)).toEqual([]);
+    const vehicleOnly = await slugsOf(`vehicle=${list.slug}`);
+    expect(vehicleOnly).toContain(`FIT-GENERAL-${run}`);
+    expect(vehicleOnly).not.toContain(`FIT-MODEL-${run}`);
+  });
+
   it('merges a duplicate: its products and models move over (same model joined), the duplicate is deleted', async () => {
     const dup = await owner.post<any>('/admin/vehicles', { name: `پژو تکراری ${run}` });
     const dupModel = await owner.post<any>(`/admin/vehicles/${dup.body.id}/models`, { name: `206 ${run}` });

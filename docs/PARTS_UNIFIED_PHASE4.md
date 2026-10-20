@@ -8,9 +8,13 @@ Phase 3 had two kinds of part: the shop product and the technical catalog entry 
 
 Staff guide (Persian): [STAFF_GUIDE_PARTS.md](STAFF_GUIDE_PARTS.md).
 
+Current upgrade evidence and open release blockers (2026-10-19):
+[SOURCE_UPGRADE_AUDIT.md](SOURCE_UPGRADE_AUDIT.md). This architectural description
+and its historical measurements do not establish the current production state.
+
 ## Data model
 
-Both migrations are additive. Nothing is dropped. The old `catalog_entry*` tables stay as they are, read only, and are dropped in the **next** release after the check below passes on production.
+Both migrations are additive. Nothing is dropped. The old `catalog_entry*` tables remain retained. Any later removal needs a separate reviewed retention/migration decision and explicit production approval; a successful verification does not authorize deletion.
 
 ### `20261018090000_unified_parts`
 
@@ -62,13 +66,14 @@ Moves each catalog entry into a part:
   - parts without a group go to the new group «سایر قطعات» (`OTHER`).
 - Every entry gets a `catalog_entry_migration` row.
 
-**After deploy, run the check:**
+**Migration verification/repair command (requires authorization on production):**
 
 ```
 docker compose run --rm api node dist/cli/verify-catalog-migration.js
 ```
 
-The script:
+This is not a read-only check. Confirm the target and follow the
+[upgrade runbook](SOURCE_UPGRADE_RUNBOOK.md) before running it. The script:
 
 - compares every entry with its part: number, other numbers, fitment, vehicle brands, photos, published state and Persian name;
 - rebuilds the search text of migrated parts;
@@ -154,22 +159,32 @@ The script:
 | `GET /`, `GET /:id` | History; one import with outline, mapping, preview, stats and progress. |
 | `PUT /:id/mapping` | `{ mapping, options }`. The mapping is saved for the maker + source, then the preview is queued. |
 | `POST /:id/start` | Queues the import (only from `PREVIEW_READY`). |
-| `POST /:id/rollback` | «برگرداندن این ورود». Only the latest finished import of a maker. |
+| `POST /:id/rollback` | «برگرداندن این ورود». Only the latest started, eligible import of a maker; a failed partial run can qualify. |
 | `GET /:id/errors.csv` | Error report (UTF-8 with BOM). |
 
 **Files and columns**
 
-- **File types:** xlsx, csv, or a zip of csv files.
-- **xlsx reading:** our own zip reader opens the file by entry name. It reads the sheet list, links and shared strings first, then streams each sheet with backpressure through ExcelJS's sheet parser. ExcelJS's whole-file streaming walks the zip in file order and, when a sheet comes before the shared strings (as in files saved by Excel), sometimes lost entries: cells came back empty or the read crashed. Measured: 200,000 rows in 3 s. The zip reader has its own guard against zip bombs.
+- **File types:** XLSX, genuine OLE/BIFF XLS, CSV, or ZIP containing those formats. Uploads are limited to 150 MiB and individual legacy XLS files to 32 MiB. Nested ZIP and XLSM/XLSB are unsupported. See [reader limits and sample evidence](IMPORT_WORKBOOKS.md).
+- **XLSX reading:** our own ZIP reader opens the file by entry name. It reads sheet links, shared strings and styles before streaming each sheet with backpressure through ExcelJS's sheet parser. This avoids dependence on ZIP entry order. Explicit simple zero-padding formats are preserved. The former 200,000-row/3-second measurement is historical and was not repeated for this change.
+- **XLS reading:** pinned official SheetJS CE in a worker thread, bounded batches, heap limits and reader-response timeout. Formulas/macros are not executed. See [the architecture decision](ADR_BRAND_WORKBOOK_IMPORT.md).
 - **Encoding:** csv may be UTF-8 or Windows-1256 (detected, or chosen by the user). With Windows-1256, Arabic ي/ك become Persian ی/ک.
-- **Column mapping:** suggested from the header names (`suggestBrandMapping`). Equivalents, replacements, fitment and specs may each use several columns; fitment columns are combined.
+- **Column mapping:** suggested from header names (`suggestBrandMapping`), with separate inclusion/header/mapping choices for each source. Inspect retains the first 20 nonempty rows for selecting a header; `headerRow: 0` means no header. Equivalents, replacements, fitment and specs may each use several columns; fitment columns are combined. Price/stock columns are not commercial inputs.
+- **Compatibility:** `options.sources` and outline sample/header fields are additive JSON metadata; no new schema migration. Old outlines retain first-row behavior and the shared mapping fallback. API and worker versions must still be coordinated; old workers do not implement the new source choices.
 
 **Worker steps** (outbox → BullMQ)
 
-1. `brand-import.inspect`: reads headers, samples and the row count; reuses the saved mapping.
+1. `brand-import.inspect`: reads bounded samples and row counts, suggests a header for each source and reuses available saved mappings. Staff must review them.
 2. `brand-import.preview`: counts new / update / duplicate / error, with sample rows.
 3. `brand-import.run`: works in batches of 500 and updates progress.
 4. `brand-import.rollback`: undo.
+
+Interrupted `run` recovery now commits counters/errors and a versioned prefix
+checkpoint with each product batch. Recovery rebuilds duplicate detection from
+the committed input prefix without writing those products again. Stale deliveries
+are rejected under the import-row lock; old RUNNING jobs without a valid
+checkpoint require review. Seven recovery tests pass alongside suites 91/93/94.
+See audit **IMP-07**. The per-product undo checkpoint remains distinct from this
+input-resume metadata in `stats.runCheckpoint`.
 
 **Update rules**
 
@@ -183,9 +198,11 @@ The script:
 
 **Undo**
 
-- Deletes the parts the import created.
-- A part that was ordered, priced or photographed in the meantime is archived instead of deleted.
-- Restores every updated part from its snapshot.
+- Deletes untouched new parts only when they have no commercial use.
+- Preserves later edits, priced/stocked/used/photographed parts and legacy records lacking an undo version checkpoint, without unpublishing them. Reports their IDs and reasons in the CSV report.
+- Restores updated parts only when their product version still matches the checkpoint. Relation-only import updates also increment that version.
+- The checkpoint is additive metadata in the existing `brand_import_change.before` JSON; no schema migration is needed. Older imports are preserved conservatively.
+- Failed partial imports remain `FAILED` (with an audit event), and can be undone. Only the latest **started** import can be undone. Imports and undo for the same maker are serialized.
 
 **Infrastructure**
 
@@ -193,6 +210,9 @@ The script:
 - The ClamAV service rewrites `StreamMaxLength 160M`, `MaxFileSize 160M` and `MaxScanSize 400M` at start, so a 150 MB stream is scanned instead of cut off.
 
 ## Search speed (300,000 parts)
+
+Historical Phase 4 measurements, retained for reference. They were not rerun for
+the current upgrade and are not a before/after comparison or production SLO.
 
 `apps/api/test/integration/99-search-benchmark.test.ts`, run on demand with `HEDAX_BENCH=1`:
 

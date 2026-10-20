@@ -1,7 +1,28 @@
 import { describe, expect, it } from 'vitest';
-import { CsvStreamParser, applyBrandMapping, brandMappingProblems, detectDelimiter, detectEncoding, reuseBrandMapping, suggestBrandMapping } from '../src/index.js';
+import { CsvStreamParser, applyBrandMapping, brandColumnHeaders, brandMappingProblems, detectDelimiter, detectEncoding, reuseBrandMapping, selectBrandHeader, suggestBrandMapping } from '../src/index.js';
 
 describe('brand import: column mapping', () => {
+  it('detects a Persian header after a title, without mapping old prices or requested quantities', () => {
+    const rows = [
+      { line: 1, cells: ['Historical supplier list'] },
+      { line: 2, cells: ['تعداد درخواستی', 'قيمت (ریال)', 'نام كالا', 'كد كالا', 'رديف'] },
+      { line: 3, cells: ['', '12345', 'قطعه نمونه', '00123', '1'] },
+    ];
+    const selected = selectBrandHeader(rows);
+    expect(selected).toMatchObject({ headerRow: 2, needsReview: false });
+    expect(suggestBrandMapping(selected.headers)).toEqual({ partNumber: ['كد كالا'], nameFa: ['نام كالا'] });
+  });
+
+  it('does not mistake OEM in a data row for a header; supports explicit headerless columns', () => {
+    const rows = [{ line: 1, cells: ['', '', 'Vehicle title'] }, { line: 3, cells: ['OEM', '00123', 'part', '4'] }];
+    expect(selectBrandHeader(rows)).toMatchObject({ headerRow: 1, needsReview: true });
+    expect(selectBrandHeader(rows, 0)).toEqual({ headerRow: 0, headers: ['Column 1', 'Column 2', 'Column 3', 'Column 4'], needsReview: false });
+    expect(() => selectBrandHeader(rows, 2)).toThrow('HEADER_ROW_NOT_IN_SAMPLE');
+  });
+
+  it('keeps empty and duplicate header columns distinct', () => {
+    expect(brandColumnHeaders(['', 'Code', 'Code', 'Code [2]'])).toEqual(['Column 1', 'Code', 'Code [2]', 'Code [2] [2]']);
+  });
   const headers = ['Part No', 'Description', 'OE Number', 'Interchange', 'Superseded By', 'Model', 'Engine', 'Years', 'Weight', 'Width', 'Make'];
 
   it('suggests fields from header names; several columns may go to equivalents, fitment and specs', () => {

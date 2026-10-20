@@ -1,0 +1,61 @@
+# Isolated Preview overlay. Use only with infra/preview.env.example copied to a
+# protected Preview-only env file, and only on a separate host/ingress from
+# Production. The distinct Compose project name namespaces the network and all
+# named volumes (PostgreSQL, Redis, storage, Caddy) as hedax-preview_*.
+#
+# This overlay intentionally keeps the base stack's 80/443 bindings. Do not use
+# it on a host where Production Caddy already owns those ports.
+#
+# docker compose -f infra/docker-compose.yml -f infra/docker-compose.preview.yml \
+#   --env-file /protected/hedax-preview.env up -d --build
+name: hedax-preview
+
+services:
+  api:
+    environment:
+      APP_ENV: staging
+      STORAGE_DRIVER: local
+      PUBLIC_MEDIA_BASE_URL: /media
+      OPENAPI_ENABLED: "false"
+      PAYMENT_PROVIDER: none
+      SMS_PROVIDER: none
+      MAIL_PROVIDER: none
+      TELEGRAM_BOT_TOKEN: ""
+      TELEGRAM_WEBHOOK_SECRET: ""
+      BALE_BOT_TOKEN: ""
+      BALE_WEBHOOK_SECRET: ""
+
+  worker:
+    environment:
+      APP_ENV: staging
+      STORAGE_DRIVER: local
+      PUBLIC_MEDIA_BASE_URL: /media
+      PAYMENT_PROVIDER: none
+      SMS_PROVIDER: none
+      MAIL_PROVIDER: none
+      TELEGRAM_BOT_TOKEN: ""
+      TELEGRAM_WEBHOOK_SECRET: ""
+      BALE_BOT_TOKEN: ""
+      BALE_WEBHOOK_SECRET: ""
+
+  tools:
+    environment:
+      APP_ENV: staging
+      STORAGE_DRIVER: local
+      PUBLIC_MEDIA_BASE_URL: /media
+      PAYMENT_PROVIDER: none
+      SMS_PROVIDER: none
+      MAIL_PROVIDER: none
+      TELEGRAM_BOT_TOKEN: ""
+      TELEGRAM_WEBHOOK_SECRET: ""
+      BALE_BOT_TOKEN: ""
+      BALE_WEBHOOK_SECRET: ""
+
+  caddy:
+    environment:
+      HEDAX_DOMAIN: ${HEDAX_DOMAIN:?set HEDAX_DOMAIN (preview hostname)}
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL (Preview TLS contact)}
+      PREVIEW_BASIC_AUTH_USER: ${PREVIEW_BASIC_AUTH_USER:?set Preview access user}
+      PREVIEW_BASIC_AUTH_HASH: ${PREVIEW_BASIC_AUTH_HASH:?set Preview access password hash}
+    volumes:
+      - ./caddy/Caddyfile.preview:/etc/caddy/Caddyfile:ro

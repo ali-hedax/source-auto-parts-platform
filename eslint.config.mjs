@@ -14,6 +14,7 @@ export default defineConfig([
     '**/generated/**',
     '**/coverage/**',
     '**/*.d.ts',
+    '.local-run/**', // Git-ignored runtime files and private one-off diagnostics, not project source.
     'apps/api/.local-pg/**',
     'apps/api/storage/**',
     'apps/web/playwright-report/**',
