@@ -1,7 +1,7 @@
-# PR #28 release readiness — 2026-10-19
+# PR #28 release readiness — 2026-10-20
 
-**Production release: not ready.** The PR remains Draft and unmerged. No preview
-deployment, production operation, migration or supplier database import was made.
+**Production release: candidate build and final owner approval pending.** The PR remains Draft and unmerged. This session performed preparation only; no preview or production deployment,
+service/configuration change, migration or supplier database import was made.
 See [PROGRESS](../PROGRESS.md) for the exact inspected Git head and CI run.
 
 ## Remaining acceptance scope
@@ -45,24 +45,60 @@ pauses during downstream consumption, not a total job wall-clock deadline.
 - Fixture browser acceptance and disposable-database API tests do not constitute
   acceptance of a publicly deployed Preview.
 
-## Unresolved release gates
+## Production preflight — 2026-10-20
 
-1. **Blocked External — Preview identity/isolation.** The local DNS check for
-   `preview.sourcebyhedax.ir` returned `DNS_ERROR_RCODE_NAME_ERROR`. This is the
-   observed resolver result, not proof of global availability or isolation. No
-   confirmed preview deployment/separation configuration was found in the
-   inspected repository infrastructure/scripts. The owner was asked for a current
-   URL and nonsecret deployment/isolation guide. DB, Redis/queue, storage and
-   simulator-provider separation must be established before any write test.
-2. **Blocked External — deployed acceptance.** After isolation is established,
-   verify the exact reviewed commit with matching API/worker, readiness/auth,
-   synthetic import preview/run/report/Undo and catalog results. Record the
-   environment and approval evidence without credentials or raw supplier rows.
-3. **Requires Owner Decision — target release.** Establish target deployed
-   version/migration state, a current database/private-file backup and restore/
-   rollback plan, coordinated API/worker rollout with old jobs drained, and owner
-   review/explicit approval. The synthetic TEST-02 drill does not certify a
-   production backup. No release permission is implied by passing CI.
+The owner prefers a direct Production release; provisioning Preview is no longer
+the next requested action. No publicly deployed Preview acceptance is claimed.
+The current authorization covers preparation and recovery verification. The
+reviewed merge and live rollout still require explicit final approval after the
+concrete changes, risks and rollback have been presented.
+
+1. **Completed & Tested — deployed baseline/schema.** The inspected deployed Git
+   tree equals the PR base. All 18 installed migrations are complete and their
+   checksums match the reviewed files; this PR adds no schema migration. Current
+   API/worker configuration comparisons and two compiled-module hashes match.
+   Services are healthy and no brand imports or active event jobs were present
+   in the fresh pre-backup observation. Recheck/drain immediately before rollout.
+2. **Completed & Tested — actual complete backup.** The new target backup contains
+   PostgreSQL, all 18 private and 49 public S3 objects, local files and recovery
+   configuration. Database row counts and pg_dump used one exported read-only
+   snapshot. Download-based S3 content checks passed; before/after inventories
+   matched. No private data, credentials, dump or archive is committed.
+3. **Completed & Tested — actual decryption/isolated recovery.** A separate new
+   owner-held backup identity is protected outside the server; old keys were not
+   replaced. The encrypted archive was transferred off the server and actually
+   decrypted. All 76 payload hashes matched. That decrypted archive was restored
+   to a temporary PostgreSQL container with network=none, no public port and no
+   live mount. All 99 table counts and migration records matched, all 67 S3
+   objects restored with equal hashes, the append-only audit trigger rejected an
+   update, backed-up runtime keys matched, and four stored MFA ciphertexts could
+   be decrypted with the recovered application key. No plaintext was printed.
+   This does not claim an owner login or API private-download authorization test.
+4. **Resolved recovery-harness failure retained.** The first attempt connected
+   during PostgreSQL initialization before the target database existed; pg_isready
+   alone was insufficient. Waiting for the final PostgreSQL PID 1 and a successful
+   target SELECT fixed the race. The second attempt passed the recovery checks;
+   the temporary container was removed and first-failure evidence was retained.
+5. **Completed & Tested — off-server copy.** The encrypted archive was copied to
+   the existing private backup destination and read back. Its SHA-256 and
+   4,250,824-byte size equal the archive that was actually decrypted and restored.
+6. **Deferred Later — scheduled backup improvement.** The existing daily process
+   still omits S3 and the prior age identity has not been located. The new complete
+   release backup does not change that schedule or certify older archives. Private
+   and public bucket versioning were disabled at their dated panel observations;
+   no storage policy was changed. No ongoing full-backup guarantee is claimed.
+7. **Implemented Pending Verification — immutable candidate.** Build matching API,
+   worker and web images from the reviewed commit without starting app services
+   against live data/queues. Verify packaged legacy-XLS worker operation in an
+   isolated container, record image IDs and confirm CI on the final feature SHA.
+8. **Requires Owner Decision — merge, rollout and final acceptance.** Present the
+   candidate, CI, recovery evidence and the lack of publicly deployed Preview
+   acceptance, then obtain explicit final approval. Preserve old image IDs,
+   quiesce imports/drain jobs, replace API/worker/web together and check readiness,
+   public pages, authentication/authorization and media/private downloads. A code
+   rollback does not undo import data; an old worker must not consume new jobs.
+   Destructive restoration of live database/files needs a separate decision about
+   post-backup writes. No merge or live rollout has occurred.
 
 The finite UI limitations above are documented operational constraints; they are
 not represented as unresolved UI defects. No new backend architecture, schema,
