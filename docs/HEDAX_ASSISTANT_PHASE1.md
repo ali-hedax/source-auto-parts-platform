@@ -24,8 +24,10 @@ Redis atomically reserves all three controls before a paid call:
 - 100 requests per UTC day (or a lower saved admin limit);
 - three concurrent calls by default.
 
-The isolated real-test environment has a separate 50,000 IRR daily cap. Token
-usage refunds only the unused part of a conservative reservation. Missing usage
+The isolated real-test environment has a separate 50,000 IRR daily cap. Input
+reservation uses UTF-8 bytes plus chat-framing headroom rather than an average
+bytes-per-token ratio. Reported usage refunds unused reservation or charges any
+overrun to the ledger before later reservations. Missing usage
 or a failed provider call keeps the full cost reservation. Redis failure in
 Production fails closed. These are backend gates, not monitoring alerts.
 

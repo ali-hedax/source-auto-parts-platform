@@ -15,7 +15,9 @@ export class AssistantBudgetService implements OnModuleDestroy {
   constructor(@Inject(ENV) private readonly env: Env) { this.redis = new Redis(env.REDIS_URL, { lazyConnect: true, maxRetriesPerRequest: 1, enableOfflineQueue: false }); this.redis.on('error', () => undefined); }
 
   estimate(input: string, maxOutputTokens: number) {
-    const inputTokens = Math.ceil(Buffer.byteLength(input, 'utf8') / 3);
+    // Reserve a byte-level upper envelope, including room for chat framing.
+    // Dividing bytes by an average token size under-reserves Persian and codes.
+    const inputTokens = Buffer.byteLength(input, 'utf8') + 256;
     return Math.ceil((inputTokens * this.env.ASSISTANT_INPUT_PRICE_IRR_PER_MILLION + maxOutputTokens * this.env.ASSISTANT_OUTPUT_PRICE_IRR_PER_MILLION) / 1_000_000);
   }
   actual(usage: unknown, fallback: number) {
@@ -56,11 +58,11 @@ export class AssistantBudgetService implements OnModuleDestroy {
     return { budgetKey, concurrencyKey, reservedIrr: estimatedIrr };
   }
   async settle(reservation: BudgetReservation, actualIrr?: number) {
-    const refund = actualIrr === undefined ? 0 : Math.max(0, reservation.reservedIrr - actualIrr);
+    const refund = actualIrr === undefined ? 0 : reservation.reservedIrr - actualIrr;
     try {
       if (this.redis.status !== 'ready') await this.redis.connect();
       await this.redis.eval(
-        "local active=tonumber(redis.call('GET',KEYS[2]) or '0'); if tonumber(ARGV[1])>0 then redis.call('DECRBY',KEYS[1],ARGV[1]) end; if active>0 then redis.call('DECR',KEYS[2]) end; return 1",
+        "local active=tonumber(redis.call('GET',KEYS[2]) or '0'); if tonumber(ARGV[1])~=0 then redis.call('DECRBY',KEYS[1],ARGV[1]) end; if active>0 then redis.call('DECR',KEYS[2]) end; return 1",
         2, reservation.budgetKey, reservation.concurrencyKey, refund,
       );
     } catch {

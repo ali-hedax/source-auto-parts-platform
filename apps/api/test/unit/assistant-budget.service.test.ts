@@ -6,6 +6,17 @@ let service: AssistantBudgetService | undefined;
 afterEach(() => service?.onModuleDestroy());
 
 describe('AssistantBudgetService', () => {
+  it('reserves byte-level input and chat framing for Persian instead of an average token ratio', () => {
+    service = new AssistantBudgetService({ APP_ENV: 'test', REDIS_URL: 'redis://127.0.0.1:1', ASSISTANT_INPUT_PRICE_IRR_PER_MILLION: 1_000_000, ASSISTANT_OUTPUT_PRICE_IRR_PER_MILLION: 1_000_000 } as Env);
+    const input = JSON.stringify({ messages: [{ role: 'user', content: 'شماره فنی ۰۰۰۱۲۳؟' }] });
+    expect(service.estimate(input, 400)).toBe(Buffer.byteLength(input, 'utf8') + 256 + 400);
+  });
+  it('accounts for higher reported usage so an underestimate cannot silently bypass later caps', async () => {
+    service = new AssistantBudgetService({ APP_ENV: 'test', REDIS_URL: 'redis://127.0.0.1:1', ASSISTANT_TEST_BUDGET_IRR: 50, ASSISTANT_DAILY_REQUEST_LIMIT: 100, ASSISTANT_MAX_CONCURRENT: 3 } as Env);
+    const reservation = await service.reserve(20, 100, 'test');
+    await service.settle(reservation, 45);
+    await expect(service.reserve(6, 100, 'test')).rejects.toThrow('budget is exhausted');
+  });
   it('reserves before use and hard-rejects a request that exceeds the approved cap', async () => {
     service = new AssistantBudgetService({ APP_ENV: 'test', REDIS_URL: 'redis://127.0.0.1:1', ASSISTANT_TEST_BUDGET_IRR: 50, ASSISTANT_DAILY_BUDGET_IRR: 300, ASSISTANT_DAILY_REQUEST_LIMIT: 100, ASSISTANT_MAX_CONCURRENT: 3, ASSISTANT_INPUT_PRICE_IRR_PER_MILLION: 624000, ASSISTANT_OUTPUT_PRICE_IRR_PER_MILLION: 3744000 } as Env);
     await expect(service.reserve(40, 100, 'test')).resolves.toMatchObject({ reservedIrr: 40 });

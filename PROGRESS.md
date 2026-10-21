@@ -1,12 +1,38 @@
 # Source by HEDAX — وضعیت و نقطهٔ ادامه
 
-آخرین به‌روزرسانی: 2026-10-20، بازبینی واقعی نسخهٔ محلی دستیار، Asia/Tehran (+03:30).
+آخرین به‌روزرسانی: 2026-10-21، 09:45 Asia/Tehran (+03:30)، ادامهٔ مستقیم آماده‌سازی انتشار دستیار.
 
 این فایل مرجع ادامهٔ کار است. ابتدای هر جلسه، ابتدا این فایل و وضعیت واقعی Git
 بررسی شوند. پس از هر مرحلهٔ مهم، نتیجه، خطاها، فایل‌ها و قدم بعدی به‌روز شوند.
 هیچ رمز، توکن، دادهٔ مشتری یا محتوای محرمانهٔ فایل تأمین‌کننده در این فایل ثبت نشود.
 
 ## نقطهٔ فعلی
+
+### ادامهٔ مستقیم اتصال آروان — 2026-10-21، 09:45 Asia/Tehran
+
+- **Completed & Tested — تطبیق:** شاخه `codex/assistant-phase-one`، HEAD/base بررسی‌شده
+  `ae89b0c` / `b16770c`؛ PR #29 باز/Draft/MERGEABLE و CI همان HEAD موفق است.
+  تغییر محلی قبلی PROGRESS حفظ شد. کد سرور روی `0c6e94c` و سرویس‌های موجود سالم‌اند؛
+  فایل محیط mode 600 و helper ورود مخفی موجود mode 700 است؛ هیچ secret چاپ نشد.
+- **Requires Owner Decision، رفع‌شده:** مالک در همین گفتگو صریحاً سقف آزمون
+  50,000 ریال و سقف عمومی روزانه 300,000 ریال و 100 درخواست را تأیید کرد.
+  این مجوز، شارژ حساب یا خرید اعتبار نیست. صوت همچنان Deferred Later است.
+- **Blocked External — ورود:** تب IAB آروان اطلاعات cache قدیمی نشان می‌داد؛
+  پس از reload به صفحهٔ login رفت. ورود مجدد توسط مالک درخواست شده است. درگاه
+  `gateway-4cjht` در checkpoint قبلی ثبت شده؛ قبل از ساخت هر مورد، inventory زنده
+  همان حساب باید بررسی شود. درگاه/کلید تکراری ساخته نشد و تماس پولی انجام نشد.
+- **Completed & Tested — اصلاح لازم پیش از فعال‌سازی:** برآورد bytes/3 می‌توانست
+  متن فارسی را کمتر از واقع رزرو کند؛ به envelope بایتی با حاشیهٔ framing تبدیل شد.
+  settlement نیز هزینهٔ گزارش‌شدهٔ بیشتر از رزرو را در ledger منظور می‌کند تا سقف
+  درخواست‌های بعدی نادیده گرفته نشود. دو regression اضافه شدند؛ اجرای هدفمند
+  `pnpm --filter @hedax/api exec vitest run test/unit/assistant-budget.service.test.ts
+  test/unit/assistant.service.test.ts`: دو فایل/هفت تست، exit 0. API typecheck، ESLint
+  دو فایل و diff whitespace موفق‌اند. این نتیجه، آزمون واقعی provider یا Redis نیست.
+- **Implemented Pending Verification:** اصلاح budget محلی در service/test و این
+  checkpoint است؛ هنوز commit/push/CI تازه ندارد. پس از ورود، درگاه و least-privilege
+  key review شوند؛ ساخت نهایی credential نیازمند تأیید همان عمل است. سپس secret فقط
+  از مسیر مخفی server-side تنظیم، آزمون واقعی ایزوله و انتشار مجاز ادامه یابد.
+  Production، `.env`، DNS و داده‌های زنده در این ادامه تغییر نکرده‌اند.
 
 ### بازبینی واقعی شش قابلیت و اجرای محلی — 2026-10-20، Asia/Tehran
 
@@ -928,3 +954,25 @@ TEST-02 و کنترل‌های موفق بالا دوباره اجرا یا پی
 - **Blocked External:** Arvan gateway/credential setup is still required. Create `source-hedax-assistant`, attach exact model `GPT-5.6-Luna`, and enter `ARVAN_AI_ENDPOINT` and `ARVAN_AI_API_KEY` only in the server mode-600 `.env`; do not send or print the key. Until then, a real provider response, deployment and live-domain validation cannot be claimed.
 - **Commit:** local release candidate committed as `aa74097` (`feat: add grounded Arvan text assistant`) after normalizing the two new contracts files to LF and passing the staged whitespace check. Push/PR/CI remain the next step.
 - **Completed & Tested — remote:** checkpoint commit `452108f` and feature commit were pushed to `origin/codex/assistant-phase-one`. Draft PR #29 (`feat: add grounded Arvan text assistant`) was created against `main`; its head matched `452108f`, GitHub reported it mergeable, and CI run `39545727533` / job `119043353089` passed in 2m43s. The PR intentionally remains Draft and unmerged until the real bounded Arvan test succeeds.
+- **Completed & Tested — current PR head:** after pushing the CI checkpoint, PR #29 head is `ae89b0c`; final CI run `39546036491` / job `119044308029` passed in 2m25s. Local Git differs from the remote only by this new PROGRESS result so the next session can continue without repeating checks. Do not create another documentation-only CI loop before the real-provider milestone.
+
+# Checkpoint — 2026-10-21 Asia/Tehran — Arvan credential setup in progress
+
+- **Completed & Tested — panel read:** authenticated Arvan AIaaS gateway list was opened at the real account. It contains no gateway and explicitly shows “اولین درگاه AI خود را بسازید”; therefore `source-hedax-assistant` does not exist and no duplicate was created. Account balance and server identifiers were observed only to operate the owner-authorized account and are not copied here.
+- **Implemented Pending Owner UI Step:** the panel exposes “ساخت درگاه AI”, but Windows accessibility returned no clickable geometry and screenshot capture timed out. No create form was submitted. The owner must click that visible button once; automation can resume on the resulting form and fill only non-sensitive values before the final create action.
+- **Completed & Tested — server preparation:** the first SSH probe used default identities and was rejected; retry with the existing dedicated `source_arvan_ed25519` identity succeeded. Production is `/opt/sourcebyhedax` on branch `deploy/pr28-20261020` at `0c6e94c`; its existing `.env` is a regular root-owned mode-600 file. No content was printed. A root-owned mode-700 helper was installed at `/root/set-hedax-assistant-env.sh` and passed remote `bash -n`. It prompts for the endpoint and a hidden API key, atomically replaces only assistant-related variables, preserves all unrelated `.env` lines, enforces the approved 50,000/300,000 IRR and 100-request limits, and does not restart services.
+- **Security boundary:** creation of a persistent API key requires action-time confirmation. Stop immediately before the final key-creation button, then let the owner confirm and copy the one-time secret directly into a hidden server prompt. Never expose it through chat, command arguments, logs, Git, browser storage or API responses.
+
+# Checkpoint — 2026-10-21 Asia/Tehran — Arvan form handoff
+
+- **Completed — gateway:** the owner created the first free/default Arvan AI gateway. Its current panel identifier/name is `gateway-4cjht`; the non-secret API base endpoint is `https://api.arvancloudai.ir/v1`. The exact `GPT-5.6-Luna` model is active and showed zero input/output usage when inspected. The gateway still needs renaming to `source-hedax-assistant`; no duplicate gateway should be created.
+- **Pending owner-assisted UI:** the owner reports that the next Arvan form is open, but the active authenticated Chrome tab is not exposed to the current computer-control session (only internal localhost tabs are visible, and opening Chrome programmatically is unavailable). The next safe step is to share/mention that exact Arvan tab so its form and least-privilege permission choices can be inspected. Do not guess scopes.
+- **Security / deployment state:** no API key has been created or disclosed, no paid provider request has run, the Production `.env` remains unchanged, PR #29 remains Draft/unmerged, and Production has not been redeployed.
+
+# Checkpoint — 2026-10-21 Asia/Tehran — manual Arvan handoff and server readiness
+
+- **Owner decision:** this environment has no Chrome/tab-sharing control. Arvan panel steps are therefore owner-operated; future work must not assume browser automation. Provide exact manual instructions and require the owner to report the visible permission labels instead of guessing IAM scopes.
+- **Completed & Tested — config path:** `infra/docker-compose.yml` passes all assistant variables from the root `.env` into API/worker. The API schema requires HTTPS, a key, explicit live-call enablement and a positive hard daily budget for Arvan. Production budget reservation uses Redis and fails closed if Redis is unavailable.
+- **Completed & Tested — secure helper/server:** local and installed `/root/set-hedax-assistant-env.sh` SHA-256 values match; installed ownership/mode is `root:root`/`700`. Production remains at `0c6e94c`. Existing API, web, PostgreSQL, Redis and ClamAV containers are healthy; worker and Caddy are running. No `.env` value was read or printed and no service was restarted.
+- **Completed & Tested — PR:** PR #29 remains Draft, mergeable, unmerged at `ae89b0c`; CI `39546036491` is successful. No repeat CI run is needed before the real-provider milestone.
+- **Blocked External — exact next handoff:** owner must rename the existing gateway to `source-hedax-assistant`, create or reuse one dedicated machine user, and inspect the permission selector. Select only an AI/AIaaS gateway invocation/use permission scoped to the existing gateway if the panel offers that resource scope; do not grant account/billing/IAM/DNS/compute/storage administration. If the exact labels differ or only broad roles are offered, stop and report the visible labels. Do not create the key until action-time confirmation is recorded. After creation, copy the one-time key directly into the hidden server helper prompt; never place it in chat.
