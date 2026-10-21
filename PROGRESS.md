@@ -1,12 +1,48 @@
 # Source by HEDAX — وضعیت و نقطهٔ ادامه
 
-آخرین به‌روزرسانی: 2026-10-21، 09:45 Asia/Tehran (+03:30)، ادامهٔ مستقیم آماده‌سازی انتشار دستیار.
+آخرین به‌روزرسانی: 2026-10-21 ~17:40 +03:30 Asia/Tehran؛ شاخهٔ `feature/source-premium-experience`، فاز ۰–۱ طراحی سینمایی.
+
+> توجه: این worktree جدا (`Desktop/source-premium-experience`) است. checkpoint انتشار
+> PR #29 در PROGRESS.md پوشهٔ اصلی (شاخهٔ `codex/assistant-phase-one`، تغییر commit‌نشدهٔ
+> جلسهٔ دیگر) نگه داشته می‌شود و اینجا کپی نشده است؛ هنگام merge هر دو تطبیق داده شوند.
 
 این فایل مرجع ادامهٔ کار است. ابتدای هر جلسه، ابتدا این فایل و وضعیت واقعی Git
 بررسی شوند. پس از هر مرحلهٔ مهم، نتیجه، خطاها، فایل‌ها و قدم بعدی به‌روز شوند.
 هیچ رمز، توکن، دادهٔ مشتری یا محتوای محرمانهٔ فایل تأمین‌کننده در این فایل ثبت نشود.
 
 ## نقطهٔ فعلی
+
+### بازطراحی سینمایی (Premium Experience) — 2026-10-21، Asia/Tehran
+
+- **مبنا:** worktree جدا `Desktop/source-premium-experience`، شاخهٔ محلی
+  `feature/source-premium-experience` از `origin/main` = `6b1c9dd` (merge PR #29)؛ upstream
+  عمداً حذف شد تا push تصادفی به main ممکن نباشد. پوشهٔ اصلی و تغییرات جلسهٔ انتشار
+  دست نخوردند. GitHub در این جلسه از این PC در دسترس نبود (fetch timeout)؛ push انجام نشده.
+- **Completed & Tested — فاز ۰ ممیزی:** Next 16.3.7 / NestJS / Prisma؛ visual builder موجود
+  (`/admin/appearance`، draft/publish/revision/restore، کتابخانهٔ رسانهٔ فقط تصویر JPG/PNG/WebP
+  ≤5MB با اسکن)، Hero فعلی در `components/builder/legacy-home.tsx`، توکن‌ها در `globals.css`،
+  دستیار مکانیک در `apps/web/public/assistant`. **کمبودها برای فاز ۳:** نوع block ویدیویی،
+  آپلود/اعتبارسنجی/اسکن ویدیو (mime، حجم، مدت، Caddy/ClamAV StreamMaxLength 160M)،
+  انتخاب desktop/mobile/poster. معماری برای فاز ۳ قابل گسترش است؛ بازسازی لازم نیست.
+- **Completed & Tested — فاز ۱ رسانه:** ۷ ویدیو یکتا در `Desktop/hero-videos` (+۱ سوپرکار در
+  Downloads، کنار گذاشته شد) با ffmpeg و contact sheet واقعاً دیده شدند؛ تکراری‌ها با MD5.
+  فیلم ۱۶٫۷۵ ثانیه بدون مکانیک/بنیان‌گذار، برش پیش از هر متن AI، لوگوی رسمی در پایان.
+  فهرست، EDL، اندازه‌ها و روش: `docs/media/HERO_FILM_EDL.md`. خروجی‌ها (خارج Git):
+  `Desktop/hero-videos/source-hero-edit/`. فریم‌های master و پایان‌بندی با چشم بررسی شدند.
+- **Blocked External — واترمارک:** همهٔ منابع «KlingAI 4.0» دارند؛ حذف/برش نشد. برای
+  انتشار عمومی نسخهٔ بدون واترمارک همان generationها از حساب Kling لازم است.
+- **Completed & Tested — نمونهٔ جهت طراحی:** `Desktop/hero-videos/source-hero-edit/prototype/index.html`
+  (HTML مستقل، داده‌های نمونه برچسب‌دار). با Edge/Playwright در 1440×900 و 390×844: ویدیو
+  واقعاً پخش شد (WebM دسکتاپ، MP4 موبایل)، `scrollWidth` برابر viewport، بدون خطای media.
+  اصلاح‌ها پس از دیدن تصویر: scrim قوی‌تر زیر تیتر، جابه‌جایی دکمهٔ دستیار در موبایل.
+  این نمونه هنوز در اپ Next پیاده نشده؛ Core Web Vitals اندازه‌گیری نشده‌اند.
+- **محیط:** commit حافظهٔ ویندوز ~28.0/28.8GB بود و encode اول با malloc شکست خورد؛ با
+  رندر مرحله‌ای و thread کمتر رفع شد. build وب (~2GB) در این وضعیت ریسک دارد. پردازش‌های
+  قدیمی node/postgres جلسات دیگر بسته نشدند.
+- **Requires Owner Decision / قدم بعد:** (۱) تأیید یا اصلاح جهت طراحی و فیلم؛ (۲) نسخهٔ
+  بدون واترمارک؛ (۳) پس از تأیید: فاز ۲ = block `cinematic-hero` در builder با ویدیو/پوستر
+  desktop/mobile و fallback به Hero فعلی، سپس فاز ۳ آپلود ویدیو در کتابخانهٔ رسانه.
+  هیچ Production، DNS، داده یا preview تغییر نکرده است.
 
 ### ادامهٔ مستقیم اتصال آروان — 2026-10-21، 09:45 Asia/Tehran
 
