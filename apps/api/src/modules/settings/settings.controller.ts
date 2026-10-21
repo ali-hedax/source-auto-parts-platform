@@ -2,7 +2,7 @@ import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Put, Res } from '@ne
 import { ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { createHash } from 'node:crypto';
-import { businessCalendarSchema, policyVersionSchema, shippingMethodSchema, siteSettingsSchema } from '@hedax/contracts';
+import { assistantUpdateSchema, businessCalendarSchema, policyVersionSchema, shippingMethodSchema, siteSettingsSchema } from '@hedax/contracts';
 import { z } from 'zod';
 import type { PolicyKind } from '../../generated/prisma/enums.js';
 import { AuditService } from '../../common/audit.service.js';
@@ -24,6 +24,39 @@ export class SettingsController {
     private readonly settings: SettingsService,
     private readonly audit: AuditService,
   ) {}
+
+  @Public()
+  @Get('site/assistant')
+  async publicAssistant(@Res({ passthrough: true }) res: Response) {
+    // An explicit projection: neither author/version nor other SiteSetting rows leave this endpoint.
+    res.setHeader('Cache-Control', 'no-store');
+    const { version: _version, ai: _ai, ...settings } = await this.settings.assistant();
+    return settings;
+  }
+
+  @RequirePermissions('settings.manage')
+  @Get('admin/settings/assistant')
+  getAssistant() { return this.settings.assistant(); }
+
+  @RequirePermissions('settings.manage')
+  @Put('admin/settings/assistant')
+  @ApiZodBody(assistantUpdateSchema)
+  async updateAssistant(@Body(zod(assistantUpdateSchema)) body: z.infer<typeof assistantUpdateSchema>, @CurrentActor() actor: Actor) {
+    const { version, ...value } = body;
+    return this.prisma.tx(async (tx) => {
+      // Serializes first creation too; a read-then-upsert alone loses concurrent edits.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('assistant.phase1'))`;
+      const current = await tx.siteSetting.findUnique({ where: { key: 'assistant.phase1' } });
+      if ((current?.version ?? 0) !== version) throw conflict('VERSION_CONFLICT', 'Assistant settings were changed by someone else');
+      await tx.siteSetting.upsert({
+        where: { key: 'assistant.phase1' },
+        create: { key: 'assistant.phase1', value: value as Prisma.InputJsonValue, version: 1, updatedById: actor.userId },
+        update: { value: value as Prisma.InputJsonValue, version: { increment: 1 }, updatedById: actor.userId },
+      });
+      await this.audit.record(tx, { action: 'assistant.settings_updated', entityType: 'site_setting', entityId: 'assistant.phase1', before: current?.value, after: value });
+      return { saved: true, version: version + 1 };
+    });
+  }
 
   /** Public contact info: only what the owner configured (empty until launch checklist is done). */
   @Public()

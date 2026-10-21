@@ -22,6 +22,7 @@ import { SourcingModule } from './modules/sourcing/sourcing.module.js';
 import { MessengerBotsModule } from './modules/messenger-bots/messenger-bots.module.js';
 import { KnowledgeCatalogModule } from './modules/knowledge-catalog/knowledge-catalog.module.js';
 import { BrandImportsModule } from './modules/brand-imports/brand-imports.module.js';
+import { AssistantModule } from './modules/assistant/assistant.module.js';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { BrandImportsModule } from './modules/brand-imports/brand-imports.module
     MessengerBotsModule,
     ReturnsModule,
     AdminModule,
+    AssistantModule,
   ],
   controllers: [HealthController],
 })
