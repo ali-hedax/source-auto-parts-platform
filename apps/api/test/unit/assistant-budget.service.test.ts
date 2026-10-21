@@ -9,7 +9,8 @@ describe('AssistantBudgetService', () => {
   it('reserves byte-level input and chat framing for Persian instead of an average token ratio', () => {
     service = new AssistantBudgetService({ APP_ENV: 'test', REDIS_URL: 'redis://127.0.0.1:1', ASSISTANT_INPUT_PRICE_IRR_PER_MILLION: 1_000_000, ASSISTANT_OUTPUT_PRICE_IRR_PER_MILLION: 1_000_000 } as Env);
     const input = JSON.stringify({ messages: [{ role: 'user', content: 'شماره فنی ۰۰۰۱۲۳؟' }] });
-    expect(service.estimate(input, 400)).toBe(Buffer.byteLength(input, 'utf8') + 256 + 400);
+    expect(service.estimate(input, 400)).toBe(Buffer.byteLength(input, 'utf8') + 8192 + 400);
+    expect(service.estimate(input, 400)).toBeGreaterThan(service.actual({ prompt_tokens: 4511, completion_tokens: 61 }, 0));
   });
   it('accounts for higher reported usage so an underestimate cannot silently bypass later caps', async () => {
     service = new AssistantBudgetService({ APP_ENV: 'test', REDIS_URL: 'redis://127.0.0.1:1', ASSISTANT_TEST_BUDGET_IRR: 50, ASSISTANT_DAILY_REQUEST_LIMIT: 100, ASSISTANT_MAX_CONCURRENT: 3 } as Env);

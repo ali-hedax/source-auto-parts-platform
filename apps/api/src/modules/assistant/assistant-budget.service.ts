@@ -15,9 +15,10 @@ export class AssistantBudgetService implements OnModuleDestroy {
   constructor(@Inject(ENV) private readonly env: Env) { this.redis = new Redis(env.REDIS_URL, { lazyConnect: true, maxRetriesPerRequest: 1, enableOfflineQueue: false }); this.redis.on('error', () => undefined); }
 
   estimate(input: string, maxOutputTokens: number) {
-    // Reserve a byte-level upper envelope, including room for chat framing.
+    // Reserve bytes plus gateway framing. The live Arvan probe reported 4,224
+    // cached prompt tokens beyond the submitted text; leave additional headroom.
     // Dividing bytes by an average token size under-reserves Persian and codes.
-    const inputTokens = Buffer.byteLength(input, 'utf8') + 256;
+    const inputTokens = Buffer.byteLength(input, 'utf8') + 8192;
     return Math.ceil((inputTokens * this.env.ASSISTANT_INPUT_PRICE_IRR_PER_MILLION + maxOutputTokens * this.env.ASSISTANT_OUTPUT_PRICE_IRR_PER_MILLION) / 1_000_000);
   }
   actual(usage: unknown, fallback: number) {
