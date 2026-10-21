@@ -881,6 +881,7 @@
     "auditAction_role_created": "ساخت نقش",
     "auditAction_role_updated": "ویرایش نقش",
     "auditAction_settings_updated": "تغییر تنظیمات سایت",
+    "auditAction_assistant_settings_updated": "تغییر تنظیمات راهنمای سایت",
     "auditAction_shipping_created": "ساخت روش ارسال",
     "auditAction_shipping_updated": "ویرایش روش ارسال",
     "auditAction_sourcing_assigned": "ارجاع درخواست تأمین",
@@ -1177,5 +1178,20 @@
   },
   "home": {
     "makersTitle": "مرور بر اساس برند سازنده"
+  },
+  "assistant": {
+    "open": "باز کردن راهنمای HEDAX",
+    "close": "بستن راهنما",
+    "minimize": "کوچک‌کردن کاراکتر",
+    "expand": "بزرگ‌کردن کاراکتر",
+    "resetPosition": "بازگرداندن موقعیت کاراکتر",
+    "hide": "مخفی‌کردن کاراکتر تا تغییر صفحه",
+    "pause": "توقف حرکت",
+    "resume": "ادامهٔ حرکت",
+    "launcher": "کمک می‌خواهید؟",
+    "phase": "راهنمای سایت · مرحلهٔ اول",
+    "disclaimer": "این نسخه راهنمای محلی سایت است و به مدل هوش مصنوعی وصل نیست. VIN یا سازگاری را بررسی نمی‌کند. پیام‌ها فقط در همین پنجره‌اند و ذخیره نمی‌شوند.",
+    "input": "نام قطعه، شماره فنی یا پرسش",
+    "send": "ارسال"
   }
 }

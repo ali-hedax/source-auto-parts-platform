@@ -14,6 +14,7 @@ import {
   type FixtureProduct,
 } from './data';
 import siteContentJson from './site-content.json';
+import { DEFAULT_ASSISTANT_SETTINGS } from '@hedax/contracts/constants';
 import { FIXTURE_IMPORT_ID, fixtureImportJob, fixtureImportList } from './imports';
 import { fixtureBrandImport, fixtureBrandImports } from './brand-imports';
 import { fixtureAdminFitment, fixtureAdminVehicles, fixtureFitmentViews, fixtureFits, fixturePublicVehicles, fixtureVehicleOptions } from './vehicles';
@@ -233,6 +234,7 @@ export async function handleFixture(method: string, pathWithQuery: string, rawBo
   let m: RegExpExecArray | null;
 
   // --- public ---
+  if (route === 'GET /site/assistant') return ok(DEFAULT_ASSISTANT_SETTINGS);
   if (route === 'GET /catalog/products') return ok(list(params, false));
   if (route === 'GET /catalog/imported-products') return ok(list(params, true));
   if ((m = /^GET \/catalog\/products\/([^/]+)$/.exec(route))) {

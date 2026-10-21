@@ -84,3 +84,5 @@ export type ContentImagePurpose = (typeof CONTENT_IMAGE_PURPOSES)[number];
 
 /** Upload limit for site pictures (they are re-encoded and become much smaller). */
 export const CONTENT_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
+
+export * from './assistant-public.js';

@@ -113,6 +113,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
         { href: '/admin/policies', label: t('policies'), icon: FileText, perm: 'content.manage' },
         { href: '/admin/calendar', label: t('calendar'), icon: CalendarDays, perm: 'settings.manage' },
         { href: '/admin/settings', label: t('settings'), icon: Settings, perm: 'settings.manage' },
+        { href: '/admin/assistant', label: locale === 'fa' ? 'دستیار هوشمند / راهنمای سایت' : 'AI Chatbot', icon: MessageSquare, perm: 'settings.manage' },
         { href: '/admin/reports', label: t('reports'), icon: BarChart3, perm: 'reports.read' },
         { href: '/admin/audit', label: t('audit'), icon: History, perm: 'audit.read' },
       ],

@@ -881,6 +881,7 @@
     "auditAction_role_created": "Role created",
     "auditAction_role_updated": "Role edited",
     "auditAction_settings_updated": "Site settings changed",
+    "auditAction_assistant_settings_updated": "Website guide settings changed",
     "auditAction_shipping_created": "Shipping method created",
     "auditAction_shipping_updated": "Shipping method edited",
     "auditAction_sourcing_assigned": "Sourcing request assigned",
@@ -1177,5 +1178,20 @@
   },
   "home": {
     "makersTitle": "Browse by part brand"
+  },
+  "assistant": {
+    "open": "Open HEDAX guide",
+    "close": "Close guide",
+    "minimize": "Minimize character",
+    "expand": "Expand character",
+    "resetPosition": "Reset character position",
+    "hide": "Hide character until navigation",
+    "pause": "Pause motion",
+    "resume": "Resume motion",
+    "launcher": "Need a hand?",
+    "phase": "Website guide ? Phase one",
+    "disclaimer": "This is a local website guide, not connected to an AI model. No VIN or fitment verification. Messages stay in this window and are not saved.",
+    "input": "Part name, number or question",
+    "send": "Send"
   }
 }

@@ -1,0 +1,47 @@
+'use client';
+
+import type { AssistantSettingsView } from '@hedax/contracts';
+import { ASSISTANT_TOPICS, DEFAULT_ASSISTANT_SETTINGS } from '@hedax/contracts/constants';
+import { useTranslations } from 'next-intl';
+import { useState } from 'react';
+import { Async } from '@/components/ui/async';
+import { Button } from '@/components/ui/button';
+import { Checkbox, Field, Input, Select, Textarea } from '@/components/ui/field';
+import { Alert, Badge, PageHeader, Section } from '@/components/ui/misc';
+import { api } from '@/lib/api/client';
+import { errorText } from '@/lib/api/errors';
+import { useApi } from '@/lib/use-api';
+import { useL } from './shell';
+
+export function AssistantSettingsPage() {
+  const l = useL();
+  const state = useApi<AssistantSettingsView>('/admin/settings/assistant');
+  const runtime = useApi<{ provider: string; model: string; configured: boolean; liveCallsEnabled: boolean; timeoutMs: number; maxOutputTokens: number; dailyRequestLimit: number }>('/admin/assistant/status');
+  return <><PageHeader title={l('دستیار هوشمند / راهنمای سایت', 'AI Chatbot / Website guide')} description={l('وضعیت واقعی موتور متنی و کاتالوگ از سرور خوانده می‌شود.', 'Text engine and catalog runtime status is read from the server.')} /><Async state={runtime}>{(s) => <Section title={l('اتصال موتور', 'Engine connection')}><Badge tone={s.configured ? 'success' : 'neutral'}>{s.configured ? l('پیکربندی‌شده', 'Configured') : l('غیرفعال یا بدون اعتبارنامه', 'Disabled or missing credential')}</Badge><p className="mt-3 text-sm" dir="ltr">{s.provider} · {s.model} · live={String(s.liveCallsEnabled)} · timeout={s.timeoutMs}ms · output≤{s.maxOutputTokens} · daily≤{s.dailyRequestLimit}</p></Section>}</Async><Async state={state}>{(settings) => <AssistantForm key={settings.version} settings={settings} reload={state.reload} />}</Async></>;
+}
+
+function AssistantForm({ settings, reload }: { settings: AssistantSettingsView; reload: () => Promise<void> }) {
+  const l = useL();
+  const t = useTranslations();
+  const [value, setValue] = useState(settings);
+  const [tab, setTab] = useState('overview');
+  const [error, setError] = useState('');
+  const [saved, setSaved] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const tabs = [ ['overview', l('نمای کلی', 'Overview')], ['personality', l('شخصیت و متن‌ها', 'Personality & copy')], ['appearance', l('ظاهر و انیمیشن', 'Appearance & motion')], ['general', l('تنظیمات عمومی', 'General settings')] ];
+  const save = async () => {
+    setError(''); setSaved(false);
+    setBusy(true);
+    try { await api('/admin/settings/assistant', { method: 'PUT', body: value }); setSaved(true); await reload(); } catch (e) { setError(errorText(t, e)); } finally { setBusy(false); }
+  };
+  const pair = (key: 'name' | 'greeting' | 'introduction', label: string, max: number) => <div className="grid gap-3 md:grid-cols-2">{(['fa', 'en'] as const).map((lang) => <Field key={lang} id={`assistant-${key}-${lang}`} label={`${label} · ${lang === 'fa' ? 'فارسی' : 'English'}`}><Textarea id={`assistant-${key}-${lang}`} dir={lang === 'fa' ? 'rtl' : 'ltr'} rows={2} maxLength={max} value={value[key][lang]} onChange={(e) => setValue({ ...value, [key]: { ...value[key], [lang]: e.target.value } })} /></Field>)}</div>;
+  return <form onSubmit={(e) => { e.preventDefault(); void save(); }} className="space-y-6">
+    <nav aria-label={l('بخش‌های دستیار', 'Assistant sections')} className="flex flex-wrap gap-2">{tabs.map(([id, label]) => <Button key={id} variant={tab === id ? 'primary' : 'secondary'} aria-current={tab === id ? 'page' : undefined} onClick={() => setTab(id!)}>{label}</Button>)}</nav>
+    {tab === 'overview' ? <Section id="assistant-overview" title={l('وضعیت دستیار', 'Assistant status')}><Badge tone={settings.enabled ? 'success' : 'neutral'}>{settings.enabled ? l('فعال در تنظیمات ذخیره‌شده', 'Enabled in saved settings') : l('غیرفعال در تنظیمات ذخیره‌شده', 'Disabled in saved settings')}</Badge><p className="mt-4 leading-8">{l('پرسش آزاد از موتور متنی می‌گذرد و قیمت، موجودی و کاربرد خودرو فقط از کاتالوگ جاری نمایش داده می‌شود. قابلیت صوت در این نسخه نمایش داده نمی‌شود.', 'Free-form questions use the text engine; price, stock and fitment come only from the current catalog. Voice is not exposed in this release.')}</p></Section> : null}
+    {tab === 'personality' ? <Section id="assistant-copy" title={l('شخصیت و متن‌های دوزبانه', 'Bilingual personality & copy')}><div className="space-y-5">{pair('name', l('نام', 'Name'), 60)}{pair('introduction', l('معرفی', 'Introduction'), 240)}{pair('greeting', l('خوشامدگویی', 'Greeting'), 300)}{ASSISTANT_TOPICS.map((topic) => <fieldset key={topic} className="rounded-xl border border-line-soft p-4"><legend className="px-2 font-semibold">{DEFAULT_ASSISTANT_SETTINGS.topics[topic].label.fa} / {DEFAULT_ASSISTANT_SETTINGS.topics[topic].label.en}</legend><div className="grid gap-3 md:grid-cols-2">{(['fa', 'en'] as const).map((lang) => <div key={lang} className="space-y-3">{(['label', 'answer'] as const).map((field) => <Field key={field} id={`assistant-${topic}-${field}-${lang}`} label={`${field === 'label' ? l('عنوان اقدام', 'Action label') : l('پاسخ محدود', 'Guide response')} · ${lang}`}><Textarea id={`assistant-${topic}-${field}-${lang}`} rows={field === 'label' ? 2 : 4} dir={lang === 'fa' ? 'rtl' : 'ltr'} maxLength={field === 'label' ? 80 : 500} value={value.topics[topic][field][lang]} onChange={(e) => setValue({ ...value, topics: { ...value.topics, [topic]: { ...value.topics[topic], [field]: { ...value.topics[topic][field], [lang]: e.target.value } } } })} /></Field>)}</div>)}</div></fieldset>)}</div></Section> : null}
+    {tab === 'appearance' ? <Section id="assistant-appearance" title={l('ظاهر و حرکت', 'Appearance & motion')}><Checkbox id="assistant-animation" label={l('اجازهٔ انیمیشن ملایم (با احترام به ترجیح کاربر)', 'Allow subtle animation (respecting visitor preferences)')} checked={value.animationEnabled} onChange={(e) => setValue({ ...value, animationEnabled: e.target.checked })} /><div className="mt-4 grid gap-4 md:grid-cols-3">{(['mobileSize', 'desktopSize'] as const).map((key) => <Field key={key} id={`assistant-${key}`} label={key === 'mobileSize' ? l('اندازهٔ موبایل: ۴۸ تا ۸۰ پیکسل', 'Mobile size: 48–80 px') : l('اندازهٔ دسکتاپ: ۷۲ تا ۱۲۸ پیکسل', 'Desktop size: 72–128 px')}><Input id={`assistant-${key}`} type="number" min={key === 'mobileSize' ? 48 : 72} max={key === 'mobileSize' ? 80 : 128} value={value[key]} onChange={(e) => setValue({ ...value, [key]: Number(e.target.value) })} /></Field>)}<Field id="assistant-placement" label={l('محل نمایش', 'Placement')}><Select id="assistant-placement" value={value.placement} onChange={(e) => setValue({ ...value, placement: e.target.value as 'start' | 'end' })}><option value="start">{l('ابتدای صفحه (راست در فارسی)', 'Start edge')}</option><option value="end">{l('انتهای صفحه (چپ در فارسی)', 'End edge')}</option></Select></Field></div></Section> : null}
+    {tab === 'general' ? <Section id="assistant-general" title={l('تنظیمات عمومی', 'General settings')}><Checkbox id="assistant-enabled" label={l('فعال‌کردن دستیار متنی', 'Enable text assistant')} checked={value.enabled} onChange={(e) => setValue({ ...value, enabled: e.target.checked })} /><div className="mt-4 grid gap-4 md:grid-cols-2"><Field id="assistant-output-cap" label={l('سقف توکن خروجی', 'Output token cap')}><Input id="assistant-output-cap" type="number" min={64} max={1000} value={value.ai.maxOutputTokens} onChange={(e) => setValue({ ...value, ai: { ...value.ai, maxOutputTokens: Number(e.target.value) } })} /></Field><Field id="assistant-daily-cap" label={l('سقف درخواست روزانه', 'Daily request cap')}><Input id="assistant-daily-cap" type="number" min={1} max={10000} value={value.ai.dailyRequestLimit} onChange={(e) => setValue({ ...value, ai: { ...value.ai, dailyRequestLimit: Number(e.target.value) } })} /></Field>{(['fa','en'] as const).map((lang) => <Field key={lang} id={`assistant-system-${lang}`} label={`${l('دستور سیستمی', 'System prompt')} · ${lang}`}><Textarea id={`assistant-system-${lang}`} rows={5} maxLength={2000} value={value.ai.systemPrompt[lang]} onChange={(e) => setValue({ ...value, ai: { ...value.ai, systemPrompt: { ...value.ai.systemPrompt, [lang]: e.target.value } } })} /></Field>)}</div><p className="mt-4 text-sm leading-7 text-steel">{l('provider و مدل از تنظیم امن سرور خوانده می‌شوند. کلید هرگز در این فرم یا API عمومی نمایش داده نمی‌شود.', 'Provider and model come from secure server configuration. The key is never exposed in this form or the public API.')}</p></Section> : null}
+    {error ? <Alert tone="danger" title={error} /> : null}{saved ? <Alert tone="success" title={l('ذخیره شد', 'Saved')} /> : null}
+    <div className="flex flex-wrap gap-3"><Button type="submit" loading={busy}>{t('common.save')}</Button><Button variant="secondary" disabled={busy} onClick={() => { setValue({ ...structuredClone(DEFAULT_ASSISTANT_SETTINGS), version: settings.version }); setSaved(false); }}>{l('پیش‌فرض‌ها در فرم', 'Reset form to defaults')}</Button><Button variant="ghost" disabled={busy} onClick={() => void reload()}>{l('بارگیری آخرین نسخه', 'Reload latest version')}</Button></div><p className="text-sm text-steel">{l('بازگشت به پیش‌فرض فقط فرم را تغییر می‌دهد؛ برای اعمال، ذخیره کنید. در تعارض نسخه، ابتدا آخرین نسخه را بارگیری کنید.', 'Reset only changes this form; save explicitly to apply it. On a version conflict, reload the latest version first.')}</p>
+  </form>;
+}

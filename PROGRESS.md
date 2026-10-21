@@ -1,12 +1,209 @@
 # Source by HEDAX — وضعیت و نقطهٔ ادامه
 
-آخرین به‌روزرسانی: 2026-10-20، انتشار واقعی Production، Asia/Tehran (+03:30).
+آخرین به‌روزرسانی: 2026-10-20، بازبینی واقعی نسخهٔ محلی دستیار، Asia/Tehran (+03:30).
 
 این فایل مرجع ادامهٔ کار است. ابتدای هر جلسه، ابتدا این فایل و وضعیت واقعی Git
 بررسی شوند. پس از هر مرحلهٔ مهم، نتیجه، خطاها، فایل‌ها و قدم بعدی به‌روز شوند.
 هیچ رمز، توکن، دادهٔ مشتری یا محتوای محرمانهٔ فایل تأمین‌کننده در این فایل ثبت نشود.
 
 ## نقطهٔ فعلی
+
+### بازبینی واقعی شش قابلیت و اجرای محلی — 2026-10-20، Asia/Tehran
+
+- **Completed & Tested — ۱. ظاهر:** asset نهایی فعلی alpha واقعی دارد و در مشاهدهٔ
+  screenshot هیچ کارت/مربع/دایره/پس‌زمینه دور خود کاراکتر نبود. بازبینی اول نشان
+  داد ابعاد تمام‌قد با اندازهٔ SVG قدیمی کوچک است؛ اندازه 1.8 برابر و collision
+  geometry اصلاح و متن زیر pet حذف شد. visual 390 بعد از اصلاح موفق شد. شباهت و
+  لباس از دو مرجع تولید شده‌اند، اما پذیرش هنری نهایی هنوز تصمیم مالک است.
+- **Completed & Tested — ۲. تعامل / ناقص از نظر 3D:** mouse/pointer drag واقعی،
+  آستانه click/drag، clamp، ذخیره/reset موقعیت، keyboard، hide/minimize و حرکت idle
+  در browser test آزموده شدند. فایل ویدئو
+  `.local-run/assistant-ai-review/assistant-drag-dialog-390.webm` و تصاویر full/open
+  کنار آن ساخته شدند. این PNG متحرک‌شده با CSS است؛ مدل rigged سه‌بعدی نیست، حالت‌های
+  مستقل تصویری/اسکلتی کامل ندارد و آزمون touch روی دستگاه فیزیکی انجام نشده است.
+- **Incomplete/Blocked — ۳. AI آزاد:** endpoint/provider واقعی وجود ندارد؛ پاسخ
+  همچنان adapter قطعی مرحلهٔ اول است. provider، مدل مجاز، secret server-side، منطقهٔ
+  داده، retention و سقف هزینه لازم‌اند. پاسخ هوشمند واقعی آزموده یا فعال نشده است.
+- **Incomplete/Blocked — ۴. ابزار کاتالوگ:** سرویس موجود کاتالوگ در همین stack
+  قیمت/موجودی مصنوعی را نمایش می‌دهد، ولی دستیار آن را فراخوانی نمی‌کند. بنابراین
+  نمایش کاتالوگ شاهد ابزار AI نیست و این مورد تکمیل‌شده محسوب نمی‌شود.
+- **Incomplete/Blocked — ۵. صوت:** کنترل میکروفن/STT/TTS/stream وجود ندارد؛ دریافت
+  فارسی، transcript، صدای خروجی و stop عملاً آزموده نشده‌اند. فایل صوت یا نمایش
+  ساختگی ارائه نشد. provider صوت و آزمون مرورگر/میکروفن واقعی لازم است.
+- **Completed & Tested — ۶. مدیریت:** ذخیرهٔ صریح SiteSetting با RBAC/CSRF/MFA،
+  version conflict، audit و default-off در integration واقعی DB موقت قبلاً موفق
+  بوده؛ فرم browser نیز save/reset را آزموده است. در stack فعلی مسیر مدیریت باز است
+  و تا ورود مالک آزمایشی پیام ورود نشان می‌دهد؛ پذیرش دستی این اجرای تازه به عهدهٔ
+  مالک است.
+- **Completed & Tested — اجرای فعلی:** launcher واقعی با PostgreSQL/storage تازه،
+  queue inline، بدون اتصال Redis و بدون `.env`/Production روی 3191/4191/55439 در
+  حال اجراست. تب‌های login، `/fa/admin/assistant` و `/fa` در مرورگر باز و deliverable
+  هستند. حساب فقط `owner@hedax.test` است؛ رمز در این فایل ثبت نشده. پس از ورود/MFA،
+  فعال‌سازی و save، تب خانه refresh شود. stack در پایان این جلسه عمداً باز می‌ماند.
+- **شواهد:** ضبط اول به‌دلیل قفل Next روی dev server دوم اجرا نشد؛ retry روی سرور
+  موجود به نبود FFmpeg رسید. مؤلفه رسمی Playwright FFmpeg با مجوز نصب و retry نهایی
+  visual 390 با video موفق شد: 1 passed، exit 0. هیچ صوتی در ویدئو نیست.
+
+### ارتقای دستیار هوشمند/صوتی — milestone A در حال اجرا، 2026-10-20
+
+- **Implemented Pending Verification:** درخواست مالک برای مراحل A تا F خوانده شد؛
+  تصاویر مرجع واقعاً بررسی شدند و راهنمای Server/Client نسخهٔ نصب‌شدهٔ Next 16.3.7
+  خوانده شد. همان شاخه و تغییرات مرحلهٔ اول حفظ شده‌اند؛ commit/push/merge/deploy
+  یا تماس با Production انجام نشده است.
+- **Implemented Pending Verification:** با ImageGen داخلی و هر دو مرجع، یک رندر
+  idle تمام‌قد با لباس مکانیک سرمه‌ای ساخته و در
+  `apps/web/public/assistant/hedax-mechanic-idle-v1.png` قرار گرفت. فایل
+  1024×1536 و دارای alpha واقعی است (pixel گوشه alpha=0). عکس شخصی و پوستر مرجع
+  داخل public/Git کپی نشده‌اند. prompt تولید: رندر مکانیک سه‌بعدی‌نما، حفظ هویت
+  مرجع چهره و لباس showcase، patch خالی برند، cutout شفاف، بدون متن/قاب/دایره/
+  حلقه/پس‌زمینه/UI. این فایل فقط رندر دوبعدی است و GLB/glTF rigged نیست.
+- **Completed & Tested:** launcher کارت‌دار حذف و کاراکتر شفاف جایگزین شد؛ drag
+  با pointer برای mouse/touch، آستانهٔ تفکیک click/drag، clamp به visual viewport،
+  ذخیرهٔ فقط مختصات غیرحساس، reset قابل‌دسترسی، minimize، hide تا navigation و
+  pause/reduced-motion پیاده شد. کنترل‌ها سطح کوچک مستقل دارند و خود کاراکتر هیچ
+  کارت، مربع، دایره یا حلقه ندارد.
+- **Completed & Tested:** web typecheck و ESLint هدفمند موفق شدند. نخستین browser
+  run دو تست را به علت `next/image localPatterns` شکست داد؛ assertion حذف یا ضعیف
+  نشد. asset ثابت با `unoptimized` اصلاح شد و اجرای مجدد سناریوی اصلی و visual 390
+  شامل نبود قاب، drag واقعی، عدم بازشدن dialog هنگام drag، ذخیره/reset موقعیت،
+  reduced motion، keyboard و dialog موفق شد: 2 passed، exit 0.
+- **Completed & Tested:** visual 768 نیز در اجرای بعدی موفق شد. visual 1440 ابتدا
+  نشان داد action bar عرض compact را نگه می‌دارد؛ action bar به overlay مستقل تبدیل
+  شد. retry بعدی صرفاً به‌علت پوشاندن launcher توسط Next dev overlay هنگام pointer
+  click timeout شد؛ مسیر keyboard واقعی (`focus` + Enter) بدون force-click استفاده
+  شد و همان تست کامل 1440 موفق شد: 1 passed، exit 0. تغییر تولیدی `next-env.d.ts`
+  پس از dev server به محتوای tracked بازگردانده شد.
+- **Blocked External:** ابزار تصویر می‌تواند رندر شفاف بسازد اما مدل سه‌بعدی
+  rigged و انیمیشن GLB/glTF تولید نمی‌کند. asset/ابزار 3D حرفه‌ای برای نیاز اصلی
+  کاراکتر و تأیید ظاهر همین رندر توسط مالک لازم است. رندر فعلی سه‌بعدی واقعی نامیده
+  نشود. برای provider متن/صوت واقعی نیز حساب، مدل مجاز، منطقهٔ داده، سیاست retention
+  و سقف هزینه لازم است؛ کلید باید فقط در secret manager/environment تنظیم شود و در
+  چت ارسال نشود. آزمون صوت واقعی هنوز انجام نشده است.
+- **Deferred Later:** مراحل B تا F (adapter واقعی AI و ابزارهای فروشگاه، RAG مجاز،
+  صوت واقعی، مدیریت نسخه‌دار/حافظه/handoff، آزمون کامل و بستهٔ انتشار) هنوز پیاده یا
+  تأیید نشده‌اند. پاسخ‌های فعلی همچنان deterministic مرحلهٔ اول‌اند و نباید قابلیت
+  AI/voice فعال تلقی شوند.
+- **قدم بعدی دقیق:** پس از پذیرش/اصلاح ظاهر idle، حالت‌های تصویری هماهنگ یا asset
+  rigged تأمین شود؛ مستقل از آن، مرحلهٔ B با provider adapter ساختگی، endpoint سمت
+  سرور، quota و ابزار خواندنی کاتالوگ موجود پیاده و روی DB/Redis/storage ایزوله
+  آزموده شود. سپس مراحل C تا F بدون ادعای اتصال واقعی تا فراهم‌شدن credential ادامه یابند.
+
+### اجرای محلی برای بازبینی مالک — 2026-10-20 16:23، Asia/Tehran
+
+- **Completed & Tested:** وضعیت واقعی Git و همین checkpoint بررسی شد؛ شاخه
+  `codex/assistant-phase-one` روی `b16770c` است و تغییرات پیاده‌سازی مرحلهٔ اول
+  همچنان فقط محلی و بدون commit/push/merge/deploy هستند.
+- **Completed & Tested:** جدایی launcher پیش از اجرا دوباره تأیید شد: فایل‌های
+  `.env` خوانده نمی‌شوند؛ PostgreSQL تازه در پوشهٔ موقت روی loopback و storage
+  داخل همان پوشه ساخته می‌شوند؛ `QUEUE_DRIVER=inline` است و اتصال Redis ندارد؛
+  پرداخت/ایمیل خاموش و API/Web فقط روی `127.0.0.1` هستند. هیچ داده یا سرویس
+  Production استفاده یا تغییر نکرد.
+- **Completed & Tested:** buildهای معتبر قبلی دوباره اجرا نشدند. launcher واقعی
+  `node apps/web/scripts/assistant-local.mjs` با موفقیت در حال اجراست؛ صفحهٔ اصلی
+  `http://localhost:3191/fa` و صفحهٔ مدیریت
+  `http://localhost:3191/fa/admin/assistant` در مرورگر باز و برای تحویل به مالک
+  نگه داشته شدند؛ هر دو endpoint پاسخ HTTP 200 دارند. صفحهٔ مدیریت تا ورود، لینک
+  ورود کارکنان را نشان می‌دهد. تغییر خودکار dev server در `next-env.d.ts` نیز به
+  محتوای tracked قبلی بازگردانده شد و تغییر پروژه‌ای محسوب نمی‌شود.
+- **خطای رفع‌شده:** تلاش اول فقط به‌علت رد شدن رمز آزمایشی با سیاست
+  `COMMON_WORD` پیش از ساخت حساب متوقف شد؛ launcher دادهٔ موقت همان تلاش را پاک
+  کرد. اجرای دوم با رمز تصادفی محلی پذیرفته شد و حساب موقت
+  `owner@hedax.test` ساخته شد. هیچ رمز در این فایل ثبت نشده است.
+- **Requires Owner Decision / قدم بعدی:** مالک با حساب آزمایشی وارد شود، MFA
+  موقت را برای همین stack ثبت کند، در `/fa/admin/assistant` دستیار را فعال و
+  صریحاً ذخیره کند، سپس تب `/fa` را refresh کند تا مکانیک و پنجرهٔ گفتگو را
+  ببیند. توقف launcher با Ctrl+C داده‌های موقت را حذف می‌کند. قابلیت تازه، AI/RAG،
+  commit، push یا انتشار انجام نشود.
+
+### دستیار مرحلهٔ اول — 2026-10-20، Asia/Tehran
+
+- **Implemented Pending Verification:** درخواست جدید مالک، مجوز ویرایش و آزمون
+  محلی ایزوله است؛ commit/push/merge/deploy ممنوع. مبنا `main` در `b16770c`،
+  working tree هنگام شروع تمیز و شاخهٔ فعلی `codex/assistant-phase-one` است.
+- root/web AGENTS و راهنمای Server/Client نسخهٔ نصب‌شده Next 16.3.7 خوانده شد.
+  PR #20 هنوز OPEN و merge نشده است؛ SVG مکانیک از ref محلی همان PR بازیابی و
+  به‌عنوان تصویر دوبعدی توسعه داده شد، نه مدل سه‌بعدی. هیچ شاخهٔ قدیمی جایگزین نشد.
+- قرارداد تنظیمات bounded دوزبانه با پیش‌فرض خاموش، adapter قطعی با لینک‌های واقعی
+  `/parts?q=` (سقف ۱۲۰ کاراکتر)، `/request-part` و `/contact` اضافه شدند.
+- SettingsService/SiteSetting با کلید مستقل `assistant.phase1`، permission موجود
+  `settings.manage`، قفل تراکنشی concurrent create/update، audit و مسیر تنظیمات
+  زیر `admin/settings` برای invalidation موجود استفاده شدند؛ migration تازه نیست.
+- UI مدیریت `/fa/admin/assistant` و `/en/admin/assistant` شامل چهار بخش کاربردی،
+  ذخیرهٔ صریح و reset صرفاً فرم است. ویجت lazy، پنجره Radix، کنترل motion/compact،
+  reduced-motion/visibility و مسیرهای allowlist دارد. پیام فقط حافظهٔ component است.
+- **آزمون جاری:** build contracts/API موفق؛ نخستین web typecheck نبود label تازهٔ
+  audit را یافت و در حال اصلاح است. هنوز backend/browser/build نهایی تأیید نشده.
+  harness integration دیتابیس PostgreSQL موقت تازه و storage داخل همان پوشه دارد؛
+  Redis URL آزمایشی مجزا و worker production اجرا نمی‌شود. فایل محیط واقعی خوانده نشد.
+- **قدم بعدی:** اصلاح label، آزمون قرارداد/API ایزوله، مرورگر ۳۹۰/۷۶۸/۱۴۴۰ و بررسی
+  واقعی تصاویر، سپس lint/typecheck/build مرتبط. نتایج و شکست‌ها همین‌جا ثبت شوند.
+- فایل‌های جاری: `packages/contracts/src/assistant.ts` و export/test آن، سرویس/
+  controller تنظیمات API و test 96، entry/widget/admin assistant وب، route مدیریت،
+  site layout، shell، CSS، messages، fixture عمومی پیش‌فرض خاموش و SVG مکانیک.
+- **Completed & Tested:** ۹ تست قرارداد، ۴ API integration روی DB واقعی موقت
+  (RBAC مشتری/پشتیبانی/مهمان، persistence، concurrent create 200/409، audit و
+  projection عمومی)، و regression موجود گفت‌وگوی انسانی با نام acknowledged
+  message موفق شدند؛ ۷ تست نامرتبط همان فایل عمداً انتخاب نشدند.
+- **Completed & Tested:** اجرای اصلاح‌شدهٔ شش browser test کامل موفق شد، با عکس
+  ۳۹۰/۷۶۸/۱۴۴۰. عکس‌های موبایل open، تبلت open و دسکتاپ launcher واقعاً دیده شدند؛
+  نزدیکی لبهٔ launcher به CTA سبب افزودن shrink/yield تطبیقی شد. کدهای لاتین در
+  متن فارسی اکنون bdi مستقل دارند؛ این تغییر UI و تست visibility/collision تازه
+  هنوز در انتظار اجرای هدفمند نهایی‌اند.
+- **تاریخچهٔ شکست، رفع‌شده:** نخستین اجرای test به spawn EPERM sandbox خورد؛
+  همان مسیر با مجوز اجرا شد. lint مرز zod-free را نشان داد؛ constants/adapter
+  از schema جدا شدند. اجرای هم‌زمان مرورگر هنگام rebuild موقتاً export قدیمی دید
+  و یک fixture نقش owner نامعتبر داشت؛ rebuild و نقش staff علت‌ها را رفع کردند.
+  هیچ assertion برای سبزشدن ضعیف نشده است. ترجمهٔ فارسیِ تولیدشده با encoding
+  نامناسب پیش از پذیرش اصلاح و تغییرات newline نامرتبط پاک شدند.
+- **Implemented Pending Verification:** launcher اختصاصی
+  `apps/web/scripts/assistant-local.mjs` برای بررسی مالک با DB/storage تازه،
+  inline queue، environment allowlist بدون .env و bind loopback اضافه شد؛
+  smoke آن در حال اجراست. تلاش اول فقط approval deadline خورد و اجرا نشد؛ retry
+  همان درخواست پذیرفته شد. راهنما در `docs/HEDAX_ASSISTANT_PHASE1.md` است.
+- هیچ commit/push/merge/deploy یا تماس با سرور/DNS/دادهٔ Production انجام نشده.
+- **Completed & Tested — نتیجهٔ نهایی مرحله:** قرارداد/پایداری تنظیمات و پوستهٔ
+  راهنمای دوزبانه پیاده و محلی آزموده شدند. دستیار همچنان به‌صورت پیش‌فرض خاموش
+  است؛ API مدل، RAG، حافظه، VIN، قیمت‌گذاری یا اقدام تجاری خودکار اضافه نشده‌اند.
+- **Completed & Tested — آزمون نهایی:**
+  - `pnpm --filter @hedax/contracts exec vitest run test/assistant.test.ts`:
+    ۹ تست موفق؛ اجرای نهایی پس از تفکیک public/schema نیز exit 0.
+  - `pnpm --filter @hedax/api exec vitest run --config vitest.integration.config.ts
+    test/integration/96-assistant-settings.test.ts`: چهار تست، exit 0 و cleanup موفق.
+  - همان integration config، فایل `30-chat-files-access.test.ts` و
+    `-t 'acknowledged message'`: یک regression واقعی REST/WebSocket موفق، exit 0.
+  - browser: شش سناریوی اولیه موفق؛ با افزودن visibility هفت سناریو شد. اصلاح
+    جلوگیری از پوشاندن کنترل‌ها ابتدا launcher را در viewport کوتاه پنهان کرد؛
+    این شکست حفظ و با جابه‌جایی محدود به لبهٔ مقابل/ارتفاع امن رفع شد. چهار تست
+    متاثر نهایی (`-g 'disabled by default|visual'`) همگی موفق، exit 0 در 35.3s؛
+    سه سناریوی دیگرِ مسیرهای مستثنا/ذخیرهٔ صریح/visibility قبلاً موفق بودند و
+    بی‌دلیل دوباره اجرا نشدند. assertion عدم تقاطع، حرکت عمودی یا افقیِ بدون
+    پوشاندن کنترل را می‌سنجد؛ تست یا معیار پذیرفتن هم‌پوشانی حذف نشده است.
+  - `pnpm lint`، typecheck API/web/contracts، build API/contracts و build نهایی
+    وب موفق‌اند. `pnpm --filter @hedax/web build` در 169 صفحه و TypeScript
+    exit 0 داشت؛ فقط endpoint محلیِ بی‌داده برای build تنظیم شد. شکست اول build
+    دسترسی sandbox به SWC native cache بود؛ همان فرمان با مجوز موفق شد، package
+    تازه یا ارتقای وابستگی انجام نشد. lint/typecheck هدفمند پس از آخرین اصلاح
+    launcher نیز موفق‌اند؛ `git diff --check` سالم است.
+- **Completed & Tested — راه اجرای ایزوله:**
+  `node apps/web/scripts/assistant-local.mjs --smoke` با DB/storage تازه و API/web
+  loopback واقعاً اجرا شد، public default=false و صفحهٔ مدیریت HTTP/200 بودند؛
+  سپس stack/داده‌های موقتِ خودش پاک شدند. این smoke معادل ورود/ذخیرهٔ UI نیست؛
+  ذخیره در API integration و رفتار فرم در browser fixture جدا آزموده شده است.
+- **Completed & Tested — تصاویر:** هر شش تصویر نهایی launcher/open در عرض‌های
+  ۳۹۰، ۷۶۸ و ۱۴۴۰ دیده و بررسی شدند؛ برش متن، خروج پنجره از viewport یا پوشاندن
+  CTA اصلی دیده نشد. تصویر موبایل و تبلت RTL خوانا و کنتراست پنجره مناسب است.
+  نسخهٔ قابل‌مراجعهٔ تصاویر در `.local-run/assistant-phase1/assistant-*.png`
+  (ignored؛ فقط دادهٔ synthetic) نگهداری می‌شود.
+- **Deferred Later / محدودیت پذیرش:** کیبورد و safe-area دستگاه فیزیکی iPhone/
+  Android بررسی نشده‌اند؛ مرورگر desktop با visual viewport کوتاه و reduced
+  motion بررسی شد. browser fixture اثبات backend واقعی محسوب نمی‌شود. فعال‌سازی
+  روی سایت اصلی و اتصال مدل AI در این مرحله انجام نمی‌شود.
+- **قدم بعدی دقیق:** مالک با دستورهای راهنمای `docs/HEDAX_ASSISTANT_PHASE1.md`
+  launcher محلی را اجرا کند، در `http://localhost:3191/fa/staff/login` با مالک
+  کاملاً آزمایشی وارد شود و `/fa/admin/assistant` را بررسی کند. تغییرات کد فقط
+  local/uncommitted روی `codex/assistant-phase-one` با HEAD `b16770c` باقی‌اند؛
+  commit/push/merge/deploy تنها با درخواست تازهٔ مالک. baseline یا آزمون‌های سبز
+  تکرار نشوند مگر تغییر یا شکست تازه. `next-env.d.ts` پس از build برابر HEAD است.
 
 ### انتشار Production — 2026-10-20، 09:25 Asia/Tehran
 
@@ -667,3 +864,65 @@ TEST-02 و کنترل‌های موفق بالا دوباره اجرا یا پی
   PROGRESS محلی باقی است. TEST-02 تکمیل شد؛ هیچ Merge یا تغییر Production انجام نشد.
 
 - **Completed & Tested — final owner approval / merge 2026-10-20 09:18 Asia/Tehran:** مالک صریحاً انتشار و commit/push نهایی را تأیید کرد. PR #28 با guard روی SHA 883df80 ادغام شد؛ merge commit 0c6e94cc30a92065b563402f7b3415c876b8ab0b و tree آن دقیقاً برابر candidate است. تأیید شامل تست مصنوعی و Undo همان job است. rollout اکنون قدم جاری است؛ restore مخرب مجاز نشده است.
+# Checkpoint — 2026-10-20 18:05 Asia/Tehran — assistant operational paths
+
+**Branch / inspected HEAD:** `codex/assistant-phase-one` / `b16770c` (working tree intentionally uncommitted; no push, merge, deploy or Production change).
+
+## Completed & Tested
+
+- Added a server-side assistant module with `POST /assistant/messages`, an adapter boundary (`mock`/`openai`), server-only model configuration, fixed system prompt, at most 8 history entries, 3–30s timeout, output-token cap, daily request cap, per-IP/user rate limiting and generic provider errors that do not expose keys or upstream bodies.
+- Free-form widget messages now use the server endpoint. The old deterministic free-form `assistantRespond` path is no longer called; the four explicit navigation shortcuts remain local by design.
+- The message service calls the existing `CatalogService.list` for every query. Product cards are built directly from `ProductCard` fields (name/number, registered fitment, availability, price currency and sales unit). Model prose is not used as the source of those facts. No order/customer tool is exposed, so the assistant cannot read personal data; any future personal tool must require an authenticated actor and ownership check.
+- Added `POST /assistant/transcribe` (5 MB in-memory limit; raw recording is not stored) and `POST /assistant/speech`. The browser requests microphone access only after the mic button, shows the returned transcript by placing it in the input, sends it through the same message endpoint, plays speech, exposes stop-through-mute and mute controls, and drives `data-speaking` from actual audio play/end events. Permission/provider failure leaves text available.
+- Admin now reads `GET /admin/assistant/status` and shows provider, model, configured/live state, timeout, output cap and daily cap. Secrets are never returned.
+- Safe placeholder names were added to `.env.example`: `ASSISTANT_AI_PROVIDER`, `ASSISTANT_LIVE_CALLS_ENABLED`, `OPENAI_API_KEY`, text/STT/TTS models and voice, timeout/output/daily limits. The key stays server-side and is never a `NEXT_PUBLIC_*` value.
+- Isolated verification passed: `pnpm --filter @hedax/api test -- test/unit/assistant.service.test.ts` → 2/2; API and web typechecks passed; API build passed; web production build passed after the running dev server released/recreated its generated `.next/dev` state. The first sandbox test attempt failed only with Windows `spawn EPERM`; the first build attempt failed on the SWC cache permission and a locked stale generated route file, then passed outside that restriction.
+- Live local HTTP evidence against the disposable stack: message returned provider `mock`, model `synthetic-test-provider`, 4 CatalogService-backed products for «لنت ترمز»; speech returned `audio/wav`, 4044 bytes. Browser accessibility confirms the HEDAX guide is visible on `http://localhost:3191/fa`. Admin is open at `/fa/admin/assistant`.
+
+## Implemented Pending Verification / Blocked External
+
+- **Text AI:** code complete and mock-tested; a real OpenAI response has not been called. Required: set `OPENAI_API_KEY` in the server secret environment, choose/confirm model values, set `ASSISTANT_AI_PROVIDER=openai`, and explicitly approve the paid-call budget before setting `ASSISTANT_LIVE_CALLS_ENABLED=true`.
+- **Catalog:** implemented and locally exercised with synthetic seeded catalog data. Production catalog data was not accessed. Exact fitment is shown only when registered; no VIN/Microcat source exists.
+- **Voice:** browser capture/control and server STT/TTS paths are implemented; mock transcription and a synthetic WAV were tested. Real Persian/English recognition, audible TTS quality and the full user-voice → text → real model → real speech chain remain blocked on the same credential and paid-call approval. A physical microphone permission/recording was not automated.
+- The daily live-call counter is process-local. It is a hard local safeguard, not a shared multi-instance monetary ledger; production enablement needs an owner-approved provider budget and, for multiple API replicas, a shared Redis usage counter.
+
+## Local review state and exact next action
+
+- Launcher session is running and must remain open: web `http://localhost:3191`, API `127.0.0.1:4191`, disposable PostgreSQL `127.0.0.1:55439`, inline queue, temporary storage, provider `mock`, live calls false. It loads no repository `.env` and uses no Production database/Redis/storage. The local assistant is enabled only in the disposable database.
+- Local account: `owner@hedax.test`; use the already supplied local-only password and enroll local MFA. Do not record that password here.
+- Next owner decision: approve a maximum paid-call budget/request allowance and place `OPENAI_API_KEY` in the local server environment/secret manager (never chat/Git). Then run exactly one bounded real text call and one bounded STT/TTS round trip, record provider request IDs/status without content or secrets, and keep Production disabled.
+
+# Checkpoint — 2026-10-20 18:32 Asia/Tehran — Arvan text release in progress
+
+**Authorization:** Owner explicitly authorized assistant-only commit/push/PR/merge/Production deployment. DNS changes, destructive data operations, credit purchase and uncapped paid use remain unauthorized.
+
+- **Completed & Tested:** Official Arvan AIaaS documentation confirms `POST [Endpoint]/chat/completions`, `Authorization: apikey …`, OpenAI Chat Completions-shaped messages, stateless requests and endpoint rate limits. Responses API compatibility is not assumed.
+- **Account evidence:** authenticated read-only panel inspection shows no existing AI gateway (`اولین درگاه AI خود را بسازید`). No duplicate was created. Marketplace confirms `GPT-5.6-Luna` (Beta), 1M context, input 624,000 IRR/1M tokens and output 3,744,000 IRR/1M tokens. Account balance was observed but is intentionally not copied here.
+- **Completed & Tested:** provider implementation now has a distinct `arvan` adapter using the exact endpoint and `apikey` header. Controlled server-side CatalogService grounding remains in place; no SQL/arbitrary HTTP/write tool is exposed. Mock contract tests cover CatalogService facts and the Arvan request/response shape: 2/2 passed. Contracts/API/web typechecks passed.
+- **Completed & Tested:** customer microphone, mute and speech controls were removed from the widget for this text-only release. Voice endpoints were removed from the assistant controller/service. Voice is Deferred Later.
+- **Implemented Pending Verification:** persisted settings now contain bounded bilingual System Prompt, max output tokens and daily request limit with safe defaults; the public settings projection removes the private AI block. Assistant messages fail closed when the saved assistant switch is off. Admin UI editing controls for the new AI fields and shared/multi-instance cost reservation are not yet complete.
+- **Blocked External / owner action required once:** create the first free AI gateway named `source-hedax-assistant` in Arvan, attach exact model `GPT-5.6-Luna`, use the free Arvan domain and set endpoint rate limit; create a least-privilege machine-user/API key for this gateway. Put the key only in the Production server secret environment as `ARVAN_AI_API_KEY`; put the exact non-secret gateway base URL ending in `/v1` as `ARVAN_AI_ENDPOINT`. Do not paste the key in chat. Suggested approval: test cap 50,000 IRR total; public daily cap 300,000 IRR and 100 requests/day initially. No gateway, key, credit purchase or paid request has been made yet.
+- **Deployment state:** not committed, pushed, merged or deployed. Production assistant remains unchanged/off. A real Arvan response and post-deploy domain test have not occurred, so release must not be claimed.
+- **Exact next step after owner action:** finish admin AI controls and shared budget reservation tests; run one bounded real Arvan call with synthetic/non-sensitive data; run targeted integration/browser/build; review diff; commit/push/PR/CI/merge; verify backup/rollback and deploy via the existing production method; enable via admin and execute post-deploy checks on both locales.
+
+# Checkpoint — 2026-10-20 18:50 Asia/Tehran — hard AI budgets
+
+**Branch / HEAD:** `codex/assistant-phase-one` / `b16770c`; working tree remains uncommitted. No Production, DNS, merge, push or paid provider call occurred.
+
+- **Owner authorization:** hard isolated-test allowance 50,000 IRR; hard public allowance 300,000 IRR per UTC day and 100 requests per UTC day. Assistant-only publication authorization remains active.
+- **Completed & Tested:** replaced process-local request/concurrency checks with one atomic Redis reservation before every Arvan call. It gates cost, daily requests and concurrent calls together. Production fails closed when Redis is unavailable. Failed provider calls release concurrency but retain the conservative cost reservation; reported token usage refunds only unused reservation.
+- **Evidence:** API typecheck passed. Targeted isolated unit suites passed outside the Windows sandbox after the sandbox-only `spawn EPERM`: 2 files, 5 tests. Tests separately cover cost rejection, request rejection, concurrency rejection, usage settlement, CatalogService grounding and Arvan URL/header contract. No paid request was made.
+- **Completed:** public settings integration expectation now verifies that the AI prompt/config block is absent. Provider failure UI now supplies an honest contact path. Secure Arvan server-only setup and current text architecture are documented in `docs/HEDAX_ASSISTANT_PHASE1.md`; `.env.example` contains approved numeric caps and secret placeholders only.
+- **Implemented Pending Verification:** run the changed integration and browser suites, lint/typechecks/build, inspect generated changes, then commit/push and obtain green CI.
+- **Blocked External:** authenticated Arvan account still had no gateway at last read-only check. Owner must create `source-hedax-assistant`, attach `GPT-5.6-Luna`, create a least-privilege gateway credential, and enter `ARVAN_AI_ENDPOINT` plus `ARVAN_AI_API_KEY` only in the server's mode-600 `.env`. Never send the key in chat. A real test and Production deploy cannot be truthfully completed before that secure setup.
+
+# Checkpoint — 2026-10-21 Asia/Tehran — local release candidate verified
+
+**Branch / HEAD before commit:** `codex/assistant-phase-one` / `b16770c`. No Production, DNS, merge, push or paid provider call occurred in this checkpoint.
+
+- **Completed & Tested:** API integration for persisted settings/public projection passed after rebuilding the compiled API: 1 file, 4 tests. The public endpoint omits the private AI prompt/config block.
+- **Completed & Tested:** assistant browser suite completed with 6/7 on the first run; the sole failure was an over-broad test selector that also matched the English fixture word `grounded`. The selector was limited to the exact part number and the failed scenario passed on targeted retry. Effective result: all 7 scenarios passed, including grounded product cards, no voice controls, bilingual flow, admin save behavior and responsive/accessible launcher checks.
+- **Completed & Tested:** workspace lint, web typecheck and Next.js production build passed. After removing unused deferred-voice env/schema/client helpers and correcting the admin description, API and web typechecks plus targeted lint passed again. Voice remains Deferred Later and has no customer control or active endpoint/config surface.
+- **Completed & Tested:** `git diff --check` passed and no real Arvan key was found. Only empty placeholders and an explicit fake test value exist. Generated `apps/web/next-env.d.ts` is no longer dirty.
+- **Implemented Pending Verification:** commit/push this assistant release candidate, create or update its PR, wait for CI, then run exactly one real bounded Arvan call after the secure gateway credential is installed.
+- **Blocked External:** Arvan gateway/credential setup is still required. Create `source-hedax-assistant`, attach exact model `GPT-5.6-Luna`, and enter `ARVAN_AI_ENDPOINT` and `ARVAN_AI_API_KEY` only in the server mode-600 `.env`; do not send or print the key. Until then, a real provider response, deployment and live-domain validation cannot be claimed.

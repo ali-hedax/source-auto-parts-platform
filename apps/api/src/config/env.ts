@@ -108,6 +108,21 @@ const schema = z
 
     LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug']).default('info'),
     OPENAPI_ENABLED: bool.default(true),
+
+    /** Assistant providers are server-only. Live calls require both a key and an explicit kill-switch. */
+    ASSISTANT_AI_PROVIDER: z.enum(['disabled', 'mock', 'arvan']).default('disabled'),
+    ASSISTANT_LIVE_CALLS_ENABLED: bool.default(false),
+    ASSISTANT_TEXT_MODEL: z.string().regex(/^[A-Za-z0-9._-]{1,80}$/).default('gpt-5-mini'),
+    ASSISTANT_TIMEOUT_MS: z.coerce.number().int().min(3000).max(30000).default(15000),
+    ASSISTANT_MAX_OUTPUT_TOKENS: z.coerce.number().int().min(64).max(1000).default(400),
+    ASSISTANT_DAILY_REQUEST_LIMIT: z.coerce.number().int().min(1).max(10000).default(100),
+    ASSISTANT_DAILY_BUDGET_IRR: z.coerce.number().int().min(0).max(100_000_000).default(0),
+    ASSISTANT_TEST_BUDGET_IRR: z.coerce.number().int().min(0).max(10_000_000).default(0),
+    ASSISTANT_INPUT_PRICE_IRR_PER_MILLION: z.coerce.number().int().min(0).default(624000),
+    ASSISTANT_OUTPUT_PRICE_IRR_PER_MILLION: z.coerce.number().int().min(0).default(3744000),
+    ASSISTANT_MAX_CONCURRENT: z.coerce.number().int().min(1).max(20).default(3),
+    ARVAN_AI_ENDPOINT: z.preprocess(emptyAsUnset, z.url().refine((v) => v.startsWith('https://'), 'HTTPS required').optional()),
+    ARVAN_AI_API_KEY: z.preprocess(emptyAsUnset, z.string().min(20).optional()),
   })
   .superRefine((env, ctx) => {
     const prod = env.APP_ENV === 'production';
@@ -127,6 +142,8 @@ const schema = z
     guard(prod && !env.COOKIE_SECURE, 'COOKIE_SECURE', 'Secure cookies are required in production');
     guard(prod && !env.PUBLIC_BASE_URL.startsWith('https://'), 'PUBLIC_BASE_URL', 'Production must use https');
     guard(prod && env.OPENAPI_ENABLED, 'OPENAPI_ENABLED', 'Disable the public OpenAPI UI in production (export the spec instead)');
+    guard(env.ASSISTANT_AI_PROVIDER === 'arvan' && (!env.ASSISTANT_LIVE_CALLS_ENABLED || !env.ARVAN_AI_ENDPOINT || !env.ARVAN_AI_API_KEY), 'ASSISTANT_AI_PROVIDER', 'Arvan requires explicit live-call enablement, ARVAN_AI_ENDPOINT and ARVAN_AI_API_KEY');
+    guard(env.ASSISTANT_AI_PROVIDER === 'arvan' && env.ASSISTANT_DAILY_BUDGET_IRR <= 0, 'ASSISTANT_DAILY_BUDGET_IRR', 'A positive hard daily budget is required for Arvan');
     guard(prod && env.PAYMENT_PROVIDER === 'zarinpal' && env.ZARINPAL_SANDBOX, 'ZARINPAL_SANDBOX', 'The Zarinpal sandbox is a test gateway and is forbidden in production');
     guard(
       env.PAYMENT_PROVIDER === 'zarinpal' && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(env.PAYMENT_MERCHANT_ID),

@@ -19,6 +19,7 @@ export const LIMITS = {
   uploadPerUser: { bucket: 'upload:user', limit: 60, windowSeconds: 3600 },
   searchPerIp: { bucket: 'search:ip', limit: 120, windowSeconds: 60 },
   chatPerUser: { bucket: 'chat:user', limit: 40, windowSeconds: 60 },
+  assistantPerIp: { bucket: 'assistant:ip', limit: 30, windowSeconds: 60 },
   sourcingPerUser: { bucket: 'sourcing:user', limit: 20, windowSeconds: 3600 },
   invitePerActor: { bucket: 'invite:actor', limit: 30, windowSeconds: 3600 },
   staffErasePerActor: { bucket: 'staff-erase:actor', limit: 20, windowSeconds: 3600 },
