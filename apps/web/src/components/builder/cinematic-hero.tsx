@@ -1,6 +1,7 @@
 import type { BuilderBlock, BuilderFilm, CategoryView, SiteContentView } from '@hedax/contracts';
 import { DEFAULT_BUILDER_FILM, localize } from '@hedax/contracts/constants';
 import { ArrowDown, ArrowLeft, ArrowRight, Search } from 'lucide-react';
+import { preload } from 'react-dom';
 import { Link } from '@/i18n/navigation';
 import { CinematicFilm } from './cinematic-film';
 
@@ -26,6 +27,12 @@ export function CinematicHero({ block: b, content, categories, locale }: { block
     { href: '/request-part', title: fa ? 'درخواست تأمین' : 'Request a part', text: fa ? 'پیدا نشد؟ با شماره فنی یا VIN بسپارید' : 'Not listed? Send the number or VIN' },
   ];
   const top = categories.filter(c => !c.parentSlug).slice(0, 10);
+  // The hero image is the page's LCP element: fetch it from <head>, one file per device (same choice as CinematicFilm).
+  const first = film.playback === 'static' ? undefined : film.clips.find(c => c.active && (c.desktop || c.mobile));
+  const lcpDesktop = first?.poster || b.imageUrl;
+  const lcpMobile = (first ? first.mobilePoster || first.poster : '') || b.mobileImageUrl || lcpDesktop;
+  if (lcpMobile) preload(lcpMobile, { as: 'image', fetchPriority: 'high', media: '(max-width: 639px)' });
+  if (lcpDesktop) preload(lcpDesktop, { as: 'image', fetchPriority: 'high', media: '(min-width: 640px)' });
 
   return <section className="cine" aria-labelledby={`${b.id}-title`}>
     <div className="cine-stage">

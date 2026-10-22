@@ -87,7 +87,7 @@ ${env.HEDAX_OWNER_PASSWORD}
     // LOCAL REVIEW ONLY: written straight into this throwaway DB. Through the panel these files cannot be
     // published (they are not release-cleared library media and carry the generator watermark).
     Object.assign(film, { imageUrl: v2 + 'still-desktop.webp', mobileImageUrl: v2 + 'still-mobile.webp', alt: { fa: 'قطعات یک خودروی کراس‌اوور به‌صورت پیوسته کنار هم قرار می‌گیرند و خودرو کامل می‌شود.', en: 'The parts of a crossover come together in one continuous shot until the car is complete.' } });
-    film.film.clips = [{ id: 'v2', active: true, desktop: v2 + 'hero-desktop.mp4', desktopWebm: v2 + 'hero-desktop.webm', mobile: v2 + 'hero-mobile.mp4', poster: v2 + 'poster-desktop.jpg', mobilePoster: v2 + 'poster-mobile.jpg' }];
+    film.film.clips = [{ id: 'v2', active: true, desktop: v2 + 'hero-desktop.mp4', desktopWebm: v2 + 'hero-desktop.webm', mobile: v2 + 'hero-mobile.mp4', poster: v2 + 'poster-desktop.webp', mobilePoster: v2 + 'poster-mobile.webp' }];
     const doc = builderDocumentSchema.parse({ ...document, sections: [film, ...sections], chrome: { ...document.chrome, headerBackground: '#05080d' } });
     await p.visualPage.create({ data: { slug: 'home', draft: doc, published: doc, version: 1, publishedAt: new Date(), publishedBy: 'Local review seed' } });
     await p.$disconnect();`]);

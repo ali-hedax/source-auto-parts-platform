@@ -44,7 +44,7 @@ for (const width of [390, 768, 1440]) {
     await page.route('**/api/v1/site/assistant?**', (route) => route.fulfill({ json: { ...DEFAULT_ASSISTANT_SETTINGS, enabled: true } }));
     await page.goto('/fa');
     await expect(page.getByRole('button', { name: 'باز کردن راهنمای HEDAX' })).toBeVisible();
-    await expect(page.locator('.assistant-character img')).toHaveAttribute('src', /hedax-mechanic-idle-v1\.png/);
+    await expect(page.locator('.assistant-character img')).toHaveAttribute('src', /hedax-mechanic-idle-v1-\d+\.webp/);
     await expect(page.locator('.assistant-character')).not.toHaveCSS('background-color', 'rgb(255, 255, 255)');
     expect(await page.locator('.assistant-mascot').evaluate((el) => getComputedStyle(el).animationName)).toBe('none');
     await page.screenshot({ path: testInfo.outputPath(`assistant-launcher-${width}.png`), fullPage: false });

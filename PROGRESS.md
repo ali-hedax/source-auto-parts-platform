@@ -1,6 +1,6 @@
 # Source by HEDAX — وضعیت و نقطهٔ ادامه
 
-آخرین به‌روزرسانی: 2026-10-22 ~11:20 +03:30 Asia/Tehran؛ شاخهٔ `feature/source-premium-experience`، فاز ۳ (مدیریت ظاهر سایت/ویدیوی Hero) — منتظر بررسی مالک.
+آخرین به‌روزرسانی: 2026-10-22 ~13:05 +03:30 Asia/Tehran؛ شاخهٔ `feature/source-premium-experience`، فاز ۶ (سرعت و Core Web Vitals) — منتظر تأیید مالک پیش از فاز ۴.
 
 > توجه: این worktree جدا (`Desktop/source-premium-experience`) است. checkpoint انتشار
 > PR #29 در PROGRESS.md پوشهٔ اصلی (شاخهٔ `codex/assistant-phase-one`، تغییر commit‌نشدهٔ
@@ -11,6 +11,21 @@
 هیچ رمز، توکن، دادهٔ مشتری یا محتوای محرمانهٔ فایل تأمین‌کننده در این فایل ثبت نشود.
 
 ## نقطهٔ فعلی
+
+### فاز ۶ — سرعت و Core Web Vitals — 2026-10-22 ~13:05 Asia/Tehran
+
+- **تصمیم مالک:** فاز ۳ تأیید شد؛ دستور فاز ۶ (اولویت سرعت/CWV) با همان محدودیت‌ها: فقط همین شاخه و محیط توسعه/Preview، بدون Merge و بدون تغییر Production؛ پس از فاز ۶ توقف برای تأیید پیش از فاز ۴.
+- **مبنا:** HEAD `e396e84`، درخت تمیز، main بدون commit تازه. Production فقط با GET/Lighthouse خوانده شد (بدون هیچ تغییر).
+- **تشخیص (اندازه‌گیری‌شده):** اعداد «۴٫۹s دسکتاپ / ۶٫۵s موبایل» در هیچ اندازه‌گیری ما بازتولید نشد (lab دسکتاپ قبلی ۰٫۴۹s؛ Lighthouse دسکتاپ ۰٫۹–۱٫۰s). علل واقعی: (۱) **تصویر کاراکتر دستیار PNG 1024×1536 با حجم 1,653KB** با اولویت High در همهٔ صفحات (در سایت زندهٔ فعلی هم) — ۵۳٪ حجم صفحه؛ (۲) شروع دانلود فیلم موبایل 891KB در ~0.6s و رقابت با پوستر/فونت؛ (۳) پوستر LCP دیر کشف می‌شد و پس از دانلود ~0.9s منتظر main thread می‌ماند (trace: load 3.13s، render 4.04s)؛ (۴) mount ویجت دستیار و فیلم در زمان hydration؛ (۵) فونت‌ها (۹ فایل، swap) و JS مشترک ~217KB (عمدتاً react-dom/Next) سراسری‌اند.
+- **Completed & Tested — اصلاحات:** کاراکتر: WebP شفاف 160/320/480px (۹/۲۲/۳۸KB) با srcset و بارگذاری پس از load+idle، جعبهٔ ثابت 2:3 (PNG اصلی دست‌نخورده، دیگر ارجاع ندارد؛ مقایسهٔ بصری روی زمینهٔ تیره/روشن بدون تفاوت قابل‌مشاهده). ویجت دستیار (درخواست تنظیمات + کد) پس از load+idle و در `startTransition`. فیلم Hero: فقط پس از load+idle و در transition؛ اتصال 3G (effectiveType) → پوستر سبک + دکمهٔ «پخش فیلم» و دانلود فقط با لمس؛ Save-Data/2G/کاهش حرکت → تصویر ثابت (بدون دانلود فیلم). پیش‌بارگذاری پوستر LCP با `preload` → هدر HTTP `Link` با media جدا برای موبایل/دسکتاپ. پوسترهای WebP (88→43KB دسکتاپ، 48→25KB موبایل؛ اسکریپت ساخت به‌روز). آیکن تب `app/icon.png` 37.8KB→5.4KB (palette، بدون تفاوت دیداری). `lib/after-load.ts` مشترک. `inlineCss` آزمایشی Next عمداً فعال نشد (سراسری و experimental). فونت‌ها برای حفظ کیفیت طراحی تغییر نکردند.
+- **نتایج قبل/بعد — مرورگر واقعی (Edge+CDP، build تولیدی محلی، موبایل slow-4G 1.6Mbps/150ms + 4×CPU، میانهٔ ۳ نمونه):** `/fa` موبایل cold: LCP **6.05s → 1.88s** (بازه 1.64–3.27)، FCP 5.73→1.88، CLS 0→0، INP-proxy 144→104ms، حجم 3,124KB→1,441KB (تصویر 1,733→79KB؛ فیلم پس از load). `/fa` دسکتاپ cold: LCP 0.49→0.44s، CLS 0.017→0.011، INP-proxy 64→56ms، حجم 3,709→2,014KB. `/fa/parts` موبایل: LCP 4.53→1.65s، حجم 2,170→506KB.
+- **نتایج قبل/بعد — Lighthouse 12.8 (روش PageSpeed، A/B درهم‌تنیده با build قبل `e396e84` در worktree موقت روی پورت‌های جدا، شاخص CPU مشابه ~1700–1900):** `/fa` موبایل: امتیاز 67→78، LCP میانه 12.6s (ناپایدار 4.3–13.0) → 4.33s (پایدار 3.95–4.41)، TBT 238→212ms، CLS 0.018→0.018، حجم 3,084→1,401KB. `/fa` دسکتاپ: امتیاز 99→99، LCP 0.93→0.92s، TBT 0→0، CLS 0.013، حجم 3,722→2,020KB. `/fa/parts` موبایل: امتیاز 85→84، LCP 3.92→3.94s، حجم 2,166→503KB. سایت زندهٔ فعلی (بدون فیلم، فقط خواندن): موبایل LCP 2.88s (H1)، دسکتاپ 0.71s.
+- **محدودیت اندازه‌گیری (مهم):** LCP شبیه‌سازی‌شدهٔ Lighthouse موبایل روی localhost حتی برای صفحهٔ بدون فیلم ~3.9–4.3s است چون بدون تأخیر شبکه، همهٔ JS پیش از اولین فریم مشاهده می‌شود و ×4 به LCP نسبت داده می‌شود؛ مرورگر با throttling واقعی 1.6–1.9s اندازه گرفت. بار پس‌زمینهٔ همین PC شاخص CPU را بین ~1000 و ~2100 جابه‌جا می‌کرد؛ مقایسهٔ اول Lighthouse (غیرهم‌زمان) به همین دلیل نامعتبر و کنار گذاشته شد و A/B هم‌زمان جایگزین شد. هدف 2.5s در Lighthouse موبایل localhost هنوز برآورده نشده؛ ارزیابی نهایی PageSpeed باید روی Preview میزبانی‌شده انجام شود. اینها lab هستند، نه داده میدانی (CrUX).
+- **آزمون‌ها:** web typecheck و ESLint (0 error) exit 0. Playwright مخزن (fixtures): **63/64** — تنها شکست `site content panel: every section opens on a phone…` **از پیش موجود** است: از commit `5eba97e` مسیر `/admin/content/home` به ویرایشگر بصری می‌رود و backend آزمایشی endpoint صفحه‌ساز ندارد؛ مستقل از فاز ۶ (Deferred). آزمون‌های بصری دستیار با assertion به‌روز (WebP) موفق. بازبینی بصری Hero (دسکتاپ/تبلت/موبایل fa/en/کاهش حرکت): همه درست، overflow 0، یک H1، بدون خطای console. probe شبکه: slow-3G → «پخش فیلم» بدون دانلود تا لمس؛ fast-3G/4G → پخش خودکار پس از load. CLS: موبایل 0، دسکتاپ ~0.011 (font swap 0.005 + جابه‌جایی جای دستیار 0.006). E2E پنل مدیریت روی build نهایی: 12/13 در اجرای اول؛ تنها شکست race خود اسکریپت (`currentSrc` خالی بین دو فیلم) بود که اصلاح و سناریو جداگانه تأیید شد: ترتیب پخش دسکتاپ و موبایل درست، پایان با لوگو.
+- **فایل‌ها:** `apps/web/src/lib/after-load.ts` (جدید)، `components/builder/{cinematic-film,cinematic-hero}.tsx`، `components/chat/{assistant-entry,hedax-assistant-widget}.tsx`، `app/globals.css`، `app/icon.png`، `public/assistant/hedax-mechanic-idle-v1-{160,320,480}.webp` (جدید)، `e2e/assistant.spec.ts`، `scripts/media/build-hero-v2.sh`، `scripts/home-review-local.mjs`. worktree موقت مبنا (`Desktop/source-perf-baseline`) پس از اندازه‌گیری حذف و prune شد. شواهد: `.local-run/phase6-perf-2026-10-22/` (JSONهای Lighthouse/CDP، اسکریپت‌ها، تصاویر).
+- **Deferred / پیشنهاد بعدی:** اندازه‌گیری PageSpeed روی Preview واقعی؛ در صورت نیاز کاهش وزن/تعداد فونت‌ها (variable font یا حذف وزن‌های کم‌کاربرد — تغییر ظاهری کوچک، نیازمند تأیید)؛ اصلاح backend آزمایشی برای تست site content.
+- **وضعیت:** Production، DNS، سرور، `.env` و دادهٔ زنده دست نخوردند؛ هیچ PR ساخته/Merge نشد. **Requires Owner Decision:** تأیید نتایج فاز ۶ و شروع فاز ۴ (بازطراحی کامل فروشگاه).
+
 
 ### فاز ۳ — مدیریت ظاهر سایت و ویدیوهای Hero — 2026-10-22 ~11:20 Asia/Tehran
 

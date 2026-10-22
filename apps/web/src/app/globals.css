@@ -2,7 +2,7 @@
 
 /* A local illustrated mascot, never a WebGL/3D model. Keep mobile bottom navigation clear. */
 .assistant-dock { bottom: calc(5rem + env(safe-area-inset-bottom, 0px) + var(--assistant-lift, 0px)); }
-.assistant-mascot { width: calc(var(--assistant-mobile) * 1.8); height: auto; filter: drop-shadow(0 14px 14px rgb(11 31 54 / .22)); pointer-events: none; user-select: none; }
+.assistant-mascot { width: calc(var(--assistant-mobile) * 1.8); height: auto; aspect-ratio: 2 / 3; filter: drop-shadow(0 14px 14px rgb(11 31 54 / .22)); pointer-events: none; user-select: none; }
 .assistant-panel { top: max(1rem, env(safe-area-inset-top)); max-height: calc(100dvh - 2rem); }
 @keyframes assistant-idle { 0%, 100% { transform: translateY(0) rotate(0deg) scale(1); } 35% { transform: translateY(-5px) rotate(-1deg) scale(1.012); } 65% { transform: translateY(-2px) rotate(1deg) scale(.998); } }
 .assistant-dock[data-moving='true'] .assistant-mascot { animation: assistant-idle 4s ease-in-out infinite; transform-origin: 50% 88%; }

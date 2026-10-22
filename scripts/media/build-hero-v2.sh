@@ -23,6 +23,8 @@ X264=(-c:v libx264 -preset slow -profile:v high -pix_fmt yuv420p -movflags +fast
 for size in desktop:1280:720 mobile:854:480; do
   IFS=: read -r name w h <<<"$size"
   "$FFMPEG" -hide_banner -loglevel error -y -ss 0.5 -i "$OUT/hero-$( [ "$name" = desktop ] && echo desktop || echo mobile ).mp4" -frames:v 1 -vf "scale=$w:$h" -q:v 3 "$OUT/poster-$name.jpg"
+  # The poster is the hero's LCP image: a light WebP (the JPEG stays as a fallback).
+  "$FFMPEG" -hide_banner -loglevel error -y -ss 0.5 -i "$OUT/hero-$( [ "$name" = desktop ] && echo desktop || echo mobile ).mp4" -frames:v 1 -vf "scale=$w:$h" -c:v libwebp -quality 72 "$OUT/poster-$name.webp"
   "$FFMPEG" -hide_banner -loglevel error -y -ss 11.5 -i "$OUT/hero-$( [ "$name" = desktop ] && echo desktop || echo mobile ).mp4" -frames:v 1 -vf "scale=$w:$h" -q:v 3 "$OUT/still-$name.jpg"
   "$FFMPEG" -hide_banner -loglevel error -y -ss 11.5 -i "$OUT/hero-$( [ "$name" = desktop ] && echo desktop || echo mobile ).mp4" -frames:v 1 -vf "scale=$w:$h" -c:v libwebp -quality 80 "$OUT/still-$name.webp"
 done

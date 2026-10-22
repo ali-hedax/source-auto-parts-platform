@@ -1,17 +1,27 @@
 'use client';
 import type { BuilderFilm } from '@hedax/contracts';
 import { Pause, Play, RotateCcw } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { startTransition, useEffect, useRef, useState } from 'react';
+import { afterLoad } from '@/lib/after-load';
 
-type State = 'idle' | 'loading' | 'playing' | 'paused' | 'blocked' | 'ended' | 'still';
+type State = 'idle' | 'loading' | 'playing' | 'paused' | 'blocked' | 'ended' | 'still' | 'ondemand';
 type Clip = BuilderFilm['clips'][number];
 const MOBILE = '(max-width: 639px)';
 const REDUCED = '(prefers-reduced-motion: reduce)';
 
+type Connection = { saveData?: boolean; effectiveType?: string };
+const connection = () => (navigator as Navigator & { connection?: Connection }).connection;
 /** Data saver or a 2G-class connection: show the still frame and never fetch a movie. */
 function saveData() {
-  const c = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+  const c = connection();
   return Boolean(c?.saveData) || /(^|-)2g$/.test(c?.effectiveType ?? '');
+}
+/**
+ * A 3G-class link (the browser's own classification): show the light poster and fetch the movie only when the visitor
+ * asks. The raw `downlink` estimate is not used: early in a page's life it can misjudge a good 4G connection.
+ */
+function slowLink() {
+  return connection()?.effectiveType === '3g';
 }
 /** One file per clip for this device: the mobile file on phones, otherwise WebM where VP9 plays, else MP4. */
 function source(clip: Clip, mobile: boolean, webm: boolean) {
@@ -20,8 +30,9 @@ function source(clip: Clip, mobile: boolean, webm: boolean) {
 
 /**
  * The opening film: the active clips in their saved order. The server renders the first poster (or the still)
- * so the hero is complete without JavaScript; movies are attached afterwards, one file at a time, and never for
- * reduced motion, data saving or the 'static' mode. The logo appears once, `film.logoAt` seconds into the last clip.
+ * so the hero is complete without JavaScript (and is the LCP image); movies are attached only after the page has
+ * loaded, one file at a time, never for reduced motion, data saving or the 'static' mode, and on slow links only when
+ * the visitor presses play. The logo appears once, `film.logoAt` seconds into the last clip.
  */
 export function CinematicFilm({ film, still, mobileStill, alt, logoUrl, logoAlt, locale }: {
   film: BuilderFilm; still: string; mobileStill: string; alt: string; logoUrl: string; logoAlt: string; locale: string;
@@ -44,13 +55,18 @@ export function CinematicFilm({ film, still, mobileStill, alt, logoUrl, logoAlt,
   useEffect(() => {
     if (film.playback === 'static' || !clipKey) return;
     if (matchMedia(REDUCED).matches || saveData()) { setState('still'); setResolved(true); return; }
-    const mobile = matchMedia(MOBILE).matches;
-    const webm = !mobile && Boolean(document.createElement('video').canPlayType('video/webm; codecs="vp9"'));
-    setSources(clips.map(c => source(c, mobile, webm)).filter(Boolean));
-    setIndex(0); setState('loading');
+    if (slowLink()) { setState('ondemand'); return; }
+    return afterLoad(() => startTransition(start));
     // clipKey captures every field of the active clips that changes the files.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [film.playback, clipKey]);
+
+  function start() {
+    const mobile = matchMedia(MOBILE).matches;
+    const webm = !mobile && Boolean(document.createElement('video').canPlayType('video/webm; codecs="vp9"'));
+    setSources(clips.map(c => source(c, mobile, webm)).filter(Boolean));
+    setIndex(0); setResolved(false); setState('loading');
+  }
 
   useEffect(() => {
     const v = video.current;
@@ -111,8 +127,8 @@ export function CinematicFilm({ film, still, mobileStill, alt, logoUrl, logoAlt,
       onPlaying={() => setState('playing')} onPause={() => setState(s => (s === 'ended' ? s : 'paused'))} onTimeUpdate={onTime} onEnded={onEnded}
       onError={() => { if (!last) setIndex(i => i + 1); else { setSources([]); setState('still'); setResolved(true); } }} /> : null}
     {film.logoAt !== null && logoUrl ? <img className="cine-logo" src={logoUrl} alt={logoAlt} width={600} height={191} decoding="async" /> : null}
-    {sources.length && !isStill ? <div className="cine-controls">
-      <button type="button" className="cine-control" onClick={toggle} aria-label={label} data-emphasis={state === 'blocked' || undefined}><Icon aria-hidden size={18} />{state === 'blocked' ? <span>{label}</span> : null}</button>
+    {(sources.length && !isStill) || state === 'ondemand' ? <div className="cine-controls">
+      <button type="button" className="cine-control" onClick={state === 'ondemand' ? start : toggle} aria-label={label} data-emphasis={state === 'blocked' || state === 'ondemand' || undefined}><Icon aria-hidden size={18} />{state === 'blocked' || state === 'ondemand' ? <span>{label}</span> : null}</button>
       <span className="cine-progress" aria-hidden><span /></span>
     </div> : null}
   </div>;

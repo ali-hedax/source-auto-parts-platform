@@ -11,6 +11,12 @@ import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/field';
 import { api } from '@/lib/api/client';
+import { useAfterLoad } from '@/lib/after-load';
+
+/** Right-sized transparent WebP renders of the character (the 1024×1536 PNG source weighs 1.6 MB). */
+const MASCOT = '/assistant/hedax-mechanic-idle-v1';
+const MASCOT_SRCSET = `${MASCOT}-160.webp 160w, ${MASCOT}-320.webp 320w, ${MASCOT}-480.webp 480w`;
+
 
 function PlainText({ text }: { text: string }) {
   return <>{text.split(/([A-Za-z0-9][A-Za-z0-9._/-]*)/g).map((part, i) => /^[A-Za-z0-9]/.test(part) ? <bdi key={i} dir="ltr">{part}</bdi> : part)}</>;
@@ -18,6 +24,7 @@ function PlainText({ text }: { text: string }) {
 
 export function HedaxAssistantWidget({ locale, settings }: { locale: 'fa' | 'en'; settings: AssistantPublicSettings }) {
   const t = useTranslations('assistant');
+  const artReady = useAfterLoad();
   const [open, setOpen] = useState(false);
   const [compact, setCompact] = useState(false);
   const [paused, setPaused] = useState(false);
@@ -148,7 +155,8 @@ export function HedaxAssistantWidget({ locale, settings }: { locale: 'fa' | 'en'
         <div className="assistant-character-controls relative flex flex-col items-center gap-1">
           <RDialog.Trigger asChild>
             <button type="button" aria-label={t('open')} className="assistant-character flex min-h-12 min-w-12 touch-none cursor-grab flex-col items-center rounded-xl p-1 text-action outline-offset-4 active:cursor-grabbing" onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={() => { drag.current = null; }} onClick={(event) => { if (suppressOpen.current) event.preventDefault(); }}>
-              {compact ? <MessageCircle aria-hidden className="size-6" /> : <Image src="/assistant/hedax-mechanic-idle-v1.png" alt="" width={1024} height={1536} unoptimized loading="lazy" className="assistant-mascot object-contain" style={{ height: 'auto' }} />}
+              {compact ? <MessageCircle aria-hidden className="size-6" /> : /* eslint-disable-next-line @next/next/no-img-element -- responsive srcset of pre-sized WebP; the box is reserved by width/height until it loads */
+                <img {...(artReady ? { src: `${MASCOT}-320.webp`, srcSet: MASCOT_SRCSET } : {})} sizes="(min-width: 640px) 230px, 144px" alt="" width={1024} height={1536} decoding="async" className="assistant-mascot object-contain" style={{ height: 'auto' }} />}
             </button>
           </RDialog.Trigger>
           <div className="assistant-character-actions absolute start-1/2 top-full flex -translate-x-1/2 gap-1 rounded-full border border-line-soft bg-white/95 p-1 shadow-[var(--shadow-overlay)] rtl:translate-x-1/2">
@@ -161,7 +169,7 @@ export function HedaxAssistantWidget({ locale, settings }: { locale: 'fa' | 'en'
           <RDialog.Overlay className="fixed inset-0 z-50 bg-carbon/40" />
           <RDialog.Content dir={locale === 'fa' ? 'rtl' : 'ltr'} className={`assistant-panel fixed inset-x-3 z-50 mx-auto flex w-auto max-w-md flex-col overflow-hidden rounded-[var(--radius-panel)] border border-line-soft bg-white shadow-[var(--shadow-overlay)] sm:inset-x-auto sm:mx-0 sm:w-[26rem] ${panelSide}`} style={viewport ? { top: viewport.top, maxHeight: viewport.height } : undefined}>
             <header className="on-dark flex items-center gap-2 bg-carbon p-3 text-silver">
-              <Image src="/assistant/hedax-mechanic-idle-v1.png" alt="" width={40} height={60} unoptimized className="h-12 w-auto object-contain" />
+              <Image src={`${MASCOT}-160.webp`} alt="" width={40} height={60} unoptimized className="h-12 w-auto object-contain" />
               <div className="min-w-0 flex-1"><RDialog.Title className="font-bold">{settings.name[locale]}</RDialog.Title><p className="text-xs text-tech-light">{t('phase')}</p></div>
               <button type="button" className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-lg hover:bg-white/10" onClick={toggleMotion} aria-label={paused ? t('resume') : t('pause')} aria-pressed={paused}>{paused ? <Play aria-hidden className="size-4" /> : <Pause aria-hidden className="size-4" />}</button>
               <RDialog.Close className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-lg hover:bg-white/10" aria-label={t('close')}><X aria-hidden className="size-5" /></RDialog.Close>
