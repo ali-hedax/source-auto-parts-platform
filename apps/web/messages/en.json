@@ -1189,8 +1189,8 @@
     "pause": "Pause motion",
     "resume": "Resume motion",
     "launcher": "Need a hand?",
-    "phase": "Website guide ? Phase one",
-    "disclaimer": "This is a local website guide, not connected to an AI model. No VIN or fitment verification. Messages stay in this window and are not saved.",
+    "phase": "HEDAX text assistant",
+    "disclaimer": "Messages are sent to an AI service to generate replies. Answers may be inaccurate; confirm fitment, price and availability before purchase. Do not send sensitive information.",
     "input": "Part name, number or question",
     "send": "Send"
   }
