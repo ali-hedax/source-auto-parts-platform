@@ -51,14 +51,14 @@ export function CartClient() {
   }
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-      <ul className="divide-y divide-line-soft self-start rounded-[var(--radius-card)] border border-line-soft bg-white">
+      <ul className="store-card divide-y divide-line-soft self-start overflow-hidden">
         {cart.lines.map((l) => {
           const name = locale === 'en' ? (l.name.en ?? l.name.fa) : l.name.fa;
           return (
             <li key={l.id} className="grid grid-cols-[4rem_minmax(0,1fr)] gap-x-4 gap-y-3 p-4 sm:grid-cols-[4.5rem_minmax(0,1fr)_auto_9.5rem] sm:items-center">
-              <div className="relative row-span-2 aspect-square overflow-hidden rounded-[var(--radius-control)] border border-line-soft sm:row-span-1">
+              <div className="studio relative row-span-2 aspect-square overflow-hidden rounded-[var(--radius-control)] sm:row-span-1">
                 {l.imageUrl ? (
-                  <Image src={l.imageUrl} alt="" fill sizes="72px" className="bg-white object-contain p-1" />
+                  <Image src={l.imageUrl} alt="" fill sizes="72px" className="object-contain p-1.5 mix-blend-multiply" />
                 ) : (
                   <div className="media-placeholder grid h-full place-items-center text-steel"><ImageOff aria-hidden className="size-5" /></div>
                 )}
@@ -86,7 +86,7 @@ export function CartClient() {
           );
         })}
       </ul>
-      <aside className="flex h-fit flex-col gap-4 rounded-[var(--radius-card)] border border-line-soft bg-white p-5 lg:sticky lg:top-32">
+      <aside className="store-card flex h-fit flex-col gap-4 p-5 sm:p-6 lg:sticky lg:top-32">
         <div className="flex items-baseline justify-between gap-2 border-b border-line-soft pb-4">
           <span className="font-semibold">{t('cart.itemsTotal')}</span>
           <Money value={cart.itemsTotalPayableIrr} className="text-xl font-bold" />
@@ -96,7 +96,7 @@ export function CartClient() {
           <li className="flex gap-2"><Info aria-hidden className="mt-1 size-3.5 shrink-0" />{t('cart.separateQuotes')}</li>
         </ul>
         {cart.canCheckout ? (
-          <ButtonLink href="/checkout" size="lg">{t('cart.checkout')}</ButtonLink>
+          <ButtonLink href="/checkout" variant="commerce" size="lg">{t('cart.checkout')}</ButtonLink>
         ) : (
           <Alert tone="warning" title={t('checkout.blocker_CART_NOT_READY')} />
         )}

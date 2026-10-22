@@ -22,9 +22,9 @@ export function MobileNav({ items }: { items: Array<{ href: string; label: strin
         <Menu aria-hidden className="size-6" />
       </RDialog.Trigger>
       <RDialog.Portal>
-        <RDialog.Overlay className="overlay-fade fixed inset-0 z-50 bg-carbon/60" />
+        <RDialog.Overlay className="overlay-fade fixed inset-0 z-50 bg-stage/70" />
         <RDialog.Content
-          className="on-dark drawer-start fixed inset-y-0 start-0 z-50 flex w-[min(20rem,85vw)] flex-col bg-carbon text-silver shadow-[var(--shadow-overlay)]"
+          className="on-dark drawer-start fixed inset-y-0 start-0 z-50 flex w-[min(20rem,85vw)] flex-col bg-stage text-silver shadow-[var(--shadow-overlay)]"
           dir={locale === 'fa' ? 'rtl' : 'ltr'}
         >
           <div className="flex h-16 items-center justify-between gap-3 border-b border-white/10 px-4">

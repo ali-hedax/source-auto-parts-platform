@@ -63,6 +63,21 @@
   --shadow-overlay: 0 20px 48px -20px rgb(26 32 44 / 0.45);
 
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  /*
+   * Cinematic storefront palette (the home film's ground, shared by every shopping page).
+   * Pairs: paper #f6f8fc on stage #05080d ≈ 19:1 · mist #b9c4d6 on stage ≈ 11:1 · signal #39a0ff on stage ≈ 7.3:1
+   * (text on dark only; on white use action-blue) · stage text on commerce #ff8a00 ≈ 9:1 (the buy action).
+   */
+  --color-stage: #05080d;
+  --color-stage-2: #0b131d;
+  --color-navy: #071b34;
+  --color-signal: #39a0ff;
+  --color-electric: #1976ff;
+  --color-mist: #b9c4d6;
+  --color-paper: #f6f8fc;
+  --color-commerce: #ff8a00;
+  --color-commerce-hover: #ffa033;
 }
 
 @layer base {
@@ -377,4 +392,138 @@ main:has(> .page-canvas) {
   .autodoc-inspired-home .hedax-home-hero h1 { font-size: 2rem; }
   .autodoc-inspired-home .hedax-home-hero .hedax-hero-search { margin-top: 1.5rem; }
   .autodoc-inspired-home .hedax-home-discovery { gap: .6rem; }
+}
+
+/* ───────────────────────── Storefront (cinematic) ─────────────────────────
+ * Scoped to the shopping site: the admin keeps its compact geometry. Light, readable shopping
+ * surfaces sit under dark "chapter" bands that continue the home film's ground.
+ */
+@layer components {
+  .store {
+    --radius-control: 10px;
+    --radius-card: 16px;
+    --radius-panel: 22px;
+    --shadow-card: 0 1px 2px rgb(5 8 13 / 0.04), 0 10px 30px -18px rgb(7 27 52 / 0.28);
+    --shadow-lift: 0 2px 4px rgb(5 8 13 / 0.05), 0 22px 44px -22px rgb(7 27 52 / 0.38);
+  }
+  /* A chapter band: the page's title on the film's dark ground, handing over to the light canvas. */
+  .store-band {
+    position: relative;
+    isolation: isolate;
+    overflow: clip;
+    color: var(--color-paper);
+    background:
+      radial-gradient(ellipse 46rem 20rem at 88% 0%, rgb(25 118 255 / 0.22), transparent 70%),
+      radial-gradient(ellipse 30rem 16rem at 0% 100%, rgb(57 160 255 / 0.10), transparent 70%),
+      linear-gradient(180deg, var(--color-stage) 0%, var(--color-stage-2) 55%, var(--color-navy) 100%);
+  }
+  .store-band::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.08;
+    background-image: linear-gradient(rgb(185 196 214 / 0.6) 1px, transparent 1px), linear-gradient(90deg, rgb(185 196 214 / 0.6) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: linear-gradient(180deg, black, transparent 85%);
+  }
+  .store-band::after {
+    content: '';
+    display: block;
+    height: 4rem;
+    background: linear-gradient(180deg, var(--color-navy) 0%, color-mix(in srgb, var(--color-navy) 55%, var(--band-next, #eef2f7)) 35%, var(--band-next, #eef2f7) 100%);
+  }
+  .store-band :focus-visible {
+    outline-color: var(--color-signal);
+  }
+  .store-eyebrow {
+    font-family: var(--font-en);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--color-signal);
+  }
+  /* Elevated shopping surfaces. */
+  .store-card {
+    background: #fff;
+    border: 1px solid color-mix(in srgb, var(--color-line-soft) 85%, transparent);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+  }
+  /* The "studio": where a part is photographed — a soft cool sweep, never a stand-in picture. */
+  .studio {
+    background: radial-gradient(ellipse 80% 70% at 50% 35%, #ffffff 0%, #f2f5fa 60%, #e9eef6 100%);
+  }
+  .store-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 2.25rem;
+    padding-inline: 0.9rem;
+    border-radius: 999px;
+    border: 1px solid rgb(185 196 214 / 0.28);
+    color: var(--color-paper);
+    font-size: 0.875rem;
+    transition: border-color 0.2s var(--ease-standard), background-color 0.2s var(--ease-standard);
+  }
+  .store-chip:hover {
+    border-color: var(--color-signal);
+    background: rgb(57 160 255 / 0.08);
+  }
+  .store-chip[aria-current='page'] {
+    border-color: var(--color-paper);
+    background: var(--color-paper);
+    color: var(--color-stage);
+    font-weight: 700;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .store-rise {
+      transition: transform 0.25s var(--ease-standard), box-shadow 0.25s var(--ease-standard), border-color 0.2s var(--ease-standard);
+    }
+    .store-rise:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-lift);
+    }
+  }
+}
+/* Lists on the storefront sit on a slightly cooler canvas that continues the bands. */
+.store main:has(> .page-canvas),
+.store main:has(> .store-page) {
+  background-color: #eef2f7;
+}
+
+/* Storefront pages that use the shared PageHeader (account, policies, contact, content pages) get the
+   chapter band too: a full-bleed dark ground behind the header, without changing the admin. */
+.store main {
+  overflow-x: clip;
+}
+.store main > .page-canvas > .page-header:first-child,
+.store main > .container-page > .page-header:first-child {
+  position: relative;
+  isolation: isolate;
+  margin-top: -2rem;
+  margin-bottom: 2.5rem;
+  padding-block: 2.5rem 1.75rem;
+  color: var(--color-paper);
+}
+.store main > :is(.page-canvas, .container-page) > .page-header:first-child::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset-block: 0 -2.5rem;
+  inset-inline: calc(50% - 50vw);
+  background:
+    radial-gradient(ellipse 46rem 20rem at 88% 0%, rgb(25 118 255 / 0.22), transparent 70%),
+    linear-gradient(180deg, var(--color-stage) 0%, var(--color-stage-2) 50%, var(--color-navy) 80%, transparent 100%);
+}
+.store main > :is(.page-canvas, .container-page) > .page-header:first-child h1 {
+  color: #fff;
+  font-weight: 800;
+  font-size: clamp(1.75rem, 3.2vw, 2.5rem);
+  letter-spacing: -0.01em;
+}
+.store main > :is(.page-canvas, .container-page) > .page-header:first-child p {
+  color: var(--color-mist);
 }

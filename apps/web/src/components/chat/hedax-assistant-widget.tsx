@@ -166,11 +166,11 @@ export function HedaxAssistantWidget({ locale, settings }: { locale: 'fa' | 'en'
           </div>
         </div>
         <RDialog.Portal>
-          <RDialog.Overlay className="fixed inset-0 z-50 bg-carbon/40" />
+          <RDialog.Overlay className="fixed inset-0 z-50 bg-stage/50" />
           <RDialog.Content dir={locale === 'fa' ? 'rtl' : 'ltr'} className={`assistant-panel fixed inset-x-3 z-50 mx-auto flex w-auto max-w-md flex-col overflow-hidden rounded-[var(--radius-panel)] border border-line-soft bg-white shadow-[var(--shadow-overlay)] sm:inset-x-auto sm:mx-0 sm:w-[26rem] ${panelSide}`} style={viewport ? { top: viewport.top, maxHeight: viewport.height } : undefined}>
-            <header className="on-dark flex items-center gap-2 bg-carbon p-3 text-silver">
+            <header className="on-dark flex items-center gap-2 bg-stage p-3 text-silver">
               <Image src={`${MASCOT}-160.webp`} alt="" width={40} height={60} unoptimized className="h-12 w-auto object-contain" />
-              <div className="min-w-0 flex-1"><RDialog.Title className="font-bold">{settings.name[locale]}</RDialog.Title><p className="text-xs text-tech-light">{t('phase')}</p></div>
+              <div className="min-w-0 flex-1"><RDialog.Title className="font-bold">{settings.name[locale]}</RDialog.Title><p className="text-xs text-signal">{t('phase')}</p></div>
               <button type="button" className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-lg hover:bg-white/10" onClick={toggleMotion} aria-label={paused ? t('resume') : t('pause')} aria-pressed={paused}>{paused ? <Play aria-hidden className="size-4" /> : <Pause aria-hidden className="size-4" />}</button>
               <RDialog.Close className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-lg hover:bg-white/10" aria-label={t('close')}><X aria-hidden className="size-5" /></RDialog.Close>
             </header>

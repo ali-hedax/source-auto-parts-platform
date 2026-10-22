@@ -31,11 +31,11 @@ export function SiteFooterView({ content, chrome, now }: { content: SiteContentV
   const copyright = localize(brand?.copyright, locale).replaceAll('{year}', year);
   const social = content?.social.links ?? [];
   return (
-    <footer style={chrome ? { background: chrome.footerBackground, '--footer-columns': chrome.footerColumns } as CSSProperties : undefined} className="on-dark render-lazy bg-carbon text-sm text-silver">
+    <footer style={chrome ? { background: chrome.footerBackground, '--footer-columns': chrome.footerColumns } as CSSProperties : undefined} className="on-dark render-lazy border-t border-white/10 bg-stage text-sm text-silver">
       <div className={`container-page grid gap-10 py-12 ${chrome ? 'md:grid-cols-[repeat(var(--footer-columns),minmax(0,1fr))]' : 'md:grid-cols-[1.3fr_1fr_1fr]'}`}>
         <div className="max-w-sm">
           <Image src={brand?.logoUrl || DEFAULT_LOGO} width={600} height={191} unoptimized alt={localize(brand?.logoAlt, locale) || localize(brand?.siteName, locale)} className="h-10 w-auto" />
-          {tagline ? <p className="mt-4 font-medium text-tech-light">{tagline}</p> : null}
+          {tagline ? <p className="mt-4 font-medium text-signal">{tagline}</p> : null}
           {about ? <p className="mt-2 leading-7">{about}</p> : null}
           {social.length ? (
             <nav aria-label={t('pages.social')} className="mt-4">

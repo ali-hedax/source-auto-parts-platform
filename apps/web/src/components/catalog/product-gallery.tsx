@@ -15,8 +15,8 @@ export function ProductGallery({ images }: { images: Array<{ url: string; alt: s
   if (!current) return null;
   return (
     <div className="flex flex-col gap-3">
-      <div className="relative aspect-[4/3] overflow-hidden rounded-[var(--radius-card)] border border-line-soft bg-white">
-        <Image key={current.url} src={current.url} alt={current.alt} fill priority={index === 0} sizes="(max-width: 1024px) 100vw, 50vw" className="object-contain p-6" />
+      <div className="studio relative aspect-[4/3] overflow-hidden rounded-[var(--radius-card)] border border-line-soft shadow-[var(--shadow-card)]">
+        <Image key={current.url} src={current.url} alt={current.alt} fill priority={index === 0} sizes="(max-width: 1024px) 100vw, 50vw" className="object-contain p-6 mix-blend-multiply sm:p-10" />
       </div>
       {images.length > 1 ? (
         <ul className="flex flex-wrap gap-2" aria-label={t('photos')}>

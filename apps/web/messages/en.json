@@ -196,6 +196,10 @@
     "removeItem": "Remove {name} from cart"
   },
   "checkout": {
+    "steps": "Purchase steps",
+    "stepCart": "Cart",
+    "stepDelivery": "Address & delivery",
+    "stepPay": "Payment",
     "title": "Checkout",
     "loginRequired": "Sign in to pay. Your cart is kept.",
     "address": "Delivery address",

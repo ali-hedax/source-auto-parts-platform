@@ -1,6 +1,6 @@
 import type { ProductDetail } from '@hedax/contracts';
 import { minorToDecimalString } from '@hedax/domain';
-import { ChevronLeft, ChevronRight, ImageOff } from 'lucide-react';
+import { ImageOff, ShoppingCart } from 'lucide-react';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
@@ -11,6 +11,8 @@ import { ButtonLink } from '@/components/ui/button';
 import { Price } from '@/components/ui/format';
 import { Alert, Badge, Code, DefinitionList, Ltr, StatusBadge, TableScroll, td, th } from '@/components/ui/misc';
 import { Link } from '@/i18n/navigation';
+import { ChapterBand, type Crumb } from '@/components/store/chapter-band';
+import { RevealWhenAway } from '@/components/store/reveal-when-away';
 import { serverApiOptional } from '@/lib/api/server';
 import { publicSiteUrl } from '@/lib/config';
 import { displayCurrency } from '@/lib/preferences';
@@ -88,22 +90,13 @@ export default async function ProductPage({ params }: { params: Promise<{ locale
     ...(p.oemCodes.length ? [{ term: t('parts.oemCodes'), value: <ul className="flex flex-wrap gap-x-3 gap-y-1">{p.oemCodes.map((c) => <li key={c}><Code>{c}</Code></li>)}</ul> }] : []),
     ...p.specs.map((s) => ({ term: text(s.label), value: <span dir="auto">{s.value}</span> })),
   ];
-  const Chevron = L === 'fa' ? ChevronLeft : ChevronRight;
+  const crumbs: Crumb[] = [{ href: '/parts', label: t('nav.parts') }, ...(p.category ? [{ href: `/parts?category=${p.category.slug}`, label: text(p.category.name) ?? '' }] : [])];
 
   return (
-    <div className="container-page py-6 md:py-8">
+    <div className="store-page pb-24 lg:pb-0">
       {jsonLd ? <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }} /> : null}
-      <nav aria-label="breadcrumb" className="mb-5 text-sm text-steel">
-        <ol className="flex flex-wrap items-center gap-1.5">
-          <li><Link href="/parts" className="underline-offset-4 hover:text-ink hover:underline">{t('nav.parts')}</Link></li>
-          {p.category ? (
-            <li className="flex items-center gap-1.5">
-              <Chevron aria-hidden className="size-3.5" />
-              <Link href={`/parts?category=${p.category.slug}`} className="underline-offset-4 hover:text-ink hover:underline">{text(p.category.name)}</Link>
-            </li>
-          ) : null}
-        </ol>
-      </nav>
+      <ChapterBand compact crumbs={crumbs} locale={L} />
+      <div className="container-page pb-8">
       {/* Phones read in DOM order (photo, label, specification, description); from lg the description sits under the photo. */}
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:grid-rows-[auto_1fr] lg:gap-x-10">
         {/* Photo, then «مناسب برای:» right under it. */}
@@ -122,14 +115,14 @@ export default async function ProductPage({ params }: { params: Promise<{ locale
         </div>
 
         <div className="flex min-w-0 flex-col gap-6 lg:col-start-2 lg:row-span-2 lg:row-start-1">
-          <div className="part-label p-5 sm:p-6">
+          <div id="buy" className="part-label scroll-mt-32 p-5 shadow-[var(--shadow-card)] sm:p-7">
             <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 pe-4">
               <p className="text-sm text-steel">
                 {t('parts.sku')} <Code className="ms-1.5 text-base text-ink">{p.sku}</Code>
               </p>
               <StatusBadge status={status} label={t(`availability.${status}`)} />
             </div>
-            <h1 className="mt-3 text-2xl font-bold md:text-[1.75rem]">
+            <h1 className="mt-3 text-2xl font-extrabold leading-snug tracking-tight md:text-[2rem]">
               {name}
               {L === 'en' && !p.name.en ? <span className="mt-1 block text-sm font-normal text-steel">({t('common.englishFallback')})</span> : null}
             </h1>
@@ -149,7 +142,7 @@ export default async function ProductPage({ params }: { params: Promise<{ locale
               ) : sourceable ? (
                 <div className="rounded-[var(--radius-card)] border border-line-soft bg-surface p-4" data-testid="sourceable-box">
                   <p className="leading-7">{t('parts.sourceableText')}</p>
-                  <ButtonLink href={requestHref} className="mt-3" size="lg">{t('parts.requestSupply')}</ButtonLink>
+                  <ButtonLink href={requestHref} className="mt-3" variant="commerce" size="lg">{t('parts.requestSupply')}</ButtonLink>
                 </div>
               ) : (
                 <Alert tone="warning" title={t('parts.notPurchasable')}>
@@ -161,7 +154,7 @@ export default async function ProductPage({ params }: { params: Promise<{ locale
             </div>
           </div>
 
-          <section aria-labelledby="specs-title" className="card p-5 sm:p-6">
+          <section aria-labelledby="specs-title" className="store-card p-5 sm:p-7">
             <h2 id="specs-title" className="mb-4 text-lg font-bold">{t('parts.specs')}</h2>
             <DefinitionList items={specs} />
             <p className="mt-4 border-t border-line-soft pt-3 text-xs leading-6 text-steel">{t('parts.claimNote')}</p>
@@ -169,7 +162,7 @@ export default async function ProductPage({ params }: { params: Promise<{ locale
         </div>
 
         {p.fitments.length ? (
-          <section aria-labelledby="fitment-title" className="card min-w-0 self-start p-5 sm:p-6 lg:col-start-1">
+          <section aria-labelledby="fitment-title" className="store-card min-w-0 self-start p-5 sm:p-6 lg:col-start-1">
             <h2 id="fitment-title" className="mb-3 text-lg font-bold">{t('parts.fitmentTable')}</h2>
             <TableScroll caption={t('parts.fitmentTable')}>
               <thead><tr><th className={th}>{t('parts.vehicle')}</th><th className={th}>{t('parts.model')}</th><th className={th}>{t('parts.years')}</th><th className={th}>{t('parts.note')}</th></tr></thead>
@@ -187,12 +180,26 @@ export default async function ProductPage({ params }: { params: Promise<{ locale
           </section>
         ) : null}
         {p.description ? (
-          <section aria-labelledby="description-title" className="card self-start p-5 sm:p-6 lg:col-start-1 lg:row-start-2">
+          <section aria-labelledby="description-title" className="store-card self-start p-5 sm:p-6 lg:col-start-1 lg:row-start-2">
             <h2 id="description-title" className="mb-3 text-lg font-bold">{t('parts.description')}</h2>
             <p className="max-w-prose whitespace-pre-line leading-8">{text(p.description)}</p>
           </section>
         ) : null}
       </div>
+      </div>
+      {/* Phones: the price and the buy action stay one tap away while reading the specification. */}
+      {purchasable || sourceable ? (
+        <RevealWhenAway targetId="buy">
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-stage/95 px-4 py-3 text-paper backdrop-blur lg:hidden" data-testid="mobile-buy-bar">
+          <div className="mx-auto flex max-w-xl items-center justify-between gap-3">
+            <div className="min-w-0 truncate text-sm [&_*]:!text-paper">{purchasable ? <Price price={p.price} unit={p.unit} /> : t('parts.requestSupply')}</div>
+            <a href={purchasable ? '#buy' : `/${L}${requestHref}`} className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-[var(--radius-control)] bg-commerce px-4 font-bold text-stage">
+              <ShoppingCart aria-hidden className="size-5" />{purchasable ? t('parts.addToCart') : t('parts.requestSupply')}
+            </a>
+          </div>
+        </div>
+        </RevealWhenAway>
+      ) : null}
     </div>
   );
 }

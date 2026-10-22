@@ -14,7 +14,8 @@ export default async function SiteLayout({ children, params }: { children: React
   const notice = (await getSiteContent())?.announcement;
   const noticeText = notice?.enabled ? localize(notice.text, locale) : '';
   return (
-    <>
+    // `.store` scopes the storefront's cinematic geometry; `contents` adds no box (the sticky header is unaffected).
+    <div className="store contents">
       {notice && noticeText ? <AnnouncementBarView text={noticeText} linkLabel={localize(notice.linkLabel, locale)} href={notice.href} tone={notice.tone} /> : null}
       <SiteHeader />
       <main id="main" tabIndex={-1} className="pb-16 focus:outline-none">
@@ -22,6 +23,6 @@ export default async function SiteLayout({ children, params }: { children: React
       </main>
       <SiteFooter />
       <AssistantEntry />
-    </>
+    </div>
   );
 }

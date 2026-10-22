@@ -116,7 +116,7 @@ export function CheckoutClient() {
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
       <div className="flex flex-col gap-4">
-        <section aria-labelledby="addr-title" className="card p-5 sm:p-6">
+        <section aria-labelledby="addr-title" className="store-card p-5 sm:p-6">
           <h2 id="addr-title" className="mb-4 flex items-center gap-3 text-lg font-bold"><span aria-hidden className="num grid size-7 shrink-0 place-items-center rounded-full bg-carbon text-xs font-bold text-white">{digit(1)}</span>{t('checkout.address')}</h2>
           {addresses.length ? (
             <fieldset className="flex flex-col gap-2">
@@ -141,7 +141,7 @@ export function CheckoutClient() {
           )}
         </section>
 
-        <section aria-labelledby="ship-title" className="card p-5 sm:p-6">
+        <section aria-labelledby="ship-title" className="store-card p-5 sm:p-6">
           <h2 id="ship-title" className="mb-4 flex items-center gap-3 text-lg font-bold"><span aria-hidden className="num grid size-7 shrink-0 place-items-center rounded-full bg-carbon text-xs font-bold text-white">{digit(2)}</span>{t('checkout.shipping')}</h2>
           <fieldset className="flex flex-col gap-2">
             <legend className="sr-only">{t('checkout.shipping')}</legend>
@@ -163,7 +163,7 @@ export function CheckoutClient() {
         </section>
       </div>
 
-      <aside className="card flex h-fit flex-col gap-4 p-5 sm:p-6 lg:sticky lg:top-32" aria-labelledby="review-title" aria-busy={!current}>
+      <aside className="store-card flex h-fit flex-col gap-4 p-5 sm:p-6 lg:sticky lg:top-32" aria-labelledby="review-title" aria-busy={!current}>
         <h2 id="review-title" className="flex items-center gap-3 text-lg font-bold"><span aria-hidden className="num grid size-7 shrink-0 place-items-center rounded-full bg-carbon text-xs font-bold text-white">{digit(3)}</span>{t('checkout.review')}</h2>
         {preview.totals ? (
           <dl className="flex flex-col gap-2.5 border-y border-line-soft py-4 text-sm">
@@ -189,7 +189,7 @@ export function CheckoutClient() {
         ) : null}
         <p className="text-xs leading-6 text-steel">{t('checkout.reservationNote', { minutes: preview.reservationMinutes })}</p>
         {error ? <Alert tone="danger" title={error} /> : null}
-        <Button size="lg" disabled={!canPay} loading={paying} onClick={pay}>
+        <Button variant="commerce" size="lg" disabled={!canPay} loading={paying} onClick={pay}>
           {paying ? t('checkout.starting') : grand ? t('checkout.pay', { amount: formatMoney(money('IRR', grand.amountMinor), locale) }) : t('checkout.review')}
         </Button>
       </aside>
