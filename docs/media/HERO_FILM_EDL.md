@@ -1,5 +1,7 @@
 # SOURCE by HEDAX — Hero film: media inventory and edit decision list
 
+> **Superseded 2026-10-22:** the owner rejected this multi-clip montage. The selected film is the continuous v2 edit — see `HERO_FILM_V2_EDL.md`. Kept for history only.
+
 Date: 2026-10-21 (Asia/Tehran). Branch: `feature/source-premium-experience`.
 Source files stay outside Git in the owner's folder `Desktop/hero-videos/`; they
 were only read. Outputs are in `Desktop/hero-videos/source-hero-edit/`.

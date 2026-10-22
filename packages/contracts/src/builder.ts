@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { DEFAULT_BUILDER_FILM } from './constants.js';
 import { contentImageSchema, contentLinkSchema, homeSectionSchema, localizedSchema } from './content.js';
 
 const color = z.string().regex(/^#[0-9a-fA-F]{6}$/);
@@ -18,7 +19,20 @@ export const builderStyleSchema = z.object({
   imageHeight: size(700).optional(), titleSize: size(60).min(12).optional(), priceSize: size(48).min(12).optional(),
 }).strict();
 export type BuilderStyle = z.infer<typeof builderStyleSchema>;
-export const BUILDER_KINDS = ['legacy', 'hero', 'slider', 'categories', 'search', 'vehicle-brands', 'vehicle-models', 'brands', 'new-products', 'bestsellers', 'discounts', 'offers', 'selected-products', 'vehicle-products', 'image-categories', 'services', 'benefits', 'notice', 'banners', 'text-image', 'custom', 'makers'] as const;
+export const BUILDER_KINDS = ['legacy', 'hero', 'slider', 'categories', 'search', 'vehicle-brands', 'vehicle-models', 'brands', 'new-products', 'bestsellers', 'discounts', 'offers', 'selected-products', 'vehicle-products', 'image-categories', 'services', 'benefits', 'notice', 'banners', 'text-image', 'custom', 'makers', 'cinematic-hero'] as const;
+/** A self-hosted MP4/WebM movie: a site path or an https address. Empty = none. */
+export const builderVideoSchema = z.string().trim().max(500)
+  .refine(v => v === '' || /^\/(?!\/)[A-Za-z0-9/_.-]+\.(mp4|webm)$/i.test(v) || /^https:\/\/[^\s?#]+\.(mp4|webm)$/i.test(v), { message: 'INVALID_VIDEO' });
+/** The opening film of a cinematic hero. The block's imageUrl/mobileImageUrl are the still frames used for reduced motion, data saving, failed playback and the 'static' mode. */
+export const builderFilmSchema = z.object({
+  desktop: builderVideoSchema, desktopWebm: builderVideoSchema, mobile: builderVideoSchema,
+  poster: contentImageSchema, mobilePoster: contentImageSchema,
+  playback: z.enum(['once', 'loop', 'static']),
+  /** Seconds into the film at which the site shows the official logo; null = never. */
+  logoAt: z.number().min(0).max(120).nullable(),
+  discovery: z.boolean(),
+}).strict();
+export type BuilderFilm = z.infer<typeof builderFilmSchema>;
 export const builderItemSchema = z.object({
   title: localizedSchema(160), text: localizedSchema(1000), imageUrl: contentImageSchema, mobileImageUrl: contentImageSchema,
   alt: localizedSchema(160), href: contentLinkSchema, button: localizedSchema(60), visible: z.boolean(),
@@ -33,8 +47,10 @@ export const builderBlockSchema = z.object({
   query: z.object({ category: z.string().max(64), brand: z.string().max(64), vehicle: z.string().max(80), model: z.string().max(80),
     productSlugs: z.array(z.string().regex(/^[a-z0-9-]{1,120}$/)).max(24), limit: z.number().int().min(1).max(24) }).strict(),
   legacy: homeSectionSchema.optional(),
+  film: builderFilmSchema.optional(),
 }).strict().superRefine((b, ctx) => {
   if (b.kind === 'legacy' && !b.legacy) ctx.addIssue({ code: 'custom', path: ['legacy'], message: 'REQUIRED' });
+  if (b.kind === 'cinematic-hero' && !b.film) ctx.addIssue({ code: 'custom', path: ['film'], message: 'REQUIRED' });
   if (b.startsAt && b.endsAt && b.startsAt >= b.endsAt) ctx.addIssue({ code: 'custom', path: ['endsAt'], message: 'INVALID_DATE_RANGE' });
 });
 export type BuilderBlock = z.infer<typeof builderBlockSchema>;
@@ -68,5 +84,14 @@ export const DEFAULT_BUILDER_THEME: BuilderDocument['theme'] = { primary: '#096c
 export const DEFAULT_BUILDER_CHROME: BuilderDocument['chrome'] = { headerBackground: '#09182e', footerBackground: '#101b2b', logoWidth: 130, logoPosition: 'start', searchRounded: true, footerColumns: 3, menu: [] };
 export function newBuilderBlock(kind: BuilderBlock['kind'], id: string): BuilderBlock {
   const text = () => ({ fa: '', en: '' });
-  return { id, kind, visible: true, title: text(), body: text(), imageUrl: '', mobileImageUrl: '', alt: text(), href: '', button: text(), style: {}, items: [], startsAt: null, endsAt: null, interval: 6000, query: { category: '', brand: '', vehicle: '', model: '', productSlugs: [], limit: 8 } };
+  const block: BuilderBlock = { id, kind, visible: true, title: text(), body: text(), imageUrl: '', mobileImageUrl: '', alt: text(), href: '', button: text(), style: {}, items: [], startsAt: null, endsAt: null, interval: 6000, query: { category: '', brand: '', vehicle: '', model: '', productSlugs: [], limit: 8 } };
+  if (kind !== 'cinematic-hero') return block;
+  return {
+    ...block, film: { ...DEFAULT_BUILDER_FILM },
+    title: { fa: 'آیندهٔ مهندسی خودرو را تجربه کنید.', en: 'Experience the future of automotive engineering.' },
+    body: { fa: 'قطعهٔ درست را بی‌دردسر پیدا کنید؛ با نام، شماره فنی یا خودروی خودتان.', en: 'Discover the right part effortlessly — by name, part number or your vehicle.' },
+    imageUrl: '/media/source-hero/v2/still-desktop.webp', mobileImageUrl: '/media/source-hero/v2/still-mobile.webp',
+    alt: { fa: 'قطعات یک خودروی کراس‌اوور به‌صورت پیوسته کنار هم قرار می‌گیرند و خودرو کامل می‌شود.', en: 'The parts of a crossover come together in one continuous shot until the car is complete.' },
+    href: '/cars', button: { fa: 'انتخاب خودروی من', en: 'Choose my vehicle' },
+  };
 }

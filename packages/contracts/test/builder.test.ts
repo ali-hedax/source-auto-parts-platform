@@ -24,4 +24,19 @@ describe('visual page safety contract', () => {
     const block = newBuilderBlock('hero', 'hero'); block.title.fa = 'عنوان';
     expect(block.body.fa).toBe(''); expect(block.alt.fa).toBe(''); expect(block.button.fa).toBe('');
   });
+  it('accepts the cinematic film block and only self-hosted MP4/WebM movies', () => {
+    const doc = document(); doc.sections = [newBuilderBlock('cinematic-hero', 'film')];
+    expect(builderDocumentSchema.safeParse(doc).success).toBe(true);
+    for (const desktop of ['javascript:alert(1)', 'https://evil.example/x.mp4?<script>', '/media/x.html', 'http://plain.example/x.mp4', '//evil.example/x.mp4', '/media/x.mp4"onerror=1']) {
+      const next = document(); const film = newBuilderBlock('cinematic-hero', 'film'); film.film!.desktop = desktop; next.sections = [film];
+      expect(builderDocumentSchema.safeParse(next).success, desktop).toBe(false);
+    }
+    const missing = document(); const film = newBuilderBlock('cinematic-hero', 'film'); delete film.film; missing.sections = [film];
+    expect(builderDocumentSchema.safeParse(missing).success).toBe(false);
+    const extra = document(); const block = newBuilderBlock('cinematic-hero', 'film'); Object.assign(block.film!, { script: 'alert(1)' }); extra.sections = [block];
+    expect(builderDocumentSchema.safeParse(extra).success).toBe(false);
+    // Copies, never the shared default, so editing one block cannot change another.
+    const a = newBuilderBlock('cinematic-hero', 'a'); a.film!.playback = 'loop';
+    expect(newBuilderBlock('cinematic-hero', 'b').film!.playback).toBe('once');
+  });
 });

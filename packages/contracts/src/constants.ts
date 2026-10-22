@@ -86,3 +86,9 @@ export type ContentImagePurpose = (typeof CONTENT_IMAGE_PURPOSES)[number];
 export const CONTENT_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 
 export * from './assistant-public.js';
+
+/** The owner-selected continuous assembly film (docs/media/HERO_FILM_V2_EDL.md). */
+export const DEFAULT_BUILDER_FILM = {
+  desktop: '/media/source-hero/v2/hero-desktop.mp4', desktopWebm: '/media/source-hero/v2/hero-desktop.webm', mobile: '/media/source-hero/v2/hero-mobile.mp4',
+  poster: '/media/source-hero/v2/poster-desktop.jpg', mobilePoster: '/media/source-hero/v2/poster-mobile.jpg', playback: 'once' as 'once' | 'loop' | 'static', logoAt: 9.8 as number | null, discovery: true,
+};

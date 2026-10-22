@@ -44,3 +44,6 @@ id_ed25519*
 *.backup
 *.sqlite
 *.sqlite3
+
+# Hero film encodes are rebuilt locally (scripts/media/build-hero-v2.sh); the source carries a generator watermark.
+apps/web/public/media/source-hero/

@@ -4,6 +4,8 @@
 .builder-block{--b-columns:var(--b-desktop-columns,3);--b-gap:var(--b-desktop-gap,20px);display:var(--b-desktop-hidden,block);width:var(--b-desktop-width,100%);max-width:100%;margin-inline:auto;margin-block:var(--b-desktop-margin,0px);min-height:var(--b-desktop-height,0px);background:var(--b-background,transparent);color:var(--b-foreground,inherit);border:var(--b-borderWidth,0px) solid var(--b-borderColor,transparent);border-radius:var(--b-radius,0px);box-shadow:var(--b-shadow,none);text-align:var(--b-align,start);overflow:clip}
 .builder-block-inner{max-width:var(--builder-width,1280px);margin-inline:auto;padding:var(--b-desktop-padding,24px)}
 .builder-block:has(.hedax-home-hero)>.builder-block-inner{max-width:none;padding:var(--b-desktop-padding,0px)}
+.builder-root .builder-block[data-builder-kind=cinematic-hero]{margin-block:0}
+.builder-block[data-builder-kind=cinematic-hero]>.builder-block-inner{max-width:none;padding:0}
 .builder-block .hedax-home-hero{min-height:var(--b-desktop-height,0px)}
 .builder-block[data-custom-background=true] .hedax-home-hero{background:var(--b-background)}
 .builder-block .hedax-home-hero img{object-position:var(--b-focal,50% 50%);object-fit:var(--b-imageFit,cover)}

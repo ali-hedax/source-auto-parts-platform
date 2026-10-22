@@ -1,5 +1,5 @@
 'use client';
-import type { BuilderBlock, BuilderDocument, BuilderStyle } from '@hedax/contracts';
+import type { BuilderBlock, BuilderDocument, BuilderFilm, BuilderStyle } from '@hedax/contracts';
 import { Button } from '@/components/ui/button';
 import { LocalizedField, ImageField, LinkField } from '@/components/admin/content/kit';
 import { SectionEditor } from '@/components/admin/content/home';
@@ -20,6 +20,7 @@ export function BlockSettings({ block: b, change, device, media, data }: { block
       <LinkField id="block-href" label="لینک تصویر و دکمه" value={b.href} onChange={href => change({ ...b, href })} />
       <LocalizedField id="block-button" path="button" label="متن دکمه" value={b.button} onChange={button => change({ ...b, button })} maxLength={60} errors={{}} />
     </>}
+    {b.kind === 'cinematic-hero' && b.film ? <FilmSettings film={b.film} change={film => change({ ...b, film })} /> : null}
     <div className="flex flex-wrap gap-2"><Button size="sm" variant="secondary" onClick={() => media(false)}>انتخاب تصویر از کتابخانه</Button><Button size="sm" variant="secondary" onClick={() => media(true)}>تصویر موبایل از کتابخانه</Button></div>
     <ImageField id="block-mobile-image" label="تصویر موبایل" value={b.mobileImageUrl} onChange={mobileImageUrl => change({ ...b, mobileImageUrl })} />
     <details open><summary className="cursor-pointer font-bold">ابعاد و فاصله‌ها — {device === 'desktop' ? 'دسکتاپ' : device === 'tablet' ? 'تبلت' : 'موبایل'}</summary>
@@ -75,4 +76,23 @@ export function ThemeSettings({ document: doc, change }: { document: BuilderDocu
     <label>فونت<select value={theme.font} onChange={e => change({ ...doc, theme: { ...theme, font: e.target.value as 'brand' | 'system' } })}><option value="brand">وزیرمتن / Montserrat — هویت فعلی</option><option value="system">Tahoma / Arial</option></select></label>
     <label>وزن تیتر<select value={theme.headingWeight} onChange={e => change({ ...doc, theme: { ...theme, headingWeight: e.target.value as '600' | '700' | '800' } })}><option value="600">نیمه‌پررنگ</option><option value="700">پررنگ</option><option value="800">بسیار پررنگ</option></select></label>
   </div>;
+}
+
+const VIDEO = /^(\/(?!\/)[A-Za-z0-9/_.-]+|https:\/\/[^\s?#]+)\.(mp4|webm)$/i;
+/** The opening film: movies per device, posters, playback and the single logo reveal. Stills are the block's desktop/mobile images. */
+function FilmSettings({ film, change }: { film: BuilderFilm; change: (film: BuilderFilm) => void }) {
+  const set = (patch: Partial<BuilderFilm>) => change({ ...film, ...patch });
+  return <details open className="rounded-xl border p-3"><summary className="cursor-pointer font-bold">فیلم افتتاحیه</summary>
+    <p className="my-2 text-xs leading-6 text-steel">فقط یک فایل متناسب با دستگاه بازدیدکننده دریافت می‌شود. «تصویر دسکتاپ/موبایل» پایین همین فرم، تصویر ثابت پایانی است و برای کاهش حرکت، صرفه‌جویی داده یا خطای پخش نمایش داده می‌شود.</p>
+    {([['desktop', 'فیلم دسکتاپ (MP4)'], ['desktopWebm', 'نسخهٔ سبک‌تر دسکتاپ (WebM، اختیاری)'], ['mobile', 'فیلم موبایل (MP4)']] as const).map(([key, label]) => {
+      const invalid = film[key] !== '' && !VIDEO.test(film[key]);
+      return <label key={key}>{label}<input dir="ltr" value={film[key]} aria-invalid={invalid} placeholder="/media/…/hero.mp4" onChange={e => set({ [key]: e.target.value.trim() })} />{invalid ? <span className="text-xs text-red-700">نشانی باید به ‎.mp4 یا ‎.webm ختم شود (مسیر سایت یا https).</span> : null}</label>;
+    })}
+    <ImageField id="film-poster" label="پوستر شروع فیلم — دسکتاپ" value={film.poster} onChange={poster => set({ poster })} />
+    <ImageField id="film-mobile-poster" label="پوستر شروع فیلم — موبایل" value={film.mobilePoster} onChange={mobilePoster => set({ mobilePoster })} />
+    <label>نحوهٔ پخش<select value={film.playback} onChange={e => set({ playback: e.target.value as BuilderFilm['playback'] })}><option value="once">یک بار پخش و توقف روی خودروی کامل</option><option value="loop">تکرار پیوسته</option><option value="static">بدون فیلم — فقط تصویر ثابت</option></select></label>
+    <label className="!flex-row items-center"><input type="checkbox" checked={film.logoAt !== null} onChange={e => set({ logoAt: e.target.checked ? 9.8 : null })} />نمایش لوگوی رسمی روی فیلم</label>
+    {film.logoAt !== null ? <label>زمان ظاهرشدن لوگو (ثانیه)<input type="number" min={0} max={120} step={0.1} value={film.logoAt} onChange={e => set({ logoAt: Math.max(0, Math.min(120, Number(e.target.value) || 0)) })} /></label> : null}
+    <label className="!flex-row items-center"><input type="checkbox" checked={film.discovery} onChange={e => set({ discovery: e.target.checked })} />بخش جست‌وجو و مسیرهای خرید زیر فیلم</label>
+  </details>;
 }
