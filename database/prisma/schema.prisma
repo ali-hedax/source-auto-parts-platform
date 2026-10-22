@@ -2421,6 +2421,15 @@ model VisualMedia {
   width     Int
   height    Int
   bytes     Int
+  /// 'image' (re-encoded WebP/PNG) or 'video' (MP4/WebM, inspected and scanned, stored as uploaded).
+  kind      String   @default("image") @db.VarChar(10)
+  mime      String   @default("") @db.VarChar(40)
+  durationMs Int?    @map("duration_ms")
+  /// Owner/publisher attestation: watermark-free and cleared for public release. A published hero film may
+  /// only reference cleared media (BuilderService.publish).
+  releaseCleared Boolean @default(false) @map("release_cleared")
+  clearedBy String?  @map("cleared_by") @db.VarChar(160)
+  clearedAt DateTime? @map("cleared_at") @db.Timestamptz(3)
   archived  Boolean  @default(false)
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   @@map("visual_media")

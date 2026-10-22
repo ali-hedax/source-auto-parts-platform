@@ -16,3 +16,4 @@ export * from './vehicles.js';
 export * from './photo-filename.js';
 export * from './part-numbers.js';
 export * from './brand-import.js';
+export * from './video.js';

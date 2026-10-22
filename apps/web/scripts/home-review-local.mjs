@@ -66,7 +66,7 @@ try {
   const env = { ...systemEnv, APP_ENV: 'development', PORT: String(ports.api), ASSISTANT_AI_PROVIDER: 'mock', ASSISTANT_LIVE_CALLS_ENABLED: 'false', PUBLIC_BASE_URL: `http://localhost:${ports.web}`, DATABASE_URL: `postgresql://hedax:${password}@127.0.0.1:${ports.pg}/hedax_home_review?schema=public`, REDIS_URL: 'redis://127.0.0.1:6391', QUEUE_DRIVER: 'inline', SESSION_SECRET: randomBytes(32).toString('base64'), OTP_PEPPER: randomBytes(32).toString('base64'), APP_ENCRYPTION_KEY: randomBytes(32).toString('base64'), STORAGE_DRIVER: 'local', LOCAL_STORAGE_DIR: path.join(workDir, 'storage'), MALWARE_SCANNER: 'none-dev', COOKIE_SECURE: 'false', PAYMENT_PROVIDER: 'none', SMS_PROVIDER: 'dev-log', MAIL_PROVIDER: 'none', OPENAPI_ENABLED: 'false', LOG_LEVEL: 'warn' };
   const tool = (args, interactive = false) => execFileSync(process.execPath, args, { cwd: apiRoot, env, stdio: interactive ? 'inherit' : 'pipe' });
   tool([fromApi.resolve('prisma/build/index.js'), 'migrate', 'deploy']);
-  if (!existsSync(path.join(webRoot, 'public/media/source-hero/v2/hero-desktop.mp4'))) console.warn('Hero film encodes missing: run scripts/media/build-hero-v2.sh first (the page falls back to its still frame).');
+  if (!existsSync(path.join(webRoot, 'public/review-media/source-hero/v2/hero-desktop.mp4'))) console.warn('Hero film encodes missing: run scripts/media/build-hero-v2.sh first (the page falls back to its still frame).');
   const smoke = process.argv.includes('--smoke');
   // A random LOCAL TEST password, kept only inside the disposable directory (deleted on exit).
   env.HEDAX_OWNER_PASSWORD = randomBytes(18).toString('base64url');
@@ -83,14 +83,28 @@ ${env.HEDAX_OWNER_PASSWORD}
     await p.siteSetting.upsert({ where: { key: 'assistant.phase1' }, create: { key: 'assistant.phase1', value: { ...DEFAULT_ASSISTANT_SETTINGS, enabled: true }, version: 1 }, update: { value: { ...DEFAULT_ASSISTANT_SETTINGS, enabled: true } } });
     const { document } = await new BuilderService(p, new ContentService(p, null, null, null), null).state('home');
     const sections = document.sections.map(b => b.legacy?.type === 'hero' ? { ...b, visible: false } : b);
-    const doc = builderDocumentSchema.parse({ ...document, sections: [newBuilderBlock('cinematic-hero', 'opening-film'), ...sections], chrome: { ...document.chrome, headerBackground: '#05080d' } });
+    const film = newBuilderBlock('cinematic-hero', 'opening-film'); const v2 = '/review-media/source-hero/v2/';
+    // LOCAL REVIEW ONLY: written straight into this throwaway DB. Through the panel these files cannot be
+    // published (they are not release-cleared library media and carry the generator watermark).
+    Object.assign(film, { imageUrl: v2 + 'still-desktop.webp', mobileImageUrl: v2 + 'still-mobile.webp', alt: { fa: 'قطعات یک خودروی کراس‌اوور به‌صورت پیوسته کنار هم قرار می‌گیرند و خودرو کامل می‌شود.', en: 'The parts of a crossover come together in one continuous shot until the car is complete.' } });
+    film.film.clips = [{ id: 'v2', active: true, desktop: v2 + 'hero-desktop.mp4', desktopWebm: v2 + 'hero-desktop.webm', mobile: v2 + 'hero-mobile.mp4', poster: v2 + 'poster-desktop.jpg', mobilePoster: v2 + 'poster-mobile.jpg' }];
+    const doc = builderDocumentSchema.parse({ ...document, sections: [film, ...sections], chrome: { ...document.chrome, headerBackground: '#05080d' } });
     await p.visualPage.create({ data: { slug: 'home', draft: doc, published: doc, version: 1, publishedAt: new Date(), publishedBy: 'Local review seed' } });
     await p.$disconnect();`]);
   // Same compiled API and pipeline, with loopback-only binding for this local review.
   const apiEntry = `import 'reflect-metadata'; import { NestFactory } from '@nestjs/core'; import { AppModule } from './dist/app.module.js'; import { configureApp } from './dist/app.setup.js'; import { loadEnv } from './dist/config/env.js'; const app = await NestFactory.create(AppModule, { logger: false }); configureApp(app, loadEnv()); app.enableShutdownHooks(); await app.listen(${ports.api}, '127.0.0.1');`;
   start('api', apiRoot, ['--input-type=module', '--eval', apiEntry], env);
   const webEnv = { ...systemEnv, HEDAX_DATA_SOURCE: 'api', API_INTERNAL_URL: `http://127.0.0.1:${ports.api}/api/v1`, PUBLIC_BASE_URL: env.PUBLIC_BASE_URL, NEXT_PUBLIC_WS_URL: 'off' };
-  start('web', webRoot, [fromWeb.resolve('next/dist/bin/next'), 'dev', '--hostname', '127.0.0.1', '--port', String(ports.web)], webEnv);
+  // --prod: a production build (`next build` + `next start`) for performance measurements; the build
+  // reads the running API, so it starts after the API answers. Default: `next dev` for quick review.
+  const prod = process.argv.includes('--prod');
+  if (prod) {
+    const deadline = Date.now() + 120_000;
+    while (Date.now() < deadline) { try { if ((await fetch(`http://127.0.0.1:${ports.api}/health/live`, { signal: AbortSignal.timeout(3_000) })).ok) break; } catch { /* starting */ } await new Promise(r => setTimeout(r, 1000)); }
+    console.log('Building the web app for production (several minutes)…');
+    execFileSync(process.execPath, [fromWeb.resolve('next/dist/bin/next'), 'build'], { cwd: webRoot, env: { ...webEnv, NODE_ENV: 'production' }, stdio: ['ignore', openSync(path.join(workDir, 'web-build.log'), 'w'), openSync(path.join(workDir, 'web-build.log'), 'a')] });
+  }
+  start('web', webRoot, [fromWeb.resolve('next/dist/bin/next'), prod ? 'start' : 'dev', '--hostname', '127.0.0.1', '--port', String(ports.web)], prod ? { ...webEnv, NODE_ENV: 'production' } : webEnv);
   if (smoke) {
     const deadline = Date.now() + 180_000;
     let verified = false;

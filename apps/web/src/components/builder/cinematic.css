@@ -48,7 +48,7 @@ html[lang='en'] .cine-lede { max-width: 28rem; }
 .cine-video { opacity: 0; transition: opacity .6s var(--ease-standard); }
 .cine-film[data-shown='true'] .cine-video { opacity: 1; }
 /* The site's single brand reveal, placed where the accepted edit put it. */
-.cine-logo { position: absolute; top: 8.5%; left: 50%; width: 28%; height: auto; translate: -50% 0; opacity: 0; transition: opacity .9s ease-out; pointer-events: none; }
+.cine-logo { position: absolute; top: 8.5%; left: 50%; width: var(--cine-logo-width, 28%); height: auto; translate: -50% 0; opacity: 0; transition: opacity .9s ease-out; pointer-events: none; }
 .cine-film[data-resolved] .cine-logo { opacity: 1; }
 .cine-controls { position: absolute; inset-inline-end: clamp(1rem, 3%, 2.5rem); bottom: 12%; display: flex; align-items: center; gap: .75rem; z-index: 2; }
 .cine-control { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; min-width: 2.75rem; min-height: 2.75rem; padding-inline: .7rem; border-radius: 999px; border: 1px solid rgb(246 248 252 / .28); background: rgb(5 8 13 / .55); color: var(--cine-ink); cursor: pointer; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
@@ -96,10 +96,11 @@ html[lang='en'] .cine-lede { max-width: 28rem; }
 /* Narrow layouts: the film first, full width and letterboxed; the copy rises into its lower fade. */
 @container (max-width: 900px) {
   .cine-stage { grid-template-columns: minmax(0, 1fr); min-height: 0; padding: 0 0 1rem; gap: 0; }
-  .cine-film { order: -1; width: 100%; margin-inline-start: 0; -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 6%, #000 80%, transparent 100%); mask-image: linear-gradient(to bottom, transparent 0, #000 6%, #000 80%, transparent 100%); }
+  .cine-film { order: -1; width: 100%; margin-inline-start: 0; -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 6%, #000 88%, transparent 100%); mask-image: linear-gradient(to bottom, transparent 0, #000 6%, #000 88%, transparent 100%); }
   .cine-controls { top: 8%; bottom: auto; }
   .cine-progress { display: none; }
-  .cine-copy { margin-top: -1.5rem; padding-inline: 1rem; }
+  /* The copy sits below the picture, never over moving video. */
+  .cine-copy { padding: 1.25rem 1rem 0; }
   .cine-scroll { display: none; }
   .cine-paths { grid-template-columns: minmax(0, 1fr); }
   .cine-paths li + li { border-inline-start: 0; border-top: 1px solid var(--cine-line); }

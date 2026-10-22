@@ -19,7 +19,6 @@ export function CinematicHero({ block: b, content, categories, locale }: { block
   const name = (n: { fa: string; en: string | null }) => (fa ? n.fa : (n.en ?? n.fa));
   const digits = (n: number) => n.toLocaleString(fa ? 'fa-IR' : 'en-US');
   const brand = content?.brand;
-  const still = b.imageUrl || film.poster;
   const searchId = `discover-${b.id}`;
   const paths = [
     { href: '/cars', title: fa ? 'خودروی من' : 'My vehicle', text: fa ? 'برند، مدل و سال خودرو را انتخاب کنید' : 'Pick the make, model and year' },
@@ -30,7 +29,7 @@ export function CinematicHero({ block: b, content, categories, locale }: { block
 
   return <section className="cine" aria-labelledby={`${b.id}-title`}>
     <div className="cine-stage">
-      <div className="cine-copy">
+      <div className="cine-copy" data-assistant-avoid>
         <p className="cine-eyebrow" dir="ltr">SOURCE <span>by</span> HEDAX</p>
         <h1 id={`${b.id}-title`} className="cine-title">{L(b.title)}</h1>
         {L(b.body) ? <p className="cine-lede">{L(b.body)}</p> : null}
@@ -39,7 +38,7 @@ export function CinematicHero({ block: b, content, categories, locale }: { block
           {b.href && L(b.button) ? <Link className="cine-cta cine-cta-ghost" href={b.href}>{L(b.button)}<Arrow aria-hidden size={18} /></Link> : null}
         </div>
       </div>
-      <CinematicFilm film={film} still={still} mobileStill={b.mobileImageUrl || film.mobilePoster || still} alt={L(b.alt)} logoUrl={brand?.logoUrl || DEFAULT_LOGO} logoAlt={L(brand?.logoAlt) || 'SOURCE by HEDAX'} locale={locale} />
+      <CinematicFilm film={film} still={b.imageUrl} mobileStill={b.mobileImageUrl} alt={L(b.alt)} logoUrl={film.logoUrl || brand?.logoUrl || DEFAULT_LOGO} logoAlt={L(brand?.logoAlt) || 'SOURCE by HEDAX'} locale={locale} />
     </div>
     {film.discovery ? <a className="cine-scroll" href={`#${searchId}`}><span>{fa ? 'شروع جست‌وجو' : 'Start searching'}</span><ArrowDown aria-hidden size={16} /></a> : null}
 

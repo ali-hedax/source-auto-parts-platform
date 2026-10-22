@@ -1,12 +1,14 @@
 'use client';
-import type { BuilderBlock, BuilderDocument, BuilderFilm, BuilderStyle } from '@hedax/contracts';
+import { useEffect, useState } from 'react';
+import type { BuilderBlock, BuilderDocument, BuilderFilm, BuilderFilmClip, BuilderMedia, BuilderStyle } from '@hedax/contracts';
+import { api } from '@/lib/api/client';
 import { Button } from '@/components/ui/button';
 import { LocalizedField, ImageField, LinkField } from '@/components/admin/content/kit';
 import { SectionEditor } from '@/components/admin/content/home';
 import type { BuilderData } from './data';
 import { ProductPicker } from './product-picker';
 export type Device = 'desktop' | 'tablet' | 'mobile';
-export function BlockSettings({ block: b, change, device, media, data }: { block: BuilderBlock; change: (block: BuilderBlock) => void; device: Device; media: (mobile: boolean) => void; data: BuilderData }) {
+export function BlockSettings({ block: b, change, device, media, pick, data }: { block: BuilderBlock; change: (block: BuilderBlock) => void; device: Device; media: (mobile: boolean) => void; pick: MediaPick; data: BuilderData }) {
   const style = (patch: Partial<BuilderStyle>) => change({ ...b, style: { ...b.style, ...patch } });
   const layout = b.style[device] ?? {};
   return <div className="space-y-4">
@@ -15,14 +17,17 @@ export function BlockSettings({ block: b, change, device, media, data }: { block
     {b.legacy ? <SectionEditor section={b.legacy} onChange={legacy => change({ ...b, legacy, title: legacy.title })} errors={{}} path="legacy" /> : <>
       <LocalizedField id="block-title" path="title" label="عنوان" value={b.title} onChange={title => change({ ...b, title })} maxLength={160} errors={{}} />
       <LocalizedField id="block-body" path="body" label="متن" value={b.body} onChange={body => change({ ...b, body })} maxLength={8000} multiline errors={{}} />
-      <ImageField id="block-image" label="تصویر دسکتاپ" value={b.imageUrl} onChange={imageUrl => change({ ...b, imageUrl })} />
-      <LocalizedField id="block-alt" path="alt" label="متن جایگزین" value={b.alt} onChange={alt => change({ ...b, alt })} maxLength={160} errors={{}} />
+      {b.kind !== 'cinematic-hero' ? <><ImageField id="block-image" label="تصویر دسکتاپ" value={b.imageUrl} onChange={imageUrl => change({ ...b, imageUrl })} />
+      <LocalizedField id="block-alt" path="alt" label="متن جایگزین" value={b.alt} onChange={alt => change({ ...b, alt })} maxLength={160} errors={{}} /></> : null}
       <LinkField id="block-href" label="لینک تصویر و دکمه" value={b.href} onChange={href => change({ ...b, href })} />
       <LocalizedField id="block-button" path="button" label="متن دکمه" value={b.button} onChange={button => change({ ...b, button })} maxLength={60} errors={{}} />
     </>}
-    {b.kind === 'cinematic-hero' && b.film ? <FilmSettings film={b.film} change={film => change({ ...b, film })} /> : null}
+    {b.kind === 'cinematic-hero' && b.film ? <FilmSettings block={{ ...b, film: b.film }} change={change} pick={pick} /> : <>
     <div className="flex flex-wrap gap-2"><Button size="sm" variant="secondary" onClick={() => media(false)}>انتخاب تصویر از کتابخانه</Button><Button size="sm" variant="secondary" onClick={() => media(true)}>تصویر موبایل از کتابخانه</Button></div>
     <ImageField id="block-mobile-image" label="تصویر موبایل" value={b.mobileImageUrl} onChange={mobileImageUrl => change({ ...b, mobileImageUrl })} />
+    </>}
+    {b.kind !== 'cinematic-hero' && b.legacy?.type !== 'hero' ? <label>قالب آمادهٔ بخش<select value="" onChange={e => { const preset = SECTION_PRESETS.find(x => x.id === e.target.value); if (preset) change({ ...b, style: structuredClone(preset.style) }); }}>
+      <option value="">انتخاب قالب… (ظاهر فعلی جایگزین می‌شود؛ «بازگشت» آن را برمی‌گرداند)</option>{SECTION_PRESETS.map(x => <option key={x.id} value={x.id}>{x.label}</option>)}</select></label> : null}
     <details open><summary className="cursor-pointer font-bold">ابعاد و فاصله‌ها — {device === 'desktop' ? 'دسکتاپ' : device === 'tablet' ? 'تبلت' : 'موبایل'}</summary>
       <p className="my-2 text-xs text-steel">کادر خالی از تنظیمات پیش‌فرض استفاده می‌کند. ارتفاع، حداقل ارتفاع بخش است تا متن بریده نشود.</p>
       {([['width', 'عرض (درصد)', 100], ['height', 'ارتفاع (پیکسل)', 1400], ['columns', 'تعداد ستون', 6], ['gap', 'فاصله بین باکس‌ها', 100], ['padding', 'فاصله داخلی', 160], ['margin', 'فاصله خارجی', 160]] as const).map(([key, label, max]) =>
@@ -67,6 +72,15 @@ export function BlockSettings({ block: b, change, device, media, data }: { block
     </details> : null}
   </div>;
 }
+/** Controlled section looks: only values the style schema already validates, never free CSS. */
+export const SECTION_PRESETS: Array<{ id: string; label: string; style: BuilderStyle }> = [
+  { id: 'default', label: 'پیش‌فرض سایت', style: {} },
+  { id: 'cards-compact', label: 'کارت‌های فشرده — ۴ ستون، موبایل ۲ ستون', style: { template: 'compact', shadow: 'soft', radius: 12, desktop: { columns: 4, gap: 16 }, tablet: { columns: 3 }, mobile: { columns: 2, gap: 10 } } },
+  { id: 'cards-horizontal', label: 'کارت‌های افقی — ۲ ستون', style: { template: 'horizontal', radius: 16, desktop: { columns: 2, gap: 20 }, mobile: { columns: 1 } } },
+  { id: 'outlined', label: 'کارت‌های حاشیه‌دار روشن', style: { template: 'outlined', radius: 16, shadow: 'none', desktop: { columns: 3, gap: 20 }, mobile: { columns: 1 } } },
+  { id: 'dark-band', label: 'نوار تیرهٔ تمام‌عرض (هم‌خوان با فیلم)', style: { background: '#071b34', foreground: '#f6f8fc', radius: 0, desktop: { padding: 56 }, mobile: { padding: 24 } } },
+  { id: 'narrow-center', label: 'متن وسط‌چین با عرض محدود', style: { align: 'center', desktop: { width: 70, padding: 40 }, mobile: { width: 100, padding: 20 } } },
+];
 export function ThemeSettings({ document: doc, change }: { document: BuilderDocument; change: (doc: BuilderDocument) => void }) {
   const theme = doc.theme;
   return <div className="builder-panel !static !max-h-none"><h2 className="text-xl font-bold">قالب‌ها و استایل‌ها</h2>
@@ -79,20 +93,57 @@ export function ThemeSettings({ document: doc, change }: { document: BuilderDocu
 }
 
 const VIDEO = /^(\/(?!\/)[A-Za-z0-9/_.-]+|https:\/\/[^\s?#]+)\.(mp4|webm)$/i;
-/** The opening film: movies per device, posters, playback and the single logo reveal. Stills are the block's desktop/mobile images. */
-function FilmSettings({ film, change }: { film: BuilderFilm; change: (film: BuilderFilm) => void }) {
-  const set = (patch: Partial<BuilderFilm>) => change({ ...film, ...patch });
-  return <details open className="rounded-xl border p-3"><summary className="cursor-pointer font-bold">فیلم افتتاحیه</summary>
-    <p className="my-2 text-xs leading-6 text-steel">فقط یک فایل متناسب با دستگاه بازدیدکننده دریافت می‌شود. «تصویر دسکتاپ/موبایل» پایین همین فرم، تصویر ثابت پایانی است و برای کاهش حرکت، صرفه‌جویی داده یا خطای پخش نمایش داده می‌شود.</p>
-    {([['desktop', 'فیلم دسکتاپ (MP4)'], ['desktopWebm', 'نسخهٔ سبک‌تر دسکتاپ (WebM، اختیاری)'], ['mobile', 'فیلم موبایل (MP4)']] as const).map(([key, label]) => {
-      const invalid = film[key] !== '' && !VIDEO.test(film[key]);
-      return <label key={key}>{label}<input dir="ltr" value={film[key]} aria-invalid={invalid} placeholder="/media/…/hero.mp4" onChange={e => set({ [key]: e.target.value.trim() })} />{invalid ? <span className="text-xs text-red-700">نشانی باید به ‎.mp4 یا ‎.webm ختم شود (مسیر سایت یا https).</span> : null}</label>;
-    })}
-    <ImageField id="film-poster" label="پوستر شروع فیلم — دسکتاپ" value={film.poster} onChange={poster => set({ poster })} />
-    <ImageField id="film-mobile-poster" label="پوستر شروع فیلم — موبایل" value={film.mobilePoster} onChange={mobilePoster => set({ mobilePoster })} />
-    <label>نحوهٔ پخش<select value={film.playback} onChange={e => set({ playback: e.target.value as BuilderFilm['playback'] })}><option value="once">یک بار پخش و توقف روی خودروی کامل</option><option value="loop">تکرار پیوسته</option><option value="static">بدون فیلم — فقط تصویر ثابت</option></select></label>
-    <label className="!flex-row items-center"><input type="checkbox" checked={film.logoAt !== null} onChange={e => set({ logoAt: e.target.checked ? 9.8 : null })} />نمایش لوگوی رسمی روی فیلم</label>
-    {film.logoAt !== null ? <label>زمان ظاهرشدن لوگو (ثانیه)<input type="number" min={0} max={120} step={0.1} value={film.logoAt} onChange={e => set({ logoAt: Math.max(0, Math.min(120, Number(e.target.value) || 0)) })} /></label> : null}
+export type MediaPick = (kind: 'image' | 'video', apply: (media: BuilderMedia) => void) => void;
+/** Release state of a file referenced by the hero, as the library knows it. */
+function Release({ url, library }: { url: string; library: Map<string, BuilderMedia> }) {
+  if (!url) return null;
+  const m = library.get(url);
+  const ok = m?.releaseCleared;
+  return <span className={`mt-1 inline-block rounded px-2 py-0.5 text-xs ${ok ? 'bg-green-50 text-green-800' : 'bg-amber-50 text-amber-900'}`}>{ok ? 'تأییدشده برای انتشار عمومی' : m ? 'در کتابخانه — تأیید انتشار (بدون واترمارک) لازم است' : 'خارج از کتابخانه — قابل انتشار عمومی نیست'}</span>;
+}
+/**
+ * The opening film: an ordered list of clips (each with its own desktop/mobile movie and posters), independent
+ * desktop/mobile still images, playback mode and the logo. Movies and images come from the media library.
+ */
+function FilmSettings({ block: b, change, pick }: { block: BuilderBlock & { film: BuilderFilm }; change: (block: BuilderBlock) => void; pick: MediaPick }) {
+  const film = b.film;
+  const [library, setLibrary] = useState(new Map<string, BuilderMedia>());
+  useEffect(() => { void api<BuilderMedia[]>('/admin/content/media?q=').then(rows => setLibrary(new Map(rows.map(r => [r.url, r])))).catch(() => undefined); }, [film]);
+  const set = (patch: Partial<BuilderFilm>) => change({ ...b, film: { ...film, ...patch } });
+  const setClip = (i: number, patch: Partial<BuilderFilmClip>) => set({ clips: film.clips.map((c, j) => (i === j ? { ...c, ...patch } : c)) });
+  const moveClip = (i: number, to: number) => { const clips = [...film.clips]; const [c] = clips.splice(i, 1); clips.splice(to, 0, c!); set({ clips }); };
+  return <details open className="rounded-xl border p-3"><summary className="cursor-pointer font-bold">فیلم‌های بنر اصلی (Hero)</summary>
+    <p className="my-2 text-xs leading-6 text-steel">فیلم‌های فعال به همین ترتیب پشت سر هم پخش می‌شوند. هر بازدیدکننده فقط فایل متناسب با دستگاه خود را دریافت می‌کند. انتشار عمومی فقط با فایل‌های کتابخانه که «تأیید انتشار» دارند ممکن است.</p>
+    <ol className="space-y-3">{film.clips.map((clip, i) => <li key={clip.id} className="rounded-lg border p-3" data-film-clip={i}>
+      <div className="flex flex-wrap items-center justify-between gap-2"><strong>فیلم {(i + 1).toLocaleString('fa-IR')}</strong>
+        <label className="!m-0 !flex-row items-center"><input type="checkbox" checked={clip.active} onChange={e => setClip(i, { active: e.target.checked })} />فعال</label></div>
+      <div className="flex gap-1"><Button size="sm" variant="ghost" disabled={!i} onClick={() => moveClip(i, i - 1)}>بالا</Button><Button size="sm" variant="ghost" disabled={i === film.clips.length - 1} onClick={() => moveClip(i, i + 1)}>پایین</Button><Button size="sm" variant="ghost" onClick={() => set({ clips: film.clips.filter((_, j) => j !== i) })}>حذف از فهرست</Button></div>
+      {([['desktop', 'ویدیوی دسکتاپ (MP4)'], ['desktopWebm', 'نسخهٔ سبک دسکتاپ (WebM، اختیاری)'], ['mobile', 'ویدیوی موبایل (MP4، خالی = دسکتاپ)']] as const).map(([key, label]) => {
+        const invalid = clip[key] !== '' && !VIDEO.test(clip[key]);
+        return <div key={key}><label>{label}<input dir="ltr" value={clip[key]} aria-invalid={invalid} onChange={e => setClip(i, { [key]: e.target.value.trim() })} /></label>
+          {invalid ? <span className="text-xs text-red-700">نشانی باید به mp4. یا webm. ختم شود.</span> : null}
+          <div className="flex flex-wrap items-center gap-2"><Button size="sm" variant="secondary" onClick={() => pick('video', m => setClip(i, { [key]: m.url }))}>انتخاب از کتابخانه</Button>{clip[key] ? <Button size="sm" variant="ghost" onClick={() => setClip(i, { [key]: '' })}>پاک کردن</Button> : null}</div>
+          <Release url={clip[key]} library={library} /></div>;
+      })}
+      {([['poster', 'پوستر شروع — دسکتاپ'], ['mobilePoster', 'پوستر شروع — موبایل']] as const).map(([key, label]) => <div key={key}>
+        <ImageField id={`clip-${clip.id}-${key}`} label={label} value={clip[key]} onChange={url => setClip(i, { [key]: url })} />
+        <Button size="sm" variant="secondary" onClick={() => pick('image', m => setClip(i, { [key]: m.url }))}>انتخاب از کتابخانه</Button><Release url={clip[key]} library={library} /></div>)}
+    </li>)}</ol>
+    <Button className="mt-3" size="sm" disabled={film.clips.length >= 6} onClick={() => set({ clips: [...film.clips, { id: crypto.randomUUID().slice(0, 12), active: true, desktop: '', desktopWebm: '', mobile: '', poster: '', mobilePoster: '' }] })}>افزودن فیلم به ترتیب پخش</Button>
+    <h3 className="mt-4 font-bold">تصویر جایگزین (بدون فیلم)</h3>
+    <p className="text-xs leading-6 text-steel">برای «فقط تصویر»، کاهش حرکت، صرفه‌جویی داده یا خطای پخش نمایش داده می‌شود.</p>
+    {([['imageUrl', 'تصویر جایگزین دسکتاپ'], ['mobileImageUrl', 'تصویر جایگزین موبایل']] as const).map(([key, label]) => <div key={key}>
+      <ImageField id={`film-${key}`} label={label} value={b[key]} onChange={url => change({ ...b, [key]: url })} />
+      <Button size="sm" variant="secondary" onClick={() => pick('image', m => change({ ...b, [key]: m.url }))}>انتخاب از کتابخانه</Button><Release url={b[key]} library={library} /></div>)}
+    <LocalizedField id="film-alt" path="alt" label="توضیح تصویر برای صفحه‌خوان" value={b.alt} onChange={alt => change({ ...b, alt })} maxLength={160} errors={{}} />
+    <label>نحوهٔ پخش<select value={film.playback} onChange={e => set({ playback: e.target.value as BuilderFilm['playback'] })}><option value="once">یک بار پخش و توقف روی آخرین تصویر</option><option value="loop">تکرار پیوسته</option><option value="static">فقط تصویر — بدون فیلم</option></select></label>
+    <h3 className="mt-4 font-bold">لوگو روی فیلم</h3>
+    <label className="!flex-row items-center"><input type="checkbox" checked={film.logoAt !== null} onChange={e => set({ logoAt: e.target.checked ? 9.8 : null })} />نمایش لوگو (فقط یک بار)</label>
+    {film.logoAt !== null ? <>
+      <label>زمان ظاهرشدن در آخرین فیلم (ثانیه)<input type="number" min={0} max={120} step={0.1} value={film.logoAt} onChange={e => set({ logoAt: Math.max(0, Math.min(120, Number(e.target.value) || 0)) })} /></label>
+      <label>عرض لوگو (درصد عرض فیلم)<input type="number" min={10} max={60} value={film.logoWidth} onChange={e => set({ logoWidth: Math.max(10, Math.min(60, Math.round(Number(e.target.value) || 28))) })} /></label>
+      <ImageField id="film-logo" label="لوگوی اختصاصی (خالی = لوگوی سایت)" value={film.logoUrl} onChange={logoUrl => set({ logoUrl })} />
+    </> : null}
     <label className="!flex-row items-center"><input type="checkbox" checked={film.discovery} onChange={e => set({ discovery: e.target.checked })} />بخش جست‌وجو و مسیرهای خرید زیر فیلم</label>
   </details>;
 }

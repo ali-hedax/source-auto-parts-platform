@@ -13,7 +13,7 @@ import {
   type PublicContentPage,
   type SiteContentView,
 } from '@hedax/contracts';
-import { IMAGE_KINDS, inspectFile } from '@hedax/domain';
+import { IMAGE_KINDS, inspectFile, inspectVideo } from '@hedax/domain';
 import { AuditService } from '../../common/audit.service.js';
 import { badRequest, conflict, forbidden, notFound } from '../../common/errors.js';
 import { Prisma, PrismaService, type Tx } from '../../common/prisma.service.js';
@@ -274,8 +274,27 @@ export class ContentService {
     }
     const key = `content/${purpose}/${randomUUID()}.${rule.format}`;
     const url = await this.storage.putPublic(key, output, rule.format === 'png' ? 'image/png' : 'image/webp');
-    await this.prisma.visualMedia.create({ data: { url, name: file.originalname.slice(0, 160), alt: { fa: '', en: '' }, width, height, bytes: output.length } });
+    await this.prisma.visualMedia.create({ data: { url, name: file.originalname.slice(0, 160), alt: { fa: '', en: '' }, width, height, bytes: output.length, mime: rule.format === 'png' ? 'image/png' : 'image/webp' } });
     await this.prisma.tx((tx: Tx) => this.audit.record(tx, { action: 'content.image.uploaded', entityType: 'content_image', entityId: key, after: { purpose, url, width, height, bytes: output.length } }));
     return { url, width, height, bytes: output.length };
+  }
+
+  /**
+   * A hero film for the visual builder. Videos cannot be re-encoded here, so the container is parsed from its
+   * bytes (MP4 boxes / WebM EBML: a real video track, bounded duration, size and dimensions), scanned, and stored
+   * under a random key with the inspected MIME type. A published hero only accepts release-cleared media.
+   */
+  async uploadVideo(file: { originalname: string; buffer: Buffer }) {
+    const inspection = inspectVideo(file.originalname, new Uint8Array(file.buffer));
+    if (inspection.verdict !== 'ACCEPT' || !inspection.kind || !inspection.mime) {
+      throw badRequest('INVALID_VIDEO', 'Only MP4 or WebM videos up to 50 MB and 2 minutes are accepted', { reason: inspection.reason ?? 'NOT_A_VIDEO' });
+    }
+    const scan = await this.scanner.scan(file.buffer);
+    if (!scan.clean) throw badRequest('FILE_REJECTED', 'The file did not pass the security scan');
+    const key = `content/video/${randomUUID()}.${inspection.kind}`;
+    const url = await this.storage.putPublic(key, file.buffer, inspection.mime);
+    const media = await this.prisma.visualMedia.create({ data: { url, name: file.originalname.slice(0, 160), alt: { fa: '', en: '' }, width: inspection.width, height: inspection.height, bytes: file.buffer.length, kind: 'video', mime: inspection.mime, durationMs: inspection.durationMs } });
+    await this.prisma.tx((tx: Tx) => this.audit.record(tx, { action: 'content.video.uploaded', entityType: 'visual_media', entityId: media.id, after: { url, width: inspection.width, height: inspection.height, durationMs: inspection.durationMs, bytes: file.buffer.length, fastStart: inspection.fastStart } }));
+    return media;
   }
 }

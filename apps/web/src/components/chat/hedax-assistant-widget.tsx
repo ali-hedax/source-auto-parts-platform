@@ -48,7 +48,7 @@ export function HedaxAssistantWidget({ locale, settings }: { locale: 'fa' | 'en'
         const margin = window.innerWidth >= 640 ? 24 : 12;
         const baseBottom = dock.current.getBoundingClientRect().bottom + lift;
         const atLeft = (settings.placement === 'start') === (locale === 'en');
-        const intersects = (left: number, top: number, w: number, h: number) => [...document.querySelectorAll('main a, main button, main input, main select, main textarea')].some((el) => {
+        const intersects = (left: number, top: number, w: number, h: number) => [...document.querySelectorAll('main a, main button, main input, main select, main textarea, main [data-assistant-avoid]')].some((el) => {
           const r = el.getBoundingClientRect();
           return r.width > 0 && r.height > 0 && r.left < left + w && r.right > left && r.top < top + h && r.bottom > top;
         });

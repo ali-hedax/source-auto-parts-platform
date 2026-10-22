@@ -7,6 +7,17 @@ import { conflict, forbidden, notFound } from '../../common/errors.js';
 import type { Actor } from '../../common/request-context.js';
 import { ContentService } from './content.service.js';
 
+/** Every file a cinematic hero can show publicly: movies, posters, its stills and a custom logo. */
+export function heroMediaUrls(document: BuilderDocument): string[] {
+  const urls = new Set<string>();
+  for (const block of document.sections) {
+    if (block.kind !== 'cinematic-hero' || !block.film) continue;
+    for (const clip of block.film.clips) for (const url of [clip.desktop, clip.desktopWebm, clip.mobile, clip.poster, clip.mobilePoster]) if (url) urls.add(url);
+    for (const url of [block.imageUrl, block.mobileImageUrl, block.film.logoUrl]) if (url) urls.add(url);
+  }
+  return [...urls];
+}
+
 /** Minimum gap between two automatic «previous draft» snapshots of one page. */
 const DRAFT_SNAPSHOT_INTERVAL_MS = 5 * 60_000;
 
@@ -75,6 +86,13 @@ export class BuilderService {
       const revision = revisionId ? await tx.visualRevision.findFirst({ where: { id: revisionId, pageSlug: slug } }) : null;
       if (revisionId && !revision) throw notFound();
       const document = builderDocumentSchema.parse(revision?.document ?? page.draft);
+      // Hero films go public only from the library and only when cleared (watermark-free, rights confirmed).
+      const heroUrls = heroMediaUrls(document);
+      if (heroUrls.length) {
+        const cleared = new Set((await tx.visualMedia.findMany({ where: { url: { in: heroUrls }, archived: false, releaseCleared: true }, select: { url: true } })).map(m => m.url));
+        const blocked = heroUrls.filter(url => !cleared.has(url));
+        if (blocked.length) throw conflict('MEDIA_NOT_CLEARED', 'The hero film uses media that is not cleared for public release', { urls: blocked.slice(0, 20) });
+      }
       // A permanent snapshot of the live page before publication is the rollback target.
       if (page.published) await tx.visualRevision.create({ data: { pageSlug: slug, document: page.published as Prisma.InputJsonValue, action: 'previous-publication', actorId: actor.userId, actorName: actor.displayName ?? 'مدیر' } });
       const saved = await tx.visualPage.update({ where: { slug }, data: { published: document as Prisma.InputJsonValue, ...(revisionId ? { draft: document as Prisma.InputJsonValue } : {}), version: { increment: 1 }, publishedAt: new Date(), publishedBy: actor.displayName ?? 'مدیر' } });
@@ -97,6 +115,28 @@ export class BuilderService {
     return await this.prisma.visualMedia.findUniqueOrThrow({ where: { url: image.url } }) as unknown as BuilderMedia;
   }
 
+  async registerVideo(file: { originalname: string; buffer: Buffer }): Promise<BuilderMedia> {
+    return await this.content.uploadVideo(file) as unknown as BuilderMedia;
+  }
+
+  /** Only the owner or a publisher may attest that a file is watermark-free and cleared for public release. */
+  async setClearance(id: string, cleared: boolean, actor: Actor) {
+    if (!actor.isOwner && !actor.permissions.has('content.publish')) throw forbidden();
+    return this.prisma.tx(async tx => {
+      const media = await tx.visualMedia.findUnique({ where: { id } });
+      if (!media || media.archived) throw notFound();
+      if (!cleared) {
+        // Revoking must not silently leave an uncleared file on a live page.
+        const live = await tx.visualPage.findMany({ where: { publishedAt: { not: null } }, select: { slug: true, published: true } });
+        const using = live.filter(p => p.published && heroMediaUrls(builderDocumentSchema.parse(p.published)).includes(media.url)).map(p => p.slug);
+        if (using.length) throw conflict('MEDIA_IN_USE', 'Replace this file on the live page before revoking its clearance', { pages: using });
+      }
+      const updated = await tx.visualMedia.update({ where: { id }, data: cleared ? { releaseCleared: true, clearedBy: actor.displayName ?? 'مدیر', clearedAt: new Date() } : { releaseCleared: false, clearedBy: null, clearedAt: null } });
+      await this.audit.record(tx, { action: cleared ? 'content.media.cleared' : 'content.media.clearance_revoked', entityType: 'visual_media', entityId: id, after: { url: media.url, kind: media.kind } });
+      return updated;
+    });
+  }
+
   async updateMedia(id: string, input: z.infer<typeof builderMediaUpdateSchema>) {
     return this.prisma.tx(async tx => {
       const media = await tx.visualMedia.update({ where: { id }, data: { ...input, alt: input.alt as Prisma.InputJsonValue } });
@@ -115,7 +155,7 @@ export class BuilderService {
         tx.siteSetting.findMany({ where: { key: { startsWith: 'content.' } }, select: { value: true } }),
         tx.contentPage.findMany({ select: { bodyFa: true, bodyEn: true } }),
       ]);
-      if ([pages, revisions, settings, contentPages].some(rows => JSON.stringify(rows).includes(media.url))) throw conflict('MEDIA_IN_USE', 'This image is used by a page or a saved revision');
+      if ([pages, revisions, settings, contentPages].some(rows => JSON.stringify(rows).includes(media.url))) throw conflict('MEDIA_IN_USE', 'This file is used by a page or a saved revision');
       // Soft archive only; retain bytes, including for an in-flight draft not yet saved.
       await tx.visualMedia.update({ where: { id }, data: { archived: true } });
       await this.audit.record(tx, { action: 'content.media.archived', entityType: 'visual_media', entityId: id });

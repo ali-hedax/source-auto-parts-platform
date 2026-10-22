@@ -33,7 +33,7 @@ compared with the review copy: same frames at every second; only the logo differ
 
 ## Web variants (generated, not committed)
 
-Rebuild: `FFMPEG=… SRC=… bash scripts/media/build-hero-v2.sh` → `apps/web/public/media/source-hero/v2/`
+Rebuild: `FFMPEG=… SRC=… bash scripts/media/build-hero-v2.sh` → `apps/web/public/review-media/source-hero/v2/`
 (git-ignored: the repository is public and the source carries the watermark).
 Encoder: ffmpeg 7.1 static build (`imageio-ffmpeg` wheel). Native 1280×720 — no upscale.
 

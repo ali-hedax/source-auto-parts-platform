@@ -25,18 +25,21 @@ describe('visual page safety contract', () => {
     expect(block.body.fa).toBe(''); expect(block.alt.fa).toBe(''); expect(block.button.fa).toBe('');
   });
   it('accepts the cinematic film block and only self-hosted MP4/WebM movies', () => {
-    const doc = document(); doc.sections = [newBuilderBlock('cinematic-hero', 'film')];
-    expect(builderDocumentSchema.safeParse(doc).success).toBe(true);
+    const clip = (desktop = '/media/content/video/a.mp4') => ({ id: 'c1', active: true, desktop, desktopWebm: '', mobile: '', poster: '', mobilePoster: '' });
+    const withClips = (clips: unknown[]) => { const doc = document(); const b = newBuilderBlock('cinematic-hero', 'film'); b.film!.clips = clips as never; doc.sections = [b]; return doc; };
+    expect(builderDocumentSchema.safeParse(withClips([])).success).toBe(true);
+    expect(builderDocumentSchema.safeParse(withClips([clip(), { ...clip('https://media.example/b.webm'), id: 'c2' }])).success).toBe(true);
     for (const desktop of ['javascript:alert(1)', 'https://evil.example/x.mp4?<script>', '/media/x.html', 'http://plain.example/x.mp4', '//evil.example/x.mp4', '/media/x.mp4"onerror=1']) {
-      const next = document(); const film = newBuilderBlock('cinematic-hero', 'film'); film.film!.desktop = desktop; next.sections = [film];
-      expect(builderDocumentSchema.safeParse(next).success, desktop).toBe(false);
+      expect(builderDocumentSchema.safeParse(withClips([clip(desktop)])).success, desktop).toBe(false);
     }
+    expect(builderDocumentSchema.safeParse(withClips([clip(), clip()])).success, 'duplicate clip ids').toBe(false);
+    expect(builderDocumentSchema.safeParse(withClips([clip('')])).success, 'clip without a movie').toBe(false);
+    expect(builderDocumentSchema.safeParse(withClips(Array.from({ length: 7 }, (_, i) => ({ ...clip(), id: `c${i}` })))).success, 'too many clips').toBe(false);
+    expect(builderDocumentSchema.safeParse(withClips([{ ...clip(), script: 'alert(1)' }])).success).toBe(false);
     const missing = document(); const film = newBuilderBlock('cinematic-hero', 'film'); delete film.film; missing.sections = [film];
     expect(builderDocumentSchema.safeParse(missing).success).toBe(false);
-    const extra = document(); const block = newBuilderBlock('cinematic-hero', 'film'); Object.assign(block.film!, { script: 'alert(1)' }); extra.sections = [block];
-    expect(builderDocumentSchema.safeParse(extra).success).toBe(false);
     // Copies, never the shared default, so editing one block cannot change another.
-    const a = newBuilderBlock('cinematic-hero', 'a'); a.film!.playback = 'loop';
-    expect(newBuilderBlock('cinematic-hero', 'b').film!.playback).toBe('once');
+    const a = newBuilderBlock('cinematic-hero', 'a'); a.film!.clips.push(clip()); a.film!.playback = 'loop';
+    const b = newBuilderBlock('cinematic-hero', 'b'); expect(b.film!.playback).toBe('once'); expect(b.film!.clips).toEqual([]);
   });
 });

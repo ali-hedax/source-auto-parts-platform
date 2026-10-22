@@ -2,13 +2,14 @@
 # Rebuilds the homepage web variants of the owner-selected continuous v2 hero film
 # (docs/media/HERO_FILM_V2_EDL.md) from the original source footage.
 # Output is NOT committed: the source still carries the generator watermark and the
-# repository is public. Usage:
+# repository is public. LOCAL REVIEW ONLY: /review-media is never used by a published
+# page (BuilderService.publish accepts only release-cleared library media). Usage:
 #   FFMPEG=/path/to/ffmpeg SRC=/path/to/kling_20261021_VIDEO_Create_a_p_4310_0.mp4 \
 #     bash scripts/media/build-hero-v2.sh [out-dir]
 set -euo pipefail
 : "${FFMPEG:?set FFMPEG to an ffmpeg 7.x binary}"
 : "${SRC:?set SRC to the original source footage}"
-OUT="${1:-apps/web/public/media/source-hero/v2}"
+OUT="${1:-apps/web/public/review-media/source-hero/v2}"
 mkdir -p "$OUT"
 # Same edit as the accepted review copy, minus its burned-in logo (the site renders
 # the official logo itself so the brand reveal never appears twice).
