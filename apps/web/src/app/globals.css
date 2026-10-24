@@ -527,3 +527,44 @@ main:has(> .page-canvas) {
 .store main > :is(.page-canvas, .container-page) > .page-header:first-child p {
   color: var(--color-mist);
 }
+
+/* A part without a photo: the SOURCE technical-drawing tile (components/store/part-placeholder.tsx). */
+.part-placeholder {
+  color: var(--color-signal);
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 40%, rgb(25 118 255 / 0.18), transparent 70%),
+    linear-gradient(rgb(57 160 255 / 0.07) 1px, transparent 1px) center / 1.25rem 1.25rem,
+    linear-gradient(90deg, rgb(57 160 255 / 0.07) 1px, transparent 1px) center / 1.25rem 1.25rem,
+    linear-gradient(160deg, var(--color-stage-2), var(--color-stage) 60%, var(--color-navy));
+}
+.part-placeholder-mark {
+  font-family: var(--font-en);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.42em;
+  color: var(--color-paper);
+  opacity: 0.85;
+}
+.part-placeholder {
+  container-type: inline-size;
+}
+@container (max-width: 9rem) {
+  .part-placeholder > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
+
+/* Shared cards (account sections, tables, policy text) take the storefront elevation. */
+.store .card {
+  border-color: color-mix(in srgb, var(--color-line-soft) 85%, transparent);
+  box-shadow: var(--shadow-card);
+}
+.store main .card a.card:hover,
+.store main a.card:hover {
+  border-color: var(--color-electric);
+}

@@ -1,6 +1,6 @@
 import type { ProductDetail } from '@hedax/contracts';
 import { minorToDecimalString } from '@hedax/domain';
-import { ImageOff, ShoppingCart } from 'lucide-react';
+import { ShoppingCart } from 'lucide-react';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
@@ -13,6 +13,7 @@ import { Alert, Badge, Code, DefinitionList, Ltr, StatusBadge, TableScroll, td, 
 import { Link } from '@/i18n/navigation';
 import { ChapterBand, type Crumb } from '@/components/store/chapter-band';
 import { RevealWhenAway } from '@/components/store/reveal-when-away';
+import { PartPlaceholder } from '@/components/store/part-placeholder';
 import { serverApiOptional } from '@/lib/api/server';
 import { publicSiteUrl } from '@/lib/config';
 import { displayCurrency } from '@/lib/preferences';
@@ -104,11 +105,8 @@ export default async function ProductPage({ params }: { params: Promise<{ locale
           {p.images[0] ? (
             <ProductGallery images={p.images.map((img) => ({ url: img.url, alt: text(img.alt) || name }))} />
           ) : (
-            <div className="relative aspect-[5/2] overflow-hidden rounded-[var(--radius-card)] border border-line-soft bg-white sm:aspect-[4/3]">
-              <div className="media-placeholder flex h-full flex-col items-center justify-center gap-2 text-steel">
-                <ImageOff aria-hidden className="size-10" />
-                <span className="text-sm font-medium">{t('parts.noImage')}</span>
-              </div>
+            <div className="relative aspect-[5/2] overflow-hidden rounded-[var(--radius-card)] shadow-[var(--shadow-card)] sm:aspect-[4/3]">
+              <PartPlaceholder label={t('parts.noImage')} variant="hero" />
             </div>
           )}
           <FitmentChips fitments={p.fitments} locale={L} />

@@ -117,7 +117,7 @@ export function CheckoutClient() {
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
       <div className="flex flex-col gap-4">
         <section aria-labelledby="addr-title" className="store-card p-5 sm:p-6">
-          <h2 id="addr-title" className="mb-4 flex items-center gap-3 text-lg font-bold"><span aria-hidden className="num grid size-7 shrink-0 place-items-center rounded-full bg-carbon text-xs font-bold text-white">{digit(1)}</span>{t('checkout.address')}</h2>
+          <h2 id="addr-title" className="mb-4 flex items-center gap-3 text-lg font-bold"><span aria-hidden className="num grid size-7 shrink-0 place-items-center rounded-full bg-stage text-xs font-bold text-white">{digit(1)}</span>{t('checkout.address')}</h2>
           {addresses.length ? (
             <fieldset className="flex flex-col gap-2">
               <legend className="sr-only">{t('checkout.address')}</legend>
@@ -142,7 +142,7 @@ export function CheckoutClient() {
         </section>
 
         <section aria-labelledby="ship-title" className="store-card p-5 sm:p-6">
-          <h2 id="ship-title" className="mb-4 flex items-center gap-3 text-lg font-bold"><span aria-hidden className="num grid size-7 shrink-0 place-items-center rounded-full bg-carbon text-xs font-bold text-white">{digit(2)}</span>{t('checkout.shipping')}</h2>
+          <h2 id="ship-title" className="mb-4 flex items-center gap-3 text-lg font-bold"><span aria-hidden className="num grid size-7 shrink-0 place-items-center rounded-full bg-stage text-xs font-bold text-white">{digit(2)}</span>{t('checkout.shipping')}</h2>
           <fieldset className="flex flex-col gap-2">
             <legend className="sr-only">{t('checkout.shipping')}</legend>
             {preview.shippingOptions.map((o) => (
@@ -164,7 +164,7 @@ export function CheckoutClient() {
       </div>
 
       <aside className="store-card flex h-fit flex-col gap-4 p-5 sm:p-6 lg:sticky lg:top-32" aria-labelledby="review-title" aria-busy={!current}>
-        <h2 id="review-title" className="flex items-center gap-3 text-lg font-bold"><span aria-hidden className="num grid size-7 shrink-0 place-items-center rounded-full bg-carbon text-xs font-bold text-white">{digit(3)}</span>{t('checkout.review')}</h2>
+        <h2 id="review-title" className="flex items-center gap-3 text-lg font-bold"><span aria-hidden className="num grid size-7 shrink-0 place-items-center rounded-full bg-stage text-xs font-bold text-white">{digit(3)}</span>{t('checkout.review')}</h2>
         {preview.totals ? (
           <dl className="flex flex-col gap-2.5 border-y border-line-soft py-4 text-sm">
             <div className="flex justify-between gap-2"><dt>{t('checkout.items')}</dt><dd><Money value={preview.totals.itemsTotal} /></dd></div>

@@ -1,7 +1,7 @@
 'use client';
 
 import type { CartView } from '@hedax/contracts';
-import { ImageOff, Info, Trash2 } from 'lucide-react';
+import { Info, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
@@ -11,6 +11,7 @@ import { Alert, Code, EmptyState, Spinner } from '@/components/ui/misc';
 import { Link } from '@/i18n/navigation';
 import { api } from '@/lib/api/client';
 import { QuantityStepper } from './quantity-stepper';
+import { PartPlaceholder } from '@/components/store/part-placeholder';
 
 export function CartClient() {
   const t = useTranslations();
@@ -60,7 +61,7 @@ export function CartClient() {
                 {l.imageUrl ? (
                   <Image src={l.imageUrl} alt="" fill sizes="72px" className="object-contain p-1.5 mix-blend-multiply" />
                 ) : (
-                  <div className="media-placeholder grid h-full place-items-center text-steel"><ImageOff aria-hidden className="size-5" /></div>
+                  <PartPlaceholder label={t('parts.noImage')} variant="thumb" />
                 )}
               </div>
               <div className="min-w-0">

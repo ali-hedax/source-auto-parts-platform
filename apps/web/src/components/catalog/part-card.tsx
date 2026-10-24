@@ -1,11 +1,12 @@
 import type { ProductCard } from '@hedax/contracts';
 import { fitmentLabels } from '@hedax/domain';
-import { ArrowLeft, ArrowRight, ImageOff } from 'lucide-react';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 import Image from 'next/image';
 import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { Price } from '@/components/ui/format';
 import { Badge, Code, StatusBadge } from '@/components/ui/misc';
+import { PartPlaceholder } from '@/components/store/part-placeholder';
 
 /**
  * One part in a list. Phones get a compact row (square thumbnail beside the details) so a
@@ -37,11 +38,7 @@ export function PartCard({ product, priority = false }: { product: ProductCard; 
               priority={priority}
             />
           ) : (
-            <div className="media-placeholder flex h-full flex-col items-center justify-center gap-1.5 text-steel">
-              <ImageOff aria-hidden className="size-6 sm:size-7" />
-              <span className="hidden text-xs font-medium sm:block">{t('parts.noImage')}</span>
-              <span className="sr-only sm:hidden">{t('parts.noImage')}</span>
-            </div>
+            <PartPlaceholder label={t('parts.noImage')} />
           )}
         </div>
         <div className="flex min-w-0 flex-1 flex-col gap-1.5 p-3 sm:gap-2 sm:p-5">

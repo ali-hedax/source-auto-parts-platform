@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { ButtonLink } from '@/components/ui/button';
 import { Async } from '@/components/ui/async';
 import { DateTime, Money } from '@/components/ui/format';
-import { Alert, Code, EmptyState, PageHeader, Section, StatusBadge } from '@/components/ui/misc';
+import { Alert, Code, EmptyState, PageHeader, Section, StatusBadge, Ltr } from '@/components/ui/misc';
 import { Link } from '@/i18n/navigation';
 import { useApi } from '@/lib/use-api';
 
@@ -22,7 +22,7 @@ export default function AccountOverviewPage() {
     <Async state={me}>
       {(m) => (
         <div className="flex flex-col gap-6">
-          <PageHeader title={t('account.title')} description={m.displayName ?? m.mobileMasked ?? ''} />
+          <PageHeader title={m.displayName ?? (m.mobileMasked ? <Ltr>{m.mobileMasked}</Ltr> : t('account.title'))} description={t('account.title')} />
           {m.unreadMessages > 0 ? (
             <Alert tone="info" title={t('account.unread', { count: m.unreadMessages })}>
               <Link href="/account/messages" className="font-semibold underline">{t('account.messages')}</Link>

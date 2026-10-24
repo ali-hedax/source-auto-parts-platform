@@ -47,7 +47,7 @@ export function MobileNav({ items }: { items: Array<{ href: string; label: strin
                       href={i.href}
                       onClick={() => setOpen(false)}
                       aria-current={active ? 'page' : undefined}
-                      className={`flex min-h-12 items-center rounded-[var(--radius-control)] border-s-2 px-3 font-medium transition-colors ${active ? 'border-tech-light bg-white/[0.06] text-white' : 'border-transparent hover:bg-white/[0.06]'}`}
+                      className={`flex min-h-12 items-center rounded-[var(--radius-control)] border-s-2 px-3 font-medium transition-colors ${active ? 'border-signal bg-white/[0.06] text-white' : 'border-transparent hover:bg-white/[0.06]'}`}
                     >
                       {i.label}
                     </Link>

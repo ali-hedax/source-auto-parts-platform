@@ -14,7 +14,7 @@ export default async function InvitePage({ params }: { params: Promise<{ locale:
     <div className="page-canvas container-page py-10 sm:py-16">
       <div className="mx-auto w-full max-w-md">
         <div className="mb-6 flex items-center gap-3">
-          <span className="grid size-10 place-items-center rounded-[var(--radius-control)] bg-carbon text-tech-light"><ShieldCheck aria-hidden className="size-5" /></span>
+          <span className="grid size-10 place-items-center rounded-[var(--radius-control)] bg-stage text-signal"><ShieldCheck aria-hidden className="size-5" /></span>
           <h1 className="text-2xl font-bold">{t('auth.inviteTitle')}</h1>
         </div>
         <Suspense>
