@@ -14,6 +14,7 @@ const DEFAULT_LOGO = '/brand/source/logo-dark.png';
  */
 export function CinematicHero({ block: b, content, categories, locale }: { block: BuilderBlock; content: SiteContentView | null; categories: CategoryView[]; locale: string }) {
   const fa = locale === 'fa';
+  const secondaryTitle = fa ? b.title.en : b.title.en ? b.title.fa : '';
   const L = (v: Parameters<typeof localize>[0]) => localize(v, locale);
   const film: BuilderFilm = b.film ?? DEFAULT_BUILDER_FILM;
   const Arrow = fa ? ArrowLeft : ArrowRight;
@@ -37,7 +38,8 @@ export function CinematicHero({ block: b, content, categories, locale }: { block
     <div className="cine-stage">
       <div className="cine-copy" data-assistant-avoid>
         <p className="cine-eyebrow" dir="ltr">SOURCE <span>by</span> HEDAX</p>
-        <h1 id={`${b.id}-title`} className="cine-title">{L(b.title)}</h1>
+        <h1 id={`${b.id}-title`} className="cine-title" lang={fa ? 'fa' : 'en'} dir={fa ? 'rtl' : 'ltr'}>{L(b.title)}</h1>
+        {secondaryTitle ? <p className="cine-tagline" lang={fa ? 'en' : 'fa'} dir={fa ? 'ltr' : 'rtl'}>{secondaryTitle}</p> : null}
         {/* The saved body text (panel → film block → «متن») is kept but not shown for now, to keep the hero uncluttered. */}
         {/* The page's main search (the header's quick search hides on phones while this one is present). */}
         <form action={`/${locale}/parts`} method="get" role="search" className="cine-search">

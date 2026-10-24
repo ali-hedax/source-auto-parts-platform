@@ -1,0 +1,34 @@
+# Internal HTTP ingress; TLS belongs to the existing outer Caddy. No host ports.
+# Public synthetic Preview, with staff/admin authentication enforced by the app.
+{
+	admin off
+}
+:80 {
+	encode zstd gzip
+	@integration_webhook path /api/v1/integrations/*
+	respond @integration_webhook 404
+	handle /api/* {
+		request_body {
+			max_size 60MB
+		}
+		reverse_proxy api:4000 {
+			header_up X-Forwarded-Proto https
+		}
+	}
+	handle /media/* {
+		reverse_proxy api:4000 {
+			header_up X-Forwarded-Proto https
+		}
+	}
+	handle {
+		reverse_proxy web:3000 {
+			header_up X-Forwarded-Proto https
+		}
+	}
+	header {
+		X-Robots-Tag "noindex, nofollow, noarchive"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+}

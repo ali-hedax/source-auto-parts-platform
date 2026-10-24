@@ -25,6 +25,11 @@
 .cine-eyebrow { font-family: var(--font-en); font-size: .78rem; font-weight: 700; letter-spacing: .32em; color: var(--cine-signal); text-transform: uppercase; margin-bottom: 1.25rem; text-align: start; }
 .cine-eyebrow span { text-transform: none; letter-spacing: .08em; font-weight: 500; color: var(--cine-ink-mid); }
 .cine-title { font-size: clamp(2rem, 3.6cqi, 3.25rem); line-height: 1.22; font-weight: 800; letter-spacing: -.01em; color: var(--cine-ink); text-wrap: balance; }
+.cine-title[lang='fa'] { font-family: var(--font-fa); line-height: 1.55; letter-spacing: 0; }
+.cine-title[lang='en'] { font-family: var(--font-en); }
+.cine-tagline { margin-top: .75rem; color: var(--cine-ink-mid); font-size: clamp(1rem, 1.5cqi, 1.25rem); font-weight: 500; line-height: 1.7; text-wrap: balance; overflow-wrap: anywhere; }
+.cine-tagline[lang='fa'] { font-family: var(--font-fa); }
+.cine-tagline[lang='en'] { font-family: var(--font-en); }
 html[lang='en'] .cine-title { font-size: clamp(2rem, 3.5cqi, 3.2rem); line-height: 1.08; letter-spacing: -.025em; }
 html[lang='en'] .cine-lede { max-width: 28rem; }
 .cine-lede { margin-top: .9rem; max-width: 32rem; font-size: clamp(1rem, 1.3cqi, 1.1rem); line-height: 1.8; color: var(--cine-ink-mid); }

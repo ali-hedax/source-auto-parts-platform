@@ -1,0 +1,58 @@
+# Optional THIRD overlay after docker-compose.yml + docker-compose.preview.yml.
+# Requires reviewed owner approval for shared-host deployment and proxy changes.
+# Never publishes a second listener on host ports 80/443. Only the two ingress
+# containers join hedax-preview-edge; Production databases/storage stay separate.
+services:
+  postgres:
+    mem_limit: 384m
+    cpus: 0.5
+  redis:
+    mem_limit: 128m
+    cpus: 0.25
+  clamav:
+    mem_limit: 1536m
+    cpus: 0.5
+  api:
+    mem_limit: 768m
+    cpus: 0.75
+    environment:
+      ASSISTANT_AI_PROVIDER: disabled
+      ASSISTANT_LIVE_CALLS_ENABLED: "false"
+      ARVAN_AI_ENDPOINT: ""
+      ARVAN_AI_API_KEY: ""
+      ASSISTANT_DAILY_BUDGET_IRR: "0"
+      ASSISTANT_TEST_BUDGET_IRR: "0"
+  worker:
+    mem_limit: 384m
+    cpus: 0.25
+    environment:
+      ASSISTANT_AI_PROVIDER: disabled
+      ASSISTANT_LIVE_CALLS_ENABLED: "false"
+      ARVAN_AI_ENDPOINT: ""
+      ARVAN_AI_API_KEY: ""
+      ASSISTANT_DAILY_BUDGET_IRR: "0"
+      ASSISTANT_TEST_BUDGET_IRR: "0"
+  tools:
+    environment:
+      ASSISTANT_AI_PROVIDER: disabled
+      ASSISTANT_LIVE_CALLS_ENABLED: "false"
+      ARVAN_AI_ENDPOINT: ""
+      ARVAN_AI_API_KEY: ""
+  web:
+    mem_limit: 512m
+    cpus: 0.75
+  caddy:
+    mem_limit: 128m
+    cpus: 0.25
+    ports: !reset []
+    volumes:
+      - ./caddy/Caddyfile.preview.shared:/etc/caddy/Caddyfile:ro
+    networks:
+      default: {}
+      preview-edge:
+        aliases: [hedax-preview-ingress]
+
+networks:
+  preview-edge:
+    external: true
+    name: hedax-preview-edge
