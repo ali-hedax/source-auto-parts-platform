@@ -1,6 +1,6 @@
 # Source by HEDAX — وضعیت و نقطهٔ ادامه
 
-آخرین به‌روزرسانی: 2026-10-24 ~22:00 +03:30 Asia/Tehran؛ شاخهٔ `feature/source-premium-experience`؛ آمادهٔ PR و انتشار Production با دستور صریح مالک (این مرحله: پیش از Push).
+آخرین به‌روزرسانی: 2026-10-24 ~19:45 +03:30 Asia/Tehran؛ PR #31 ادغام و روی Production منتشر و از بیرون بررسی شد؛ اصلاح کارت محصول راهنما در PR بعدی.
 
 > توجه: این worktree جدا (`Desktop/source-premium-experience`) است. checkpoint انتشار
 > PR #29 در PROGRESS.md پوشهٔ اصلی (شاخهٔ `codex/assistant-phase-one`، تغییر commit‌نشدهٔ
@@ -11,6 +11,16 @@
 هیچ رمز، توکن، دادهٔ مشتری یا محتوای محرمانهٔ فایل تأمین‌کننده در این فایل ثبت نشود.
 
 ## نقطهٔ فعلی
+
+### انتشار PR #31 روی Production — 2026-10-24 (UTC 14:39–15:15)
+
+- **Completed & Tested — GitHub:** شاخهٔ `feature/source-premium-experience` push شد؛ PR #31 (CI «Lint, types and unit tests» موفق) با merge commit `7917ed1` ادغام شد. بدون force push یا بازنویسی تاریخچه.
+- **Completed & Tested — پشتیبان پیش از انتشار:** dump سفارشی `database-20261024.dump` (۹۹ ورودی دادهٔ جدول در `pg_restore --list`)، نسخهٔ env/wrapper/images قبلی در پوشهٔ rollback نسخهٔ نامزد؛ پشتیبان رمزنگاری‌شدهٔ `source-backup-20261024T144055Z.tar.age` در باکت پشتیبان با `rclone check` (۱ فایل منطبق، ۰ اختلاف).
+- **Completed & Tested — انتشار:** imageهای `hedax-pr31-{api,worker,web,tools}:367423ab9f86` با برچسب revision از export همان merge commit ساخته شدند (درخت merge = درخت head بازبینی‌شده). migrationهای افزایشی `20261022100000_visual_media_video` و `20261024100000_vehicle_brand_logo` با image tools اجرا و در `_prisma_migrations` تأیید شدند. api/worker/web روی imageهای جدید، healthy، restart صفر؛ readiness: database/redis/storage/scanner همه up، امضای ضدویروس تازه. checkout سرور `deploy/pr31-20261024` در `7917ed1` و تمیز؛ wrapper `hedax-compose-current` به فایل images نسخهٔ PR31 اشاره می‌کند. بازگشت: فایل images قبلی + checkout `deploy/pr30-20261022`.
+- **Completed & Tested — بررسی از بیرون (https://sourcebyhedax.ir، فقط GET به‌جز یک پرسش راهنما):** ۲۲ مسیر fa/en (خانه، قطعات، وارداتی، خودروها، برندها، درخواست، تماس، چهار صفحهٔ راهنما، شرایط، حریم خصوصی، سبد، جست‌وجو، صفحهٔ قطعه) در دسکتاپ و موبایل HTTP 200 با markup جدید؛ overflow افقی 0؛ تصویر شکسته قابل‌مشاهده 0 (عکس قدیمی `05402068` با جانگهدار؛ درخواست فایل آن هنوز 403)؛ DEMO 0؛ لینک خالی 0؛ لوگو و تصویر راهنما 200. پنل مدیریت برای مهمان فقط «لطفاً وارد حساب شوید» + «ورود کارکنان»؛ API مدیریت 401؛ صفحهٔ ورود کارکنان 200. راهنما به پرسش واقعی «میل لنگ دارید؟» پاسخ فارسی با قطعهٔ واقعی و قیمت داد.
+- **ایراد یافت‌شده و اصلاح (PR بعدی):** کارت محصول در پنجرهٔ راهنما وضعیت خام `IN_STOCK` و مبلغ قالب‌بندی‌نشده نشان می‌داد (از PR29 روی main)؛ اکنون برچسب موجودی و قالب قیمت فروشگاه؛ آزمون Playwright دستیار تکمیل شد (۱۴/۱۴ در اجرای تکراری؛ یک شکست زمان‌بندی بی‌ارتباط در اجرای اول تکرار نشد).
+- **Requires Owner Decision:** (۱) فیلم و شعار جدید روی Production هنوز نیستند: صفحهٔ اصلی منتشرشدهٔ Production بلوک فیلم ندارد؛ بارگذاری فیلم تمیز در کتابخانهٔ Production، «تأیید انتشار» مالک و انتشار بلوک فیلم لازم است. (۲) عکس قطعهٔ `05402068`: بارگذاری دوباره یا افزودن پیشوند `catalog/` به سیاست خواندن عمومی باکت (پنل آروان). (۳) فضای دیسک سرور ۹۱٪؛ پاک‌سازی build cache/imageهای قدیمی نیازمند تأیید مالک.
+
 
 ### آماده‌سازی انتشار Production — 2026-10-24 ~22:00 Asia/Tehran
 
