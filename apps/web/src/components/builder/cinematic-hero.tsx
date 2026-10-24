@@ -38,7 +38,7 @@ export function CinematicHero({ block: b, content, categories, locale }: { block
       <div className="cine-copy" data-assistant-avoid>
         <p className="cine-eyebrow" dir="ltr">SOURCE <span>by</span> HEDAX</p>
         <h1 id={`${b.id}-title`} className="cine-title">{L(b.title)}</h1>
-        {L(b.body) ? <p className="cine-lede">{L(b.body)}</p> : null}
+        {/* The saved body text (panel → film block → «متن») is kept but not shown for now, to keep the hero uncluttered. */}
         {/* The page's main search (the header's quick search hides on phones while this one is present). */}
         <form action={`/${locale}/parts`} method="get" role="search" className="cine-search">
           <label htmlFor="hero-search" className="sr-only">{fa ? 'نام قطعه، شماره فنی یا شماره OEM' : 'Part name, part number or OEM reference'}</label>

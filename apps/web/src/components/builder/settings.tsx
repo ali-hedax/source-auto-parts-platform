@@ -16,7 +16,7 @@ export function BlockSettings({ block: b, change, device, media, pick, data }: {
     <label className="!flex-row items-center"><input type="checkbox" checked={b.visible} onChange={e => change({ ...b, visible: e.target.checked })} />نمایش بخش</label>
     {b.legacy ? <SectionEditor section={b.legacy} onChange={legacy => change({ ...b, legacy, title: legacy.title })} errors={{}} path="legacy" /> : <>
       <LocalizedField id="block-title" path="title" label="عنوان" value={b.title} onChange={title => change({ ...b, title })} maxLength={160} errors={{}} />
-      <LocalizedField id="block-body" path="body" label="متن" value={b.body} onChange={body => change({ ...b, body })} maxLength={8000} multiline errors={{}} />
+      <LocalizedField id="block-body" path="body" label="متن" value={b.body} onChange={body => change({ ...b, body })} maxLength={8000} multiline errors={{}} {...(b.kind === 'cinematic-hero' ? { hint: 'ذخیره می‌شود، اما فعلاً در Hero عمومی نمایش داده نمی‌شود.' } : {})} />
       {b.kind !== 'cinematic-hero' ? <><ImageField id="block-image" label="تصویر دسکتاپ" value={b.imageUrl} onChange={imageUrl => change({ ...b, imageUrl })} />
       <LocalizedField id="block-alt" path="alt" label="متن جایگزین" value={b.alt} onChange={alt => change({ ...b, alt })} maxLength={160} errors={{}} /></> : null}
       <LinkField id="block-href" label="لینک تصویر و دکمه" value={b.href} onChange={href => change({ ...b, href })} />
