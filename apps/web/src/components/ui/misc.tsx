@@ -94,7 +94,7 @@ export function EmptyState({ title, children, icon }: { title: string; children?
 
 export function PageHeader({ title, description, actions }: { title: ReactNode; description?: ReactNode; actions?: ReactNode }) {
   return (
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-4 md:mb-8">
+    <div className="page-header mb-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-4 md:mb-8">
       <div className="min-w-0">
         <h1 className="text-2xl font-bold text-ink md:text-[1.75rem]">{title}</h1>
         {description ? <p className="mt-2 max-w-3xl leading-7 text-steel">{description}</p> : null}

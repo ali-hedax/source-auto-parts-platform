@@ -342,6 +342,7 @@ export class CatalogService {
       code: b.code,
       slug: b.slug,
       name: this.text(b.nameFa, b.nameEn),
+      logoUrl: b.logoUrl,
       isFeatured: b.isFeatured,
       productCount: b._count.products,
     }));

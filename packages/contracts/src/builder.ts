@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { DEFAULT_BUILDER_FILM } from './constants.js';
 import { contentImageSchema, contentLinkSchema, homeSectionSchema, localizedSchema } from './content.js';
 
 const color = z.string().regex(/^#[0-9a-fA-F]{6}$/);
@@ -18,7 +19,36 @@ export const builderStyleSchema = z.object({
   imageHeight: size(700).optional(), titleSize: size(60).min(12).optional(), priceSize: size(48).min(12).optional(),
 }).strict();
 export type BuilderStyle = z.infer<typeof builderStyleSchema>;
-export const BUILDER_KINDS = ['legacy', 'hero', 'slider', 'categories', 'search', 'vehicle-brands', 'vehicle-models', 'brands', 'new-products', 'bestsellers', 'discounts', 'offers', 'selected-products', 'vehicle-products', 'image-categories', 'services', 'benefits', 'notice', 'banners', 'text-image', 'custom', 'makers'] as const;
+export const BUILDER_KINDS = ['legacy', 'hero', 'slider', 'categories', 'search', 'vehicle-brands', 'vehicle-models', 'brands', 'new-products', 'bestsellers', 'discounts', 'offers', 'selected-products', 'vehicle-products', 'image-categories', 'services', 'benefits', 'notice', 'banners', 'text-image', 'custom', 'makers', 'cinematic-hero'] as const;
+/** A self-hosted MP4/WebM movie: a site path or an https address. Empty = none. */
+export const builderVideoSchema = z.string().trim().max(500)
+  .refine(v => v === '' || /^\/(?!\/)[A-Za-z0-9/_.-]+\.(mp4|webm)$/i.test(v) || /^https:\/\/[^\s?#]+\.(mp4|webm)$/i.test(v), { message: 'INVALID_VIDEO' });
+/** One movie of the hero sequence, with an independent mobile file and posters. Empty mobile = desktop file. */
+export const builderFilmClipSchema = z.object({
+  id: z.string().regex(/^[a-z0-9-]{1,40}$/), active: z.boolean(),
+  desktop: builderVideoSchema, desktopWebm: builderVideoSchema, mobile: builderVideoSchema,
+  poster: contentImageSchema, mobilePoster: contentImageSchema,
+}).strict();
+export type BuilderFilmClip = z.infer<typeof builderFilmClipSchema>;
+/**
+ * The opening film of a cinematic hero: active clips play in order. The block's imageUrl/mobileImageUrl are
+ * the independent desktop/mobile still images shown for reduced motion, data saving, failed playback and 'static'.
+ */
+export const builderFilmSchema = z.object({
+  clips: z.array(builderFilmClipSchema).max(6),
+  playback: z.enum(['once', 'loop', 'static']),
+  /** Seconds into the last active clip at which the logo appears; null = no logo over the film. */
+  logoAt: z.number().min(0).max(120).nullable(),
+  /** Empty = the site logo (site content → general). */
+  logoUrl: contentImageSchema,
+  /** Logo width as a percentage of the film width. */
+  logoWidth: z.number().int().min(10).max(60),
+  discovery: z.boolean(),
+}).strict().superRefine((film, ctx) => {
+  if (new Set(film.clips.map(c => c.id)).size !== film.clips.length) ctx.addIssue({ code: 'custom', path: ['clips'], message: 'DUPLICATE_CLIP' });
+  film.clips.forEach((c, i) => { if (!c.desktop && !c.mobile) ctx.addIssue({ code: 'custom', path: ['clips', i, 'desktop'], message: 'REQUIRED' }); });
+});
+export type BuilderFilm = z.infer<typeof builderFilmSchema>;
 export const builderItemSchema = z.object({
   title: localizedSchema(160), text: localizedSchema(1000), imageUrl: contentImageSchema, mobileImageUrl: contentImageSchema,
   alt: localizedSchema(160), href: contentLinkSchema, button: localizedSchema(60), visible: z.boolean(),
@@ -33,8 +63,10 @@ export const builderBlockSchema = z.object({
   query: z.object({ category: z.string().max(64), brand: z.string().max(64), vehicle: z.string().max(80), model: z.string().max(80),
     productSlugs: z.array(z.string().regex(/^[a-z0-9-]{1,120}$/)).max(24), limit: z.number().int().min(1).max(24) }).strict(),
   legacy: homeSectionSchema.optional(),
+  film: builderFilmSchema.optional(),
 }).strict().superRefine((b, ctx) => {
   if (b.kind === 'legacy' && !b.legacy) ctx.addIssue({ code: 'custom', path: ['legacy'], message: 'REQUIRED' });
+  if (b.kind === 'cinematic-hero' && !b.film) ctx.addIssue({ code: 'custom', path: ['film'], message: 'REQUIRED' });
   if (b.startsAt && b.endsAt && b.startsAt >= b.endsAt) ctx.addIssue({ code: 'custom', path: ['endsAt'], message: 'INVALID_DATE_RANGE' });
 });
 export type BuilderBlock = z.infer<typeof builderBlockSchema>;
@@ -60,13 +92,28 @@ export const builderSaveSchema = z.object({ version: z.number().int().min(0), do
 export const builderVersionSchema = z.object({ version: z.number().int().min(0) }).strict();
 export const builderRestoreSchema = builderVersionSchema.extend({ revisionId: z.uuid() });
 export const builderMediaUpdateSchema = z.object({ name: z.string().trim().min(1).max(160), alt: localizedSchema(160), category: z.string().trim().max(60) }).strict();
+/** Owner/publisher attestation that a file is watermark-free and cleared for public release. */
+export const builderMediaClearanceSchema = z.object({ cleared: z.boolean() }).strict();
 export interface BuilderState { slug: string; version: number; document: BuilderDocument; publishedAt: string | null; publishedBy: string | null }
 export interface BuilderRevision { id: string; createdAt: string; actorName: string; action: string }
-export interface BuilderMedia { id: string; url: string; name: string; alt: { fa: string; en: string }; category: string; width: number; height: number; bytes: number }
+export interface BuilderMedia {
+  id: string; url: string; name: string; alt: { fa: string; en: string }; category: string; width: number; height: number; bytes: number;
+  kind: 'image' | 'video'; mime: string; durationMs: number | null;
+  /** Watermark-free and cleared for public release; required for media in a published hero film. */
+  releaseCleared: boolean; clearedBy: string | null; clearedAt: string | null; createdAt: string;
+}
 
 export const DEFAULT_BUILDER_THEME: BuilderDocument['theme'] = { primary: '#096ce5', background: '#f7faff', foreground: '#15243a', card: '#ffffff', border: '#e1eaf5', button: '#096ce5', link: '#096ce5', contentWidth: 1280, radius: 16, spacing: 48, font: 'brand', fontSize: 16, headingWeight: '700' };
 export const DEFAULT_BUILDER_CHROME: BuilderDocument['chrome'] = { headerBackground: '#09182e', footerBackground: '#101b2b', logoWidth: 130, logoPosition: 'start', searchRounded: true, footerColumns: 3, menu: [] };
 export function newBuilderBlock(kind: BuilderBlock['kind'], id: string): BuilderBlock {
   const text = () => ({ fa: '', en: '' });
-  return { id, kind, visible: true, title: text(), body: text(), imageUrl: '', mobileImageUrl: '', alt: text(), href: '', button: text(), style: {}, items: [], startsAt: null, endsAt: null, interval: 6000, query: { category: '', brand: '', vehicle: '', model: '', productSlugs: [], limit: 8 } };
+  const block: BuilderBlock = { id, kind, visible: true, title: text(), body: text(), imageUrl: '', mobileImageUrl: '', alt: text(), href: '', button: text(), style: {}, items: [], startsAt: null, endsAt: null, interval: 6000, query: { category: '', brand: '', vehicle: '', model: '', productSlugs: [], limit: 8 } };
+  if (kind !== 'cinematic-hero') return block;
+  return {
+    ...block, film: { ...DEFAULT_BUILDER_FILM, clips: [] },
+    title: { fa: 'قطعهٔ درست، برای خودروی شما', en: 'The right part, for your vehicle' },
+    body: { fa: 'نام قطعه، شماره فنی یا شماره OEM را جست‌وجو کنید؛ یا خودروی خود را انتخاب کنید تا قطعات مناسب آن را ببینید.', en: 'Search by part name, part number or OEM reference — or choose your vehicle to see the parts that fit it.' },
+    alt: { fa: 'قطعات یک خودروی کراس‌اوور به‌صورت پیوسته کنار هم قرار می‌گیرند و خودرو کامل می‌شود.', en: 'The parts of a crossover come together in one continuous shot until the car is complete.' },
+    href: '/cars', button: { fa: 'انتخاب خودروی من', en: 'Choose my vehicle' },
+  };
 }

@@ -15,7 +15,8 @@ export function SiteFooterView({ content, chrome, now }: { content: SiteContentV
   const year = new Intl.DateTimeFormat(locale === 'fa' ? 'fa-IR-u-ca-persian' : 'en-GB', { year: 'numeric', timeZone: 'Asia/Tehran' })
     .format(new Date(now))
     .replace(/[^\d۰-۹]/g, '');
-  const link = 'inline-flex min-h-9 items-center text-silver/90 underline-offset-4 transition-colors hover:text-white hover:underline';
+  // 44 px rows: every footer link is a comfortable touch target.
+  const link = 'inline-flex min-h-11 items-center text-[0.9375rem] text-white/85 underline-offset-4 transition-colors hover:text-white hover:underline';
   const brand = content?.brand;
   const helpLinks: Array<[string, string]> = [
     ['/help/buying', t('footer.buying')],
@@ -31,18 +32,21 @@ export function SiteFooterView({ content, chrome, now }: { content: SiteContentV
   const copyright = localize(brand?.copyright, locale).replaceAll('{year}', year);
   const social = content?.social.links ?? [];
   return (
-    <footer style={chrome ? { background: chrome.footerBackground, '--footer-columns': chrome.footerColumns } as CSSProperties : undefined} className="on-dark render-lazy bg-carbon text-sm text-silver">
+    <footer style={chrome ? { background: chrome.footerBackground, '--footer-columns': chrome.footerColumns } as CSSProperties : undefined} className="on-dark render-lazy border-t border-white/10 bg-stage text-sm text-silver">
       <div className={`container-page grid gap-10 py-12 ${chrome ? 'md:grid-cols-[repeat(var(--footer-columns),minmax(0,1fr))]' : 'md:grid-cols-[1.3fr_1fr_1fr]'}`}>
         <div className="max-w-sm">
           <Image src={brand?.logoUrl || DEFAULT_LOGO} width={600} height={191} unoptimized alt={localize(brand?.logoAlt, locale) || localize(brand?.siteName, locale)} className="h-10 w-auto" />
-          {tagline ? <p className="mt-4 font-medium text-tech-light">{tagline}</p> : null}
+          {tagline ? <p className="mt-4 font-medium text-signal">{tagline}</p> : null}
           {about ? <p className="mt-2 leading-7">{about}</p> : null}
           {social.length ? (
             <nav aria-label={t('pages.social')} className="mt-4">
-              <ul className="flex flex-wrap gap-x-4">
+              <ul className="flex flex-wrap gap-2">
                 {social.map((s) => (
                   <li key={s.url}>
-                    <a href={s.url} target="_blank" rel="noopener noreferrer" className={link}>{s.network === 'other' ? localize(s.label, locale) || t('social.other') : t(`social.${s.network}`)}</a>
+                    <a href={s.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/15 px-4 text-sm text-white/90 transition-colors hover:border-signal hover:text-white">
+                      <SocialIcon network={s.network} />
+                      {s.network === 'other' ? localize(s.label, locale) || t('social.other') : t(`social.${s.network}`)}
+                    </a>
                   </li>
                 ))}
               </ul>
@@ -76,4 +80,12 @@ export function SiteFooterView({ content, chrome, now }: { content: SiteContentV
       ) : null}
     </footer>
   );
+}
+
+/** Small line icons for the common networks (no icon font or extra package); others show the label only. */
+function SocialIcon({ network }: { network: string }) {
+  const common = { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, 'aria-hidden': true };
+  if (network === 'instagram') return <svg {...common}><rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="0.6" fill="currentColor" /></svg>;
+  if (network === 'linkedin') return <svg {...common}><rect x="3" y="3" width="18" height="18" rx="3" /><path d="M8 10v7M8 7v.01M12 17v-4a2 2 0 0 1 4 0v4M12 10v7" /></svg>;
+  return null;
 }

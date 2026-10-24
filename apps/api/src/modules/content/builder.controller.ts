@@ -3,7 +3,8 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import type { Response } from 'express';
 import { z } from 'zod';
-import { builderSaveSchema, builderVersionSchema, builderRestoreSchema, builderSlugSchema, builderMediaUpdateSchema, CONTENT_IMAGE_MAX_BYTES } from '@hedax/contracts';
+import { builderSaveSchema, builderVersionSchema, builderRestoreSchema, builderSlugSchema, builderMediaUpdateSchema, builderMediaClearanceSchema, CONTENT_IMAGE_MAX_BYTES } from '@hedax/contracts';
+import { BUILDER_VIDEO_MAX_BYTES } from '@hedax/contracts/constants';
 import { CurrentActor, Public, RequirePermissions } from '../../common/auth/decorators.js';
 import type { Actor } from '../../common/request-context.js';
 import { badRequest } from '../../common/errors.js';
@@ -56,6 +57,18 @@ export class BuilderController {
   upload(@UploadedFile() file?: Express.Multer.File) {
     if (!file) throw badRequest('FILE_REQUIRED');
     return this.builder.registerImage(file);
+  }
+  @RequirePermissions('content.manage')
+  @Post('admin/content/media/video')
+  @UseInterceptors(FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: BUILDER_VIDEO_MAX_BYTES, files: 1 } }))
+  uploadVideo(@UploadedFile() file?: Express.Multer.File) {
+    if (!file) throw badRequest('FILE_REQUIRED');
+    return this.builder.registerVideo(file);
+  }
+  @RequirePermissions('content.manage')
+  @Post('admin/content/media/:id/clearance')
+  clearance(@Param('id', ParseUUIDPipe) id: string, @Body(zod(builderMediaClearanceSchema)) body: z.infer<typeof builderMediaClearanceSchema>, @CurrentActor() actor: Actor) {
+    return this.builder.setClearance(id, body.cleared, actor);
   }
   @RequirePermissions('content.manage')
   @Put('admin/content/media/:id')

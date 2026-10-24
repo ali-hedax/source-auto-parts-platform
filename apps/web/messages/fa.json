@@ -196,6 +196,10 @@
     "removeItem": "حذف {name} از سبد"
   },
   "checkout": {
+    "steps": "مراحل خرید",
+    "stepCart": "سبد خرید",
+    "stepDelivery": "نشانی و ارسال",
+    "stepPay": "پرداخت",
     "title": "تکمیل خرید",
     "loginRequired": "برای پرداخت وارد حساب کاربری شوید. سبد خرید شما حفظ می‌شود.",
     "address": "نشانی تحویل",
@@ -944,7 +948,10 @@
     "auditAction_content_builder_published": "انتشار صفحه از صفحه‌ساز",
     "auditAction_content_builder_rollback": "بازیابی نسخهٔ صفحه",
     "auditAction_content_media_updated": "ویرایش تصویر کتابخانه",
-    "auditAction_content_media_archived": "بایگانی تصویر کتابخانه",
+    "auditAction_content_media_archived": "بایگانی فایل کتابخانه",
+    "auditAction_content_video_uploaded": "آپلود ویدیوی بنر اصلی",
+    "auditAction_content_media_cleared": "تأیید رسانه برای انتشار عمومی",
+    "auditAction_content_media_clearance_revoked": "لغو تأیید انتشار رسانه",
     "auditEntity_content": "محتوای سایت",
     "auditEntity_faq_item": "پرسش متداول",
     "auditEntity_content_page": "صفحهٔ متنی",
@@ -1177,6 +1184,8 @@
     "other": "پیوند"
   },
   "home": {
+    "vehicleBrandsLabel": "برند خودرو",
+    "makersLabel": "سازندهٔ قطعه",
     "makersTitle": "مرور بر اساس برند سازنده"
   },
   "assistant": {

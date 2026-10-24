@@ -76,6 +76,7 @@ export function SectionEditor({ section, onChange, errors, path }: { section: Ho
           <LocalizedField id={`${id}-ot`} path={`${path}.otherTitle`} label={l('عنوان کارت «سایر برندها»', '"Other brands" card title')} maxLength={80} value={s.otherTitle} onChange={(v) => onChange({ ...s, otherTitle: v })} errors={errors} />
           <LocalizedField id={`${id}-ox`} path={`${path}.otherText`} label={l('توضیح کارت', 'Card text')} maxLength={160} value={s.otherText} onChange={(v) => onChange({ ...s, otherText: v })} errors={errors} />
           <LinkField id={`${id}-oh`} label={l('لینک کارت', 'Card link')} value={s.otherHref} onChange={(v) => onChange({ ...s, otherHref: v })} error={errors[`${path}.otherHref`]} />
+          <ToggleField id={`${id}-fa`} label={l('نمایش نام فارسی برند زیر نام انگلیسی', 'Show the Persian brand name under the English name')} hint={l('لوگو و نام انگلیسی همیشه نمایش داده می‌شوند؛ لوگوها در «کاتالوگ ← دسته‌ها و برندها».', 'The logo and English name are always shown; logos are set under Catalog → Taxonomy.')} checked={s.showNameFa !== false} onChange={(v) => onChange({ ...s, showNameFa: v })} />
         </div>
       );
     }

@@ -35,7 +35,7 @@ export function AddToCart({ productId, max, name, unit }: { productId: string; m
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-start gap-3">
         <QuantityStepper id="qty" value={qty} onChange={setQty} unit={unit} max={max} name={name} />
-        <Button size="lg" className="min-w-48 flex-1 sm:flex-none" onClick={add} loading={state === 'adding'} icon={<ShoppingCart aria-hidden className="size-5" />}>
+        <Button variant="commerce" size="lg" className="min-w-48 flex-1 sm:flex-none" onClick={add} loading={state === 'adding'} icon={<ShoppingCart aria-hidden className="size-5" />}>
           {state === 'adding' ? t('parts.adding') : t('parts.addToCart')}
         </Button>
       </div>

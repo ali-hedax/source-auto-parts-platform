@@ -45,12 +45,12 @@ export function CatalogFilters({ categories, brands, makers = [], vehicles = [],
   const clear = 'inline-flex min-h-11 cursor-pointer items-center rounded-[var(--radius-control)] px-2 text-sm font-semibold text-action hover:underline';
 
   return (
-    <section aria-labelledby="filters-title" className="rounded-[var(--radius-card)] border border-line-soft bg-white" aria-busy={pending}>
-      <div className="hidden items-center justify-between gap-2 border-b border-line-soft px-4 py-2 lg:flex">
+    <section aria-labelledby="filters-title" className="store-card overflow-hidden" aria-busy={pending}>
+      <div className="hidden items-center justify-between gap-2 border-b border-line-soft bg-paper px-4 py-2.5 lg:flex">
         <h2 id="filters-title" className="flex items-center gap-2 font-bold">
           <SlidersHorizontal aria-hidden className="size-5 text-steel" />
           {t('parts.filters')}
-          {active ? <span className="grid h-5 min-w-5 place-items-center rounded-full bg-action px-1.5 text-xs font-bold text-white"><Num value={active} /></span> : null}
+          {active ? <span className="grid h-5 min-w-5 place-items-center rounded-full bg-stage px-1.5 text-xs font-bold text-white"><Num value={active} /></span> : null}
         </h2>
         <button type="button" className={clear} onClick={() => start(() => router.replace(cleared, { scroll: false }))}>
           {t('parts.clearFilters')}
@@ -65,7 +65,7 @@ export function CatalogFilters({ categories, brands, makers = [], vehicles = [],
       >
         <SlidersHorizontal aria-hidden className="size-5" />
         {t('parts.filters')}
-        {active ? <span className="grid h-5 min-w-5 place-items-center rounded-full bg-action px-1.5 text-xs font-bold text-white"><Num value={active} /></span> : null}
+        {active ? <span className="grid h-5 min-w-5 place-items-center rounded-full bg-stage px-1.5 text-xs font-bold text-white"><Num value={active} /></span> : null}
         <ChevronDown aria-hidden className={`ms-auto size-5 text-steel transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
       <div id="filters-body" className={`${open ? 'flex' : 'hidden'} flex-col gap-4 border-t border-line-soft p-4 lg:flex lg:border-t-0`}>

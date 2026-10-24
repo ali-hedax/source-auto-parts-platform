@@ -29,6 +29,9 @@ describe('isolated persisted assistant settings', () => {
   });
   it('persists atomically, audits and resolves concurrent first saves as one success and one conflict', async () => {
     const base = (await owner.get<AssistantSettingsView>('/admin/settings/assistant')).body;
+    const db = await services(app);
+    // The audit log is append-only and shared by every file in the run, so count from here.
+    const audited = await db.prisma.auditLog.count({ where: { action: 'assistant.settings_updated', entityId: 'assistant.phase1' } });
     const candidate = { ...base, enabled: true, name: { fa: 'راهنمای نمونه', en: 'Sample guide' } };
     const responses = await Promise.all([owner.put('/admin/settings/assistant', candidate), owner.put('/admin/settings/assistant', candidate)]);
     expect(responses.map((r) => r.status).sort()).toEqual([200, 409]);
@@ -37,9 +40,8 @@ describe('isolated persisted assistant settings', () => {
     expect(current.name.en).toBe('Sample guide');
     expect(current.ai.systemPrompt.fa).toBe(DEFAULT_ASSISTANT_SETTINGS.ai.systemPrompt.fa);
     expect(current.version).toBe(base.version + 1);
-    const db = await services(app);
     expect((await db.prisma.siteSetting.findUnique({ where: { key: 'assistant.phase1' } })).value.name.en).toBe('Sample guide');
-    expect(await db.prisma.auditLog.count({ where: { action: 'assistant.settings_updated', entityId: 'assistant.phase1' } })).toBe(1);
+    expect(await db.prisma.auditLog.count({ where: { action: 'assistant.settings_updated', entityId: 'assistant.phase1' } })).toBe(audited + 1);
     expect((await new Client(app).get('/site/assistant')).body.name.en).toBe('Sample guide');
     expect((await owner.put('/admin/settings/assistant', candidate)).status).toBe(409);
   });

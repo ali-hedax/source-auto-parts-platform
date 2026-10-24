@@ -45,7 +45,7 @@ export function CurrencySwitcher({ initial }: { initial: 'IRR' | 'AED' }) {
           document.cookie = `hedax_currency=${e.target.value}; path=/; max-age=31536000; samesite=lax`;
           router.refresh();
         }}
-        className="min-h-9 cursor-pointer appearance-none rounded-[var(--radius-control)] border border-white/20 bg-carbon ps-2.5 pe-7 font-semibold text-silver transition-colors hover:border-white/45"
+        className="min-h-9 cursor-pointer appearance-none rounded-[var(--radius-control)] border border-white/20 bg-stage ps-2.5 pe-7 font-semibold text-silver transition-colors hover:border-white/45"
       >
         <option value="IRR">{tp('IRR')}</option>
         <option value="AED">{tp('AED')}</option>

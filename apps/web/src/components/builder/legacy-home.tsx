@@ -1,13 +1,13 @@
 import type { CategoryView, ContentButton, HomeSection, SearchResult, VehicleBrandView } from '@hedax/contracts';
 import { localize } from '@hedax/contracts/constants';
 import { ArrowLeft, ArrowRight, CarFront, ChevronLeft, ChevronRight, PackageSearch, Plus, ShieldCheck } from 'lucide-react';
-import Image from 'next/image';
 import type { ReactNode } from 'react';
 import { RichText } from '@/components/content/rich-text';
 import { ButtonLink, buttonClass } from '@/components/ui/button';
 import { PartCard } from '@/components/catalog/part-card';
 import { EmptyState } from '@/components/ui/misc';
 import { Link } from '@/i18n/navigation';
+import { BrandCard } from '@/components/store/brand-card';
 
 import { useTranslations } from 'next-intl';
 import type { SiteContentView } from '@hedax/contracts';
@@ -112,32 +112,22 @@ export function LegacyHomeView({ content, featured, brands, categories, locale, 
       case 'brands': {
         const s = section;
         return (
-          <section key={s.id} aria-labelledby={`brands-title-${s.id}`} className="container-page hedax-home-brands render-lazy pt-14">
+          <section key={s.id} aria-labelledby={`brands-title-${s.id}`} className="container-page hedax-home-brands render-lazy pt-9 sm:pt-14">
             <div className="mb-4 flex items-end justify-between gap-4">
-              <h2 id={`brands-title-${s.id}`} className="text-xl font-bold">{L(s.title)}</h2>
+              <div><p className="mb-1 text-xs font-bold tracking-wide text-action">{t('home.vehicleBrandsLabel')}</p><h2 id={`brands-title-${s.id}`} className="text-xl font-bold">{L(s.title)}</h2></div>
               <Link href="/brands" className="inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-action hover:underline">
                 {t('nav.brands')} <Arrow aria-hidden className="size-4" />
               </Link>
             </div>
-            <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-              {brands.filter((b) => b.isFeatured).map((b) => {
-                const logo = logos[b.slug] ?? null;
-                return (
-                  <li key={b.slug}>
-                    <Link href={`/brands/${b.slug}`} className="hedax-brand-card flex h-full min-h-[5.5rem] flex-col justify-center gap-1.5 rounded-2xl border border-[#e1eaf5] bg-white px-5 py-4 shadow-sm transition-all hover:-translate-y-1 hover:border-[#65b7ff] hover:shadow-lg">
-                      {logo ? (
-                        <Image src={logo} alt={name(b.name)} width={128} height={40} unoptimized className="h-9 w-auto max-w-[8rem] object-contain" />
-                      ) : (
-                        <span className="font-bold leading-7">{name(b.name)}</span>
-                      )}
-                      <span className="text-xs text-steel">{t('common.partCount', { count: b.productCount })}</span>
-                    </Link>
-                  </li>
-                );
-              })}
+            <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
+              {brands.filter((b) => b.isFeatured).map((b) => (
+                <li key={b.slug}>
+                  <BrandCard href={`/brands/${b.slug}`} logo={b.logoUrl ?? logos[b.slug] ?? null} nameEn={b.name.en} nameFa={b.name.fa} showNameFa={s.showNameFa !== false} meta={t('common.partCount', { count: b.productCount })} locale={locale} />
+                </li>
+              ))}
               {L(s.otherTitle) && s.otherHref ? (
                 <li>
-                  <Link href={s.otherHref} className="flex h-full min-h-[4.5rem] flex-col justify-center gap-0.5 rounded-[var(--radius-card)] border border-dashed border-line-strong px-4 py-3 transition-colors hover:border-action hover:bg-action-soft">
+                  <Link href={s.otherHref} className="flex h-full min-h-[8.5rem] flex-col justify-center gap-0.5 rounded-[var(--radius-card)] border border-dashed border-line-strong px-4 py-3 transition-colors hover:border-action hover:bg-action-soft">
                     <span className="font-bold leading-7 text-action">{L(s.otherTitle)}</span>
                     {L(s.otherText) ? <span className="text-xs leading-5 text-steel">{L(s.otherText)}</span> : null}
                   </Link>
@@ -150,7 +140,7 @@ export function LegacyHomeView({ content, featured, brands, categories, locale, 
       case 'featured': {
         const s = section;
         return (
-          <section key={s.id} aria-labelledby={`featured-title-${s.id}`} className="container-page hedax-home-featured render-lazy pt-14">
+          <section key={s.id} aria-labelledby={`featured-title-${s.id}`} className="container-page hedax-home-featured render-lazy pt-9 sm:pt-14">
             <div className="mb-4 flex items-end justify-between gap-4">
               <h2 id={`featured-title-${s.id}`} className="text-xl font-bold">{L(s.title)}</h2>
               <Link href="/parts" className="inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-action hover:underline">
@@ -175,7 +165,7 @@ export function LegacyHomeView({ content, featured, brands, categories, locale, 
         const s = section;
         if (!content.faq.length) return null;
         return (
-          <section key={s.id} aria-labelledby={`faq-title-${s.id}`} className="container-page render-lazy pt-14">
+          <section key={s.id} aria-labelledby={`faq-title-${s.id}`} className="container-page render-lazy pt-9 sm:pt-14">
             <div className="grid gap-6 lg:grid-cols-[18rem_1fr] lg:gap-12">
               <h2 id={`faq-title-${s.id}`} className="text-xl font-bold">{L(s.title)}</h2>
               <div className="divide-y divide-line-soft border-y border-line-soft">
@@ -198,7 +188,7 @@ export function LegacyHomeView({ content, featured, brands, categories, locale, 
         const title = L(s.title);
         const body = L(s.body);
         return (
-          <section key={s.id} {...(title ? { 'aria-label': title } : {})} className="container-page render-lazy pt-12">
+          <section key={s.id} {...(title ? { 'aria-label': title } : {})} className="container-page render-lazy pt-8 sm:pt-12">
             <div className={`grid gap-6 ${s.imageUrl ? 'md:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] md:items-center' : ''}`}>
               <div className="min-w-0">
                 {title ? <h2 className="mb-3 text-xl font-bold">{title}</h2> : null}

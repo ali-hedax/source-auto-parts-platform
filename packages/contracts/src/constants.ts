@@ -86,3 +86,14 @@ export type ContentImagePurpose = (typeof CONTENT_IMAGE_PURPOSES)[number];
 export const CONTENT_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 
 export * from './assistant-public.js';
+
+/**
+ * A new hero film starts empty: movies come from the media library, so nothing reaches the public site
+ * until a watermark-free, release-cleared file is chosen and published (docs/media/HERO_FILM_V2_EDL.md).
+ */
+export const DEFAULT_BUILDER_FILM = {
+  clips: [] as Array<{ id: string; active: boolean; desktop: string; desktopWebm: string; mobile: string; poster: string; mobilePoster: string }>,
+  playback: 'once' as 'once' | 'loop' | 'static', logoAt: 9.8 as number | null, logoUrl: '', logoWidth: 28, discovery: true,
+};
+/** Upper bound of one hero video upload (the /api proxy ceiling is 60 MB). Keep in sync with VIDEO_LIMITS. */
+export const BUILDER_VIDEO_MAX_BYTES = 50 * 1024 * 1024;

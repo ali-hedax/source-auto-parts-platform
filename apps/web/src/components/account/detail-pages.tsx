@@ -92,7 +92,7 @@ export function MessagesList({ basePath = '/account/messages' }: { basePath?: st
             <ul className="flex flex-col gap-2">
               {rows.map((c) => (
                 <li key={c.id}>
-                  <Link href={`${basePath}/${c.id}`} className="card flex flex-col gap-1 p-4 hover:border-tech">
+                  <Link href={`${basePath}/${c.id}`} className="card flex flex-col gap-1 p-4 hover:border-electric">
                     <span className="flex items-center justify-between gap-2 font-semibold">
                       {c.subject}
                       {c.unreadCount ? <span className="rounded-full bg-action px-2 text-xs text-white"><Num value={c.unreadCount} /></span> : null}

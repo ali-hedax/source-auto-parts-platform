@@ -2,7 +2,8 @@ import type { CategoryView, ManufacturerView, SearchResult, VehicleBrandView, Ve
 import { SearchX, X } from 'lucide-react';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { ButtonLink } from '@/components/ui/button';
-import { Alert, EmptyState, PageHeader } from '@/components/ui/misc';
+import { Alert, EmptyState } from '@/components/ui/misc';
+import { ChapterBand } from '@/components/store/chapter-band';
 import { Link } from '@/i18n/navigation';
 import { serverApi } from '@/lib/api/server';
 import { displayCurrency } from '@/lib/preferences';
@@ -20,6 +21,7 @@ export async function CatalogPage({
   intro,
   fixedBrand,
   fixedVehicle,
+  eyebrow = 'SOURCE · PARTS',
 }: {
   searchParams: Record<string, string | string[] | undefined>;
   endpoint: '/catalog/products' | '/catalog/imported-products';
@@ -29,6 +31,8 @@ export async function CatalogPage({
   fixedBrand?: string;
   /** Vehicle page (/cars/[slug]): parts for this vehicle and its models; `?model=` narrows to one model. */
   fixedVehicle?: VehiclePublicView;
+  /** Small Latin label above the title in the chapter band. */
+  eyebrow?: string;
 }) {
   const t = await getTranslations();
   const locale = await getLocale();
@@ -54,23 +58,38 @@ export async function CatalogPage({
   const name = (n: { fa: string; en: string | null }) => (locale === 'en' ? (n.en ?? n.fa) : n.fa);
   const page = Number(params.page ?? 1) || 1;
   const query = params.q?.trim();
+  const clearQuery = { pathname, query: Object.fromEntries(Object.entries(current).filter((e): e is [string, string] => !!e[1] && e[0] !== 'q' && e[0] !== 'page')) };
   return (
-    <div className="page-canvas container-page py-8">
-      <PageHeader title={title} description={intro} />
-      {fixedVehicle && fixedVehicle.models.length ? (
-        <nav aria-label={t('parts.vehicleModel')} className="-mt-2 mb-5 flex flex-wrap items-center gap-2" data-testid="vehicle-models">
-          <span className="text-sm font-semibold text-steel">{t('parts.vehicleModel')}:</span>
-          {[{ slug: '', label: t('parts.allModels') }, ...fixedVehicle.models.map((m) => ({ slug: m.slug, label: name(m.name) }))].map((m) => {
-            const on = (params.model ?? '') === m.slug;
-            return (
-              <Link key={m.slug || 'all'} href={m.slug ? `${pathname}?model=${encodeURIComponent(m.slug)}` : pathname} aria-current={on ? 'page' : undefined}
-                className={`inline-flex min-h-9 items-center rounded-full border px-3 text-sm font-medium transition-colors ${on ? 'border-action bg-action text-white' : 'border-line-strong bg-white hover:border-action hover:text-action'}`}>
-                {m.label}
-              </Link>
-            );
-          })}
-        </nav>
-      ) : null}
+    <div className="store-page">
+      <ChapterBand title={title} eyebrow={eyebrow} description={intro} locale={locale}>
+        {fixedVehicle && fixedVehicle.models.length ? (
+          <nav aria-label={t('parts.vehicleModel')} className="mt-5 flex flex-wrap items-center gap-2" data-testid="vehicle-models">
+            <span className="text-sm font-semibold text-mist">{t('parts.vehicleModel')}:</span>
+            {[{ slug: '', label: t('parts.allModels') }, ...fixedVehicle.models.map((m) => ({ slug: m.slug, label: name(m.name) }))].map((m) => {
+              const on = (params.model ?? '') === m.slug;
+              return (
+                <Link key={m.slug || 'all'} href={m.slug ? `${pathname}?model=${encodeURIComponent(m.slug)}` : pathname} aria-current={on ? 'page' : undefined} className="store-chip">
+                  {m.label}
+                </Link>
+              );
+            })}
+          </nav>
+        ) : null}
+        {result ? (
+          <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2">
+            {query ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-white/25 bg-white/5 ps-3 text-sm text-paper" data-testid="search-term">
+                {t('search.label')}: <strong className="font-semibold text-white">«{query}»</strong>
+                <Link href={clearQuery} className="grid size-9 place-items-center rounded-full text-mist hover:text-white" aria-label={t('parts.clearSearch')}>
+                  <X aria-hidden className="size-4" />
+                </Link>
+              </span>
+            ) : null}
+            <p className="text-sm font-medium text-mist" aria-live="polite">{t('common.results', { count: result.total })}</p>
+          </div>
+        ) : null}
+      </ChapterBand>
+      <div className="container-page pb-8">
       <div className="grid gap-4 lg:grid-cols-[17rem_minmax(0,1fr)] lg:gap-6">
         <aside className="lg:sticky lg:top-32 lg:max-h-[calc(100vh-9rem)] lg:self-start lg:overflow-y-auto">
           <CatalogFilters categories={categories} brands={brands} makers={makers} vehicles={vehicles} {...(fixedVehicle ? { fixedVehicle } : {})} current={current} showOrigin={endpoint === '/catalog/products'} />
@@ -93,18 +112,6 @@ export async function CatalogPage({
             )
           ) : (
             <>
-              <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1">
-                {query ? (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-line-strong bg-white ps-3 text-sm" data-testid="search-term">
-                    {t('search.label')}: <strong className="font-semibold">«{query}»</strong>
-                    <Link href={{ pathname, query: Object.fromEntries(Object.entries(current).filter((e): e is [string, string] => !!e[1] && e[0] !== 'q' && e[0] !== 'page')) }}
-                      className="grid size-9 place-items-center rounded-full text-steel hover:text-ink" aria-label={t('parts.clearSearch')}>
-                      <X aria-hidden className="size-4" />
-                    </Link>
-                  </span>
-                ) : null}
-                <p className="text-sm font-medium text-steel" aria-live="polite">{t('common.results', { count: result.total })}</p>
-              </div>
               <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
                 {result.items.map((p, i) => (
                   <li key={p.id}><PartCard product={p} priority={i < 3} /></li>
@@ -114,12 +121,13 @@ export async function CatalogPage({
             </>
           )}
           {query && result && result.items.length > 0 ? (
-            <p className="mt-8 rounded-[var(--radius-card)] border border-line-soft bg-white px-4 py-3 text-center text-sm leading-7 text-steel">
+            <p className="store-card mt-8 px-4 py-3 text-center text-sm leading-7 text-steel">
               {t('search.noResultsHint')}{' '}
               <a className="font-semibold text-action underline underline-offset-4 hover:text-action-hover" href={`/${locale}/request-part?part=${encodeURIComponent(query)}`}>{t('search.requestThis')}</a>
             </p>
           ) : null}
         </div>
+      </div>
       </div>
     </div>
   );

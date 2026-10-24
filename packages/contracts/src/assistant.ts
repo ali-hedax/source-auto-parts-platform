@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { contentImageSchema } from './content.js';
 
 // Plain text only. Settings cannot inject markup, styles, executable URLs or bidi overrides.
 const text = (max: number) => z.string().trim().min(1).max(max).refine((v) => !/[<>\u202a-\u202e\u2066-\u2069]/u.test(v) && [...v].every((c) => c.charCodeAt(0) >= 32 || c === '\n' || c === '\t'), 'Plain text only');
@@ -18,6 +19,8 @@ export const assistantSettingsSchema = z.strictObject({
   mobileSize: z.number().int().min(48).max(80),
   desktopSize: z.number().int().min(72).max(128),
   placement: z.enum(['start', 'end']),
+  /** The launcher's round avatar (media library image); empty = the built-in guide character. */
+  avatarUrl: contentImageSchema.default(''),
   topics: z.strictObject({ search: topicCopy, stock: topicCopy, order: topicCopy, support: topicCopy }),
   ai: assistantAiSchema.default({ systemPrompt: { fa: 'کوتاه، دقیق و فقط بر پایه اطلاعات ثبت‌شده پاسخ بده.', en: 'Answer concisely and only from registered facts.' }, maxOutputTokens: 400, dailyRequestLimit: 100 }),
 });

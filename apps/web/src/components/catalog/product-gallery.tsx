@@ -1,6 +1,7 @@
 'use client';
 
-import Image from 'next/image';
+import { PartImage } from '@/components/store/part-image';
+import { PartPlaceholder } from '@/components/store/part-placeholder';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
@@ -15,8 +16,8 @@ export function ProductGallery({ images }: { images: Array<{ url: string; alt: s
   if (!current) return null;
   return (
     <div className="flex flex-col gap-3">
-      <div className="relative aspect-[4/3] overflow-hidden rounded-[var(--radius-card)] border border-line-soft bg-white">
-        <Image key={current.url} src={current.url} alt={current.alt} fill priority={index === 0} sizes="(max-width: 1024px) 100vw, 50vw" className="object-contain p-6" />
+      <div className="studio relative aspect-[4/3] overflow-hidden rounded-[var(--radius-card)] border border-line-soft shadow-[var(--shadow-card)]">
+        <PartImage key={current.url} fallback={<PartPlaceholder label={t('noImage')} variant="hero" />} src={current.url} alt={current.alt} fill priority={index === 0} sizes="(max-width: 1024px) 100vw, 50vw" className="object-contain p-6 mix-blend-multiply sm:p-10" />
       </div>
       {images.length > 1 ? (
         <ul className="flex flex-wrap gap-2" aria-label={t('photos')}>
@@ -29,7 +30,7 @@ export function ProductGallery({ images }: { images: Array<{ url: string; alt: s
                 aria-label={t('photoN', { n: i + 1 })}
                 className={`relative block size-16 cursor-pointer overflow-hidden rounded-[var(--radius-control)] border bg-white transition-colors sm:size-20 ${i === index ? 'border-action ring-2 ring-action/30' : 'border-line-soft hover:border-ink'}`}
               >
-                <Image src={img.url} alt="" fill sizes="80px" className="object-contain p-1" />
+                <PartImage fallback={<PartPlaceholder label={t('noImage')} variant="thumb" />} src={img.url} alt="" fill sizes="80px" className="object-contain p-1" />
               </button>
             </li>
           ))}

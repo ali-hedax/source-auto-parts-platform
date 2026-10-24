@@ -26,7 +26,7 @@ export function SiteHeaderView({ content, chrome, currency }: { content: SiteCon
   // Logo, its alt text and the site title come from site content → general.
   const alt = localize(brand?.logoAlt, locale) || localize(brand?.siteName, locale);
   return (
-    <header style={chrome ? { background: chrome.headerBackground } : undefined} className="on-dark sticky top-0 z-40 border-b border-sky-300/10 bg-gradient-to-l from-[#09182e] via-[#102745] to-[#09182e] text-silver shadow-[0_8px_24px_-16px_rgba(4,20,42,0.8)]">
+    <header style={chrome ? { background: chrome.headerBackground } : undefined} className="on-dark sticky top-0 z-40 border-b border-white/10 bg-stage text-silver shadow-[0_8px_24px_-16px_rgba(4,20,42,0.8)]">
       <div className="container-page flex h-16 items-center gap-1 sm:gap-3 lg:gap-6">
         <MobileNav items={nav.map((n) => ({ href: n.href, label: n.label }))} />
         <Link href="/" style={chrome?.logoPosition === 'end' ? { order: 10 } : undefined} className="flex shrink-0 items-center rounded-[var(--radius-control)] p-1" aria-label={localize(brand?.siteTitle, locale) || alt}>
@@ -47,7 +47,7 @@ export function SiteHeaderView({ content, chrome, currency }: { content: SiteCon
               placeholder={t('search.placeholder')}
               className="min-w-0 flex-1 bg-transparent px-3 text-[0.9375rem] placeholder:text-steel/80 focus-visible:outline-none"
             />
-            <button type="submit" className="shrink-0 cursor-pointer bg-[#096ce5] px-5 text-sm font-bold text-white transition-colors hover:bg-[#0967d3] focus-visible:bg-[#0967d3] focus-visible:underline focus-visible:outline-none" aria-label={t('search.submit')}>
+            <button type="submit" className="shrink-0 cursor-pointer bg-commerce px-5 text-sm font-bold text-stage transition-colors hover:bg-commerce-hover focus-visible:bg-commerce-hover focus-visible:underline focus-visible:outline-none" aria-label={t('search.submit')}>
               {t('common.search')}
             </button>
           </div>

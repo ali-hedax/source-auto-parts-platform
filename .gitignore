@@ -44,3 +44,8 @@ id_ed25519*
 *.backup
 *.sqlite
 *.sqlite3
+
+# Hero film encodes are rebuilt locally (scripts/media/build-hero-v2.sh). Film sources and encodes stay out of Git;
+# public releases take the film from the panel's media library after release clearance.
+apps/web/public/review-media/
+/hero-videos/

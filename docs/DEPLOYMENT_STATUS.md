@@ -1,6 +1,6 @@
 # Public release status — Source by HEDAX
 
-**Updated: 12 October 2026. Status: pre-launch.**
+**Updated: 24 October 2026. Status: pre-launch.**
 
 This public page describes release readiness, not private infrastructure or security configuration. A successful local preview does not establish that a public deployment is ready for customer transactions.
 

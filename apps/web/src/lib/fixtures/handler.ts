@@ -431,6 +431,13 @@ export async function handleFixture(method: string, pathWithQuery: string, rawBo
     if (path === '/admin/staff/trash') return ok(fixtureStaffTrash());
     if (path === '/admin/staff/options') return ok(fixtureStaff().staff.filter((s) => s.status === 'ACTIVE').map((s) => ({ id: s.id, fullName: s.fullName, email: s.email })));
     if (path === '/admin/content') return ok(Object.fromEntries(Object.entries(fixtureContent.sections).map(([k, v]) => [k, { value: v, version: 1, updatedAt: FIXTURE_CONTENT_DATE }])));
+    // Appearance editor (/admin/content/home redirects there): the same starting draft the API builds — the
+    // fixture home sections as legacy blocks — so the editor opens in the preview instead of failing to load.
+    if (path === '/admin/content/builder') return ok([]);
+    if (path === '/admin/content/media') return ok([]);
+    if (/^\/admin\/content\/builder\/[a-z0-9-]+\/history$/.test(path)) return ok([]);
+    const builderSlug = path.match(/^\/admin\/content\/builder\/([a-z0-9-]+)$/)?.[1];
+    if (builderSlug) return ok(fixtureBuilderState(builderSlug));
     if (path === '/admin/content/faq') return ok(fixtureContent.faq.map((f): FaqItemView => ({ id: f.id, question: f.question, answer: f.answer, visible: f.visible, sortOrder: f.sortOrder, updatedAt: FIXTURE_CONTENT_DATE })));
     if (path === '/admin/content/pages') return ok(fixtureContent.pages.map(fixturePageView));
     if ((m = /^\/admin\/content\/pages\/(.+)$/.exec(path))) {
@@ -450,4 +457,14 @@ export async function handleFixture(method: string, pathWithQuery: string, rawBo
   }
   if (method !== 'GET') return ok(PREVIEW_OK);
   return err(404, 'NOT_FOUND');
+}
+
+/** A builder draft for the preview: the fixture home sections as legacy blocks (mirrors BuilderService.initial). */
+function fixtureBuilderState(slug: string) {
+  const text = () => ({ fa: '', en: '' });
+  const block = (id: string, kind: 'legacy' | 'makers', extra: Record<string, unknown>) => ({ id, kind, visible: true, title: text(), body: text(), imageUrl: '', mobileImageUrl: '', alt: text(), href: '', button: text(), style: {}, items: [], startsAt: null, endsAt: null, interval: 6000, query: { category: '', brand: '', vehicle: '', model: '', productSlugs: [], limit: 8 }, ...extra });
+  const sections = slug === 'home' ? fixtureContent.sections.home.sections.map((s) => block(s.id, 'legacy', { visible: s.visible, title: s.title, legacy: s, style: { desktop: { padding: 0 }, tablet: { padding: 0 }, mobile: { padding: 0 } } })) : [];
+  const theme = { primary: '#096ce5', background: '#f7faff', foreground: '#15243a', card: '#ffffff', border: '#e1eaf5', button: '#096ce5', link: '#096ce5', contentWidth: 1280, radius: 16, spacing: 48, font: 'brand', fontSize: 16, headingWeight: '700' };
+  const chrome = { headerBackground: '#09182e', footerBackground: '#101b2b', logoWidth: 130, logoPosition: 'start', searchRounded: true, footerColumns: 3, menu: [] };
+  return { slug, version: 0, publishedAt: null, publishedBy: null, document: { schemaVersion: 1, title: { fa: slug === 'home' ? 'صفحه اصلی' : slug, en: slug }, description: text(), sections, theme, chrome } };
 }

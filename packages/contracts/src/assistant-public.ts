@@ -8,7 +8,7 @@ export const DEFAULT_ASSISTANT_SETTINGS: AssistantSettings = {
   name: { fa: 'راهنمای HEDAX', en: 'HEDAX Guide' },
   introduction: { fa: 'راهنمای سایت برای جست‌وجو و خرید قطعه.', en: 'Your guide to finding parts and navigating the store.' },
   greeting: { fa: 'سلام! از کجا شروع کنیم؟', en: 'Hello! Where would you like to start?' },
-  animationEnabled: true, mobileSize: 64, desktopSize: 104, placement: 'end',
+  animationEnabled: true, mobileSize: 64, desktopSize: 104, placement: 'end', avatarUrl: '',
   topics: {
     search: { label: { fa: 'پیدا کردن قطعه', en: 'Find a part' }, answer: { fa: 'نام یا شماره فنی را در کاتالوگ جست‌وجو کنید. سازگاری را پیش از خرید با تیم فروش تأیید کنید.', en: 'Search the catalog by name or part number. Confirm vehicle compatibility with the team before buying.' } },
     stock: { label: { fa: 'قیمت و موجودی', en: 'Price & availability' }, answer: { fa: 'قیمت و موجودی ثبت‌شده را در صفحهٔ قطعه ببینید. این راهنما موجودی یا قیمت تازه‌ای محاسبه نمی‌کند.', en: 'See recorded price and availability on the part page. This guide does not calculate prices or check live stock.' } },

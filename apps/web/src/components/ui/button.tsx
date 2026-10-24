@@ -3,7 +3,7 @@ import { Loader2 } from 'lucide-react';
 import type { ButtonHTMLAttributes, ComponentProps, ReactNode } from 'react';
 import { Link } from '@/i18n/navigation';
 
-type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'onDark';
+type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'onDark' | 'commerce';
 type Size = 'md' | 'sm' | 'lg';
 
 const base =
@@ -17,6 +17,8 @@ const variants: Record<Variant, string> = {
   ghost: 'text-ink hover:bg-silver/60 active:bg-silver',
   danger: 'bg-danger text-white hover:bg-[#8f1c13]',
   onDark: 'border border-white/25 bg-transparent text-silver hover:border-white/50 hover:bg-white/10',
+  // The storefront's buy action (add to cart, checkout, pay): stage text on commerce orange ≈ 9:1. One per view.
+  commerce: 'bg-commerce text-stage font-bold shadow-[0_10px_24px_-14px_rgb(255_138_0/0.9)] hover:bg-commerce-hover active:bg-[#e67a00] disabled:hover:bg-commerce',
 };
 
 const sizes: Record<Size, string> = {

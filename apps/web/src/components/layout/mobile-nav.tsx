@@ -22,9 +22,9 @@ export function MobileNav({ items }: { items: Array<{ href: string; label: strin
         <Menu aria-hidden className="size-6" />
       </RDialog.Trigger>
       <RDialog.Portal>
-        <RDialog.Overlay className="overlay-fade fixed inset-0 z-50 bg-carbon/60" />
+        <RDialog.Overlay className="overlay-fade fixed inset-0 z-50 bg-stage/70" />
         <RDialog.Content
-          className="on-dark drawer-start fixed inset-y-0 start-0 z-50 flex w-[min(20rem,85vw)] flex-col bg-carbon text-silver shadow-[var(--shadow-overlay)]"
+          className="on-dark drawer-start fixed inset-y-0 start-0 z-50 flex w-[min(20rem,85vw)] flex-col bg-stage text-silver shadow-[var(--shadow-overlay)]"
           dir={locale === 'fa' ? 'rtl' : 'ltr'}
         >
           <div className="flex h-16 items-center justify-between gap-3 border-b border-white/10 px-4">
@@ -47,7 +47,7 @@ export function MobileNav({ items }: { items: Array<{ href: string; label: strin
                       href={i.href}
                       onClick={() => setOpen(false)}
                       aria-current={active ? 'page' : undefined}
-                      className={`flex min-h-12 items-center rounded-[var(--radius-control)] border-s-2 px-3 font-medium transition-colors ${active ? 'border-tech-light bg-white/[0.06] text-white' : 'border-transparent hover:bg-white/[0.06]'}`}
+                      className={`flex min-h-12 items-center rounded-[var(--radius-control)] border-s-2 px-3 font-medium transition-colors ${active ? 'border-signal bg-white/[0.06] text-white' : 'border-transparent hover:bg-white/[0.06]'}`}
                     >
                       {i.label}
                     </Link>

@@ -46,7 +46,7 @@ export function VisualBuilder({ slug = 'home', fullPreview = false, logos = NO_L
   const [me, setMe] = useState<MeView | null>(null);
   const [pages, setPages] = useState<Array<{ slug: string; publishedAt: string | null }>>([]);
   const [newPage, setNewPage] = useState('');
-  const [mediaTarget, setMediaTarget] = useState<{ id: string; mobile: boolean } | null>(null);
+  const [mediaTarget, setMediaTarget] = useState<{ id: string; mobile: boolean; kind?: 'image' | 'video'; apply?: (media: BuilderMedia) => void } | null>(null);
   const [past, setPast] = useState<BuilderDocument[]>([]);
   const [future, setFuture] = useState<BuilderDocument[]>([]);
   const current = useRef<BuilderDocument | null>(null);
@@ -105,7 +105,7 @@ export function VisualBuilder({ slug = 'home', fullPreview = false, logos = NO_L
       await api(`${endpoint}/${revisionId ? 'restore' : 'publish'}`, { method: 'POST', body: { version: version.current, ...(revisionId ? { revisionId } : {}) } });
       await reload(); setStatus(revisionId ? 'نسخهٔ انتخاب‌شده بازیابی و منتشر شد.' : 'تغییرات منتشر شد. صفحهٔ عمومی به‌روزرسانی شد.');
       if (tab === 10) setHistory(await api<BuilderRevision[]>(`${endpoint}/history`));
-    } catch (e) { setStatus(isApiError(e) && e.code === 'VERSION_CONFLICT' ? 'نسخه تغییر کرده است؛ آخرین نسخه را دریافت کنید.' : 'انتشار انجام نشد؛ پیش‌نویس و نسخهٔ عمومی محفوظ هستند.'); }
+    } catch (e) { setStatus(isApiError(e) && e.code === 'VERSION_CONFLICT' ? 'نسخه تغییر کرده است؛ آخرین نسخه را دریافت کنید.' : isApiError(e) && e.code === 'MEDIA_NOT_CLEARED' ? 'انتشار متوقف شد: فیلم یا تصویر بنر اصلی «تأیید انتشار عمومی» ندارد (فایل بدون واترمارک از کتابخانه لازم است). پیش‌نویس و نسخهٔ عمومی محفوظ هستند.' : 'انتشار انجام نشد؛ پیش‌نویس و نسخهٔ عمومی محفوظ هستند.'); }
     finally { setLocked(false); }
   };
   const undo = () => { const prev = past.at(-1); const present = current.current; if (!prev || !present) return; setFuture(f => [present, ...f]); setPast(p => p.slice(0, -1)); current.current = prev; setDoc(prev); };
@@ -113,6 +113,7 @@ export function VisualBuilder({ slug = 'home', fullPreview = false, logos = NO_L
   const move = (from: number, to: number) => { if (doc) change({ ...doc, sections: arrayMove(doc.sections, from, to) }); };
   const drop = ({ active, over }: DragEndEvent) => { if (doc && over && active.id !== over.id) move(doc.sections.findIndex(b => b.id === active.id), doc.sections.findIndex(b => b.id === over.id)); };
   const chooseMedia = (media: BuilderMedia) => {
+    if (mediaTarget?.apply) { mediaTarget.apply(media); setMediaTarget(null); setTab(0); return; }
     const target = doc?.sections.find(b => b.id === mediaTarget?.id);
     if (!target) return;
     const patch: BuilderBlock = { ...target, ...(mediaTarget?.mobile ? { mobileImageUrl: media.url } : { imageUrl: media.url }), alt: media.alt };
@@ -139,7 +140,7 @@ export function VisualBuilder({ slug = 'home', fullPreview = false, logos = NO_L
     {conflict ? <Button onClick={() => void reload()}>دریافت آخرین نسخهٔ ذخیره‌شده</Button> : null}
     <div className="builder-tabs" role="tablist" aria-label="بخش‌های مدیریت ظاهر">{tabs.map((title, i) => <button key={title} type="button" role="tab" aria-selected={tab === i} onClick={() => setTab(i)}>{title}</button>)}</div>
     <fieldset disabled={locked} className="min-w-0">
-    {tab === 2 ? <MediaLibrary {...(mediaTarget ? { onSelect: chooseMedia } : {})} /> : tab === 5 ? <ThemeSettings document={doc} change={change} /> : tab === 6 ? <div className="builder-panel !static !max-h-none">
+    {tab === 2 ? <MediaLibrary canPublish={canPublish} {...(mediaTarget ? { onSelect: chooseMedia, kind: mediaTarget.kind ?? 'image' } : {})} /> : tab === 5 ? <ThemeSettings document={doc} change={change} /> : tab === 6 ? <div className="builder-panel !static !max-h-none">
       <h2 className="text-xl font-bold">هدر و فوتر</h2><p className="my-3 text-sm">لوگو، اطلاعات تماس، شبکه‌های اجتماعی و متن فوتر در تنظیمات محتوای فعلی قابل ویرایش‌اند.</p>
       <div className="flex flex-wrap gap-4"><Link className="text-action underline" href="/admin/content/general">لوگو و هویت برند</Link><Link className="text-action underline" href="/admin/content/contact">اطلاعات تماس</Link><Link className="text-action underline" href="/admin/content/social">شبکه‌های اجتماعی</Link><Link className="text-action underline" href="/admin/content/announcement">نوار اطلاع‌رسانی</Link></div>
       {(['headerBackground', 'footerBackground'] as const).map(key => <label key={key}>{key === 'headerBackground' ? 'رنگ هدر' : 'رنگ فوتر'}<input type="color" value={doc.chrome[key]} onChange={e => change({ ...doc, chrome: { ...doc.chrome, [key]: e.target.value } })} /></label>)}
@@ -157,7 +158,7 @@ export function VisualBuilder({ slug = 'home', fullPreview = false, logos = NO_L
           <label>افزودن بخش<select value={kind} onChange={e => setKind(e.target.value as BuilderBlock['kind'])}>{BUILDER_KINDS.filter(k => k !== 'legacy').map(k => <option key={k} value={k}>{blockLabels[k]}</option>)}</select></label><Button className="w-full" size="sm" disabled={doc.sections.length >= 40} onClick={() => { const b = newBuilderBlock(kind, crypto.randomUUID()); b.title.fa = blockLabels[kind]; change({ ...doc, sections: [...doc.sections, b] }); setSelected(b.id); }}>افزودن بخش جدید</Button>
         </aside>
         <div className="builder-canvas"><PreviewFrame width={device === 'mobile' ? 390 : device === 'tablet' ? 768 : 1280} locale={locale}><div onClickCapture={e => { e.preventDefault(); e.stopPropagation(); setTab(6); }}>{header}</div><BuilderView document={doc} data={data} locale={locale} editing selectedId={selected} onSelect={setSelected} /><div onClickCapture={e => { e.preventDefault(); e.stopPropagation(); setTab(6); }}>{footer}</div></PreviewFrame></div>
-        <aside className="builder-panel builder-panel-settings">{block ? <BlockSettings data={data} block={block} change={changeBlock} device={device} media={mobile => { setMediaTarget({ id: block.id, mobile }); setTab(2); }} /> : <p className="text-sm">بخشی را در پیش‌نمایش یا فهرست انتخاب کنید.</p>}</aside>
+        <aside className="builder-panel builder-panel-settings">{block ? <BlockSettings data={data} block={block} change={changeBlock} device={device} pick={(kind, apply) => { setMediaTarget({ id: block.id, mobile: false, kind, apply }); setTab(2); }} media={mobile => { setMediaTarget({ id: block.id, mobile }); setTab(2); }} /> : <p className="text-sm">بخشی را در پیش‌نمایش یا فهرست انتخاب کنید.</p>}</aside>
       </div>
     </>}
     </fieldset>

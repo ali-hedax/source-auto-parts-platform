@@ -57,7 +57,7 @@ export function CartLink() {
       <ShoppingCart aria-hidden className="size-5" />
       <span className="sr-only">{t('cartCount', { count })}</span>
       {count > 0 ? (
-        <span aria-hidden className="absolute end-0.5 top-1 grid h-5 min-w-5 place-items-center rounded-full bg-tech-light px-1 text-[0.6875rem] font-bold leading-none text-carbon ring-2 ring-carbon">
+        <span aria-hidden className="absolute end-0.5 top-1 grid h-5 min-w-5 place-items-center rounded-full bg-signal px-1 text-[0.6875rem] font-bold leading-none text-carbon ring-2 ring-stage">
           {locale === 'fa' ? toPersianDigits(shown) : shown}
         </span>
       ) : null}

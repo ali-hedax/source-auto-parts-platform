@@ -11,6 +11,28 @@ import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/field';
 import { api } from '@/lib/api/client';
+import { useAfterLoad } from '@/lib/after-load';
+
+/** Right-sized transparent WebP renders of the character (the 1024×1536 PNG source weighs 1.6 MB). */
+const MASCOT = '/assistant/hedax-mechanic-idle-v1';
+
+
+/** The launcher's diameter: a compact circle derived from the configured guide sizes. */
+function avatarSize(desktop: boolean, settings: Pick<AssistantPublicSettings, 'desktopSize' | 'mobileSize'>) {
+  return Math.round(desktop ? Math.min(72, settings.desktopSize * 0.6) : Math.min(60, settings.mobileSize * 0.85));
+}
+
+/** Wide screens (≥1024 px) get the non-modal side panel. */
+function useDesktop() {
+  const [desktop, setDesktop] = useState(false);
+  useEffect(() => {
+    const q = window.matchMedia('(min-width: 1024px)');
+    const sync = () => setDesktop(q.matches);
+    sync(); q.addEventListener('change', sync);
+    return () => q.removeEventListener('change', sync);
+  }, []);
+  return desktop;
+}
 
 function PlainText({ text }: { text: string }) {
   return <>{text.split(/([A-Za-z0-9][A-Za-z0-9._/-]*)/g).map((part, i) => /^[A-Za-z0-9]/.test(part) ? <bdi key={i} dir="ltr">{part}</bdi> : part)}</>;
@@ -18,6 +40,8 @@ function PlainText({ text }: { text: string }) {
 
 export function HedaxAssistantWidget({ locale, settings }: { locale: 'fa' | 'en'; settings: AssistantPublicSettings }) {
   const t = useTranslations('assistant');
+  const artReady = useAfterLoad();
+  const desktop = useDesktop();
   const [open, setOpen] = useState(false);
   const [compact, setCompact] = useState(false);
   const [paused, setPaused] = useState(false);
@@ -42,20 +66,31 @@ export function HedaxAssistantWidget({ locale, settings }: { locale: 'fa' | 'en'
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
         if (!dock.current) return;
-        const characterWidth = (window.innerWidth >= 640 ? settings.desktopSize : settings.mobileSize) * 1.8;
-        const width = characterWidth + 16;
-        const height = characterWidth * 1.5 + 52;
+        const diameter = avatarSize(window.innerWidth >= 640, { desktopSize: settings.desktopSize, mobileSize: settings.mobileSize });
+        const width = diameter + 16;
+        const height = diameter + 52;
         const margin = window.innerWidth >= 640 ? 24 : 12;
         const baseBottom = dock.current.getBoundingClientRect().bottom + lift;
         const atLeft = (settings.placement === 'start') === (locale === 'en');
-        const intersects = (left: number, top: number, w: number, h: number) => [...document.querySelectorAll('main a, main button, main input, main select, main textarea')].some((el) => {
+        const hit = (r: DOMRect, left: number, top: number, w: number, h: number) => r.width > 0 && r.height > 0 && r.left < left + w && r.right > left && r.top < top + h && r.bottom > top;
+        const intersects = (left: number, top: number, w: number, h: number) => [...document.querySelectorAll('main a, main button, main input, main select, main textarea, main [data-assistant-avoid]')].some((el) => {
           const r = el.getBoundingClientRect();
-          return r.width > 0 && r.height > 0 && r.left < left + w && r.right > left && r.top < top + h && r.bottom > top;
+          if (!hit(r, left, top, w, h)) return false;
+          // Small controls, fields and marked areas count whole; large cards and full-width rows only where their content is.
+          if (r.width * r.height < 160 * 64 || el.matches('input, select, textarea, [data-assistant-avoid]')) return true;
+          if ([...el.querySelectorAll('svg, img, video, input, button')].some((c) => hit(c.getBoundingClientRect(), left, top, w, h))) return true;
+          const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+          for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+            if (!n.textContent?.trim()) continue;
+            const range = document.createRange(); range.selectNodeContents(n);
+            if ([...range.getClientRects()].some((t) => hit(t, left, top, w, h))) return true;
+          }
+          return false;
         });
         const leftX = margin;
-        const rightX = window.innerWidth - margin - 64;
-        const choices = [0, 128, 256, 384].flatMap((offset) => [false, true].map((flip) => ({ offset, flip, left: flip ? !atLeft : atLeft, bottom: baseBottom - offset })));
-        const choice = choices.find((c) => c.bottom - 116 >= 160 && !intersects(c.left ? leftX : rightX, c.bottom - 116, 64, 116));
+        const rightX = window.innerWidth - margin - diameter;
+        const choices = [0, 96, 192, 288].flatMap((offset) => [false, true].map((flip) => ({ offset, flip, left: flip ? !atLeft : atLeft, bottom: baseBottom - offset })));
+        const choice = choices.find((c) => c.bottom - diameter >= 160 && !intersects(c.left ? leftX : rightX, c.bottom - diameter - 8, diameter, diameter + 8));
         const flip = choice?.flip ?? false;
         const bottom = choice?.bottom ?? baseBottom;
         setFlipped(flip);
@@ -136,7 +171,10 @@ export function HedaxAssistantWidget({ locale, settings }: { locale: 'fa' | 'en'
     finally { setBusy(false); }
   };
   const moving = settings.animationEnabled && !paused && !hidden;
-  const size = { '--assistant-mobile': `${settings.mobileSize}px`, '--assistant-desktop': `${settings.desktopSize}px`, '--assistant-lift': `${lift}px` } as CSSProperties;
+  const size = { '--assistant-avatar-mobile': `${avatarSize(false, settings)}px`, '--assistant-avatar-desktop': `${avatarSize(true, settings)}px`, '--assistant-lift': `${lift}px` } as CSSProperties;
+  const avatar = settings.avatarUrl || `${MASCOT}-320.webp`;
+  // The default character is cropped to head and shoulders inside the circle; an uploaded avatar is shown whole.
+  const avatarFit = settings.avatarUrl ? 'object-cover' : 'object-cover object-[50%_6%] scale-[1.35] origin-top';
   const placement = flipped ? (settings.placement === 'start' ? 'end' : 'start') : settings.placement;
   const panelSide = placement === 'start' ? 'start-3 sm:start-6' : 'end-3 sm:end-6';
   const side = position ? '' : panelSide;
@@ -144,25 +182,36 @@ export function HedaxAssistantWidget({ locale, settings }: { locale: 'fa' | 'en'
   if (dismissed) return null;
   return (
     <aside ref={dock} aria-label={settings.name[locale]} className={`assistant-dock fixed ${side} z-40 ${obstructed && !open && !position ? 'invisible' : ''}`} style={dockStyle} data-moving={moving} data-compact={compact} data-crowded={crowded}>
-      <RDialog.Root open={open} onOpenChange={setOpen}>
-        <div className="assistant-character-controls relative flex flex-col items-center gap-1">
+      {/* Desktop: a side panel over the page (no dimming, the page stays usable); phones: a modal that follows the visible viewport and keyboard. */}
+      <RDialog.Root open={open} onOpenChange={setOpen} modal={!desktop}>
+        {/* The small actions row sits inside the dock (below the avatar), so it never falls off the screen edge. */}
+        <div className="assistant-character-controls relative flex flex-col items-center gap-1 pb-[3.25rem]">
           <RDialog.Trigger asChild>
-            <button type="button" aria-label={t('open')} className="assistant-character flex min-h-12 min-w-12 touch-none cursor-grab flex-col items-center rounded-xl p-1 text-action outline-offset-4 active:cursor-grabbing" onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={() => { drag.current = null; }} onClick={(event) => { if (suppressOpen.current) event.preventDefault(); }}>
-              {compact ? <MessageCircle aria-hidden className="size-6" /> : <Image src="/assistant/hedax-mechanic-idle-v1.png" alt="" width={1024} height={1536} unoptimized loading="lazy" className="assistant-mascot object-contain" style={{ height: 'auto' }} />}
+            <button type="button" aria-label={t('open')} className="assistant-character grid min-h-12 min-w-12 touch-none cursor-grab place-items-center rounded-full text-action outline-offset-4 active:cursor-grabbing" onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={() => { drag.current = null; }} onClick={(event) => { if (suppressOpen.current) event.preventDefault(); }}>
+              {compact ? <span className="grid size-12 place-items-center rounded-full bg-stage text-white shadow-[var(--shadow-overlay)]"><MessageCircle aria-hidden className="size-6" /></span> : (
+                <span className="assistant-avatar block overflow-hidden rounded-full border-2 border-white bg-stage shadow-[var(--shadow-overlay)]">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- pre-sized WebP or the owner's uploaded avatar; the circle reserves the box until it loads */}
+                  <img {...(artReady ? { src: avatar } : {})} alt="" width={160} height={160} decoding="async" draggable={false} className={`pointer-events-none size-full select-none ${avatarFit}`} />
+                </span>
+              )}
             </button>
           </RDialog.Trigger>
-          <div className="assistant-character-actions absolute start-1/2 top-full flex -translate-x-1/2 gap-1 rounded-full border border-line-soft bg-white/95 p-1 shadow-[var(--shadow-overlay)] rtl:translate-x-1/2">
+          <div className="assistant-character-actions absolute bottom-0 start-1/2 flex -translate-x-1/2 gap-1 rounded-full border border-line-soft bg-white/95 p-1 shadow-[var(--shadow-overlay)] rtl:translate-x-1/2">
             <button type="button" className="grid size-10 cursor-pointer place-items-center rounded-full text-steel hover:bg-surface" onClick={toggleCompact} aria-label={compact ? t('expand') : t('minimize')}><Minimize2 aria-hidden className="size-4" /></button>
             {position ? <button type="button" className="grid size-10 cursor-pointer place-items-center rounded-full text-steel hover:bg-surface" onClick={() => persistPosition(null)} aria-label={t('resetPosition')}><LocateFixed aria-hidden className="size-4" /></button> : null}
             <button type="button" className="grid size-10 cursor-pointer place-items-center rounded-full text-steel hover:bg-surface" onClick={() => setDismissed(true)} aria-label={t('hide')}><EyeOff aria-hidden className="size-4" /></button>
           </div>
         </div>
         <RDialog.Portal>
-          <RDialog.Overlay className="fixed inset-0 z-50 bg-carbon/40" />
-          <RDialog.Content dir={locale === 'fa' ? 'rtl' : 'ltr'} className={`assistant-panel fixed inset-x-3 z-50 mx-auto flex w-auto max-w-md flex-col overflow-hidden rounded-[var(--radius-panel)] border border-line-soft bg-white shadow-[var(--shadow-overlay)] sm:inset-x-auto sm:mx-0 sm:w-[26rem] ${panelSide}`} style={viewport ? { top: viewport.top, maxHeight: viewport.height } : undefined}>
-            <header className="on-dark flex items-center gap-2 bg-carbon p-3 text-silver">
-              <Image src="/assistant/hedax-mechanic-idle-v1.png" alt="" width={40} height={60} unoptimized className="h-12 w-auto object-contain" />
-              <div className="min-w-0 flex-1"><RDialog.Title className="font-bold">{settings.name[locale]}</RDialog.Title><p className="text-xs text-tech-light">{t('phase')}</p></div>
+          {desktop ? null : <RDialog.Overlay className="fixed inset-0 z-50 bg-stage/50" />}
+          <RDialog.Content dir={locale === 'fa' ? 'rtl' : 'ltr'} onInteractOutside={(e) => { if (desktop) e.preventDefault(); }}
+            className={`assistant-panel fixed z-50 flex flex-col overflow-hidden rounded-[var(--radius-panel)] border border-line-soft bg-white shadow-[var(--shadow-overlay)] ${desktop ? `bottom-6 w-[26rem] max-h-[min(38rem,calc(100dvh-8rem))] ${panelSide}` : 'inset-x-3 mx-auto w-auto max-w-md'}`}
+            style={!desktop && viewport ? { top: viewport.top, maxHeight: viewport.height } : undefined}>
+            <header className="on-dark flex items-center gap-2 bg-stage p-3 text-silver">
+              <span className="block size-11 shrink-0 overflow-hidden rounded-full border border-white/20 bg-stage-2">
+                <Image src={settings.avatarUrl || `${MASCOT}-160.webp`} alt="" width={44} height={44} unoptimized className={`size-full ${avatarFit}`} />
+              </span>
+              <div className="min-w-0 flex-1"><RDialog.Title className="font-bold">{settings.name[locale]}</RDialog.Title><p className="text-xs text-signal">{t('phase')}</p></div>
               <button type="button" className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-lg hover:bg-white/10" onClick={toggleMotion} aria-label={paused ? t('resume') : t('pause')} aria-pressed={paused}>{paused ? <Play aria-hidden className="size-4" /> : <Pause aria-hidden className="size-4" />}</button>
               <RDialog.Close className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-lg hover:bg-white/10" aria-label={t('close')}><X aria-hidden className="size-5" /></RDialog.Close>
             </header>

@@ -14,7 +14,7 @@ export function HeaderNav({ items, label }: { items: Array<{ href: string; label
   const request = items.find((i) => i.href === '/request-part');
   const sections = items.filter((i) => i !== request);
   const link = (active: boolean, accent = false) =>
-    `relative inline-flex h-11 items-center gap-1.5 px-3 text-sm font-medium transition-colors hover:text-white after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:rounded-full ${active ? 'text-white after:bg-tech-light' : `${accent ? 'text-tech-light' : 'text-silver/90'} after:bg-transparent hover:after:bg-white/30`}`;
+    `relative inline-flex h-11 items-center gap-1.5 px-3 text-sm font-medium transition-colors hover:text-white after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:rounded-full ${active ? 'text-white after:bg-signal' : `${accent ? 'text-signal' : 'text-silver/90'} after:bg-transparent hover:after:bg-white/30`}`;
   return (
     <nav aria-label={label} className="container-page flex items-center justify-between gap-4">
       <ul className="-ms-3 flex flex-wrap items-center">
