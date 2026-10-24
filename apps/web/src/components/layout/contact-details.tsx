@@ -22,7 +22,8 @@ function mapHref(c: ContactContent): string | null {
 export function ContactDetails({ contact, locale, variant, linkClassName = '' }: { contact: ContactContent; locale: Locale; variant: 'page' | 'footer'; linkClassName?: string }) {
   const t = useTranslations();
   const link = (href: string, children: ReactNode, external = false) => (
-    <a href={href} className={linkClassName} {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>{children}</a>
+    // On the contact page each link is a full touch target (44 px), not just its line of text.
+    <a href={href} className={`${variant === 'page' ? 'inline-flex min-h-11 items-center ' : ''}${linkClassName}`} {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>{children}</a>
   );
   const items: Array<{ key: string; term: string; value: ReactNode }> = contact.phones.map((p, i) => {
     const shown = locale === 'fa' ? p.numberFa || faDigits(p.number) : p.number;

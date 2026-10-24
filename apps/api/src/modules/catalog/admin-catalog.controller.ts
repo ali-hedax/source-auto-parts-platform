@@ -3,6 +3,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags } from '@nestjs/swagger';
 import { memoryStorage } from 'multer';
 import {
+  contentImageSchema,
   mediaOrderSchema,
   mediaUpdateSchema,
   paginationQuerySchema,
@@ -38,6 +39,8 @@ const taxonomySchema = z.object({
   nameEn: z.string().trim().max(120).optional().nullable(),
   parentId: z.uuid().optional().nullable(),
   isFeatured: z.boolean().optional(),
+  /** Vehicle brands only: a logo from the content image upload; '' removes it. */
+  logoUrl: contentImageSchema.optional(),
   sortOrder: z.number().int().min(0).max(1000).default(0),
   active: z.boolean().default(true),
 });
@@ -220,7 +223,7 @@ export class AdminCatalogController {
   async createBrand(@Body(zod(taxonomySchema)) body: z.infer<typeof taxonomySchema>) {
     return this.prisma.tx(async (tx) => {
       const row = await tx.vehicleBrand.create({
-        data: { code: body.code, slug: body.slug ?? slugify(body.nameEn ?? body.code.toLowerCase()), nameFa: body.nameFa, nameEn: body.nameEn ?? null, isFeatured: body.isFeatured ?? false, sortOrder: body.sortOrder, active: body.active },
+        data: { code: body.code, slug: body.slug ?? slugify(body.nameEn ?? body.code.toLowerCase()), nameFa: body.nameFa, nameEn: body.nameEn ?? null, logoUrl: body.logoUrl || null, isFeatured: body.isFeatured ?? false, sortOrder: body.sortOrder, active: body.active },
       });
       await this.audit.record(tx, { action: 'vehicle_brand.created', entityType: 'vehicle_brand', entityId: row.id, after: row });
       return row;
@@ -235,7 +238,7 @@ export class AdminCatalogController {
       if (!before) throw notFound();
       const row = await tx.vehicleBrand.update({
         where: { id },
-        data: { code: body.code, ...(body.slug ? { slug: body.slug } : {}), nameFa: body.nameFa, nameEn: body.nameEn ?? null, isFeatured: body.isFeatured ?? before.isFeatured, sortOrder: body.sortOrder, active: body.active },
+        data: { code: body.code, ...(body.slug ? { slug: body.slug } : {}), nameFa: body.nameFa, nameEn: body.nameEn ?? null, ...(body.logoUrl !== undefined ? { logoUrl: body.logoUrl || null } : {}), isFeatured: body.isFeatured ?? before.isFeatured, sortOrder: body.sortOrder, active: body.active },
       });
       await this.audit.record(tx, { action: 'vehicle_brand.updated', entityType: 'vehicle_brand', entityId: id, before, after: row });
       return row;

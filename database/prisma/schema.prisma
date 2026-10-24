@@ -732,6 +732,8 @@ model VehicleBrand {
   slug       String   @unique @db.VarChar(80)
   nameFa     String   @map("name_fa") @db.VarChar(80)
   nameEn     String?  @map("name_en") @db.VarChar(80)
+  /// Logo uploaded in the panel (content image pipeline: scanned, re-encoded); null = none.
+  logoUrl    String?  @map("logo_url") @db.VarChar(500)
   isFeatured Boolean  @default(false) @map("is_featured")
   sortOrder  Int      @default(0) @map("sort_order")
   active     Boolean  @default(true)

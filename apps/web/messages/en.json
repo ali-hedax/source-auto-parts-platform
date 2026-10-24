@@ -1184,6 +1184,8 @@
     "other": "Link"
   },
   "home": {
+    "vehicleBrandsLabel": "Vehicle make",
+    "makersLabel": "Part maker",
     "makersTitle": "Browse by part brand"
   },
   "assistant": {

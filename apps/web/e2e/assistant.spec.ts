@@ -9,6 +9,8 @@ test('disabled by default; enabled guide is local, keyboard accessible and bilin
   await page.route('**/api/v1/site/assistant?**', (route) => route.fulfill({ json: { ...DEFAULT_ASSISTANT_SETTINGS, enabled: true } }));
   await page.route('**/api/v1/assistant/messages', (route) => route.fulfill({ json: { text: 'نتیجهٔ grounded آزمایشی', products: [{ slug: 'demo', sku: '000123', name: { fa: 'لنت نمونه', en: 'Sample pad' }, partNumber: '000123', availability: 'IN_STOCK', unit: { name: 'عدد', nameEn: 'piece' }, price: { kind: 'price', payable: { amountMinor: '1000', currency: 'IRR' }, display: { amountMinor: '1000', currency: 'IRR' }, displayIsReference: false }, fitments: [], primaryImage: null }], provider: 'mock', model: 'test' } }));
   await page.reload();
+  // The dev server's corner indicator (absent in production builds) sits over the compact launcher.
+  await page.addStyleTag({ content: 'nextjs-portal { display: none !important; }' });
   const launcher = page.getByRole('button', { name: 'باز کردن راهنمای HEDAX' });
   await launcher.click();
   const dialog = page.getByRole('dialog');
@@ -43,10 +45,12 @@ for (const width of [390, 768, 1440]) {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.route('**/api/v1/site/assistant?**', (route) => route.fulfill({ json: { ...DEFAULT_ASSISTANT_SETTINGS, enabled: true } }));
     await page.goto('/fa');
+    // The dev server's corner indicator (absent in production builds) sits over the compact launcher.
+    await page.addStyleTag({ content: 'nextjs-portal { display: none !important; }' });
     await expect(page.getByRole('button', { name: 'باز کردن راهنمای HEDAX' })).toBeVisible();
     await expect(page.locator('.assistant-character img')).toHaveAttribute('src', /hedax-mechanic-idle-v1-\d+\.webp/);
     await expect(page.locator('.assistant-character')).not.toHaveCSS('background-color', 'rgb(255, 255, 255)');
-    expect(await page.locator('.assistant-mascot').evaluate((el) => getComputedStyle(el).animationName)).toBe('none');
+    expect(await page.locator('.assistant-avatar').evaluate((el) => getComputedStyle(el).animationName)).toBe('none');
     await page.screenshot({ path: testInfo.outputPath(`assistant-launcher-${width}.png`), fullPage: false });
     const dock = (await page.locator('.assistant-dock').boundingBox())!;
     expect(dock.y + dock.height).toBeLessThan(width < 640 ? 825 : 900);

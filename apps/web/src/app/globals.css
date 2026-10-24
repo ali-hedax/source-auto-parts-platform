@@ -1,16 +1,13 @@
 @import 'tailwindcss';
 
-/* A local illustrated mascot, never a WebGL/3D model. Keep mobile bottom navigation clear. */
+/* A local illustrated guide avatar, never a WebGL/3D model. Keep mobile bottom navigation clear. */
 .assistant-dock { bottom: calc(5rem + env(safe-area-inset-bottom, 0px) + var(--assistant-lift, 0px)); }
-.assistant-mascot { width: calc(var(--assistant-mobile) * 1.8); height: auto; aspect-ratio: 2 / 3; filter: drop-shadow(0 14px 14px rgb(11 31 54 / .22)); pointer-events: none; user-select: none; }
-.assistant-panel { top: max(1rem, env(safe-area-inset-top)); max-height: calc(100dvh - 2rem); }
+/* Phones: the modal panel follows the visible viewport; wide screens size the side panel in the component. */
+@media (max-width: 1023px) { .assistant-panel { top: max(1rem, env(safe-area-inset-top)); max-height: calc(100dvh - 2rem); } }
 @keyframes assistant-idle { 0%, 100% { transform: translateY(0) rotate(0deg) scale(1); } 35% { transform: translateY(-5px) rotate(-1deg) scale(1.012); } 65% { transform: translateY(-2px) rotate(1deg) scale(.998); } }
-.assistant-dock[data-moving='true'] .assistant-mascot { animation: assistant-idle 4s ease-in-out infinite; transform-origin: 50% 88%; }
 .assistant-character-actions { opacity: .25; transition: opacity 160ms ease; }
 .assistant-character-controls:hover .assistant-character-actions, .assistant-character-controls:focus-within .assistant-character-actions { opacity: 1; }
-.assistant-dock[data-crowded='true'] .assistant-mascot { width: 72px; }
-@media (min-width: 640px) { .assistant-mascot { width: calc(var(--assistant-desktop) * 1.8); } .assistant-dock { bottom: calc(1.5rem + var(--assistant-lift, 0px)); } }
-@media (prefers-reduced-motion: reduce) { .assistant-dock .assistant-mascot { animation: none !important; } }
+@media (min-width: 640px) { .assistant-dock { bottom: calc(1.5rem + var(--assistant-lift, 0px)); } }
 
 /*
  * Source by HEDAX design tokens (design-system/MASTER.md).
@@ -431,8 +428,8 @@ main:has(> .page-canvas) {
   .store-band::after {
     content: '';
     display: block;
-    height: 4rem;
-    background: linear-gradient(180deg, var(--color-navy) 0%, color-mix(in srgb, var(--color-navy) 55%, var(--band-next, #eef2f7)) 35%, var(--band-next, #eef2f7) 100%);
+    height: 1.5rem;
+    background: linear-gradient(180deg, var(--color-navy), var(--band-next, #eef2f7));
   }
   .store-band :focus-visible {
     outline-color: var(--color-signal);
@@ -512,11 +509,11 @@ main:has(> .page-canvas) {
   content: '';
   position: absolute;
   z-index: -1;
-  inset-block: 0 -2.5rem;
+  inset-block: 0 -0.75rem;
   inset-inline: calc(50% - 50vw);
   background:
     radial-gradient(ellipse 46rem 20rem at 88% 0%, rgb(25 118 255 / 0.22), transparent 70%),
-    linear-gradient(180deg, var(--color-stage) 0%, var(--color-stage-2) 50%, var(--color-navy) 80%, transparent 100%);
+    linear-gradient(180deg, var(--color-stage) 0%, var(--color-stage-2) 60%, var(--color-navy) 94%, transparent 100%);
 }
 .store main > :is(.page-canvas, .container-page) > .page-header:first-child h1 {
   color: #fff;
@@ -568,3 +565,9 @@ main:has(> .page-canvas) {
 .store main a.card:hover {
   border-color: var(--color-electric);
 }
+
+/* The guide's launcher: a compact round avatar (settings → avatar), clear of page content. */
+.assistant-avatar { width: var(--assistant-avatar-mobile, 54px); height: var(--assistant-avatar-mobile, 54px); }
+@media (min-width: 640px) { .assistant-avatar { width: var(--assistant-avatar-desktop, 62px); height: var(--assistant-avatar-desktop, 62px); } }
+.assistant-dock[data-moving='true'] .assistant-avatar { animation: assistant-idle 4s ease-in-out infinite; transform-origin: 50% 90%; }
+@media (prefers-reduced-motion: reduce) { .assistant-dock .assistant-avatar { animation: none !important; } }

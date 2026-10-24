@@ -1184,6 +1184,8 @@
     "other": "پیوند"
   },
   "home": {
+    "vehicleBrandsLabel": "برند خودرو",
+    "makersLabel": "سازندهٔ قطعه",
     "makersTitle": "مرور بر اساس برند سازنده"
   },
   "assistant": {

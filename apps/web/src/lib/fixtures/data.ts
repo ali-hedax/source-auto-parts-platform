@@ -25,10 +25,10 @@ export const fixtureCategories: CategoryView[] = [
 ];
 
 export const fixtureBrands: VehicleBrandView[] = [
-  { code: 'IKCO', slug: 'iran-khodro', name: { fa: 'ایران خودرو', en: 'Iran Khodro' }, isFeatured: true, productCount: 3 },
-  { code: 'SAIPA', slug: 'saipa', name: { fa: 'سایپا', en: 'Saipa' }, isFeatured: true, productCount: 2 },
-  { code: 'TOYOTA', slug: 'toyota', name: { fa: 'تویوتا', en: 'Toyota' }, isFeatured: true, productCount: 2 },
-  { code: 'HYUNDAI', slug: 'hyundai', name: { fa: 'هیوندای', en: 'Hyundai' }, isFeatured: true, productCount: 2 },
+  { code: 'IKCO', slug: 'iran-khodro', name: { fa: 'ایران خودرو', en: 'Iran Khodro' }, logoUrl: null, isFeatured: true, productCount: 3 },
+  { code: 'SAIPA', slug: 'saipa', name: { fa: 'سایپا', en: 'Saipa' }, logoUrl: null, isFeatured: true, productCount: 2 },
+  { code: 'TOYOTA', slug: 'toyota', name: { fa: 'تویوتا', en: 'Toyota' }, logoUrl: null, isFeatured: true, productCount: 2 },
+  { code: 'HYUNDAI', slug: 'hyundai', name: { fa: 'هیوندای', en: 'Hyundai' }, logoUrl: null, isFeatured: true, productCount: 2 },
 ];
 
 export interface FixtureProduct {

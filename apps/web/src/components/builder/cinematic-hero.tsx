@@ -1,6 +1,6 @@
 import type { BuilderBlock, BuilderFilm, CategoryView, SiteContentView } from '@hedax/contracts';
 import { DEFAULT_BUILDER_FILM, localize } from '@hedax/contracts/constants';
-import { ArrowDown, ArrowLeft, ArrowRight, Search } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Search } from 'lucide-react';
 import { preload } from 'react-dom';
 import { Link } from '@/i18n/navigation';
 import { CinematicFilm } from './cinematic-film';
@@ -20,7 +20,6 @@ export function CinematicHero({ block: b, content, categories, locale }: { block
   const name = (n: { fa: string; en: string | null }) => (fa ? n.fa : (n.en ?? n.fa));
   const digits = (n: number) => n.toLocaleString(fa ? 'fa-IR' : 'en-US');
   const brand = content?.brand;
-  const searchId = `discover-${b.id}`;
   const paths = [
     { href: '/cars', title: fa ? 'خودروی من' : 'My vehicle', text: fa ? 'برند، مدل و سال خودرو را انتخاب کنید' : 'Pick the make, model and year' },
     { href: '/parts', title: fa ? 'کاتالوگ قطعات' : 'Parts catalogue', text: fa ? 'دسته‌بندی‌ها، برندها و سازنده‌ها' : 'Categories, brands and makers' },
@@ -40,25 +39,22 @@ export function CinematicHero({ block: b, content, categories, locale }: { block
         <p className="cine-eyebrow" dir="ltr">SOURCE <span>by</span> HEDAX</p>
         <h1 id={`${b.id}-title`} className="cine-title">{L(b.title)}</h1>
         {L(b.body) ? <p className="cine-lede">{L(b.body)}</p> : null}
-        <div className="cine-actions">
-          {film.discovery ? <a className="cine-cta cine-cta-primary" href={`#${searchId}`}><Search aria-hidden size={18} />{fa ? 'جست‌وجوی قطعه' : 'Find a part'}</a> : null}
-          {b.href && L(b.button) ? <Link className="cine-cta cine-cta-ghost" href={b.href}>{L(b.button)}<Arrow aria-hidden size={18} /></Link> : null}
-        </div>
+        {/* The page's main search (the header's quick search hides on phones while this one is present). */}
+        <form action={`/${locale}/parts`} method="get" role="search" className="cine-search">
+          <label htmlFor="hero-search" className="sr-only">{fa ? 'نام قطعه، شماره فنی یا شماره OEM' : 'Part name, part number or OEM reference'}</label>
+          <div className="cine-search-field">
+            <Search aria-hidden size={20} />
+            <input id="hero-search" name="q" type="search" autoComplete="off" enterKeyHint="search" placeholder={fa ? 'نام یا شماره قطعه' : 'Part name or number'} />
+            <button type="submit"><Search aria-hidden size={18} />{fa ? 'جست‌وجوی قطعه' : 'Find a part'}</button>
+          </div>
+        </form>
+        {b.href && L(b.button) ? <div className="cine-actions"><Link className="cine-cta cine-cta-ghost" href={b.href}>{L(b.button)}<Arrow aria-hidden size={18} /></Link></div> : null}
       </div>
       <CinematicFilm film={film} still={b.imageUrl} mobileStill={b.mobileImageUrl} alt={L(b.alt)} logoUrl={film.logoUrl || brand?.logoUrl || DEFAULT_LOGO} logoAlt={L(brand?.logoAlt) || 'SOURCE by HEDAX'} locale={locale} />
     </div>
-    {film.discovery ? <a className="cine-scroll" href={`#${searchId}`}><span>{fa ? 'شروع جست‌وجو' : 'Start searching'}</span><ArrowDown aria-hidden size={16} /></a> : null}
 
     {film.discovery ? <div className="cine-discover">
       <div className="cine-discover-inner">
-        <form action={`/${locale}/parts`} method="get" role="search" className="cine-search">
-          <label htmlFor={searchId} className="cine-search-label">{fa ? 'نام قطعه، شماره فنی یا شماره OEM' : 'Part name, part number or OEM reference'}</label>
-          <div className="cine-search-field">
-            <Search aria-hidden size={22} />
-            <input id={searchId} name="q" type="search" autoComplete="off" enterKeyHint="search" placeholder={fa ? 'مثلاً لنت ترمز جلو یا 1240100901' : 'e.g. front brake pads or 1240100901'} />
-            <button type="submit">{fa ? 'جست‌وجو' : 'Search'}</button>
-          </div>
-        </form>
         <ol className="cine-paths">
           {paths.map((p, i) => <li key={p.href}><Link href={p.href}>
             <span className="cine-path-index" dir="ltr">{String(i + 1).padStart(2, '0')}</span>

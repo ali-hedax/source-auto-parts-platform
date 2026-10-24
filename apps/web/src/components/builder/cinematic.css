@@ -19,16 +19,17 @@
 /* Chapter 1 — the stage: copy at the start, the full 16:9 film bleeding to the end edge. */
 .cine-stage {
   display: grid; grid-template-columns: minmax(0, 31rem) minmax(0, 1fr); align-items: center; gap: clamp(1rem, 3cqi, 3rem);
-  min-height: min(calc(100svh - 7rem), 62rem); padding-inline-start: var(--cine-gutter); padding-block: clamp(1.5rem, 4cqi, 3.5rem);
+  min-height: min(calc(100svh - 9rem), 46rem); padding-inline-start: var(--cine-gutter); padding-block: clamp(1.25rem, 3cqi, 2.5rem);
 }
 .cine-copy { position: relative; z-index: 2; min-width: 0; }
 .cine-eyebrow { font-family: var(--font-en); font-size: .78rem; font-weight: 700; letter-spacing: .32em; color: var(--cine-signal); text-transform: uppercase; margin-bottom: 1.25rem; text-align: start; }
 .cine-eyebrow span { text-transform: none; letter-spacing: .08em; font-weight: 500; color: var(--cine-ink-mid); }
-.cine-title { font-size: clamp(2.1rem, 4.2cqi, 3.75rem); line-height: 1.22; font-weight: 800; letter-spacing: -.01em; color: var(--cine-ink); text-wrap: balance; }
+.cine-title { font-size: clamp(2rem, 3.6cqi, 3.25rem); line-height: 1.22; font-weight: 800; letter-spacing: -.01em; color: var(--cine-ink); text-wrap: balance; }
 html[lang='en'] .cine-title { font-size: clamp(2rem, 3.5cqi, 3.2rem); line-height: 1.08; letter-spacing: -.025em; }
 html[lang='en'] .cine-lede { max-width: 28rem; }
-.cine-lede { margin-top: 1.25rem; max-width: 32rem; font-size: clamp(1rem, 1.3cqi, 1.15rem); line-height: 1.9; color: var(--cine-ink-mid); }
-.cine-actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 2rem; }
+.cine-lede { margin-top: .9rem; max-width: 32rem; font-size: clamp(1rem, 1.3cqi, 1.1rem); line-height: 1.8; color: var(--cine-ink-mid); }
+.cine-actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1rem; }
+.cine-search { margin-top: 1.5rem; max-width: 34rem; }
 .cine-cta { display: inline-flex; align-items: center; gap: .55rem; min-height: 3.25rem; padding-inline: 1.5rem; border-radius: 999px; font-weight: 700; font-size: 1rem; transition: background-color .2s var(--ease-standard), border-color .2s var(--ease-standard), transform .2s var(--ease-standard); }
 .cine-cta-primary { background: var(--cine-commerce); color: var(--cine-ground); }
 .cine-cta-primary:hover { background: var(--cine-commerce-hover); transform: translateY(-1px); }
@@ -64,18 +65,18 @@ html[lang='en'] .cine-lede { max-width: 28rem; }
 @keyframes cine-nudge { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(4px); } }
 
 /* Chapter 2 — finding the part, on the same ground. */
-.cine-discover { padding: clamp(2.5rem, 6cqi, 4.5rem) var(--cine-gutter) clamp(3rem, 7cqi, 5.5rem); }
+.cine-discover { padding: clamp(1.5rem, 3cqi, 2.5rem) var(--cine-gutter) clamp(1.75rem, 3.5cqi, 3rem); }
 .cine-discover-inner { max-width: 60rem; margin-inline: auto; }
 .cine-search-label { display: block; margin-bottom: .75rem; font-size: clamp(1.15rem, 2cqi, 1.5rem); font-weight: 700; color: var(--cine-ink); }
-.cine-search-field { display: flex; align-items: center; gap: .75rem; min-height: 4rem; padding-inline-start: 1.25rem; padding: .375rem; padding-inline-start: 1.25rem; border-radius: 1.25rem; background: var(--cine-ink); color: #0b1422; box-shadow: 0 24px 60px -28px rgb(25 118 255 / .55); }
+.cine-search-field { display: flex; align-items: center; gap: .6rem; min-height: 3.5rem; padding-inline-start: 1.25rem; padding: .375rem; padding-inline-start: 1.25rem; border-radius: 1.25rem; background: var(--cine-ink); color: #0b1422; box-shadow: 0 24px 60px -28px rgb(25 118 255 / .55); }
 .cine-search-field:focus-within { outline: 3px solid var(--cine-signal); outline-offset: 3px; }
 .cine-search-field > svg { flex-shrink: 0; color: #4a5568; }
-.cine-search-field input { flex: 1; min-width: 0; min-height: 3.25rem; background: transparent; font-size: 1.0625rem; color: inherit; }
+.cine-search-field input { flex: 1; min-width: 0; min-height: 2.875rem; background: transparent; font-size: 1.0625rem; color: inherit; }
 .cine-search-field input:focus-visible { outline: none; }
 .cine-search-field input::placeholder { color: #5b6878; }
-.cine-search-field button { flex-shrink: 0; min-height: 3.25rem; padding-inline: 1.75rem; border-radius: .9rem; background: var(--cine-commerce); color: var(--cine-ground); font-weight: 800; cursor: pointer; }
+.cine-search-field button { flex-shrink: 0; display: inline-flex; align-items: center; gap: .45rem; min-height: 2.875rem; padding-inline: 1.25rem; border-radius: .9rem; background: var(--cine-commerce); color: var(--cine-ground); font-weight: 800; cursor: pointer; }
 .cine-search-field button:hover { background: var(--cine-commerce-hover); }
-.cine-paths { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 2rem; border-block: 1px solid var(--cine-line); list-style: none; padding: 0; }
+.cine-paths { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 0; border-block: 1px solid var(--cine-line); list-style: none; padding: 0; }
 .cine-paths li + li { border-inline-start: 1px solid var(--cine-line); }
 .cine-paths a { display: flex; align-items: center; gap: 1rem; height: 100%; padding: 1.25rem 1.25rem; transition: background-color .2s var(--ease-standard); }
 .cine-paths a:hover { background: rgb(57 160 255 / .07); }
@@ -91,16 +92,20 @@ html[lang='en'] .cine-lede { max-width: 28rem; }
 .cine-categories a:hover { border-color: var(--cine-signal); background: rgb(57 160 255 / .08); }
 .cine-categories .num { font-size: .75rem; color: var(--cine-ink-mid); }
 /* Hand-over to the rest of the page. */
-.cine::after { content: ''; display: block; height: clamp(2.5rem, 6cqi, 5rem); background: linear-gradient(to bottom, var(--cine-navy), var(--builder-page-bg, #f7faff)); }
+.cine::after { content: ''; display: block; height: 1.25rem; background: linear-gradient(to bottom, var(--cine-navy), var(--builder-page-bg, #f7faff)); }
 
 /* Narrow layouts: the film first, full width and letterboxed; the copy rises into its lower fade. */
 @container (max-width: 900px) {
-  .cine-stage { grid-template-columns: minmax(0, 1fr); min-height: 0; padding: 0 0 1rem; gap: 0; }
+  .cine-stage { grid-template-columns: minmax(0, 1fr); min-height: 0; padding: 0 0 .5rem; gap: 0; }
   .cine-film { order: -1; width: 100%; margin-inline-start: 0; -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 6%, #000 88%, transparent 100%); mask-image: linear-gradient(to bottom, transparent 0, #000 6%, #000 88%, transparent 100%); }
   .cine-controls { top: 8%; bottom: auto; }
   .cine-progress { display: none; }
   /* The copy sits below the picture, never over moving video. */
-  .cine-copy { padding: 1.25rem 1rem 0; }
+  .cine-copy { padding: .75rem 1rem 0; }
+  .cine-title { font-size: clamp(1.6rem, 6.4cqi, 2.1rem); }
+  .cine-lede { margin-top: .5rem; font-size: .95rem; line-height: 1.75; }
+  .cine-search { margin-top: 1rem; max-width: none; }
+  .cine-discover { padding-top: 1rem; }
   .cine-scroll { display: none; }
   .cine-paths { grid-template-columns: minmax(0, 1fr); }
   .cine-paths li + li { border-inline-start: 0; border-top: 1px solid var(--cine-line); }
@@ -110,10 +115,11 @@ html[lang='en'] .cine-lede { max-width: 28rem; }
   .cine-eyebrow { margin-bottom: .75rem; }
   .cine-actions { margin-top: 1.5rem; }
   .cine-actions .cine-cta { flex: 1 1 auto; justify-content: center; }
-  .cine-search-field { flex-wrap: wrap; padding: .5rem; }
+  .cine-eyebrow { display: none; }
+  .cine-search-field { padding: .3rem; padding-inline-start: .75rem; gap: .4rem; }
   .cine-search-field > svg { display: none; }
-  .cine-search-field input { flex-basis: 100%; padding-inline: .75rem; }
-  .cine-search-field button { flex: 1; }
+  .cine-search-field input { font-size: 1rem; }
+  .cine-search-field button { padding-inline: .85rem; font-size: .9375rem; }
 }
 @media (prefers-reduced-motion: reduce) {
   .cine *, .cine *::before, .cine *::after { animation: none !important; transition: none !important; }

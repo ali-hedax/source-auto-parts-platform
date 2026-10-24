@@ -168,6 +168,8 @@ export interface VehicleBrandView {
   code: string;
   slug: string;
   name: LocalizedText;
+  /** Logo uploaded in the panel (catalog → taxonomy); null = none (callers may fall back to a file in public/brand/vehicle-brands). */
+  logoUrl: string | null;
   isFeatured: boolean;
   productCount: number;
 }

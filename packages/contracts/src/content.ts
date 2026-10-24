@@ -29,7 +29,7 @@ export const contentImageSchema = z
   .string()
   .trim()
   .max(500)
-  .refine((v) => v === '' || /^\/[A-Za-z0-9/_.-]+\.(png|webp|jpe?g|svg|ico)$/i.test(v) || /^https:\/\/[^\s]+\.(png|webp|jpe?g)$/i.test(v), { message: 'INVALID_IMAGE' });
+  .refine((v) => v === '' || /^\/(?!\/)[A-Za-z0-9/_.-]+\.(png|webp|jpe?g|svg|ico)$/i.test(v) || /^https:\/\/[^\s]+\.(png|webp|jpe?g)$/i.test(v), { message: 'INVALID_IMAGE' });
 
 /** Only https addresses for profiles on other sites. */
 const externalUrlSchema = z.string().trim().max(500).refine((v) => v === '' || /^https:\/\/[^\s/$.?#][^\s]*$/i.test(v), { message: 'INVALID_URL' });
@@ -120,7 +120,9 @@ export const homeSectionSchema = z.discriminatedUnion('type', [
     steps: z.array(z.object({ title: localizedRequiredSchema(80), text: localizedSchema(300) })).max(8),
     processButton: contentButtonSchema,
   }),
-  z.object({ ...sectionBase, type: z.literal('brands'), title: localizedSchema(80), otherTitle: localizedSchema(80), otherText: localizedSchema(160), otherHref: contentLinkSchema }),
+  z.object({ ...sectionBase, type: z.literal('brands'), title: localizedSchema(80), otherTitle: localizedSchema(80), otherText: localizedSchema(160), otherHref: contentLinkSchema,
+    /** Brand cards show the English name under the logo; the Persian name is an optional second line. */
+    showNameFa: z.boolean().optional() }),
   z.object({ ...sectionBase, type: z.literal('featured'), title: localizedSchema(80), emptyText: localizedSchema(200), emptyButton: contentButtonSchema }),
   z.object({ ...sectionBase, type: z.literal('faq'), title: localizedSchema(80) }),
   z.object({ ...sectionBase, type: z.literal('text'), title: localizedSchema(120), body: localizedSchema(4000), imageUrl: contentImageSchema, button: contentButtonSchema }),
