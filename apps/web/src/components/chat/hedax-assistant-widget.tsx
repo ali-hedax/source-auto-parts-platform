@@ -10,6 +10,7 @@ import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as R
 import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/field';
+import { Price } from '@/components/ui/format';
 import { api } from '@/lib/api/client';
 import { useAfterLoad } from '@/lib/after-load';
 
@@ -40,6 +41,8 @@ function PlainText({ text }: { text: string }) {
 
 export function HedaxAssistantWidget({ locale, settings }: { locale: 'fa' | 'en'; settings: AssistantPublicSettings }) {
   const t = useTranslations('assistant');
+  // Stock and price on product cards use the storefront's own labels and money format.
+  const tSite = useTranslations();
   const artReady = useAfterLoad();
   const desktop = useDesktop();
   const [open, setOpen] = useState(false);
@@ -220,7 +223,7 @@ export function HedaxAssistantWidget({ locale, settings }: { locale: 'fa' | 'en'
               <div className="rounded-xl border border-line-soft bg-white p-4 text-sm leading-7"><p className="font-semibold">{settings.greeting[locale]}</p><p>{settings.introduction[locale]}</p></div>
               <div className="my-3 grid grid-cols-2 gap-2">{ASSISTANT_TOPICS.map((topic) => <button key={topic} type="button" className="min-h-12 cursor-pointer rounded-xl border border-line-strong bg-white px-3 py-2 text-start text-sm font-semibold text-action hover:bg-surface" onClick={() => append(settings.topics[topic].label[locale], assistantReply(settings, locale, topic))}>{settings.topics[topic].label[locale]}</button>)}</div>
               <div role="log" aria-live="polite" aria-relevant="additions" className="space-y-3">
-                {messages.map((message, i) => <div key={i} className="space-y-2 text-sm leading-7"><p className="ms-6 rounded-xl bg-action p-3 text-white"><PlainText text={message.question} /></p><div className="me-3 rounded-xl border border-line-soft bg-white p-3"><p><PlainText text={message.reply.text} /></p>{message.reply.links.map((link) => <Link key={link.href} href={link.href} onClick={() => setOpen(false)} className="mt-2 inline-flex min-h-11 items-center font-bold text-action underline underline-offset-4">{link.label}</Link>)}</div>{message.products?.map((p) => <Link key={p.slug} href={`/parts/${p.slug}`} onClick={() => setOpen(false)} className="block rounded-xl border border-line-soft bg-white p-3"><strong>{p.name[locale] || p.name.fa}</strong><div dir="ltr" className="text-xs text-steel">{p.partNumber || p.sku}</div><div>{p.availability} · {p.price.kind === 'price' ? `${p.price.display.amountMinor} ${p.price.display.currency} / ${locale === 'fa' ? p.unit.name : p.unit.nameEn || p.unit.name}` : (locale === 'fa' ? 'استعلام قیمت' : 'Price inquiry')}</div></Link>)}</div>)}
+                {messages.map((message, i) => <div key={i} className="space-y-2 text-sm leading-7"><p className="ms-6 rounded-xl bg-action p-3 text-white"><PlainText text={message.question} /></p><div className="me-3 rounded-xl border border-line-soft bg-white p-3"><p><PlainText text={message.reply.text} /></p>{message.reply.links.map((link) => <Link key={link.href} href={link.href} onClick={() => setOpen(false)} className="mt-2 inline-flex min-h-11 items-center font-bold text-action underline underline-offset-4">{link.label}</Link>)}</div>{message.products?.map((p) => <Link key={p.slug} href={`/parts/${p.slug}`} onClick={() => setOpen(false)} className="block rounded-xl border border-line-soft bg-white p-3"><strong>{p.name[locale] || p.name.fa}</strong><div dir="ltr" className="text-xs text-steel">{p.partNumber || p.sku}</div><div className="mt-1 flex flex-wrap items-end justify-between gap-2"><span className="text-xs font-semibold text-steel">{tSite(`availability.${p.availability}`)}</span><Price price={p.price} unit={p.unit} /></div></Link>)}</div>)}
               </div><div ref={end} />
             </div>
             <form className="flex shrink-0 gap-2 border-t border-line-soft bg-white p-3" onSubmit={(e) => { e.preventDefault(); void ask(draft); }}>

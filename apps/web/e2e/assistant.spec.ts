@@ -21,6 +21,9 @@ test('disabled by default; enabled guide is local, keyboard accessible and bilin
   await expect(dialog.getByRole('log').locator('bdi[dir="ltr"]').filter({ hasText: /^000123$/ })).toHaveCount(1);
   await expect(dialog.getByText('نتیجهٔ grounded آزمایشی')).toBeVisible();
   await expect(dialog.getByRole('link', { name: /لنت نمونه/ })).toHaveAttribute('href', '/fa/parts/demo');
+  // Stock and price use the storefront's labels and money format, never raw codes.
+  await expect(dialog.getByRole('link', { name: /لنت نمونه/ })).toContainText('موجود');
+  await expect(dialog.getByRole('link', { name: /لنت نمونه/ })).not.toContainText('IN_STOCK');
   await expect(dialog.getByRole('button', { name: /microphone|voice|صوت|میکروفن/i })).toHaveCount(0);
   await expect(page.locator('aside[data-moving]')).toHaveAttribute('data-moving', 'true');
   await dialog.getByRole('button', { name: 'توقف حرکت' }).click();
