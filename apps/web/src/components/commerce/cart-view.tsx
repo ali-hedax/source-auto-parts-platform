@@ -2,7 +2,6 @@
 
 import type { CartView } from '@hedax/contracts';
 import { Info, Trash2 } from 'lucide-react';
-import Image from 'next/image';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { ButtonLink } from '@/components/ui/button';
@@ -11,6 +10,7 @@ import { Alert, Code, EmptyState, Spinner } from '@/components/ui/misc';
 import { Link } from '@/i18n/navigation';
 import { api } from '@/lib/api/client';
 import { QuantityStepper } from './quantity-stepper';
+import { PartImage } from '@/components/store/part-image';
 import { PartPlaceholder } from '@/components/store/part-placeholder';
 
 export function CartClient() {
@@ -59,7 +59,7 @@ export function CartClient() {
             <li key={l.id} className="grid grid-cols-[4rem_minmax(0,1fr)] gap-x-4 gap-y-3 p-4 sm:grid-cols-[4.5rem_minmax(0,1fr)_auto_9.5rem] sm:items-center">
               <div className="studio relative row-span-2 aspect-square overflow-hidden rounded-[var(--radius-control)] sm:row-span-1">
                 {l.imageUrl ? (
-                  <Image src={l.imageUrl} alt="" fill sizes="72px" className="object-contain p-1.5 mix-blend-multiply" />
+                  <PartImage fallback={<PartPlaceholder label={t('parts.noImage')} variant="thumb" />} src={l.imageUrl} alt="" fill sizes="72px" className="object-contain p-1.5 mix-blend-multiply" />
                 ) : (
                   <PartPlaceholder label={t('parts.noImage')} variant="thumb" />
                 )}

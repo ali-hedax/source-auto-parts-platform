@@ -13,7 +13,8 @@ export function heroMediaUrls(document: BuilderDocument): string[] {
   for (const block of document.sections) {
     if (block.kind !== 'cinematic-hero' || !block.film) continue;
     for (const clip of block.film.clips) for (const url of [clip.desktop, clip.desktopWebm, clip.mobile, clip.poster, clip.mobilePoster]) if (url) urls.add(url);
-    for (const url of [block.imageUrl, block.mobileImageUrl, block.film.logoUrl]) if (url) urls.add(url);
+    // Stills are frames of the film; the logo is the owner's own brand image (uploaded as a content image), not footage.
+    for (const url of [block.imageUrl, block.mobileImageUrl]) if (url) urls.add(url);
   }
   return [...urls];
 }

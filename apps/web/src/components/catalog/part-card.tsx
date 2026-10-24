@@ -1,11 +1,11 @@
 import type { ProductCard } from '@hedax/contracts';
 import { fitmentLabels } from '@hedax/domain';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
-import Image from 'next/image';
 import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { Price } from '@/components/ui/format';
 import { Badge, Code, StatusBadge } from '@/components/ui/misc';
+import { PartImage } from '@/components/store/part-image';
 import { PartPlaceholder } from '@/components/store/part-placeholder';
 
 /**
@@ -29,7 +29,8 @@ export function PartCard({ product, priority = false }: { product: ProductCard; 
       <Link href={`/parts/${product.slug}`} className="grid h-full grid-cols-[6.5rem_minmax(0,1fr)] focus-visible:outline-offset-[-3px] sm:flex sm:flex-col">
         <div className="studio relative m-3 me-0 aspect-square overflow-hidden rounded-[calc(var(--radius-card)-6px)] sm:m-0 sm:aspect-[4/3] sm:rounded-none">
           {product.primaryImage ? (
-            <Image
+            <PartImage
+              fallback={<PartPlaceholder label={t('parts.noImage')} />}
               src={product.primaryImage.url}
               alt={locale === 'en' ? (product.primaryImage.alt.en ?? product.primaryImage.alt.fa) : product.primaryImage.alt.fa}
               fill

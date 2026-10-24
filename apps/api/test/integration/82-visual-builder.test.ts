@@ -78,7 +78,8 @@ describe('visual builder with real PostgreSQL and authentication', () => {
 
     const draft = await state();
     const hero = { ...newBuilderBlock('cinematic-hero', 'film'),
-      film: { clips: [{ id: 'main', active: true, desktop: mp4.body.url, desktopWebm: webm.body.url, mobile: '', poster: '', mobilePoster: '' }], playback: 'once' as const, logoAt: 0.5, logoUrl: '', logoWidth: 28, discovery: true } };
+      film: { clips: [{ id: 'main', active: true, desktop: mp4.body.url, desktopWebm: webm.body.url, mobile: '', poster: '', mobilePoster: '' }], playback: 'once' as const, logoAt: 0.5, logoUrl: '/brand/source/logo-dark.png', logoWidth: 28, discovery: true } };
+    // The owner's own logo (an ordinary content image) is not film footage and needs no clearance.
     const document = { ...draft.document, sections: [hero, ...draft.document.sections.filter(b => b.id !== 'film')] };
     expect((await owner.put(endpoint, { version: draft.version, document })).status).toBe(200);
     let version = (await state()).version;
