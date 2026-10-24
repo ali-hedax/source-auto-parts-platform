@@ -11,7 +11,7 @@
 
 Source connects an auto parts storefront with custom sourcing, quotations, staff operations and fulfillment. It supports Persian (RTL) and English (LTR), with shared business rules across the web application, API and background workers.
 
-> **Pre-launch — updated 12 October 2026.** The public site is online at <https://sourcebyhedax.ir/fa>, but customer SMS sign-in and online payment are not connected yet, so it does not take real orders. See the [deployment status](docs/DEPLOYMENT_STATUS.md).
+> **Pre-launch — updated 24 October 2026.** The public site is online at <https://sourcebyhedax.ir/fa>, but customer SMS sign-in and online payment are not connected yet, so it does not take real orders. See the [deployment status](docs/DEPLOYMENT_STATUS.md).
 
 ## Product workflows
 
@@ -21,6 +21,7 @@ Source connects an auto parts storefront with custom sourcing, quotations, staff
 | Request custom sourcing | Requests for any brand, conversation and file attachments, versioned quotations, acceptance and sourcing stages |
 | Operate the business | Staff roles, mandatory staff MFA, audit history, inventory imports/exports, returns and refunds |
 | Produce quotations | Persian and English PDFs, IRR settlement and AED reference pricing |
+| Manage the public look | Visual page builder with drafts, private preview, publish history and rollback; a hero film from the media library that can be published only after release clearance; slogan, logos, brand logos, guide avatar and social links edited in the panel |
 
 These capabilities have local test coverage; live payment and SMS acceptance still require provider accounts and public-site validation. Test evidence is recorded in [TEST_REPORT.md](docs/TEST_REPORT.md).
 
@@ -72,6 +73,10 @@ On Windows, the existing `scripts/local/start-local.ps1` and `stop-local.ps1` ma
 pnpm lint
 pnpm typecheck
 pnpm test:unit
+# with a built API: database integration tests on a throwaway PostgreSQL
+pnpm --filter @hedax/api build && pnpm --filter @hedax/api test:integration
+# browser tests against the fixture data source
+pnpm --filter @hedax/web exec playwright test
 ```
 
 The proposed GitHub Actions workflow runs lint, type checks and domain/contracts/API unit tests on pushes and pull requests. PDF/browser tests and database integration tests have separate setup requirements; see [CONTRIBUTING.md](CONTRIBUTING.md). A configured workflow is not a claim that a run has passed.
