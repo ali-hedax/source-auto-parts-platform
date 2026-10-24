@@ -6,7 +6,7 @@ This public page describes release readiness, not private infrastructure or secu
 
 ## Public availability
 
-The public site is reachable at <https://sourcebyhedax.ir/fa>. Checked from outside on 12 October 2026: Persian and English storefront pages and the staff sign-in page load over HTTPS with a valid certificate; `http://` and `www.` redirect to the main address; Content-Security-Policy, HSTS and frame protection headers are present.
+The public site is reachable at <https://sourcebyhedax.ir/fa>. Checked from outside again on 24 October 2026 after the storefront release: Persian and English storefront, catalog, help, cart and product pages load over HTTPS, and staff pages ask for staff sign-in. Earlier check, 12 October 2026: Persian and English storefront pages and the staff sign-in page load over HTTPS with a valid certificate; `http://` and `www.` redirect to the main address; Content-Security-Policy, HSTS and frame protection headers are present.
 
 This is a **pre-launch** site, not a store open for business:
 
