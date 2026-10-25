@@ -1,6 +1,6 @@
 # Source by HEDAX — وضعیت و نقطهٔ ادامه
 
-آخرین به‌روزرسانی: 2026-10-25، 09:50 Asia/Tehran؛ اصلاح چیدمان Hero و لوگوها در Preview عمومی آزموده شدند؛ PR #35 پیش‌نویس است و انتشار این اصلاح‌ها روی Production منتظر تأیید مالک است.
+آخرین به‌روزرسانی: 2026-10-25، Asia/Tehran؛ چیدمان و افکت تایپ شعارهای Hero در Preview عمومی آزموده شدند؛ PR #35 پیش‌نویس است و انتشار این اصلاح‌ها روی Production منتظر تأیید مالک است.
 
 > توجه: این worktree جدا (`Desktop/source-premium-experience`) است. checkpoint انتشار
 > PR #29 در PROGRESS.md پوشهٔ اصلی (شاخهٔ `codex/assistant-phase-one`، تغییر commit‌نشدهٔ
@@ -12,13 +12,14 @@
 
 ## نقطهٔ فعلی
 
-### Implemented Pending Verification — typewriter slogan intro — 2026-10-25, Asia/Tehran
+### Completed & Tested — typewriter slogan intro on Preview — 2026-10-25, Asia/Tehran
 
 - **Owner scope:** add a page-entry typing effect to both existing slogans on the current Preview revision. No separate authorization to merge or publish this revision on Production; PR35 stays draft.
 - **Baseline:** branch codex/hero-editorial-preview, clean inspected HEAD ce4e5f7a6389e1303d0c58d165d2f21409a091af; final prior CI40168693824 SUCCESS. Root/web instructions, scoped design record and Next client/server guide read.
 - **Implementation:** new small CinematicTypewriter client enhancement; primary phrase types once in1.8s after120ms, secondary follows after2070ms and types in1.2s. Local fonts settle first. Grapheme segmentation preserves Persian joining/combining characters. Complete accessible source remains in flow; aria-hidden visual prefix changes without moving the media/cards. No looping/deletion, caret disappears on completion, timers cleaned on unmount. Reduced-motion and no-JS immediately show both full phrases; runtime motion preference changes finish the intro. Appearance values remain the source. Changed cinematic-hero.tsx/cinematic.css, new cinematic-typewriter.tsx and scoped design note. Dev-generated next-env.d.ts route imports restored to their original build form after stopping the local server.
 - **Completed & Tested — local:** web typecheck, focused ESLint and diff check exit0. Real Chromium against local Next rendering the isolated Preview public API: FA/EN at1440/390, sequential partial text then exact completed slogans, one accessible complete heading, zero copy position/height change during typing, no horizontal overflow/runtime errors, no loop, reload restarts. Reduced motion, runtime preference change and JS-disabled complete-text fallback PASS. Evidence: this chat outputs/typewriter-local/acceptance.json and partial/complete screenshots. Local dev server stopped; no admin/content writes.
-- **Next:** push candidate to PR35, build exact source and replace only existing isolated Preview web with rollback/Production identity guards; verify the same intro on the public URL. Production and real data remain untouched.
+- **Completed & Tested — hosted:** code117a51dcc084e5f1f307f063c36eb0ae6b059d2d pushed to PR35; CI40169329068 SUCCESS (lint/types/unit/catalogue/CMS/backup drill/web build). Remote exact-source web build exit0. Only Preview web rolled to hedax-typewriter-web:117a51dcc084 from /opt/hedax-preview-candidates/typewriter-117a51dcc084; images.before.yml retained for rollback. Production web/api/worker/postgres/caddy identities and published document hash preserved; Preview API/database identities preserved; web healthy/public HTTP200 with typewriter markup. Hosted Chromium repeated FA/EN at1440/390, sequential partial→complete text, exact accessible heading, unchanged copy bounds throughout, no overflow/page errors, no loop, reload restart, reduced-motion/runtime preference change and JS-disabled fallback: PASS, exit0. Evidence in this chat outputs/typewriter/acceptance.json and typing/complete FA/EN screenshots; partial desktop/phone frames visually reviewed. No admin/content/media/account changes in this step.
+- **Requires Owner Decision / Next:** owner can reload https://preview.sourcebyhedax.ir/fa to see the one-time intro. Keep PR35 draft and unmerged; merge/Production rollout still require explicit approval of this revision. The subsequent checkpoint commit is documentation-only; deployed code remains117a51d. Earlier cold-mobile CWV follow-up is unchanged, not remeasured here.
 
 ### Completed & Tested — display-only Hero on isolated Preview — 2026-10-25, 09:50 Asia/Tehran
 
