@@ -12,9 +12,10 @@ shopping ground #F2F5F8, ink #15243A. Typography: self-hosted Lalezar display
 lettering in Arabic/Persian and Latin; existing Vazirmatn/Montserrat for the UI.
 Lalezar comes from Google Fonts, with its OFL included next to the font files.
 
-Desktop: `[ slogan column | full 16:9 film column ]` in RTL; reverse in English.
-Independent columns, no negative overlap. Banner occupies the first viewport
-below the site header. Phone: centered copy followed by uncropped media. Below
+Latest owner revision: full-width 16:9 film first, centered full-width slogan
+block below, in both languages and on every device. No side-by-side columns.
+Keep the entire uncropped film; the vertical banner can extend below the first
+viewport on wide screens rather than shrinking/cropping the footage. Below
 the banner: `[ orange vehicle card | catalogue card | sourcing card ]`, then
 category chips. On phones the three cards stack with adequate touch targets.
 
@@ -24,6 +25,8 @@ No added decorative labels, fake vehicle logos or regenerated brand marks.
 
 Owner-requested slogan motion: one typewriter sequence on page entry, primary
 phrase then secondary, finishing in about 3.3 seconds after local fonts settle.
+When the tall film puts the copy below the fold, start on its first entry into
+view so the visitor actually sees the typing; it does not replay on scrolling.
 Whole graphemes form the visible prefix so Persian joining stays natural. The
 complete accessible source reserves final line height; the visual overlay does
 not move the media/cards. No loop or deletion. Reduced motion and no JavaScript

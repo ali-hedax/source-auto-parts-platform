@@ -145,11 +145,11 @@ html[lang='en'] .cine-lede { max-width: 28rem; }
 .cine { background: #05080d; }
 .cine::after { display: none; }
 .cine-stage {
-  grid-template-columns: minmax(0, .95fr) minmax(0, 1.15fr);
-  gap: clamp(1.5rem, 4cqi, 5rem); min-height: max(38rem, calc(100svh - 7rem));
-  padding: clamp(2rem, 5cqi, 5.5rem) clamp(1.5rem, 5cqi, 6rem);
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start; align-items: start;
+  gap: 0; min-height: calc(100svh - 7rem); padding: 0;
 }
-.cine-copy { padding: 1rem 0; }
+.cine-copy { width: 100%; max-width: 100rem; margin-inline: auto; padding: clamp(1.75rem, 4cqi, 4rem) clamp(1rem, 4cqi, 5rem); text-align: center; }
 .builder-root .cine .cine-title {
   font-family: Lalezar, var(--font-fa); font-weight: 400; font-synthesis: none;
   font-size: clamp(2.8rem, 5.2cqi, 6rem); line-height: 1.3; letter-spacing: 0; margin: 0;
@@ -174,7 +174,7 @@ html[lang='en'] .cine-lede { max-width: 28rem; }
   .cine-typewriter-source { color: inherit; }
   .cine-typewriter-visible { display: none; }
 }
-.cine-film { order: 0; width: 100%; min-width: 0; margin: 0; -webkit-mask-image: none; mask-image: none; }
+.cine-film { order: -1; width: 100%; min-width: 0; margin: 0; -webkit-mask-image: none; mask-image: none; }
 .cine-controls { inset-inline-end: 1rem; bottom: 3%; top: auto; }
 .cine-discover {
   --cine-ink: #15243a; --cine-ink-mid: #4a5568; --cine-line: #cbd5e0; --cine-signal: #2467a9;
@@ -203,19 +203,17 @@ html[lang='en'] .cine-lede { max-width: 28rem; }
 .cine-categories a { min-height: 2.75rem; background: #fff; color: #334155; }
 .cine-categories a:hover { background: #fff; }
 @container (max-width: 1000px) {
-  .cine-stage { gap: 1.25rem; padding-inline: 1.75rem; }
   .cine-paths { gap: .75rem; }
   .cine-paths a { grid-template-columns: 2.75rem minmax(0, 1fr); gap: .75rem; padding: 1.2rem; }
   .cine-path-icon { width: 2.75rem; height: 2.75rem; border-radius: .85rem; }
   .cine-path-arrow { display: none; }
 }
 @container (max-width: 700px) {
-  .cine-stage { grid-template-columns: minmax(0, 1fr); align-content: center; gap: 2rem; min-height: max(36rem, calc(100svh - 7.75rem)); padding: 2rem 1rem; }
-  .cine-copy { padding: 0 .5rem; text-align: center; }
+  .cine-stage { align-content: start; min-height: calc(100svh - 7.75rem); }
+  .cine-copy { padding: 1.75rem 1rem 2rem; }
   .builder-root .cine .cine-title { font-size: clamp(2.6rem, 8cqi, 4rem); }
   .builder-root .cine .cine-title[lang='en'] { font-size: clamp(2.7rem, 9cqi, 4rem); }
   .cine .cine-tagline { font-size: clamp(1.6rem, 5.6cqi, 2.4rem); margin-top: .85rem; }
-  .cine-film { max-width: 38rem; margin-inline: auto; }
   .cine-controls { bottom: 0; inset-inline-end: .5rem; }
   .cine-progress { display: none; }
   .cine-discover { padding: 1.25rem 1rem; }

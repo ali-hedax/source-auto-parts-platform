@@ -12,6 +12,14 @@
 
 ## نقطهٔ فعلی
 
+### Implemented Pending Verification — full-width vertical Hero — 2026-10-25, Asia/Tehran
+
+- **Owner scope:** move the full-width banner/film above both slogans, no side-by-side layout. Keep the existing typewriter effect. Preview-only revision; PR35 stays draft pending explicit release approval.
+- **Baseline:** clean branch codex/hero-editorial-preview at c0d5cf4a300dc9eaeae402a606bb720140a209ea, prior final CI40169529111 SUCCESS. Root/web instructions and scoped design record read. Existing Preview image117a51d and Production PR33 retained before rollout.
+- **Implementation:** single column in every locale/viewport; edge-to-edge uncropped16:9 media first, centered slogan block below; shopping cards remain outside and below the Hero. Natural media aspect can extend the banner below the first fold on wide screens; communicated this consequence to the owner. Start the existing one-time typing sequence when the shared slogan block enters view so it does not finish unseen below a tall film. Keep reduced-motion/no-JS behavior and existing panel text/media values. Changed cinematic.css, cinematic-typewriter.tsx, scoped design record and this checkpoint.
+- **Completed & Tested — layout prototype:** browser-only injection of candidate stylesheet on public Preview (no persisted changes), FA/EN at1920/1440/768/390/360: full viewport media width, media above centered text without overlap, no horizontal overflow, uncropped16:9 frame, cards below. Desktop/phone screenshots reviewed in this chat outputs/vertical-layout-local/. Prototype exposed excess tablet grid-row spacing; stage alignment now starts at the top, to verify in hosted candidate. Entry observer needs final type/lint and hosted browser checks.
+- **Next:** push candidate to PR35, build exact source, roll only isolated Preview web with existing rollback/Production-preservation guards, verify vertical geometry plus visible one-time typing and accessibility fallbacks on the real public URL. No Production/content/account mutations authorized or needed.
+
 ### Completed & Tested — typewriter slogan intro on Preview — 2026-10-25, Asia/Tehran
 
 - **Owner scope:** add a page-entry typing effect to both existing slogans on the current Preview revision. No separate authorization to merge or publish this revision on Production; PR35 stays draft.
