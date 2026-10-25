@@ -1,15 +1,17 @@
-# Preview on the existing Arvan server — prepared, NOT deployed
+# Preview on the existing Arvan server — deployed and verified
 
-Owner direction: reuse existing infrastructure; no new server purchase. These
-files prepare a shared-host option for review. They do not authorize changes to
-Production configuration or cleanup, and do not establish a live Preview URL.
+Owner direction: reuse existing infrastructure; no new server purchase. The owner
+explicitly approved the shared-host cleanup, separate Preview stack, proxy and DNS
+changes on 2026-10-24, then separately authorized Merge and Production Hero release.
+The public Preview is now https://preview.sourcebyhedax.ir/fa with valid TLS and
+external browser acceptance. See the 2026-10-25 PROGRESS checkpoint for evidence.
 
 Read-only inspection on 2026-10-24: 4 vCPU, 7,947 MiB RAM, 5,107 MiB available;
 root disk 91% used with 6.6 GB available. Seven Production containers healthy or
 running. Docker reports 7.577 GB reclaimable build cache. Old application images,
 backups, named volumes and Production data must be retained.
 
-## Exact proposed changes requiring approval before execution
+## Reviewed deployment procedure (approved and applied)
 
 1. Remove only unused Docker BUILD CACHE, after rechecking disk/candidates. Do not
    prune images, containers or volumes; do not touch release rollback artifacts.
@@ -64,6 +66,17 @@ are disabled. Local scanner mode is never allowed on this staging stack.
   virtual host/network attachment and stops the Preview stack. Retain its volumes
   until the owner separately authorizes deletion.
 
-Current limitations: the public hostname is NXDOMAIN; no shared-host changes
-have been applied. Dependency audit has one high and one moderate transitive
-advisory (see current PROGRESS checkpoint); release review must retain them.
+Applied state: seven isolated services are healthy/running; only Preview was added
+to DNS, its public storefront has noindex headers, and ordinary staff MFA/RBAC
+protects its administration. A protected Preview-only owner is stored outside Git.
+The current proxy wrapper includes `/opt/hedax-preview-edge.yml`, with a separate
+persisted `/opt/hedax-preview-edge.Caddyfile`. Current in-place Production Caddy
+bind file also has the Preview host addition; this expected operational diff must
+be retained when changing server checkouts. Backups precede the changes.
+
+AV bootstrap encountered a CDN403; the existing signed public AV definitions were
+copied into Preview's separate volume and readiness/freshness verified. No
+Production volume is mounted in Preview and no customer data was imported.
+
+Dependency audit retains one high and one moderate transitive advisory (see
+current PROGRESS checkpoint). This release does not claim a clean project audit.
