@@ -159,6 +159,21 @@ html[lang='en'] .cine-lede { max-width: 28rem; }
   font-family: Lalezar, var(--font-fa); font-weight: 400; font-synthesis: none;
   font-size: clamp(1.7rem, 2.6cqi, 3.15rem); line-height: 1.45; margin-top: 1.1rem; color: #bfcddb;
 }
+/* Reserve the final lines while whole graphemes type, preserving Persian shaping. */
+.cine-typewriter { display: block; position: relative; }
+.cine-typewriter-source { display: block; color: transparent; }
+.cine-typewriter-visible { position: absolute; inset: 0; user-select: none; }
+.cine-typewriter-caret { display: inline-block; position: relative; width: 0; }
+.cine-typewriter-caret::after {
+  content: ''; position: absolute; inset-inline-start: .06em; bottom: -.05em;
+  width: 2px; height: .8em; background: currentColor;
+  animation: cine-typewriter-blink .65s step-end infinite;
+}
+@keyframes cine-typewriter-blink { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .cine-typewriter-source { color: inherit; }
+  .cine-typewriter-visible { display: none; }
+}
 .cine-film { order: 0; width: 100%; min-width: 0; margin: 0; -webkit-mask-image: none; mask-image: none; }
 .cine-controls { inset-inline-end: 1rem; bottom: 3%; top: auto; }
 .cine-discover {

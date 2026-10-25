@@ -4,13 +4,13 @@ import { ArrowLeft, ArrowRight, CarFront, Boxes, PackageSearch } from 'lucide-re
 import { preload } from 'react-dom';
 import { Link } from '@/i18n/navigation';
 import { CinematicFilm } from './cinematic-film';
+import { CinematicTypewriter } from './cinematic-typewriter';
 
 const DEFAULT_LOGO = '/brand/source/logo-dark.png';
 
 /**
  * Chapter 1 (the film) and chapter 2 (finding the part) of the cinematic home page.
- * Everything a shopper needs — search, vehicle, catalogue, sourcing — is plain server markup,
- * usable before (or without) the film and without client JavaScript.
+ * Shopping paths remain server markup; the film and slogan intro enhance the banner.
  */
 export function CinematicHero({ block: b, content, categories, locale }: { block: BuilderBlock; content: SiteContentView | null; categories: CategoryView[]; locale: string }) {
   const fa = locale === 'fa';
@@ -39,8 +39,8 @@ export function CinematicHero({ block: b, content, categories, locale }: { block
   return <><section className="cine" aria-labelledby={`${b.id}-title`}>
     <div className="cine-stage">
       <div className="cine-copy" data-assistant-avoid>
-        <h1 id={`${b.id}-title`} className="cine-title" lang={fa ? 'fa' : 'en'} dir={fa ? 'rtl' : 'ltr'}>{L(b.title)}</h1>
-        {secondaryTitle ? <p className="cine-tagline" lang={fa ? 'en' : 'fa'} dir={fa ? 'ltr' : 'rtl'}>{secondaryTitle}</p> : null}
+        <h1 id={`${b.id}-title`} className="cine-title" lang={fa ? 'fa' : 'en'} dir={fa ? 'rtl' : 'ltr'}><CinematicTypewriter key={L(b.title)} text={L(b.title)} delay={120} duration={1800} /></h1>
+        {secondaryTitle ? <p className="cine-tagline" lang={fa ? 'en' : 'fa'} dir={fa ? 'ltr' : 'rtl'}><CinematicTypewriter key={secondaryTitle} text={secondaryTitle} delay={2070} duration={1200} /></p> : null}
       </div>
       <CinematicFilm film={film} still={b.imageUrl} mobileStill={b.mobileImageUrl} alt={L(b.alt)} logoUrl={film.logoUrl || brand?.logoUrl || DEFAULT_LOGO} logoAlt={L(brand?.logoAlt) || 'SOURCE by HEDAX'} locale={locale} />
     </div>

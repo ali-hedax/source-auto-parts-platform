@@ -12,6 +12,14 @@
 
 ## نقطهٔ فعلی
 
+### Implemented Pending Verification — typewriter slogan intro — 2026-10-25, Asia/Tehran
+
+- **Owner scope:** add a page-entry typing effect to both existing slogans on the current Preview revision. No separate authorization to merge or publish this revision on Production; PR35 stays draft.
+- **Baseline:** branch codex/hero-editorial-preview, clean inspected HEAD ce4e5f7a6389e1303d0c58d165d2f21409a091af; final prior CI40168693824 SUCCESS. Root/web instructions, scoped design record and Next client/server guide read.
+- **Implementation:** new small CinematicTypewriter client enhancement; primary phrase types once in1.8s after120ms, secondary follows after2070ms and types in1.2s. Local fonts settle first. Grapheme segmentation preserves Persian joining/combining characters. Complete accessible source remains in flow; aria-hidden visual prefix changes without moving the media/cards. No looping/deletion, caret disappears on completion, timers cleaned on unmount. Reduced-motion and no-JS immediately show both full phrases; runtime motion preference changes finish the intro. Appearance values remain the source. Changed cinematic-hero.tsx/cinematic.css, new cinematic-typewriter.tsx and scoped design note. Dev-generated next-env.d.ts route imports restored to their original build form after stopping the local server.
+- **Completed & Tested — local:** web typecheck, focused ESLint and diff check exit0. Real Chromium against local Next rendering the isolated Preview public API: FA/EN at1440/390, sequential partial text then exact completed slogans, one accessible complete heading, zero copy position/height change during typing, no horizontal overflow/runtime errors, no loop, reload restarts. Reduced motion, runtime preference change and JS-disabled complete-text fallback PASS. Evidence: this chat outputs/typewriter-local/acceptance.json and partial/complete screenshots. Local dev server stopped; no admin/content writes.
+- **Next:** push candidate to PR35, build exact source and replace only existing isolated Preview web with rollback/Production identity guards; verify the same intro on the public URL. Production and real data remain untouched.
+
 ### Completed & Tested — display-only Hero on isolated Preview — 2026-10-25, 09:50 Asia/Tehran
 
 - **Owner scope:** approved six-item list and said start. This revision is Preview-first; no Production rollout, Merge or Production taxonomy mutation until the owner reviews it. Prior Hero release approval does not authorize this new appearance release.

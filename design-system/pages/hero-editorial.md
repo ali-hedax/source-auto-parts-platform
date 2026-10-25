@@ -22,6 +22,13 @@ Keep the accepted footage, media library, no-watermark gate, reduced-motion and
 data-saving fallback. Preserve whole image/film framing and stop/replay controls.
 No added decorative labels, fake vehicle logos or regenerated brand marks.
 
+Owner-requested slogan motion: one typewriter sequence on page entry, primary
+phrase then secondary, finishing in about 3.3 seconds after local fonts settle.
+Whole graphemes form the visible prefix so Persian joining stays natural. The
+complete accessible source reserves final line height; the visual overlay does
+not move the media/cards. No loop or deletion. Reduced motion and no JavaScript
+show both complete slogans immediately. Existing Appearance text edits feed it.
+
 Four input logos are JPG 800×500 (0.4MP), under 5MB. Source provenance:
 - Iran Khodro: https://www.ikco.ir/fa/Images/logo-fa.jpg (official header artwork).
 - SAIPA: https://commons.wikimedia.org/wiki/File:SAIPA-wiki.png (public-domain dedication by Javad rahmani 1980; format conversion/white padding only).
