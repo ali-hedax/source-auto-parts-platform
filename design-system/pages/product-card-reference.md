@@ -23,6 +23,8 @@ a prefilled sourcing request. Controls are sibling to the product link, with
 accessible labels and keyboard focus, no nested buttons.
 
 Preview review only; do not merge/publish to Production before owner approval.
+Release update2026-10-25: explicit approval received; PR35/da5a199 is now live
+using the existing24 real Production products. No synthetic records transferred.
 
 Preview catalogue is otherwise empty. Four clearly marked synthetic items
 (PREVIEW-CARD-01..04) exercise available/long-price/inquiry/out-of-stock cards;

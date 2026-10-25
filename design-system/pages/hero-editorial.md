@@ -6,6 +6,9 @@ Move shopping paths and category chips to a separate section before new products
 The owner explicitly requests one orange card, superseding the older master
 palette restriction for this component. Production publication requires the
 owner's review of this Preview; do not reuse the earlier release authorization.
+Release update2026-10-25: the owner explicitly approved PR35 merge/Production;
+the reviewed code is deployed asda5a199, preserving the live Production media
+and playback settings. Preview-only gates above are historical for this revision.
 
 Palette: stage #05080D, paper #F6F8FC, secondary text #BFCDDB, orange #FF8A00,
 shopping ground #F2F5F8, ink #15243A. Typography: self-hosted Lalezar display
