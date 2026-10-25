@@ -3,7 +3,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 /**
  * Home-page vehicle finder (fixtures preview): the published home of the fixture sets the film, the
- * finder under it, new products and the shopping paths at the end (cookie hedax_fixture_home=finder).
+ * finder and the shopping paths under it, then new products (cookie hedax_fixture_home=finder).
  */
 test.beforeEach(async ({ context, baseURL }) => {
   await context.addCookies([{ name: 'hedax_fixture_home', value: 'finder', url: baseURL! }]);
@@ -29,11 +29,11 @@ async function choose(page: Page, n: number, option: string) {
 }
 
 test.describe('home layout', () => {
-  test('the finder sits right under the film, full width; shopping paths and categories move to the end', async ({ page }) => {
+  test('the finder and then the shopping paths sit right under the film, full width', async ({ page }) => {
     await page.goto('/fa');
     const kinds = await page.locator('[data-builder-kind]').evaluateAll((els) => els.map((e) => e.getAttribute('data-builder-kind')));
-    expect(kinds).toEqual(['cinematic-hero', 'vehicle-finder', 'new-products', 'shopping-paths']);
-    // The three shopping paths render once, in the last section, not inside the film.
+    expect(kinds).toEqual(['cinematic-hero', 'vehicle-finder', 'shopping-paths', 'new-products']);
+    // The three shopping paths render once, in their own section, not inside the film.
     await expect(page.locator('.cine-discover')).toHaveCount(1);
     await expect(page.locator('[data-builder-kind="shopping-paths"] .cine-discover')).toHaveCount(1);
     await expect(page.locator('[data-builder-kind="cinematic-hero"] .cine-discover')).toHaveCount(0);
@@ -115,6 +115,7 @@ test.describe('dependent steps', () => {
     await page.keyboard.press('Home');
     await page.keyboard.press('Enter');
     await expect(step(page, 2).locator('.vf-value')).toHaveText('پراید');
+    await expect(step(page, 3).locator('.vf-field')).toBeEnabled();
     await step(page, 3).locator('.vf-field').focus();
     await page.keyboard.press('Enter');
     await page.keyboard.press('Escape');

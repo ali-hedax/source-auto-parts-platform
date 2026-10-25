@@ -247,8 +247,8 @@ export async function handleFixture(method: string, pathWithQuery: string, rawBo
     if (finder && 'invalid' in finder) return { status: 400, body: { error: { code: 'VEHICLE_SELECTION_INVALID', message: 'The vehicle selection is not valid', requestId: 'fixture', details: { field: finder.invalid } } } };
     if (!group && params.get('year')) return { status: 400, body: { error: { code: 'VEHICLE_SELECTION_INVALID', message: 'The vehicle selection is not valid', requestId: 'fixture', details: { field: 'year' } } } };
   }
-  // Tests of the finder layout set hedax_fixture_home=finder: a published home with the film, the
-  // vehicle finder under it, new products and the shopping paths at the end. Otherwise no published page.
+  // Tests of the finder layout set hedax_fixture_home=finder: a published home with the film, then the
+  // vehicle finder and the shopping paths right under it, then new products. Otherwise no published page.
   if (route === 'GET /site/builder/home' && cookies['hedax_fixture_home'] === 'finder') return ok(fixtureFinderHome());
   if (route === 'GET /catalog/products') return ok(list(params, false));
   if (route === 'GET /catalog/vehicle-finder/groups') {
@@ -501,5 +501,5 @@ function fixtureFinderHome() {
   const state = fixtureBuilderState('home');
   const film = { ...newBuilderBlock('cinematic-hero', 'film'), film: { ...newBuilderBlock('cinematic-hero', 'film').film!, discovery: true } };
   const products = { ...newBuilderBlock('new-products', 'new-products'), title: { fa: 'محصولات جدید', en: 'New products' }, query: { category: '', brand: '', vehicle: '', model: '', productSlugs: [], limit: 4 } };
-  return { ...state.document, sections: [film, newBuilderBlock('vehicle-finder', 'vehicle-finder'), products, newBuilderBlock('shopping-paths', 'shopping-paths')] };
+  return { ...state.document, sections: [film, newBuilderBlock('vehicle-finder', 'vehicle-finder'), newBuilderBlock('shopping-paths', 'shopping-paths'), products] };
 }
