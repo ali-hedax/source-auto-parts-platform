@@ -22,8 +22,12 @@ reviewed; reduced-motion/no-JS full text inherits the same language colors.
 
 Latest owner revision: full-width 16:9 film first, centered full-width slogan
 block below, in both languages and on every device. No side-by-side columns.
-Keep the entire uncropped film; the vertical banner can extend below the first
-viewport on wide screens rather than shrinking/cropping the footage. Below
+Latest desktop correction: keep the entire uncropped film but constrain its
+height with the available viewport below the header, reserving space for both
+typed slogans. Desktop/tablet above700px use a two-row grid and height-aware
+type/spacing, so film and complete slogans are visible without initial scrolling.
+Phones retain their existing layout. The owner explicitly approved proceeding
+through Production publication without a separate Preview round. Below
 the banner: `[ orange vehicle card | catalogue card | sourcing card ]`, then
 category chips. On phones the three cards stack with adequate touch targets.
 

@@ -228,3 +228,25 @@ html[lang='en'] .cine-lede { max-width: 28rem; }
   .cine-discover * { animation: none !important; transition: none !important; }
   .cine-paths a:hover { transform: none; }
 }
+
+/* Keep the complete film and both typed slogans in the opening desktop viewport. */
+@container (min-width: 701px) {
+  .cine-stage {
+    height: calc(100svh - 7rem); min-height: 0;
+    grid-template-rows: minmax(0, 1fr) auto; align-items: center;
+  }
+  .cine-film {
+    width: auto; height: 100%; max-width: 100%; max-height: 56.25cqi;
+    aspect-ratio: 16 / 9; justify-self: center;
+  }
+  .cine-copy { padding: clamp(.75rem, 1.8svh, 1.5rem) clamp(1.5rem, 4cqi, 5rem); }
+  .builder-root .cine .cine-title {
+    font-size: clamp(2rem, min(3.6cqi, 6svh), 4.25rem); line-height: 1.2;
+  }
+  .builder-root .cine .cine-title[lang='en'] {
+    font-size: clamp(2rem, min(3.6cqi, 6svh), 4.25rem); line-height: 1.12;
+  }
+  .cine .cine-tagline {
+    font-size: clamp(1.35rem, min(2cqi, 3.8svh), 2.5rem); line-height: 1.3; margin-top: .6rem;
+  }
+}
