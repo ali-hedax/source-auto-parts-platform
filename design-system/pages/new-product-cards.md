@@ -1,0 +1,5 @@
+# New products refinement — 2026-10-25
+
+Owner requests smaller, more delicate homepage New products cards and a less oversized price. Keep the approved white/blue/red identity, product content, exact monetary values, currency and existing4/2/1 grid. Scope selectors only to the New products builder block; catalogue and other product collections keep their current presentation.
+
+Use a shallower1.8:1 image frame capped at180px (whole product contained),16px body gutters,16px product title at600 weight,13px metadata including its code,12px secondary information,20px amount with smaller currency,48px purchase action with20px icon, subtle1px border and8px card radius. Appearance image/title/price overrides remain effective. Keep complete product text, accessible labels,44px minimum touch targets, keyboard focus and RTL/LTR direction. Owner explicitly clarified removing the “/ عدد” suffix from New products prices. Omit only the count-unit suffix there (both languages); retain non-count sales units and catalogue/detail displays. Keep the real sales unit for cart quantity and all price calculations; no source-data changes.

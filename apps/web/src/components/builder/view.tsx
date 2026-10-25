@@ -39,7 +39,7 @@ export function BuilderBlockView({ block: b, data, locale, hasShoppingPaths = fa
   if (b.kind === 'vehicle-brands' || b.kind === 'vehicle-models') return <>{heading}<VehicleFinder vehicles={data.vehicles} brands={data.brands} byBrand={b.kind === 'vehicle-brands'} locale={locale} /></>;
   if (['new-products', 'bestsellers', 'discounts', 'offers', 'selected-products', 'vehicle-products'].includes(b.kind)) {
     const products = data.products[b.id] ?? [];
-    return <>{heading}<ul className="builder-grid builder-products">{products.map(p => <li key={p.id}><PartCard product={p} /></li>)}</ul>{!products.length ? <p className="py-6 text-steel">{locale === 'fa' ? 'در حال حاضر کالایی در این مجموعه وجود ندارد.' : 'No products in this collection yet.'}</p> : null}{button}</>;
+    return <>{heading}<ul className="builder-grid builder-products">{products.map(p => <li key={p.id}><PartCard product={p} hideCountUnit={b.kind === 'new-products'} /></li>)}</ul>{!products.length ? <p className="py-6 text-steel">{locale === 'fa' ? 'در حال حاضر کالایی در این مجموعه وجود ندارد.' : 'No products in this collection yet.'}</p> : null}{button}</>;
   }
   if (['categories', 'image-categories', 'brands'].includes(b.kind)) {
     const rows = b.kind.includes('categor') ? data.categories.map(c => ({ id: c.slug, title: c.name, href: `/parts?category=${encodeURIComponent(c.slug)}` })) : data.brands.map(c => ({ id: c.slug, title: c.name, href: b.kind === 'brands' ? `/brands/${c.slug}` : `/cars?brand=${encodeURIComponent(c.slug)}` }));
