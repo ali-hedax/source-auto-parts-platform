@@ -6,12 +6,13 @@ import { Alert, EmptyState } from '@/components/ui/misc';
 import { ChapterBand } from '@/components/store/chapter-band';
 import { Link } from '@/i18n/navigation';
 import { serverApi } from '@/lib/api/server';
+import { ApiRequestError } from '@/lib/api/errors';
 import { displayCurrency } from '@/lib/preferences';
 import { CatalogFilters } from './filters';
 import { Pagination } from './pagination';
 import { PartCard } from './part-card';
 
-const KEYS = ['q', 'vehicle', 'model', 'brand', 'maker', 'category', 'partType', 'condition', 'origin', 'inStock', 'sort', 'page'] as const;
+const KEYS = ['q', 'group', 'vehicle', 'model', 'year', 'brand', 'maker', 'category', 'partType', 'condition', 'origin', 'inStock', 'sort', 'page'] as const;
 
 export async function CatalogPage({
   searchParams,
@@ -48,8 +49,12 @@ export async function CatalogPage({
   if (fixedVehicle) params.vehicle = fixedVehicle.slug;
   if (!params.vehicle) params.model = undefined;
   const qs = new URLSearchParams(Object.entries({ ...params, currency, pageSize: '24' }).filter((e): e is [string, string] => !!e[1]));
-  const [result, categories, brands, vehicles, makers] = await Promise.all([
-    serverApi<SearchResult>(`${endpoint}?${qs.toString()}`, { publicCache: 60 }).catch(() => null),
+  // A vehicle-finder selection the server rejects (unknown group, vehicle outside its group, model or
+  // year that does not belong) shows that, never the unfiltered catalog.
+  const [{ result, invalidStep }, categories, brands, vehicles, makers] = await Promise.all([
+    serverApi<SearchResult>(`${endpoint}?${qs.toString()}`, { publicCache: 60 })
+      .then((r) => ({ result: r as SearchResult | null, invalidStep: null as string | null }))
+      .catch((e: unknown) => ({ result: null, invalidStep: e instanceof ApiRequestError && e.code === 'VEHICLE_SELECTION_INVALID' ? String(e.details?.field ?? 'vehicle') : null })),
     serverApi<CategoryView[]>('/catalog/categories', { publicCache: 300 }).catch(() => []),
     serverApi<VehicleBrandView[]>('/catalog/vehicle-brands', { publicCache: 300 }).catch(() => []),
     serverApi<VehiclePublicView[]>('/catalog/vehicles', { publicCache: 300 }).catch(() => []),
@@ -57,6 +62,13 @@ export async function CatalogPage({
   ]);
   const name = (n: { fa: string; en: string | null }) => (locale === 'en' ? (n.en ?? n.fa) : n.fa);
   const page = Number(params.page ?? 1) || 1;
+  const selection = result?.selection ?? null;
+  const selectionName = selection ? [selection.group ? name(selection.group.name) : '', name(selection.vehicle.name), selection.model ? name(selection.model.name) : '', selection.year ? `${selection.year.toLocaleString(locale === 'fa' ? 'fa-IR' : 'en-US', { useGrouping: false })} (${selection.calendar === 'jalali' ? t('finder.jalali') : t('finder.gregorian')})` : ''].filter(Boolean) : [];
+  const requestForSelection = selection ? `/request-part?${new URLSearchParams({
+    ...(selection.group ? { vehicleBrand: selection.group.slug } : {}),
+    vehicleModel: [name(selection.vehicle.name), selection.model ? name(selection.model.name) : ''].filter(Boolean).join(' ').slice(0, 80),
+    ...(selection.year ? { vehicleYear: String(selection.year) } : {}),
+  }).toString()}` : '/request-part';
   const query = params.q?.trim();
   const clearQuery = { pathname, query: Object.fromEntries(Object.entries(current).filter((e): e is [string, string] => !!e[1] && e[0] !== 'q' && e[0] !== 'page')) };
   return (
@@ -95,7 +107,18 @@ export async function CatalogPage({
           <CatalogFilters categories={categories} brands={brands} makers={makers} vehicles={vehicles} {...(fixedVehicle ? { fixedVehicle } : {})} current={current} showOrigin={endpoint === '/catalog/products'} />
         </aside>
         <div className="min-w-0">
-          {!result ? (
+          {selection ? (
+            <div className="store-card mb-4 flex flex-wrap items-center justify-between gap-3 px-4 py-3" data-testid="vehicle-selection">
+              <p className="min-w-0 text-sm leading-7"><span className="font-semibold text-steel">{t('finder.selected')}: </span><strong>{selectionName.join(' › ')}</strong></p>
+              <a className="inline-flex min-h-11 items-center text-sm font-bold text-action underline underline-offset-4" href={`/${locale}#vehicle-finder`}>{t('finder.change')}</a>
+            </div>
+          ) : null}
+          {invalidStep ? (
+            <Alert tone="warning" title={t('finder.invalidTitle')}>
+              <p>{t(`finder.invalid.${invalidStep === 'group' || invalidStep === 'model' || invalidStep === 'year' ? invalidStep : 'vehicle'}`)}</p>
+              <a className="mt-2 inline-flex min-h-11 items-center font-bold text-action underline underline-offset-4" href={`/${locale}#vehicle-finder`}>{t('finder.chooseAgain')}</a>
+            </Alert>
+          ) : !result ? (
             <Alert tone="warning" title={t('common.unavailable')} />
           ) : result.items.length === 0 ? (
             query ? (
@@ -104,6 +127,11 @@ export async function CatalogPage({
                 <ButtonLink href={`/request-part?part=${encodeURIComponent(query)}`} className="mt-4">
                   {t('search.requestThis')}
                 </ButtonLink>
+              </EmptyState>
+            ) : selection ? (
+              <EmptyState title={t('finder.noParts', { vehicle: selectionName.slice(1).join(' ') || selectionName.join(' ') })}>
+                <p>{t('finder.noPartsHint')}</p>
+                <ButtonLink href={requestForSelection} className="mt-4">{t('finder.requestForVehicle')}</ButtonLink>
               </EmptyState>
             ) : (
               <EmptyState title={t('parts.empty')}>

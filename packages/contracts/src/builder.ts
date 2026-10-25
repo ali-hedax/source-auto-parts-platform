@@ -1,6 +1,7 @@
 import { z } from 'zod';
-import { DEFAULT_BUILDER_FILM } from './constants.js';
 import { contentImageSchema, contentLinkSchema, homeSectionSchema, localizedSchema } from './content.js';
+// Moved to the zod-free constants so public pages can create blocks; still exported here.
+export { newBuilderBlock } from './constants.js';
 
 const color = z.string().regex(/^#[0-9a-fA-F]{6}$/);
 const size = (max: number) => z.number().int().min(0).max(max);
@@ -19,7 +20,7 @@ export const builderStyleSchema = z.object({
   imageHeight: size(700).optional(), titleSize: size(60).min(12).optional(), priceSize: size(48).min(12).optional(),
 }).strict();
 export type BuilderStyle = z.infer<typeof builderStyleSchema>;
-export const BUILDER_KINDS = ['legacy', 'hero', 'slider', 'categories', 'search', 'vehicle-brands', 'vehicle-models', 'brands', 'new-products', 'bestsellers', 'discounts', 'offers', 'selected-products', 'vehicle-products', 'image-categories', 'services', 'benefits', 'notice', 'banners', 'text-image', 'custom', 'makers', 'cinematic-hero'] as const;
+export const BUILDER_KINDS = ['legacy', 'hero', 'slider', 'categories', 'search', 'vehicle-brands', 'vehicle-models', 'brands', 'new-products', 'bestsellers', 'discounts', 'offers', 'selected-products', 'vehicle-products', 'image-categories', 'services', 'benefits', 'notice', 'banners', 'text-image', 'custom', 'makers', 'cinematic-hero', 'vehicle-finder', 'shopping-paths'] as const;
 /** A self-hosted MP4/WebM movie: a site path or an https address. Empty = none. */
 export const builderVideoSchema = z.string().trim().max(500)
   .refine(v => v === '' || /^\/(?!\/)[A-Za-z0-9/_.-]+\.(mp4|webm)$/i.test(v) || /^https:\/\/[^\s?#]+\.(mp4|webm)$/i.test(v), { message: 'INVALID_VIDEO' });
@@ -105,15 +106,3 @@ export interface BuilderMedia {
 
 export const DEFAULT_BUILDER_THEME: BuilderDocument['theme'] = { primary: '#096ce5', background: '#f7faff', foreground: '#15243a', card: '#ffffff', border: '#e1eaf5', button: '#096ce5', link: '#096ce5', contentWidth: 1280, radius: 16, spacing: 48, font: 'brand', fontSize: 16, headingWeight: '700' };
 export const DEFAULT_BUILDER_CHROME: BuilderDocument['chrome'] = { headerBackground: '#09182e', footerBackground: '#101b2b', logoWidth: 130, logoPosition: 'start', searchRounded: true, footerColumns: 3, menu: [] };
-export function newBuilderBlock(kind: BuilderBlock['kind'], id: string): BuilderBlock {
-  const text = () => ({ fa: '', en: '' });
-  const block: BuilderBlock = { id, kind, visible: true, title: text(), body: text(), imageUrl: '', mobileImageUrl: '', alt: text(), href: '', button: text(), style: {}, items: [], startsAt: null, endsAt: null, interval: 6000, query: { category: '', brand: '', vehicle: '', model: '', productSlugs: [], limit: 8 } };
-  if (kind !== 'cinematic-hero') return block;
-  return {
-    ...block, film: { ...DEFAULT_BUILDER_FILM, clips: [] },
-    title: { fa: 'دنیای قطعات خودرو، هوشمندتر از همیشه', en: 'Smarter Parts. Better Driving.' },
-    body: { fa: 'نام قطعه، شماره فنی یا شماره OEM را جست‌وجو کنید؛ یا خودروی خود را انتخاب کنید تا قطعات مناسب آن را ببینید.', en: 'Search by part name, part number or OEM reference — or choose your vehicle to see the parts that fit it.' },
-    alt: { fa: 'قطعات یک خودروی کراس‌اوور به‌صورت پیوسته کنار هم قرار می‌گیرند و خودرو کامل می‌شود.', en: 'The parts of a crossover come together in one continuous shot until the car is complete.' },
-    href: '/cars', button: { fa: 'انتخاب خودروی من', en: 'Choose my vehicle' },
-  };
-}

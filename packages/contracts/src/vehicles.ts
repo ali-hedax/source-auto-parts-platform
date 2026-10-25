@@ -127,3 +127,48 @@ export interface FitmentView {
   yearTo?: number | null;
   note?: string | null;
 }
+
+// ---------------------------------------------------------------------------
+// Home-page vehicle finder: group → vehicle → model/trim → year, loaded one step at a time.
+// ---------------------------------------------------------------------------
+
+export const YEAR_CALENDARS = ['jalali', 'gregorian'] as const;
+/** Years are kept in the calendar their source uses; Persian and Gregorian years are never converted. */
+export type YearCalendar = (typeof YEAR_CALENDARS)[number];
+export type VehicleSupply = 'domestic' | 'assembled' | 'imported';
+
+/** Step 1: a group (ایران‌خودرو، سایپا، تویوتا، هیوندای). vehicleCount = vehicles listed under it. */
+export interface FinderGroupView {
+  slug: string;
+  name: LocalizedText;
+  logoUrl: string | null;
+  vehicleCount: number;
+}
+
+/** Step 2: a vehicle (family) of the group. `make` is its original brand (پژو، رنو …) when different. */
+export interface FinderVehicleView {
+  slug: string;
+  name: LocalizedText;
+  make: LocalizedText | null;
+  aliases: string[];
+  modelCount: number;
+}
+
+/** Step 3: a model/trim. `years` only when a cited source gives them (otherwise the year step says so). */
+export interface FinderModelView {
+  slug: string;
+  name: LocalizedText;
+  aliases: string[];
+  supply: VehicleSupply | null;
+  supplier: LocalizedText | null;
+  years: { from: number; to: number; calendar: YearCalendar } | null;
+}
+
+/** The validated selection echoed with search results (names for the page heading and a sourcing link). */
+export interface VehicleSelectionView {
+  group: { slug: string; name: LocalizedText } | null;
+  vehicle: { slug: string; name: LocalizedText };
+  model: { slug: string; name: LocalizedText } | null;
+  year: number | null;
+  calendar: YearCalendar | null;
+}

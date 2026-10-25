@@ -38,6 +38,8 @@ export function PartCard({ product, priority = false }: { product: ProductCard; 
         <p className="part-card-meta">{t('parts.sku')}: <Code>{product.sku}</Code></p>
         {brandNames ? <p className="part-card-meta">{t('parts.vehicleBrands')}: {brandNames}</p> : null}
         {usedIn ? <p className="part-card-fitment" title={usedIn} data-testid="card-fitment">{t('parts.usedIn')}: {usedIn}</p> : null}
+        {/* Vehicle-finder search with a year: the link has no year range, so the year is not confirmed. */}
+        {product.fitmentYearUnconfirmed ? <p className="text-xs leading-6 text-steel" data-testid="card-year-unconfirmed">{t('parts.yearUnconfirmed')}</p> : null}
         <p className="part-card-kind">{kind}</p>
         <span className="part-card-more"><Info aria-hidden size={19} />{t('common.details')}</span>
       </div>

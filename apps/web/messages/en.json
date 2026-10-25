@@ -139,7 +139,8 @@
     "wholeVehicle": "All models",
     "requestSupply": "Request this part",
     "sourceableText": "This part has no price or stock right now. Send a sourcing request and we will tell you the price and when it can be ready.",
-    "clearSearch": "Clear the search"
+    "clearSearch": "Clear the search",
+    "yearUnconfirmed": "This year is not recorded on the part’s fitment; please confirm with support before buying."
   },
   "availability": {
     "IN_STOCK": "In stock",
@@ -849,6 +850,7 @@
     "auditAction_vehicle_model_updated": "Vehicle model edited",
     "auditAction_vehicle_model_deleted": "Vehicle model deleted",
     "auditAction_vehicle_model_reordered": "Vehicle models reordered",
+    "auditAction_vehicles_dataset_imported": "Reviewed vehicle list imported",
     "auditAction_product_updated": "Product edited",
     "auditAction_product_published": "Product published",
     "auditAction_product_unpublished": "Product unpublished",
@@ -901,6 +903,7 @@
     "auditEntity_unit": "Unit",
     "auditEntity_vehicle": "Vehicle",
     "auditEntity_vehicle_category": "Vehicle category",
+    "auditEntity_vehicle_dataset": "Vehicle list",
     "auditEntity_user": "User",
     "auditEntity_quote_version": "Quote version",
     "auditEntity_refund": "Refund",
@@ -1202,5 +1205,22 @@
     "disclaimer": "Messages are sent to an AI service to generate replies. Answers may be inaccurate; confirm fitment, price and availability before purchase. Do not send sensitive information.",
     "input": "Part name, number or question",
     "send": "Send"
+  },
+  "finder": {
+    "selected": "Parts for",
+    "change": "Change vehicle",
+    "chooseAgain": "Choose the vehicle again",
+    "jalali": "Persian calendar",
+    "gregorian": "Gregorian",
+    "invalidTitle": "This vehicle selection is not valid",
+    "invalid": {
+      "group": "The vehicle group was not found. Please choose again.",
+      "vehicle": "This vehicle is not in the chosen group or is no longer listed.",
+      "model": "This model or trim does not belong to the chosen vehicle.",
+      "year": "This year is not recorded for the chosen model."
+    },
+    "noParts": "No parts are recorded for {vehicle} yet",
+    "noPartsHint": "Send us the vehicle and the part; our sourcing team will find it for you.",
+    "requestForVehicle": "Request a part for this vehicle"
   }
 }

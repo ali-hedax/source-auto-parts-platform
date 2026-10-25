@@ -4,6 +4,8 @@
  * on public pages through `@hedax/contracts/constants`, while the schemas in the
  * other modules would add ~400 KB of JavaScript to every page (spec §15).
  */
+// Type-only (erased at build time): this module still loads no other module at runtime.
+import type { BuilderBlock } from './builder.js';
 
 /** Idempotency key header used on every retry-sensitive mutation. */
 export const IDEMPOTENCY_HEADER = 'Idempotency-Key';
@@ -97,3 +99,21 @@ export const DEFAULT_BUILDER_FILM = {
 };
 /** Upper bound of one hero video upload (the /api proxy ceiling is 60 MB). Keep in sync with VIDEO_LIMITS. */
 export const BUILDER_VIDEO_MAX_BYTES = 50 * 1024 * 1024;
+
+/** A new section of a page in the visual builder, with its default texts (zod-free, usable by any page). */
+export function newBuilderBlock(kind: BuilderBlock['kind'], id: string): BuilderBlock {
+  const text = () => ({ fa: '', en: '' });
+  const block: BuilderBlock = { id, kind, visible: true, title: text(), body: text(), imageUrl: '', mobileImageUrl: '', alt: text(), href: '', button: text(), style: {}, items: [], startsAt: null, endsAt: null, interval: 6000, query: { category: '', brand: '', vehicle: '', model: '', productSlugs: [], limit: 8 } };
+  // Home-page vehicle finder (group → vehicle → model → year) and the shopping paths with the part
+  // categories, which used to sit inside the film block; both are ordinary movable sections.
+  if (kind === 'vehicle-finder') return { ...block, title: { fa: 'قطعهٔ مناسب خودروی خود را پیدا کنید', en: 'Find parts for your vehicle' }, body: { fa: 'گروه خودرو، خودرو، مدل و سال را انتخاب کنید تا قطعات ثبت‌شده برای آن را ببینید.', en: 'Choose the group, vehicle, model and year to see the parts recorded for it.' }, button: { fa: 'نمایش قطعات خودرو', en: 'Show parts for this vehicle' }, href: '/request-part' };
+  if (kind === 'shopping-paths') return { ...block, title: { fa: 'مسیرهای خرید قطعه', en: 'Ways to find your part' } };
+  if (kind !== 'cinematic-hero') return block;
+  return {
+    ...block, film: { ...DEFAULT_BUILDER_FILM, clips: [] },
+    title: { fa: 'دنیای قطعات خودرو، هوشمندتر از همیشه', en: 'Smarter Parts. Better Driving.' },
+    body: { fa: 'نام قطعه، شماره فنی یا شماره OEM را جست‌وجو کنید؛ یا خودروی خود را انتخاب کنید تا قطعات مناسب آن را ببینید.', en: 'Search by part name, part number or OEM reference — or choose your vehicle to see the parts that fit it.' },
+    alt: { fa: 'قطعات یک خودروی کراس‌اوور به‌صورت پیوسته کنار هم قرار می‌گیرند و خودرو کامل می‌شود.', en: 'The parts of a crossover come together in one continuous shot until the car is complete.' },
+    href: '/cars', button: { fa: 'انتخاب خودروی من', en: 'Choose my vehicle' },
+  };
+}

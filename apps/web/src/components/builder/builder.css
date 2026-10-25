@@ -6,6 +6,10 @@
 .builder-block:has(.hedax-home-hero)>.builder-block-inner{max-width:none;padding:var(--b-desktop-padding,0px)}
 .builder-root .builder-block[data-builder-kind=cinematic-hero]{margin-block:0}
 .builder-block[data-builder-kind=cinematic-hero]>.builder-block-inner{max-width:none;padding:0}
+/* «مسیرهای خرید» keeps the full-width light band it had under the film, with its own query container. */
+.builder-root .builder-block[data-builder-kind=shopping-paths]{margin-block:0}
+.builder-block[data-builder-kind=shopping-paths]>.builder-block-inner{max-width:none;padding:0}
+.cine-discover-host{container-type:inline-size}
 .builder-block .hedax-home-hero{min-height:var(--b-desktop-height,0px)}
 .builder-block[data-custom-background=true] .hedax-home-hero{background:var(--b-background)}
 .builder-block .hedax-home-hero img{object-position:var(--b-focal,50% 50%);object-fit:var(--b-imageFit,cover)}

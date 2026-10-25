@@ -9,11 +9,12 @@ import { UnitsController } from './units.controller.js';
 import { UnitsService } from './units.service.js';
 import { VehiclesAdminController, VehiclesPublicController } from './vehicles.controller.js';
 import { VehiclesService } from './vehicles.service.js';
+import { VehicleFinderService } from './vehicle-finder.service.js';
 
 @Module({
   imports: [InventoryModule, PricingModule],
   controllers: [CatalogController, AdminCatalogController, UnitsController, VehiclesAdminController, VehiclesPublicController],
-  providers: [CatalogService, AdminCatalogService, UnitsService, VehiclesService],
-  exports: [CatalogService, UnitsService, VehiclesService],
+  providers: [CatalogService, AdminCatalogService, UnitsService, VehiclesService, VehicleFinderService],
+  exports: [CatalogService, UnitsService, VehiclesService, VehicleFinderService],
 })
 export class CatalogModule {}

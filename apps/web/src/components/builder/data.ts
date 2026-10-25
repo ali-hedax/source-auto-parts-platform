@@ -1,4 +1,4 @@
-import type { BuilderDocument, CategoryView, ManufacturerView, ProductCard, SearchResult, SiteContentView, VehicleBrandView, VehiclePublicView } from '@hedax/contracts';
+import type { BuilderDocument, CategoryView, FinderGroupView, ManufacturerView, ProductCard, SearchResult, SiteContentView, VehicleBrandView, VehiclePublicView } from '@hedax/contracts';
 
 export interface BuilderData {
   now: number;
@@ -7,6 +7,8 @@ export interface BuilderData {
   vehicles: VehiclePublicView[];
   content: SiteContentView | null; featured: SearchResult | null; brands: VehicleBrandView[]; categories: CategoryView[];
   makers: ManufacturerView[]; products: Record<string, ProductCard[]>;
+  /** Step 1 of the vehicle finder (only when the page has one; later steps load in the browser). */
+  finderGroups: FinderGroupView[];
 }
 export async function loadBuilderData(document: BuilderDocument | null, get: <T>(path: string) => Promise<T>, currency = 'IRR', logos: Record<string, string> = {}): Promise<BuilderData> {
   const [content, featured, brands, categories, makers, vehicles] = await Promise.all([
@@ -17,6 +19,9 @@ export async function loadBuilderData(document: BuilderDocument | null, get: <T>
     get<ManufacturerView[]>('/catalog/manufacturers').catch(() => []),
     get<VehiclePublicView[]>('/catalog/vehicles').catch(() => []),
   ]);
+  const finderGroups = document?.sections.some(b => b.kind === 'vehicle-finder')
+    ? await get<FinderGroupView[]>('/catalog/vehicle-finder/groups').catch(() => [])
+    : [];
   const products: Record<string, ProductCard[]> = {};
   await Promise.all((document?.sections ?? []).map(async block => {
     if (!['new-products', 'bestsellers', 'discounts', 'offers', 'selected-products', 'vehicle-products'].includes(block.kind)) return;
@@ -29,5 +34,5 @@ export async function loadBuilderData(document: BuilderDocument | null, get: <T>
       products[block.id] = (await get<SearchResult>(`/catalog/products?${params}`).catch(() => null))?.items ?? [];
     }
   }));
-  return { now: Date.now(), logos, content, featured, brands, categories, makers, vehicles, products };
+  return { now: Date.now(), logos, content, featured, brands, categories, makers, vehicles, products, finderGroups };
 }

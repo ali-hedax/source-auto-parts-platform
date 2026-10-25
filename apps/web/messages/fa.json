@@ -139,7 +139,8 @@
     "wholeVehicle": "همهٔ مدل‌ها",
     "requestSupply": "درخواست تأمین",
     "sourceableText": "این قطعه الان قیمت یا موجودی ندارد. با درخواست تأمین، قیمت و زمان آماده‌شدن را برایتان اعلام می‌کنیم.",
-    "clearSearch": "پاک کردن جست‌وجو"
+    "clearSearch": "پاک کردن جست‌وجو",
+    "yearUnconfirmed": "سال این خودرو در سازگاری قطعه ثبت نشده؛ پیش از خرید با پشتیبانی تأیید کنید."
   },
   "availability": {
     "IN_STOCK": "موجود",
@@ -849,6 +850,7 @@
     "auditAction_vehicle_model_updated": "ویرایش مدل خودرو",
     "auditAction_vehicle_model_deleted": "حذف مدل خودرو",
     "auditAction_vehicle_model_reordered": "تغییر ترتیب مدل‌های خودرو",
+    "auditAction_vehicles_dataset_imported": "ورود فهرست بازبینی‌شدهٔ خودروها",
     "auditAction_product_updated": "ویرایش کالا",
     "auditAction_product_published": "انتشار کالا",
     "auditAction_product_unpublished": "لغو انتشار کالا",
@@ -901,6 +903,7 @@
     "auditEntity_unit": "واحد",
     "auditEntity_vehicle": "خودرو",
     "auditEntity_vehicle_category": "دستهٔ خودرو",
+    "auditEntity_vehicle_dataset": "فهرست خودروها",
     "auditEntity_user": "کاربر",
     "auditEntity_quote_version": "نسخهٔ پیش‌فاکتور",
     "auditEntity_refund": "استرداد",
@@ -1202,5 +1205,22 @@
     "disclaimer": "پیام برای پاسخ‌گویی به سرویس هوش مصنوعی ارسال می‌شود. پاسخ ممکن است خطا داشته باشد؛ سازگاری، قیمت و موجودی را پیش از خرید تأیید کنید. اطلاعات حساس نفرستید.",
     "input": "نام قطعه، شماره فنی یا پرسش",
     "send": "ارسال"
+  },
+  "finder": {
+    "selected": "قطعات برای",
+    "change": "تغییر خودرو",
+    "chooseAgain": "انتخاب دوبارهٔ خودرو",
+    "jalali": "شمسی",
+    "gregorian": "میلادی",
+    "invalidTitle": "این انتخاب خودرو معتبر نیست",
+    "invalid": {
+      "group": "گروه خودرو پیدا نشد. لطفاً دوباره انتخاب کنید.",
+      "vehicle": "این خودرو در گروه انتخاب‌شده نیست یا دیگر در فهرست نیست.",
+      "model": "این مدل یا تیپ متعلق به خودروی انتخاب‌شده نیست.",
+      "year": "این سال برای مدل انتخاب‌شده ثبت نشده است."
+    },
+    "noParts": "برای {vehicle} هنوز قطعه‌ای ثبت نشده است",
+    "noPartsHint": "مشخصات خودرو و قطعه را بفرستید؛ تیم تأمین آن را برایتان پیدا می‌کند.",
+    "requestForVehicle": "درخواست تأمین برای این خودرو"
   }
 }

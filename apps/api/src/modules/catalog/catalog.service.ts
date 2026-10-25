@@ -15,6 +15,7 @@ import { Prisma, PrismaService } from '../../common/prisma.service.js';
 import { InventoryService } from '../inventory/inventory.service.js';
 import { type CurrentRate, PricingService } from '../pricing/pricing.service.js';
 import { fromSteps, unitRef } from './units.service.js';
+import { VehicleFinderService } from './vehicle-finder.service.js';
 
 /** Largest amount (in the unit) one cart line may hold. */
 export const MAX_LINE_AMOUNT = 999;
@@ -52,6 +53,7 @@ export class CatalogService {
     private readonly inventory: InventoryService,
     private readonly pricing: PricingService,
     @Inject(ENV) private readonly env: Env,
+    private readonly finder: VehicleFinderService,
   ) {}
 
   /** Builder collections use the same publication checks, stock and viewer-specific prices. */
@@ -178,6 +180,8 @@ export class CatalogService {
     const warehouseId = await this.inventory.defaultWarehouseId();
     const rate = await this.pricing.currentRate();
     const conditions: Prisma.Sql[] = [Prisma.sql`p."published" = TRUE`, Prisma.sql`p."archived_at" IS NULL`];
+    // A vehicle-finder selection (group → vehicle → model → year) is checked first: an invalid one is a 400.
+    const selection = await this.finder.resolve(query);
 
     const normalized = query.q ? normalizeSearchText(query.q) : '';
     const tokens = query.q ? searchTokens(query.q) : [];
@@ -215,7 +219,9 @@ export class CatalogService {
       conditions.push(Prisma.sql`EXISTS (SELECT 1 FROM "product_vehicle_brand" pvb JOIN "vehicle_brand" vb ON vb."id" = pvb."vehicle_brand_id"
         WHERE pvb."product_id" = p."id" AND vb."slug" = ${query.brand})`);
     }
-    if (query.vehicle) {
+    if (selection) {
+      conditions.push(this.finder.productCondition(selection));
+    } else if (query.vehicle) {
       // A vehicle includes its models; a model also includes parts for the whole vehicle.
       const modelFilter = query.model
         ? Prisma.sql`AND EXISTS (SELECT 1 FROM "vehicle_model" vm WHERE vm."vehicle_id" = v."id" AND vm."slug" = ${query.model} AND vm."active"
@@ -294,12 +300,17 @@ export class CatalogService {
       ? await this.prisma.product.findMany({ where: { id: { in: ids } }, include: productInclude(warehouseId) })
       : [];
     const byId = new Map(products.map((p) => [p.id, p]));
+    const confirmed = selection?.year != null ? await this.finder.yearConfirmed(selection, ids) : null;
     return {
-      items: ids.map((id) => byId.get(id)).filter((p): p is HydratedProduct => !!p).map((p) => this.toCard(p, viewer, rate)),
+      items: ids.map((id) => byId.get(id)).filter((p): p is HydratedProduct => !!p).map((p) => {
+        const card = this.toCard(p, viewer, rate);
+        return confirmed && !confirmed.has(p.id) ? { ...card, fitmentYearUnconfirmed: true } : card;
+      }),
       total: Number(countRows[0]?.total ?? 0n),
       page: query.page,
       pageSize: query.pageSize,
       query: normalized || null,
+      ...(selection ? { selection: selection.view } : {}),
     };
   }
 

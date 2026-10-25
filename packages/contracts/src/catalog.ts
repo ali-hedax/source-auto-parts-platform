@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { type Currency, type LocalizedText, type MoneyDto, amountMinorSchema, currencySchema, idSchema, skuSchema, slugSchema } from './common.js';
-import { type FitmentView, productVehicleSchema } from './vehicles.js';
+import { type FitmentView, type VehicleSelectionView, productVehicleSchema } from './vehicles.js';
 
 export const PART_TYPE_VALUES = ['GENUINE', 'OEM', 'AFTERMARKET'] as const;
 export const CONDITION_VALUES = ['NEW', 'USED', 'REFURBISHED'] as const;
@@ -22,6 +22,10 @@ export const productListQuerySchema = z.object({
   vehicle: z.string().max(80).optional(),
   /** With `vehicle`: one model's slug; parts for that model plus parts for the whole vehicle. */
   model: z.string().max(80).optional(),
+  /** Vehicle finder: the group the vehicle is listed under; the server checks group → vehicle → model → year. */
+  group: z.string().max(64).optional(),
+  /** Vehicle finder: model year, in the model's own calendar (requires `model`). */
+  year: z.coerce.number().int().min(1300).max(2100).optional(),
   category: z.string().max(64).optional(),
   /** Manufacturer (part brand) slug. */
   maker: z.string().max(80).optional(),
@@ -128,6 +132,11 @@ export interface ProductCard {
   /** The price is per this unit («… تومان / دست»). */
   unit: UnitRef;
   price: PriceView;
+  /**
+   * Only on a search with a model year: the part is linked to the vehicle/model, but its link has no
+   * year range for that year's calendar, so the year is not confirmed — the card says so.
+   */
+  fitmentYearUnconfirmed?: boolean;
 }
 
 export interface ProductDetail extends ProductCard {
@@ -181,6 +190,8 @@ export interface SearchResult {
   pageSize: number;
   /** Echo of the normalized query, used to prefill a sourcing request when nothing matches. */
   query: string | null;
+  /** The validated vehicle-finder selection, when the search came from it. */
+  selection?: VehicleSelectionView;
 }
 
 // ---------------------------------------------------------------------------

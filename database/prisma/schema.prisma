@@ -743,6 +743,8 @@ model VehicleBrand {
   products             ProductVehicleBrand[]
   catalogEntries       CatalogEntryVehicleBrand[]
   sourcingRequestItems SourcingRequestItem[]
+  /// Vehicles listed under this group in the home-page vehicle finder.
+  finderVehicles       VehicleFinderGroup[]
 
   @@map("vehicle_brand")
 }
@@ -961,13 +963,29 @@ model Vehicle {
   active         Boolean  @default(true)
   seoTitle       String?  @map("seo_title") @db.VarChar(120)
   seoDescription String?  @map("seo_description") @db.VarChar(300)
+  /// Vehicle finder: the original make (پژو، رنو …), kept apart from the groups it is listed under
+  /// (vehicle_finder_group: ایران‌خودرو، سایپا … — one vehicle can be made or supplied by two groups).
+  makeFa         String?  @map("make_fa") @db.VarChar(80)
+  makeEn         String?  @map("make_en") @db.VarChar(80)
+  /// Shown in the finder only when classified (existing make-level rows like «پژو» stay off).
+  finderVisible  Boolean  @default(false) @map("finder_visible")
+  /// Other names people search with (normalized at query time).
+  aliases        String[] @default([])
+  /// Stable key from the reviewed vehicle dataset (idempotent import); null for rows made in the panel.
+  dataKey        String?  @unique @map("data_key") @db.VarChar(120)
+  /// official | secondary — how the vehicle's Iran-market presence is supported (see vehicle_source).
+  dataStatus     String?  @map("data_status") @db.VarChar(20)
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   category       VehicleCategory?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  finderGroups   VehicleFinderGroup[]
   models         VehicleModel[]
   products       ProductVehicle[]
   catalogEntries CatalogEntryVehicle[]
+  sources        VehicleSource[]
+  equivalences   VehicleEquivalence[]  @relation("EquivalenceVehicle")
+  legacyTargets  VehicleEquivalence[]  @relation("EquivalenceLegacyVehicle")
 
   @@index([categoryId])
   @@map("vehicle")
@@ -983,12 +1001,26 @@ model VehicleModel {
   slug      String   @db.VarChar(80)
   sortOrder Int      @default(0) @map("sort_order")
   active    Boolean  @default(true)
+  /// Model years as published by the source, in their own calendar (never converted): 'jalali' | 'gregorian'.
+  yearFrom     Int?     @map("year_from")
+  yearTo       Int?     @map("year_to")
+  yearCalendar String?  @map("year_calendar") @db.VarChar(10)
+  /// domestic | assembled | imported, and the company that made or supplied it in Iran.
+  supply       String?  @db.VarChar(12)
+  supplierFa   String?  @map("supplier_fa") @db.VarChar(80)
+  supplierEn   String?  @map("supplier_en") @db.VarChar(80)
+  aliases      String[] @default([])
+  dataKey      String?  @unique @map("data_key") @db.VarChar(160)
+  dataStatus   String?  @map("data_status") @db.VarChar(20)
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   vehicle        Vehicle               @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
   products       ProductVehicle[]
   catalogEntries CatalogEntryVehicle[]
+  sources        VehicleSource[]
+  equivalences   VehicleEquivalence[]  @relation("EquivalenceModel")
+  legacyTargets  VehicleEquivalence[]  @relation("EquivalenceLegacyModel")
 
   @@unique([vehicleId, nameKey])
   @@unique([vehicleId, slug])
@@ -2576,4 +2608,68 @@ model ReturnRequestItem {
 
   @@index([returnRequestId])
   @@map("return_request_item")
+}
+
+/// Where a finder vehicle or model comes from: one row per cited source (URL or document page),
+/// with the market it speaks for, when it was checked and how strong it is. Imported from the
+/// reviewed dataset (database/datasets/vehicles); never shown to customers as compatibility.
+model VehicleSource {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  vehicleId String?  @map("vehicle_id") @db.Uuid
+  modelId   String?  @map("model_id") @db.Uuid
+  sourceKey String   @unique @map("source_key") @db.VarChar(220)
+  url       String   @db.VarChar(600)
+  title     String?  @db.VarChar(240)
+  market    String   @db.VarChar(20)
+  checkedOn DateTime @map("checked_on") @db.Date
+  /// official | secondary
+  status    String   @db.VarChar(20)
+  /// What the source supports: existence in the Iran market, assembler, years …
+  claim     String?  @db.VarChar(300)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  vehicle Vehicle?      @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  model   VehicleModel? @relation(fields: [modelId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+  @@index([modelId])
+  @@map("vehicle_source")
+}
+
+/// A reviewed one-to-one correspondence between a finder vehicle (or model) and an older
+/// vehicle/model row that already carries product links — e.g. «پژو ۲۰۰۸» ≙ «پژو» + «2008».
+/// Lets the finder show those parts without moving or renaming the existing links. Never inferred
+/// from similar names: each row comes from the reviewed dataset.
+model VehicleEquivalence {
+  id              String   @id @default(uuid(7)) @db.Uuid
+  dataKey         String   @unique @map("data_key") @db.VarChar(160)
+  vehicleId       String   @map("vehicle_id") @db.Uuid
+  modelId         String?  @map("model_id") @db.Uuid
+  legacyVehicleId String   @map("legacy_vehicle_id") @db.Uuid
+  legacyModelId   String?  @map("legacy_model_id") @db.Uuid
+  note            String?  @db.VarChar(300)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  vehicle       Vehicle       @relation("EquivalenceVehicle", fields: [vehicleId], references: [id], onDelete: Cascade)
+  model         VehicleModel? @relation("EquivalenceModel", fields: [modelId], references: [id], onDelete: Cascade)
+  legacyVehicle Vehicle       @relation("EquivalenceLegacyVehicle", fields: [legacyVehicleId], references: [id], onDelete: Restrict)
+  legacyModel   VehicleModel? @relation("EquivalenceLegacyModel", fields: [legacyModelId], references: [id], onDelete: Restrict)
+
+  @@index([vehicleId])
+  @@index([legacyVehicleId])
+  @@map("vehicle_equivalence")
+}
+
+/// Vehicle finder: the groups a vehicle is listed under (step 1). Several when two groups made or
+/// supplied it (e.g. تندر ۹۰ by ایران‌خودرو and پارس‌خودرو/سایپا); the make stays on the vehicle.
+model VehicleFinderGroup {
+  vehicleId      String @map("vehicle_id") @db.Uuid
+  vehicleBrandId String @map("vehicle_brand_id") @db.Uuid
+
+  vehicle      Vehicle      @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  vehicleBrand VehicleBrand @relation(fields: [vehicleBrandId], references: [id], onDelete: Restrict)
+
+  @@id([vehicleId, vehicleBrandId])
+  @@index([vehicleBrandId])
+  @@map("vehicle_finder_group")
 }

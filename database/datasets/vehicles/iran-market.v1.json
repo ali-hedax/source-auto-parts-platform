@@ -1,0 +1,5664 @@
+{
+ "version": 1,
+ "market": "IR",
+ "generatedOn": "2026-10-25",
+ "sources": {
+  "ikco-products": {
+   "url": "https://www.ikco.ir/fa/ProductList.aspx",
+   "title": "ایران‌خودرو — فهرست محصولات (منوی محصولات به تفکیک ایران‌خودرو، ایکاپ، پژو، رنو، سوزوکی، هایما، DFM و خودروهای برقی)",
+   "publisher": "ایران‌خودرو (وب‌سایت رسمی)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "saipayadak-owner-manuals": {
+   "url": "https://www.saipayadak.org/warranty-and-maintenance/customer-guide/",
+   "title": "سایپا یدک — راهنمای مالک خودرو (فهرست دفترچه‌های راهنمای مشتری و ضوابط گارانتی، ۷۵ ردیف)",
+   "publisher": "سایپا یدک (خدمات پس از فروش گروه سایپا)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "toyota-iran-products": {
+   "url": "https://www.irtoya.com/",
+   "title": "نمایندگی مرکزی تویوتا — «محصولات تویوتا در ایران»",
+   "publisher": "نمایندگی رسمی تویوتا در ایران (irtoya.com → mahansanatpars.com)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "hyundai-kerman-models": {
+   "url": "https://ktl-co.com/",
+   "title": "هیوندای کرمان موتور — «مدل‌ها»",
+   "publisher": "کرمان موتور (پیوند «Hyundai» در kermanmotor.com)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "codal-ikco-monthly-1396-12": {
+   "url": "https://codal.ir/Reports/Decision.aspx?LetterSerial=aUXMYVWwPHoZWb846YmPYw%3d%3d&rt=0&let=58&ct=0",
+   "title": "کدال — ایران خودرو، گزارش فعالیت ماهانه منتهی به ۱۳۹۶/۱۲/۲۹ (تولید و فروش به تفکیک گروه محصول)",
+   "publisher": "سامانهٔ کدال (سازمان بورس)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "wiki-fa-pars-khodro": {
+   "url": "https://fa.wikipedia.org/wiki/%D9%BE%D8%A7%D8%B1%D8%B3_%D8%AE%D9%88%D8%AF%D8%B1%D9%88",
+   "title": "ویکی‌پدیا — پارس خودرو (فهرست همهٔ محصولات و خودروهای وارداتی)",
+   "publisher": "ویکی‌پدیای فارسی",
+   "kind": "secondary",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "wiki-fa-saipa": {
+   "url": "https://fa.wikipedia.org/wiki/%D8%B3%D8%A7%DB%8C%D9%BE%D8%A7",
+   "title": "ویکی‌پدیا — سایپا",
+   "publisher": "ویکی‌پدیای فارسی",
+   "kind": "secondary",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "wiki-fa-bardo": {
+   "url": "https://fa.wikipedia.org/wiki/%D8%A8%D8%A7%D8%B1%D8%AF%D9%88_(%D8%AE%D9%88%D8%AF%D8%B1%D9%88)",
+   "title": "ویکی‌پدیا — باردو (پیکان وانت)",
+   "publisher": "ویکی‌پدیای فارسی",
+   "kind": "secondary",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "wiki-en-iran-khodro": {
+   "url": "https://en.wikipedia.org/wiki/Iran_Khodro",
+   "title": "Wikipedia — Iran Khodro (Products and relationships)",
+   "publisher": "English Wikipedia",
+   "kind": "secondary",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "wiki-en-paykan": {
+   "url": "https://en.wikipedia.org/wiki/Paykan",
+   "title": "Wikipedia — Paykan",
+   "publisher": "English Wikipedia",
+   "kind": "secondary",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "ikco-product-130": {
+   "url": "https://www.ikco.ir/fa/Product.aspx?ID=130&Section=1",
+   "title": "ایران‌خودرو — صفحهٔ محصول سمند LX",
+   "publisher": "ایران‌خودرو (وب‌سایت رسمی)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "ikco-product-159": {
+   "url": "https://www.ikco.ir/fa/Product.aspx?ID=159&Section=1",
+   "title": "ایران‌خودرو — صفحهٔ محصول سمند SE",
+   "publisher": "ایران‌خودرو (وب‌سایت رسمی)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "ikco-product-153": {
+   "url": "https://www.ikco.ir/fa/Product.aspx?ID=153&Section=1",
+   "title": "ایران‌خودرو — صفحهٔ محصول سورن",
+   "publisher": "ایران‌خودرو (وب‌سایت رسمی)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "ikco-product-332": {
+   "url": "https://www.ikco.ir/fa/Product.aspx?ID=332&Section=1",
+   "title": "ایران‌خودرو — صفحهٔ محصول سورن پلاس",
+   "publisher": "ایران‌خودرو (وب‌سایت رسمی)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "ikco-product-170": {
+   "url": "https://www.ikco.ir/fa/Product.aspx?ID=170&Section=1",
+   "title": "ایران‌خودرو — صفحهٔ محصول دنا",
+   "publisher": "ایران‌خودرو (وب‌سایت رسمی)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "ikco-product-266": {
+   "url": "https://www.ikco.ir/fa/Product.aspx?ID=266&Section=1",
+   "title": "ایران‌خودرو — صفحهٔ محصول دنا پلاس",
+   "publisher": "ایران‌خودرو (وب‌سایت رسمی)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "ikco-product-183": {
+   "url": "https://www.ikco.ir/fa/Product.aspx?ID=183&Section=1",
+   "title": "ایران‌خودرو — صفحهٔ محصول رانا",
+   "publisher": "ایران‌خودرو (وب‌سایت رسمی)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "ikco-product-324": {
+   "url": "https://www.ikco.ir/fa/Product.aspx?ID=324&Section=1",
+   "title": "ایران‌خودرو — صفحهٔ محصول رانا پلاس",
+   "publisher": "ایران‌خودرو (وب‌سایت رسمی)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "ikco-product-321": {
+   "url": "https://www.ikco.ir/fa/Product.aspx?ID=321&Section=1",
+   "title": "ایران‌خودرو — صفحهٔ محصول تارا",
+   "publisher": "ایران‌خودرو (وب‌سایت رسمی)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "ikco-product-369": {
+   "url": "https://www.ikco.ir/fa/Product.aspx?ID=369&Section=1",
+   "title": "ایران‌خودرو — صفحهٔ محصول ری‌را",
+   "publisher": "ایران‌خودرو (وب‌سایت رسمی)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "ikco-product-233": {
+   "url": "https://www.ikco.ir/fa/Product.aspx?ID=233&Section=1",
+   "title": "ایران‌خودرو — صفحهٔ محصول وانت آریسان 2",
+   "publisher": "ایران‌خودرو (وب‌سایت رسمی)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "ikco-product-4": {
+   "url": "https://www.ikco.ir/fa/Product.aspx?ID=4&Section=1",
+   "title": "ایران‌خودرو — صفحهٔ محصول پژو 206",
+   "publisher": "ایران‌خودرو (وب‌سایت رسمی)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "ikco-product-11": {
+   "url": "https://www.ikco.ir/fa/Product.aspx?ID=11&Section=1",
+   "title": "ایران‌خودرو — صفحهٔ محصول پژو 206 SD",
+   "publisher": "ایران‌خودرو (وب‌سایت رسمی)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "ikco-product-72": {
+   "url": "https://www.ikco.ir/fa/Product.aspx?ID=72&Section=1",
+   "title": "ایران‌خودرو — صفحهٔ محصول پژو 207i",
+   "publisher": "ایران‌خودرو (وب‌سایت رسمی)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "ikco-product-295": {
+   "url": "https://www.ikco.ir/fa/Product.aspx?ID=295&Section=1",
+   "title": "ایران‌خودرو — صفحهٔ محصول پژو 207i صندوقدار",
+   "publisher": "ایران‌خودرو (وب‌سایت رسمی)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "ikco-product-22": {
+   "url": "https://www.ikco.ir/fa/Product.aspx?ID=22&Section=1",
+   "title": "ایران‌خودرو — صفحهٔ محصول پژو پارس",
+   "publisher": "ایران‌خودرو (وب‌سایت رسمی)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "ikco-product-18": {
+   "url": "https://www.ikco.ir/fa/Product.aspx?ID=18&Section=1",
+   "title": "ایران‌خودرو — صفحهٔ محصول پژو 405",
+   "publisher": "ایران‌خودرو (وب‌سایت رسمی)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "ikco-product-276": {
+   "url": "https://www.ikco.ir/fa/Product.aspx?ID=276&Section=1",
+   "title": "ایران‌خودرو — صفحهٔ محصول پژو 2008",
+   "publisher": "ایران‌خودرو (وب‌سایت رسمی)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "ikco-product-279": {
+   "url": "https://www.ikco.ir/fa/Product.aspx?ID=279&Section=1",
+   "title": "ایران‌خودرو — صفحهٔ محصول پژو 508",
+   "publisher": "ایران‌خودرو (وب‌سایت رسمی)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "ikco-product-281": {
+   "url": "https://www.ikco.ir/fa/Product.aspx?ID=281&Section=1",
+   "title": "ایران‌خودرو — صفحهٔ محصول پژو 301 وارداتی",
+   "publisher": "ایران‌خودرو (وب‌سایت رسمی)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "ikco-product-144": {
+   "url": "https://www.ikco.ir/fa/Product.aspx?ID=144&Section=1",
+   "title": "ایران‌خودرو — صفحهٔ محصول تندر 90",
+   "publisher": "ایران‌خودرو (وب‌سایت رسمی)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "ikco-product-242": {
+   "url": "https://www.ikco.ir/fa/Product.aspx?ID=242&Section=1",
+   "title": "ایران‌خودرو — صفحهٔ محصول تندر پیکاپ",
+   "publisher": "ایران‌خودرو (وب‌سایت رسمی)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "ikco-product-239": {
+   "url": "https://www.ikco.ir/fa/Product.aspx?ID=239&Section=1",
+   "title": "ایران‌خودرو — صفحهٔ محصول کپچر",
+   "publisher": "ایران‌خودرو (وب‌سایت رسمی)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "ikco-product-165": {
+   "url": "https://www.ikco.ir/fa/Product.aspx?ID=165&Section=1",
+   "title": "ایران‌خودرو — صفحهٔ محصول سوزوکی گرندویتارا",
+   "publisher": "ایران‌خودرو (وب‌سایت رسمی)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "ikco-product-246": {
+   "url": "https://www.ikco.ir/fa/Product.aspx?ID=246&Section=1",
+   "title": "ایران‌خودرو — صفحهٔ محصول هايما S7",
+   "publisher": "ایران‌خودرو (وب‌سایت رسمی)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "ikco-product-335": {
+   "url": "https://www.ikco.ir/fa/Product.aspx?ID=335&Section=1",
+   "title": "ایران‌خودرو — صفحهٔ محصول هايما S7 پلاس",
+   "publisher": "ایران‌خودرو (وب‌سایت رسمی)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "ikco-product-373": {
+   "url": "https://www.ikco.ir/fa/Product.aspx?ID=373&Section=1",
+   "title": "ایران‌خودرو — صفحهٔ محصول هايما S7 پرو",
+   "publisher": "ایران‌خودرو (وب‌سایت رسمی)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "ikco-product-283": {
+   "url": "https://www.ikco.ir/fa/Product.aspx?ID=283&Section=1",
+   "title": "ایران‌خودرو — صفحهٔ محصول هایما S5",
+   "publisher": "ایران‌خودرو (وب‌سایت رسمی)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "ikco-product-377": {
+   "url": "https://www.ikco.ir/fa/Product.aspx?ID=377&Section=1",
+   "title": "ایران‌خودرو — صفحهٔ محصول هايما S5 pro",
+   "publisher": "ایران‌خودرو (وب‌سایت رسمی)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "ikco-product-347": {
+   "url": "https://www.ikco.ir/fa/Product.aspx?ID=347&Section=1",
+   "title": "ایران‌خودرو — صفحهٔ محصول هايما 8S",
+   "publisher": "ایران‌خودرو (وب‌سایت رسمی)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "ikco-product-354": {
+   "url": "https://www.ikco.ir/fa/Product.aspx?ID=354&Section=1",
+   "title": "ایران‌خودرو — صفحهٔ محصول هايما 7X",
+   "publisher": "ایران‌خودرو (وب‌سایت رسمی)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "ikco-product-252": {
+   "url": "https://www.ikco.ir/fa/Product.aspx?ID=252&Section=1",
+   "title": "ایران‌خودرو — صفحهٔ محصول H30 Cross",
+   "publisher": "ایران‌خودرو (وب‌سایت رسمی)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "ikco-product-311": {
+   "url": "https://www.ikco.ir/fa/Product.aspx?ID=311&Section=1",
+   "title": "ایران‌خودرو — صفحهٔ محصول S30",
+   "publisher": "ایران‌خودرو (وب‌سایت رسمی)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "ikco-product-358": {
+   "url": "https://www.ikco.ir/fa/Product.aspx?ID=358&Section=1",
+   "title": "ایران‌خودرو — صفحهٔ محصول شاین مکس",
+   "publisher": "ایران‌خودرو (وب‌سایت رسمی)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "ikco-product-379": {
+   "url": "https://www.ikco.ir/fa/Product.aspx?ID=379&Section=1",
+   "title": "ایران‌خودرو — صفحهٔ محصول دانگ‌فنگ E70",
+   "publisher": "ایران‌خودرو (وب‌سایت رسمی)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "ikco-product-371": {
+   "url": "https://www.ikco.ir/fa/Product.aspx?ID=371&Section=1",
+   "title": "ایران‌خودرو — صفحهٔ محصول بستیون NAT",
+   "publisher": "ایران‌خودرو (وب‌سایت رسمی)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "ikco-product-367": {
+   "url": "https://www.ikco.ir/fa/Product.aspx?ID=367&Section=1",
+   "title": "ایران‌خودرو — صفحهٔ محصول لونا GRE",
+   "publisher": "ایران‌خودرو (وب‌سایت رسمی)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "toyota-iran-corolla1-8": {
+   "url": "https://mahansanatpars.com/product/corolla1-8/",
+   "title": "محصولات تویوتا در ایران — 1.8 کرولا",
+   "publisher": "نمایندگی رسمی تویوتا در ایران",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "toyota-iran-corolla1-2-t": {
+   "url": "https://mahansanatpars.com/product/corolla1-2-t/",
+   "title": "محصولات تویوتا در ایران — 2.0 L کرولا",
+   "publisher": "نمایندگی رسمی تویوتا در ایران",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "toyota-iran-toyotacorollahybrid": {
+   "url": "https://mahansanatpars.com/product/toyotacorollahybrid/",
+   "title": "محصولات تویوتا در ایران — Corolla Hybrid 2025",
+   "publisher": "نمایندگی رسمی تویوتا در ایران",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "toyota-iran-corollacross": {
+   "url": "https://mahansanatpars.com/product/corollacross/",
+   "title": "محصولات تویوتا در ایران — COROLLA CROSS 2.0",
+   "publisher": "نمایندگی رسمی تویوتا در ایران",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "toyota-iran-d8aad988db8cd988d8aad8a7-d984d988db8cd98": {
+   "url": "https://mahansanatpars.com/product/%d8%aa%d9%88%db%8c%d9%88%d8%aa%d8%a7-%d9%84%d9%88%db%8c%d9%86/",
+   "title": "محصولات تویوتا در ایران — 1.2 T لوین",
+   "publisher": "نمایندگی رسمی تویوتا در ایران",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "toyota-iran-daa9d985d8b1db8c-2-0": {
+   "url": "https://mahansanatpars.com/product/%da%a9%d9%85%d8%b1%db%8c-2-0/",
+   "title": "محصولات تویوتا در ایران — کمری 2.0",
+   "publisher": "نمایندگی رسمی تویوتا در ایران",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "toyota-iran-daa9d985d8b1db8c-2-5": {
+   "url": "https://mahansanatpars.com/product/%da%a9%d9%85%d8%b1%db%8c-2-5/",
+   "title": "محصولات تویوتا در ایران — کمری 2.5",
+   "publisher": "نمایندگی رسمی تویوتا در ایران",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "toyota-iran-camry-2023": {
+   "url": "https://mahansanatpars.com/product/camry-2023/",
+   "title": "محصولات تویوتا در ایران — کمری 2023",
+   "publisher": "نمایندگی رسمی تویوتا در ایران",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "toyota-iran-avalon-2-5l": {
+   "url": "https://mahansanatpars.com/product/avalon-2-5l/",
+   "title": "محصولات تویوتا در ایران — Avalon 2.5L",
+   "publisher": "نمایندگی رسمی تویوتا در ایران",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "toyota-iran-aurion": {
+   "url": "https://mahansanatpars.com/product/aurion/",
+   "title": "محصولات تویوتا در ایران — آریون",
+   "publisher": "نمایندگی رسمی تویوتا در ایران",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "toyota-iran-yaris": {
+   "url": "https://mahansanatpars.com/product/yaris/",
+   "title": "محصولات تویوتا در ایران — یاریس",
+   "publisher": "نمایندگی رسمی تویوتا در ایران",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "toyota-iran-2018-prius": {
+   "url": "https://mahansanatpars.com/product/2018-prius/",
+   "title": "محصولات تویوتا در ایران — پریوس 2018",
+   "publisher": "نمایندگی رسمی تویوتا در ایران",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "toyota-iran-rav4": {
+   "url": "https://mahansanatpars.com/product/rav4/",
+   "title": "محصولات تویوتا در ایران — راوفور",
+   "publisher": "نمایندگی رسمی تویوتا در ایران",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "toyota-iran-rav4hib": {
+   "url": "https://mahansanatpars.com/product/rav4hib/",
+   "title": "محصولات تویوتا در ایران — راوفور 2.5",
+   "publisher": "نمایندگی رسمی تویوتا در ایران",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "toyota-iran-chr": {
+   "url": "https://mahansanatpars.com/product/chr/",
+   "title": "محصولات تویوتا در ایران — سی اچ آر",
+   "publisher": "نمایندگی رسمی تویوتا در ایران",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "toyota-iran-highlander": {
+   "url": "https://mahansanatpars.com/product/highlander/",
+   "title": "محصولات تویوتا در ایران — هایلندر",
+   "publisher": "نمایندگی رسمی تویوتا در ایران",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "toyota-iran-fortuner": {
+   "url": "https://mahansanatpars.com/product/fortuner/",
+   "title": "محصولات تویوتا در ایران — فورچونر",
+   "publisher": "نمایندگی رسمی تویوتا در ایران",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "toyota-iran-prado": {
+   "url": "https://mahansanatpars.com/product/prado/",
+   "title": "محصولات تویوتا در ایران — پرادو",
+   "publisher": "نمایندگی رسمی تویوتا در ایران",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "toyota-iran-prado2door": {
+   "url": "https://mahansanatpars.com/product/prado2door/",
+   "title": "محصولات تویوتا در ایران — پرادو دو درب",
+   "publisher": "نمایندگی رسمی تویوتا در ایران",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "toyota-iran-landcruiser": {
+   "url": "https://mahansanatpars.com/product/landcruiser/",
+   "title": "محصولات تویوتا در ایران — لندکروزر",
+   "publisher": "نمایندگی رسمی تویوتا در ایران",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "toyota-iran-landcruiservxr": {
+   "url": "https://mahansanatpars.com/product/landcruiservxr/",
+   "title": "محصولات تویوتا در ایران — Land Cruiser VXR",
+   "publisher": "نمایندگی رسمی تویوتا در ایران",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "toyota-iran-fj-cruiser": {
+   "url": "https://mahansanatpars.com/product/fj-cruiser/",
+   "title": "محصولات تویوتا در ایران — اف جی کروزر",
+   "publisher": "نمایندگی رسمی تویوتا در ایران",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "toyota-iran-hilux": {
+   "url": "https://mahansanatpars.com/product/hilux/",
+   "title": "محصولات تویوتا در ایران — هایلوکس",
+   "publisher": "نمایندگی رسمی تویوتا در ایران",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "toyota-iran-hiace": {
+   "url": "https://mahansanatpars.com/product/hiace/",
+   "title": "محصولات تویوتا در ایران — هایس",
+   "publisher": "نمایندگی رسمی تویوتا در ایران",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "toyota-iran-previa": {
+   "url": "https://mahansanatpars.com/product/previa/",
+   "title": "محصولات تویوتا در ایران — پریویا",
+   "publisher": "نمایندگی رسمی تویوتا در ایران",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "toyota-iran-86": {
+   "url": "https://mahansanatpars.com/product/86/",
+   "title": "محصولات تویوتا در ایران — تویوتا 86",
+   "publisher": "نمایندگی رسمی تویوتا در ایران",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "toyota-iran-wildlanderhev": {
+   "url": "https://mahansanatpars.com/product/wildlanderhev/",
+   "title": "محصولات تویوتا در ایران — وایلدلندر",
+   "publisher": "نمایندگی رسمی تویوتا در ایران",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "toyota-iran-frontlander": {
+   "url": "https://mahansanatpars.com/product/frontlander/",
+   "title": "محصولات تویوتا در ایران — Frontlander 2.0",
+   "publisher": "نمایندگی رسمی تویوتا در ایران",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "toyota-iran-bz4x": {
+   "url": "https://mahansanatpars.com/product/bz4x/",
+   "title": "محصولات تویوتا در ایران — BZ4X",
+   "publisher": "نمایندگی رسمی تویوتا در ایران",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "toyota-iran-d984daa9d8b3d988d8b3-es": {
+   "url": "https://mahansanatpars.com/product/%d9%84%da%a9%d8%b3%d9%88%d8%b3-es/",
+   "title": "محصولات تویوتا در ایران — لکسوس آی اس",
+   "publisher": "نمایندگی رسمی تویوتا در ایران",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "toyota-iran-d984daa9d8b3d988d8b3is": {
+   "url": "https://mahansanatpars.com/product/%d9%84%da%a9%d8%b3%d9%88%d8%b3is/",
+   "title": "محصولات تویوتا در ایران — لکسوس آی اس",
+   "publisher": "نمایندگی رسمی تویوتا در ایران",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "toyota-iran-d984daa9d8b3d988d8b3gs250": {
+   "url": "https://mahansanatpars.com/product/%d9%84%da%a9%d8%b3%d9%88%d8%b3gs250/",
+   "title": "محصولات تویوتا در ایران — لکسوس جی اس 250",
+   "publisher": "نمایندگی رسمی تویوتا در ایران",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "toyota-iran-d984daa9d8b3d988d8b3-ct200": {
+   "url": "https://mahansanatpars.com/product/%d9%84%da%a9%d8%b3%d9%88%d8%b3-ct200/",
+   "title": "محصولات تویوتا در ایران — لکسوس سی تی 200",
+   "publisher": "نمایندگی رسمی تویوتا در ایران",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "toyota-iran-d984daa9d8b3d988d8b3-nx200": {
+   "url": "https://mahansanatpars.com/product/%d9%84%da%a9%d8%b3%d9%88%d8%b3-nx200/",
+   "title": "محصولات تویوتا در ایران — لکسوس ان ایکس 200",
+   "publisher": "نمایندگی رسمی تویوتا در ایران",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "toyota-iran-d984daa9d8b3d988d8b3-nx300": {
+   "url": "https://mahansanatpars.com/product/%d9%84%da%a9%d8%b3%d9%88%d8%b3-nx300/",
+   "title": "محصولات تویوتا در ایران — لکسوس ان ایکس 300",
+   "publisher": "نمایندگی رسمی تویوتا در ایران",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "hyundai-kerman-2024-kona": {
+   "url": "https://ktl-co.com/cars/2024/kona",
+   "title": "هیوندای کرمان موتور — Kona SX2",
+   "publisher": "کرمان موتور (هیوندای)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "hyundai-kerman-2025-kona": {
+   "url": "https://ktl-co.com/cars/2025/kona",
+   "title": "هیوندای کرمان موتور — Kona SX2 (2025)",
+   "publisher": "کرمان موتور (هیوندای)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "hyundai-kerman-azera": {
+   "url": "https://ktl-co.com/cars/azera",
+   "title": "هیوندای کرمان موتور — Azera IG",
+   "publisher": "کرمان موتور (هیوندای)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "hyundai-kerman-sonata": {
+   "url": "https://ktl-co.com/cars/sonata",
+   "title": "هیوندای کرمان موتور — Sonata LF",
+   "publisher": "کرمان موتور (هیوندای)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "hyundai-kerman-tucson": {
+   "url": "https://ktl-co.com/cars/tucson",
+   "title": "هیوندای کرمان موتور — Tucson TL",
+   "publisher": "کرمان موتور (هیوندای)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "hyundai-kerman-2023-tucson": {
+   "url": "https://ktl-co.com/cars/2023/tucson",
+   "title": "هیوندای کرمان موتور — Tucson NX4E",
+   "publisher": "کرمان موتور (هیوندای)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "hyundai-kerman-2026-tucson": {
+   "url": "https://ktl-co.com/cars/2026/tucson",
+   "title": "هیوندای کرمان موتور — Tucson 2026",
+   "publisher": "کرمان موتور (هیوندای)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "hyundai-kerman-santafe": {
+   "url": "https://ktl-co.com/cars/santafe",
+   "title": "هیوندای کرمان موتور — SantaFe DM",
+   "publisher": "کرمان موتور (هیوندای)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "hyundai-kerman-elantra": {
+   "url": "https://ktl-co.com/cars/elantra",
+   "title": "هیوندای کرمان موتور — Elantra AD",
+   "publisher": "کرمان موتور (هیوندای)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "hyundai-kerman-2023-elantra": {
+   "url": "https://ktl-co.com/cars/2023/elantra",
+   "title": "هیوندای کرمان موتور — Elantra CN7",
+   "publisher": "کرمان موتور (هیوندای)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "hyundai-kerman-2025-elantra": {
+   "url": "https://ktl-co.com/cars/2025/elantra",
+   "title": "هیوندای کرمان موتور — Elantra 2025",
+   "publisher": "کرمان موتور (هیوندای)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "hyundai-kerman-accent": {
+   "url": "https://ktl-co.com/cars/accent",
+   "title": "هیوندای کرمان موتور — Accent RB",
+   "publisher": "کرمان موتور (هیوندای)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "hyundai-kerman-2023-accent": {
+   "url": "https://ktl-co.com/cars/2023/accent",
+   "title": "هیوندای کرمان موتور — Accent HCI",
+   "publisher": "کرمان موتور (هیوندای)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  },
+  "hyundai-kerman-2023-creta": {
+   "url": "https://ktl-co.com/cars/2023/creta",
+   "title": "هیوندای کرمان موتور — Creta Su2ID",
+   "publisher": "کرمان موتور (هیوندای)",
+   "kind": "official",
+   "market": "IR",
+   "checkedOn": "2026-10-25"
+  }
+ },
+ "vehicles": [
+  {
+   "key": "ikco.samand",
+   "groups": [
+    "IKCO"
+   ],
+   "name": {
+    "fa": "سمند",
+    "en": "Samand"
+   },
+   "aliases": [],
+   "make": {
+    "fa": "ایران‌خودرو",
+    "en": "Iran Khodro"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "ikco-products",
+     "claim": "در فهرست رسمی محصولات ایران‌خودرو، بخش ایران‌خودرو"
+    }
+   ],
+   "models": [
+    {
+     "key": "ikco.samand.lx",
+     "name": {
+      "fa": "سمند LX",
+      "en": "Samand LX"
+     },
+     "aliases": [],
+     "supply": "domestic",
+     "supplier": {
+      "fa": "ایران‌خودرو",
+      "en": "Iran Khodro"
+     },
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "ikco-product-130",
+       "claim": "محصول «سمند LX»"
+      }
+     ]
+    },
+    {
+     "key": "ikco.samand.se",
+     "name": {
+      "fa": "سمند SE",
+      "en": "Samand SE"
+     },
+     "aliases": [],
+     "supply": "domestic",
+     "supplier": {
+      "fa": "ایران‌خودرو",
+      "en": "Iran Khodro"
+     },
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "ikco-product-159",
+       "claim": "محصول «سمند SE»"
+      }
+     ]
+    }
+   ],
+   "equivalences": [],
+   "existing": {
+    "slug": "samand"
+   }
+  },
+  {
+   "key": "ikco.soren",
+   "groups": [
+    "IKCO"
+   ],
+   "name": {
+    "fa": "سورن",
+    "en": "Soren"
+   },
+   "aliases": [],
+   "make": {
+    "fa": "ایران‌خودرو",
+    "en": "Iran Khodro"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "ikco-products",
+     "claim": "در فهرست رسمی محصولات ایران‌خودرو، بخش ایران‌خودرو"
+    }
+   ],
+   "models": [
+    {
+     "key": "ikco.soren.base",
+     "name": {
+      "fa": "سورن",
+      "en": "Soren"
+     },
+     "aliases": [],
+     "supply": "domestic",
+     "supplier": {
+      "fa": "ایران‌خودرو",
+      "en": "Iran Khodro"
+     },
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "ikco-product-153",
+       "claim": "محصول «سورن»"
+      }
+     ]
+    },
+    {
+     "key": "ikco.soren.plus",
+     "name": {
+      "fa": "سورن پلاس",
+      "en": "Soren Plus"
+     },
+     "aliases": [],
+     "supply": "domestic",
+     "supplier": {
+      "fa": "ایران‌خودرو",
+      "en": "Iran Khodro"
+     },
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "ikco-product-332",
+       "claim": "محصول «سورن پلاس»"
+      }
+     ]
+    }
+   ],
+   "equivalences": []
+  },
+  {
+   "key": "ikco.dena",
+   "groups": [
+    "IKCO"
+   ],
+   "name": {
+    "fa": "دنا",
+    "en": "Dena"
+   },
+   "aliases": [],
+   "make": {
+    "fa": "ایران‌خودرو",
+    "en": "Iran Khodro"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "ikco-product-170",
+     "claim": "محصول «دنا»"
+    },
+    {
+     "ref": "ikco-products",
+     "claim": "در فهرست رسمی محصولات ایران‌خودرو، بخش ایران‌خودرو"
+    }
+   ],
+   "models": [],
+   "equivalences": [],
+   "existing": {
+    "slug": "dena"
+   }
+  },
+  {
+   "key": "ikco.dena-plus",
+   "groups": [
+    "IKCO"
+   ],
+   "name": {
+    "fa": "دنا پلاس",
+    "en": "Dena Plus"
+   },
+   "aliases": [],
+   "make": {
+    "fa": "ایران‌خودرو",
+    "en": "Iran Khodro"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "ikco-product-266",
+     "claim": "محصول «دنا پلاس»"
+    },
+    {
+     "ref": "ikco-products",
+     "claim": "در فهرست رسمی محصولات ایران‌خودرو، بخش ایران‌خودرو"
+    }
+   ],
+   "models": [],
+   "equivalences": [],
+   "existing": {
+    "slug": "dena-plus"
+   }
+  },
+  {
+   "key": "ikco.rana",
+   "groups": [
+    "IKCO"
+   ],
+   "name": {
+    "fa": "رانا",
+    "en": "Runna"
+   },
+   "aliases": [
+    "Rana"
+   ],
+   "make": {
+    "fa": "ایران‌خودرو",
+    "en": "Iran Khodro"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "ikco-products",
+     "claim": "در فهرست رسمی محصولات ایران‌خودرو، بخش ایران‌خودرو"
+    }
+   ],
+   "models": [
+    {
+     "key": "ikco.rana.base",
+     "name": {
+      "fa": "رانا",
+      "en": "Runna"
+     },
+     "aliases": [],
+     "supply": "domestic",
+     "supplier": {
+      "fa": "ایران‌خودرو",
+      "en": "Iran Khodro"
+     },
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "ikco-product-183",
+       "claim": "محصول «رانا»"
+      }
+     ]
+    },
+    {
+     "key": "ikco.rana.plus",
+     "name": {
+      "fa": "رانا پلاس",
+      "en": "Runna Plus"
+     },
+     "aliases": [],
+     "supply": "domestic",
+     "supplier": {
+      "fa": "ایران‌خودرو",
+      "en": "Iran Khodro"
+     },
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "ikco-product-324",
+       "claim": "محصول «رانا پلاس»"
+      }
+     ]
+    }
+   ],
+   "equivalences": [],
+   "existing": {
+    "slug": "rana"
+   }
+  },
+  {
+   "key": "ikco.tara",
+   "groups": [
+    "IKCO"
+   ],
+   "name": {
+    "fa": "تارا",
+    "en": "Tara"
+   },
+   "aliases": [],
+   "make": {
+    "fa": "ایران‌خودرو",
+    "en": "Iran Khodro"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "ikco-product-321",
+     "claim": "محصول «تارا»"
+    },
+    {
+     "ref": "ikco-products",
+     "claim": "در فهرست رسمی محصولات ایران‌خودرو، بخش ایران‌خودرو"
+    }
+   ],
+   "models": [],
+   "equivalences": [],
+   "existing": {
+    "slug": "tara"
+   }
+  },
+  {
+   "key": "ikco.rira",
+   "groups": [
+    "IKCO"
+   ],
+   "name": {
+    "fa": "ری‌را",
+    "en": "Rira"
+   },
+   "aliases": [],
+   "make": {
+    "fa": "ایران‌خودرو",
+    "en": "Iran Khodro"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "ikco-product-369",
+     "claim": "محصول «ری‌را»"
+    },
+    {
+     "ref": "ikco-products",
+     "claim": "در فهرست رسمی محصولات ایران‌خودرو، بخش ایران‌خودرو"
+    }
+   ],
+   "models": [],
+   "equivalences": [],
+   "existing": {
+    "slug": "rira"
+   }
+  },
+  {
+   "key": "ikco.arisan",
+   "groups": [
+    "IKCO"
+   ],
+   "name": {
+    "fa": "آریسان",
+    "en": "Arisan"
+   },
+   "aliases": [
+    "وانت آریسان"
+   ],
+   "make": {
+    "fa": "ایران‌خودرو",
+    "en": "Iran Khodro"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "ikco-products",
+     "claim": "در فهرست رسمی محصولات ایران‌خودرو، بخش ایران‌خودرو"
+    }
+   ],
+   "models": [
+    {
+     "key": "ikco.arisan.2",
+     "name": {
+      "fa": "آریسان ۲",
+      "en": "Arisan 2"
+     },
+     "aliases": [],
+     "supply": "domestic",
+     "supplier": {
+      "fa": "ایران‌خودرو",
+      "en": "Iran Khodro"
+     },
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "ikco-product-233",
+       "claim": "محصول «وانت آریسان 2»"
+      }
+     ]
+    }
+   ],
+   "equivalences": [],
+   "existing": {
+    "slug": "arisan"
+   }
+  },
+  {
+   "key": "ikco.paykan-pickup",
+   "groups": [
+    "IKCO"
+   ],
+   "name": {
+    "fa": "پیکان وانت",
+    "en": "Paykan Pickup"
+   },
+   "aliases": [
+    "باردو",
+    "Bardo"
+   ],
+   "make": {
+    "fa": "ایران‌خودرو",
+    "en": "Iran Khodro"
+   },
+   "status": "secondary",
+   "sources": [
+    {
+     "ref": "wiki-fa-bardo",
+     "claim": "پیکان وانت (باردو) محصول ایران‌خودرو"
+    },
+    {
+     "ref": "wiki-en-iran-khodro",
+     "claim": "Bardo pick-up, pick-up version of Paykan, produced until 2015"
+    }
+   ],
+   "models": [],
+   "equivalences": [],
+   "existing": {
+    "slug": "paykan-pickup"
+   }
+  },
+  {
+   "key": "ikco.paykan",
+   "groups": [
+    "IKCO"
+   ],
+   "name": {
+    "fa": "پیکان",
+    "en": "Paykan"
+   },
+   "aliases": [],
+   "make": {
+    "fa": "ایران‌خودرو",
+    "en": "Iran Khodro"
+   },
+   "status": "secondary",
+   "sources": [
+    {
+     "ref": "wiki-en-paykan",
+     "claim": "Paykan saloon produced by Iran Khodro"
+    },
+    {
+     "ref": "wiki-en-iran-khodro",
+     "claim": "Paykan saloon production discontinued in 2005"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "ikco.peugeot-206",
+   "groups": [
+    "IKCO"
+   ],
+   "name": {
+    "fa": "پژو ۲۰۶",
+    "en": "Peugeot 206"
+   },
+   "aliases": [
+    "206"
+   ],
+   "make": {
+    "fa": "پژو",
+    "en": "Peugeot"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "ikco-products",
+     "claim": "در فهرست رسمی محصولات ایران‌خودرو، بخش پژو/ایکاپ"
+    }
+   ],
+   "models": [
+    {
+     "key": "ikco.peugeot-206.hatchback",
+     "name": {
+      "fa": "پژو ۲۰۶ (هاچ‌بک)",
+      "en": "206 hatchback"
+     },
+     "aliases": [],
+     "supply": "assembled",
+     "supplier": {
+      "fa": "ایران‌خودرو",
+      "en": "Iran Khodro"
+     },
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "ikco-product-4",
+       "claim": "محصول «پژو 206»"
+      }
+     ]
+    },
+    {
+     "key": "ikco.peugeot-206.sd",
+     "name": {
+      "fa": "پژو ۲۰۶ SD (صندوق‌دار)",
+      "en": "206 SD (sedan)"
+     },
+     "aliases": [
+      "206 صندوقدار",
+      "206sd"
+     ],
+     "supply": "assembled",
+     "supplier": {
+      "fa": "ایران‌خودرو",
+      "en": "Iran Khodro"
+     },
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "ikco-product-11",
+       "claim": "محصول «پژو 206 SD»"
+      }
+     ]
+    }
+   ],
+   "equivalences": [],
+   "note": "تیپ‌ها (مثل تیپ ۲، تیپ ۵، V8) در منبع رسمی دیده نشد؛ ثبت نشدند."
+  },
+  {
+   "key": "ikco.peugeot-207i",
+   "groups": [
+    "IKCO"
+   ],
+   "name": {
+    "fa": "پژو ۲۰۷i",
+    "en": "Peugeot 207i"
+   },
+   "aliases": [
+    "207"
+   ],
+   "make": {
+    "fa": "پژو",
+    "en": "Peugeot"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "ikco-products",
+     "claim": "در فهرست رسمی محصولات ایران‌خودرو، بخش پژو/ایکاپ"
+    }
+   ],
+   "models": [
+    {
+     "key": "ikco.peugeot-207i.hatchback",
+     "name": {
+      "fa": "پژو ۲۰۷i (هاچ‌بک)",
+      "en": "207i hatchback"
+     },
+     "aliases": [],
+     "supply": "assembled",
+     "supplier": {
+      "fa": "ایران‌خودرو",
+      "en": "Iran Khodro"
+     },
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "ikco-product-72",
+       "claim": "محصول «پژو 207i»"
+      }
+     ]
+    },
+    {
+     "key": "ikco.peugeot-207i.sedan",
+     "name": {
+      "fa": "پژو ۲۰۷i صندوق‌دار",
+      "en": "207i sedan"
+     },
+     "aliases": [],
+     "supply": "assembled",
+     "supplier": {
+      "fa": "ایران‌خودرو",
+      "en": "Iran Khodro"
+     },
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "ikco-product-295",
+       "claim": "محصول «پژو 207i صندوقدار»"
+      }
+     ]
+    }
+   ],
+   "equivalences": []
+  },
+  {
+   "key": "ikco.peugeot-pars",
+   "groups": [
+    "IKCO"
+   ],
+   "name": {
+    "fa": "پژو پارس",
+    "en": "Peugeot Pars"
+   },
+   "aliases": [
+    "پارس"
+   ],
+   "make": {
+    "fa": "پژو",
+    "en": "Peugeot"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "ikco-product-22",
+     "claim": "محصول «پژو پارس»"
+    },
+    {
+     "ref": "ikco-products",
+     "claim": "در فهرست رسمی محصولات ایران‌خودرو، بخش پژو/ایکاپ"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "ikco.peugeot-405",
+   "groups": [
+    "IKCO"
+   ],
+   "name": {
+    "fa": "پژو ۴۰۵",
+    "en": "Peugeot 405"
+   },
+   "aliases": [
+    "405"
+   ],
+   "make": {
+    "fa": "پژو",
+    "en": "Peugeot"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "ikco-product-18",
+     "claim": "محصول «پژو 405»"
+    },
+    {
+     "ref": "ikco-products",
+     "claim": "در فهرست رسمی محصولات ایران‌خودرو، بخش پژو/ایکاپ"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "ikco.peugeot-2008",
+   "groups": [
+    "IKCO"
+   ],
+   "name": {
+    "fa": "پژو ۲۰۰۸",
+    "en": "Peugeot 2008"
+   },
+   "aliases": [
+    "2008"
+   ],
+   "make": {
+    "fa": "پژو",
+    "en": "Peugeot"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "ikco-product-276",
+     "claim": "محصول «پژو 2008»"
+    },
+    {
+     "ref": "ikco-products",
+     "claim": "در فهرست رسمی محصولات ایران‌خودرو، بخش پژو/ایکاپ"
+    },
+    {
+     "ref": "codal-ikco-monthly-1396-12",
+     "claim": "ردیف «پژو 2008» با تعداد تولید در سال ۱۳۹۶"
+    }
+   ],
+   "models": [],
+   "equivalences": [
+    {
+     "key": "eq.peugeot-2008",
+     "model": null,
+     "legacy": {
+      "vehicleSlug": "peugeot",
+      "modelSlug": "2008"
+     },
+     "status": "confirmed",
+     "note": "ردیف قدیمی «پژو» با مدل «2008» همان پژو ۲۰۰۸ است؛ پیوند قطعات قبلی حفظ می‌شود."
+    }
+   ]
+  },
+  {
+   "key": "ikco.peugeot-508",
+   "groups": [
+    "IKCO"
+   ],
+   "name": {
+    "fa": "پژو ۵۰۸",
+    "en": "Peugeot 508"
+   },
+   "aliases": [
+    "508"
+   ],
+   "make": {
+    "fa": "پژو",
+    "en": "Peugeot"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "ikco-product-279",
+     "claim": "محصول «پژو 508»"
+    },
+    {
+     "ref": "ikco-products",
+     "claim": "در فهرست رسمی محصولات ایران‌خودرو، بخش پژو/ایکاپ"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "ikco.peugeot-301",
+   "groups": [
+    "IKCO"
+   ],
+   "name": {
+    "fa": "پژو ۳۰۱",
+    "en": "Peugeot 301"
+   },
+   "aliases": [
+    "301"
+   ],
+   "make": {
+    "fa": "پژو",
+    "en": "Peugeot"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "ikco-products",
+     "claim": "در فهرست رسمی محصولات ایران‌خودرو، بخش پژو/ایکاپ"
+    }
+   ],
+   "models": [
+    {
+     "key": "ikco.peugeot-301.imported",
+     "name": {
+      "fa": "پژو ۳۰۱ وارداتی",
+      "en": "301 (imported)"
+     },
+     "aliases": [],
+     "supply": "imported",
+     "supplier": {
+      "fa": "ایران‌خودرو",
+      "en": "Iran Khodro"
+     },
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "ikco-product-281",
+       "claim": "محصول «پژو 301 وارداتی»"
+      }
+     ]
+    }
+   ],
+   "equivalences": []
+  },
+  {
+   "key": "ikco.renault-tondar-90",
+   "groups": [
+    "IKCO",
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "رنو تندر ۹۰",
+    "en": "Renault Tondar 90"
+   },
+   "aliases": [
+    "تندر 90",
+    "L90",
+    "ال ۹۰",
+    "لوگان",
+    "Logan",
+    "پارس تندر"
+   ],
+   "make": {
+    "fa": "رنو",
+    "en": "Renault"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "ikco-product-144",
+     "claim": "محصول «تندر 90» در بخش رنو"
+    },
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «تندر 90» در فهرست سایپا یدک",
+     "page": "راهنمای مشتری و ضوابط گارانتی خودروی تندر 90"
+    },
+    {
+     "ref": "wiki-fa-pars-khodro",
+     "claim": "رنو تندر ۹۰ در محصولات پارس خودرو"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "ikco.renault-tondar-pickup",
+   "groups": [
+    "IKCO"
+   ],
+   "name": {
+    "fa": "رنو تندر پیکاپ",
+    "en": "Renault Tondar Pickup"
+   },
+   "aliases": [
+    "تندر پیکاپ"
+   ],
+   "make": {
+    "fa": "رنو",
+    "en": "Renault"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "ikco-product-242",
+     "claim": "محصول «تندر پيكاپ» در بخش رنو"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "ikco.renault-captur",
+   "groups": [
+    "IKCO"
+   ],
+   "name": {
+    "fa": "رنو کپچر",
+    "en": "Renault Captur"
+   },
+   "aliases": [
+    "کپچر",
+    "Captur"
+   ],
+   "make": {
+    "fa": "رنو",
+    "en": "Renault"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "ikco-product-239",
+     "claim": "محصول «کپچر» در بخش رنو"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "ikco.suzuki-grand-vitara",
+   "groups": [
+    "IKCO"
+   ],
+   "name": {
+    "fa": "سوزوکی گرند ویتارا",
+    "en": "Suzuki Grand Vitara"
+   },
+   "aliases": [
+    "گرندویتارا",
+    "ویتارا"
+   ],
+   "make": {
+    "fa": "سوزوکی",
+    "en": "Suzuki"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "ikco-product-165",
+     "claim": "محصول «سوزوکی گرندویتارا» در بخش سوزوکی"
+    },
+    {
+     "ref": "codal-ikco-monthly-1396-12",
+     "claim": "ردیف «سوزوکی» با تعداد تولید در سال ۱۳۹۶"
+    }
+   ],
+   "models": [],
+   "equivalences": [
+    {
+     "key": "eq.suzuki-vitara",
+     "model": null,
+     "legacy": {
+      "vehicleSlug": "suzuki",
+      "modelSlug": "model-mv95iiyj"
+     },
+     "status": "uncertain",
+     "note": "ردیف قدیمی «سوزوکی / ویتارا کلیه مدل ها» شاید همهٔ نسل‌های ویتارا باشد، نه فقط گرند ویتارای ایران‌خودرو؛ نیازمند تأیید."
+    }
+   ]
+  },
+  {
+   "key": "ikco.haima-s7",
+   "groups": [
+    "IKCO"
+   ],
+   "name": {
+    "fa": "هایما S7",
+    "en": "Haima S7"
+   },
+   "aliases": [],
+   "make": {
+    "fa": "هایما",
+    "en": "Haima"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "ikco-products",
+     "claim": "در فهرست رسمی محصولات ایران‌خودرو، بخش هایما"
+    }
+   ],
+   "models": [
+    {
+     "key": "ikco.haima-s7.base",
+     "name": {
+      "fa": "هایما S7",
+      "en": "S7"
+     },
+     "aliases": [],
+     "supply": null,
+     "supplier": null,
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "ikco-product-246",
+       "claim": "محصول «هايما S7»"
+      }
+     ]
+    },
+    {
+     "key": "ikco.haima-s7.plus",
+     "name": {
+      "fa": "هایما S7 پلاس",
+      "en": "S7 Plus"
+     },
+     "aliases": [],
+     "supply": null,
+     "supplier": null,
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "ikco-product-335",
+       "claim": "محصول «هايما S7 پلاس»"
+      }
+     ]
+    },
+    {
+     "key": "ikco.haima-s7.pro",
+     "name": {
+      "fa": "هایما S7 پرو",
+      "en": "S7 Pro"
+     },
+     "aliases": [],
+     "supply": null,
+     "supplier": null,
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "ikco-product-373",
+       "claim": "محصول «هايما S7 پرو»"
+      }
+     ]
+    }
+   ],
+   "equivalences": []
+  },
+  {
+   "key": "ikco.haima-s5",
+   "groups": [
+    "IKCO"
+   ],
+   "name": {
+    "fa": "هایما S5",
+    "en": "Haima S5"
+   },
+   "aliases": [],
+   "make": {
+    "fa": "هایما",
+    "en": "Haima"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "ikco-products",
+     "claim": "در فهرست رسمی محصولات ایران‌خودرو، بخش هایما"
+    }
+   ],
+   "models": [
+    {
+     "key": "ikco.haima-s5.base",
+     "name": {
+      "fa": "هایما S5",
+      "en": "S5"
+     },
+     "aliases": [],
+     "supply": null,
+     "supplier": null,
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "ikco-product-283",
+       "claim": "محصول «هایما S5»"
+      }
+     ]
+    },
+    {
+     "key": "ikco.haima-s5.pro",
+     "name": {
+      "fa": "هایما S5 پرو",
+      "en": "S5 Pro"
+     },
+     "aliases": [],
+     "supply": null,
+     "supplier": null,
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "ikco-product-377",
+       "claim": "محصول «هايما S5 pro»"
+      }
+     ]
+    }
+   ],
+   "equivalences": []
+  },
+  {
+   "key": "ikco.haima-8s",
+   "groups": [
+    "IKCO"
+   ],
+   "name": {
+    "fa": "هایما 8S",
+    "en": "Haima 8S"
+   },
+   "aliases": [],
+   "make": {
+    "fa": "هایما",
+    "en": "Haima"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "ikco-product-347",
+     "claim": "محصول «هايما 8S»"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "ikco.haima-7x",
+   "groups": [
+    "IKCO"
+   ],
+   "name": {
+    "fa": "هایما 7X",
+    "en": "Haima 7X"
+   },
+   "aliases": [],
+   "make": {
+    "fa": "هایما",
+    "en": "Haima"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "ikco-product-354",
+     "claim": "محصول «هايما 7X»"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "ikco.dongfeng-h30-cross",
+   "groups": [
+    "IKCO"
+   ],
+   "name": {
+    "fa": "دانگ‌فنگ H30 کراس",
+    "en": "Dongfeng H30 Cross"
+   },
+   "aliases": [
+    "H30 Cross",
+    "اچ ۳۰ کراس"
+   ],
+   "make": {
+    "fa": "دانگ‌فنگ",
+    "en": "Dongfeng"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "ikco-product-252",
+     "claim": "محصول «H30 Cross» در بخش DFM"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "ikco.dongfeng-s30",
+   "groups": [
+    "IKCO"
+   ],
+   "name": {
+    "fa": "دانگ‌فنگ S30",
+    "en": "Dongfeng S30"
+   },
+   "aliases": [
+    "S30"
+   ],
+   "make": {
+    "fa": "دانگ‌فنگ",
+    "en": "Dongfeng"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "ikco-product-311",
+     "claim": "محصول «S30» در بخش DFM"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "ikco.dongfeng-shine-max",
+   "groups": [
+    "IKCO"
+   ],
+   "name": {
+    "fa": "دانگ‌فنگ شاین مکس",
+    "en": "Dongfeng Shine Max"
+   },
+   "aliases": [
+    "شاین مکس",
+    "Shine Max"
+   ],
+   "make": {
+    "fa": "دانگ‌فنگ",
+    "en": "Dongfeng"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "ikco-product-358",
+     "claim": "محصول «شاين مكس» در بخش DFM"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "ikco.dongfeng-e70",
+   "groups": [
+    "IKCO"
+   ],
+   "name": {
+    "fa": "دانگ‌فنگ E70",
+    "en": "Dongfeng E70"
+   },
+   "aliases": [
+    "E70"
+   ],
+   "make": {
+    "fa": "دانگ‌فنگ",
+    "en": "Dongfeng"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "ikco-product-379",
+     "claim": "محصول «دانگ‌فنگ E70»"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "ikco.bestune-nat",
+   "groups": [
+    "IKCO"
+   ],
+   "name": {
+    "fa": "بستیون NAT",
+    "en": "Bestune NAT"
+   },
+   "aliases": [],
+   "make": {
+    "fa": "بستیون",
+    "en": "Bestune"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "ikco-product-371",
+     "claim": "محصول «بستيون NAT» در بخش خودروهای برقی"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "ikco.luna-gre",
+   "groups": [
+    "IKCO"
+   ],
+   "name": {
+    "fa": "لونا GRE",
+    "en": "Luna GRE"
+   },
+   "aliases": [
+    "لونا"
+   ],
+   "make": null,
+   "status": "official",
+   "sources": [
+    {
+     "ref": "ikco-product-367",
+     "claim": "محصول «لونا GRE» در بخش خودروهای برقی"
+    }
+   ],
+   "models": [],
+   "equivalences": [],
+   "note": "برند سازندهٔ لونا در منبع رسمی نیامده است."
+  },
+  {
+   "key": "saipa.pride",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "پراید",
+    "en": "Pride"
+   },
+   "aliases": [
+    "Pride",
+    "صبا",
+    "نسیم"
+   ],
+   "make": null,
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودروی پراید» در فهرست رسمی سایپا یدک",
+     "page": "خودروی پراید"
+    }
+   ],
+   "models": [],
+   "equivalences": [],
+   "note": "سازندهٔ اصلی (کیا) در منبع‌های بررسی‌شده برای پراید ذکر نشد؛ برند خالی ماند."
+  },
+  {
+   "key": "saipa.151",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "سایپا ۱۵۱",
+    "en": "Saipa 151"
+   },
+   "aliases": [
+    "وانت ۱۵۱",
+    "151"
+   ],
+   "make": {
+    "fa": "سایپا",
+    "en": "Saipa"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «سایپا 151» در فهرست رسمی سایپا یدک",
+     "page": "سایپا 151"
+    }
+   ],
+   "models": [
+    {
+     "key": "saipa.151.euro4",
+     "name": {
+      "fa": "سایپا ۱۵۱ (یورو ۴)",
+      "en": "151 (Euro 4)"
+     },
+     "aliases": [],
+     "supply": null,
+     "supplier": null,
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "saipayadak-owner-manuals",
+       "claim": "دفترچهٔ «سایپا 151 نسخه کامل (یورو4)» در فهرست رسمی سایپا یدک",
+       "page": "سایپا 151 نسخه کامل (یورو4)"
+      }
+     ]
+    },
+    {
+     "key": "saipa.151.euro5",
+     "name": {
+      "fa": "سایپا ۱۵۱ (یورو ۵)",
+      "en": "151 (Euro 5)"
+     },
+     "aliases": [],
+     "supply": null,
+     "supplier": null,
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "saipayadak-owner-manuals",
+       "claim": "دفترچهٔ «سایپا 151 نسخه کامل (یورو5)» در فهرست رسمی سایپا یدک",
+       "page": "سایپا 151 نسخه کامل (یورو5)"
+      }
+     ]
+    },
+    {
+     "key": "saipa.151.upgraded",
+     "name": {
+      "fa": "سایپا ۱۵۱ ارتقایافته",
+      "en": "151 (upgraded)"
+     },
+     "aliases": [],
+     "supply": null,
+     "supplier": null,
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "saipayadak-owner-manuals",
+       "claim": "دفترچهٔ «سایپا 151 ارتقاء یافته» در فهرست رسمی سایپا یدک",
+       "page": "سایپا 151 ارتقاء یافته"
+      }
+     ]
+    }
+   ],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.tiba",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "تیبا",
+    "en": "Tiba"
+   },
+   "aliases": [],
+   "make": {
+    "fa": "سایپا",
+    "en": "Saipa"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "wiki-fa-saipa",
+     "claim": "تیبا از خودروهای بومی سایپا"
+    }
+   ],
+   "models": [
+    {
+     "key": "saipa.tiba.sedan",
+     "name": {
+      "fa": "تیبا",
+      "en": "Tiba"
+     },
+     "aliases": [],
+     "supply": null,
+     "supplier": null,
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "saipayadak-owner-manuals",
+       "claim": "دفترچهٔ «خودروی تیبا (نسخه کامل)» در فهرست رسمی سایپا یدک",
+       "page": "خودروی تیبا (نسخه کامل)"
+      }
+     ]
+    },
+    {
+     "key": "saipa.tiba.2",
+     "name": {
+      "fa": "تیبا ۲ (هاچ‌بک)",
+      "en": "Tiba 2 (hatchback)"
+     },
+     "aliases": [],
+     "supply": null,
+     "supplier": null,
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "saipayadak-owner-manuals",
+       "claim": "دفترچهٔ «خودروی تیبا 2 (نسخه کامل)» در فهرست رسمی سایپا یدک",
+       "page": "خودروی تیبا 2 (نسخه کامل)"
+      }
+     ]
+    }
+   ],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.saina",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "ساینا",
+    "en": "Saina"
+   },
+   "aliases": [],
+   "make": {
+    "fa": "سایپا",
+    "en": "Saipa"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودروی ساینا (کلیه مدل ها)» در فهرست رسمی سایپا یدک",
+     "page": "خودروی ساینا (کلیه مدل ها)"
+    },
+    {
+     "ref": "wiki-fa-saipa",
+     "claim": "ساینا از خودروهای بومی سایپا"
+    }
+   ],
+   "models": [
+    {
+     "key": "saipa.saina.gx-cng",
+     "name": {
+      "fa": "ساینا GX و GXL دوگانه‌سوز",
+      "en": "Saina GX/GXL CNG"
+     },
+     "aliases": [],
+     "supply": null,
+     "supplier": null,
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "saipayadak-owner-manuals",
+       "claim": "دفترچهٔ «خودروی ساینا GX و GXL CNG» در فهرست رسمی سایپا یدک",
+       "page": "خودروی ساینا GX و GXL CNG"
+      }
+     ]
+    }
+   ],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.quick",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "کوییک",
+    "en": "Quick"
+   },
+   "aliases": [
+    "کوئیک",
+    "Quik"
+   ],
+   "make": {
+    "fa": "سایپا",
+    "en": "Saipa"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودروی کوئیک (212)» در فهرست رسمی سایپا یدک",
+     "page": "خودروی کوئیک (212)"
+    },
+    {
+     "ref": "wiki-fa-saipa",
+     "claim": "کوئیک از خودروهای بومی سایپا"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.shahin",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "شاهین",
+    "en": "Shahin"
+   },
+   "aliases": [],
+   "make": null,
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودروی شاهین دستی و CVT» در فهرست رسمی سایپا یدک",
+     "page": "خودروی شاهین دستی و CVT"
+    }
+   ],
+   "models": [
+    {
+     "key": "saipa.shahin.manual",
+     "name": {
+      "fa": "شاهین دنده‌ای",
+      "en": "Shahin manual"
+     },
+     "aliases": [],
+     "supply": null,
+     "supplier": null,
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "saipayadak-owner-manuals",
+       "claim": "دفترچهٔ «خودروی شاهین دستی و CVT» در فهرست رسمی سایپا یدک",
+       "page": "خودروی شاهین دستی و CVT"
+      }
+     ]
+    },
+    {
+     "key": "saipa.shahin.cvt",
+     "name": {
+      "fa": "شاهین CVT",
+      "en": "Shahin CVT"
+     },
+     "aliases": [],
+     "supply": null,
+     "supplier": null,
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "saipayadak-owner-manuals",
+       "claim": "دفترچهٔ «خودروی شاهین دستی و CVT» در فهرست رسمی سایپا یدک",
+       "page": "خودروی شاهین دستی و CVT"
+      }
+     ]
+    },
+    {
+     "key": "saipa.shahin.plus",
+     "name": {
+      "fa": "شاهین پلاس",
+      "en": "Shahin Plus"
+     },
+     "aliases": [],
+     "supply": null,
+     "supplier": null,
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "saipayadak-owner-manuals",
+       "claim": "دفترچهٔ «خودروی شاهین پلاس» در فهرست رسمی سایپا یدک",
+       "page": "خودروی شاهین پلاس"
+      }
+     ]
+    }
+   ],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.atlas",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "اطلس",
+    "en": "Atlas"
+   },
+   "aliases": [],
+   "make": null,
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودروی اطلس» در فهرست رسمی سایپا یدک",
+     "page": "خودروی اطلس"
+    }
+   ],
+   "models": [
+    {
+     "key": "saipa.atlas.base",
+     "name": {
+      "fa": "اطلس",
+      "en": "Atlas"
+     },
+     "aliases": [],
+     "supply": null,
+     "supplier": null,
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "saipayadak-owner-manuals",
+       "claim": "دفترچهٔ «خودروی اطلس» در فهرست رسمی سایپا یدک",
+       "page": "خودروی اطلس"
+      }
+     ]
+    },
+    {
+     "key": "saipa.atlas.plus",
+     "name": {
+      "fa": "اطلس پلاس (اتوماتیک)",
+      "en": "Atlas Plus (automatic)"
+     },
+     "aliases": [],
+     "supply": null,
+     "supplier": null,
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "saipayadak-owner-manuals",
+       "claim": "دفترچهٔ «خودروی اطلس پلاس (اتوماتیک)» در فهرست رسمی سایپا یدک",
+       "page": "خودروی اطلس پلاس (اتوماتیک)"
+      }
+     ]
+    }
+   ],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.sahand",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "سهند",
+    "en": "Sahand"
+   },
+   "aliases": [],
+   "make": {
+    "fa": "سایپا",
+    "en": "Saipa"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودروی سهند بنزینی-اتوماتیک - CNG» در فهرست رسمی سایپا یدک",
+     "page": "خودروی سهند بنزینی-اتوماتیک - CNG"
+    },
+    {
+     "ref": "wiki-fa-pars-khodro",
+     "claim": "سایپا سهند در محصولات پارس خودرو"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.aria",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "آریا",
+    "en": "Aria"
+   },
+   "aliases": [],
+   "make": null,
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودروی آریا» در فهرست رسمی سایپا یدک",
+     "page": "خودروی آریا"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.pars-nova",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "پارس نوا",
+    "en": "Pars Nova"
+   },
+   "aliases": [
+    "پارس نوآ"
+   ],
+   "make": null,
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودروی پارس نوا» در فهرست رسمی سایپا یدک",
+     "page": "خودروی پارس نوا"
+    },
+    {
+     "ref": "wiki-fa-pars-khodro",
+     "claim": "پارس نوآ در محصولات پارس خودرو"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.rio",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "کیا ریو",
+    "en": "Kia Rio"
+   },
+   "aliases": [
+    "ریو"
+   ],
+   "make": {
+    "fa": "کیا",
+    "en": "Kia"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودروی ریو» در فهرست رسمی سایپا یدک",
+     "page": "خودروی ریو"
+    },
+    {
+     "ref": "wiki-fa-saipa",
+     "claim": "ریو محصولی از کیا موتورز، تولید سایپا"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.cerato",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "سراتو",
+    "en": "Cerato"
+   },
+   "aliases": [],
+   "make": null,
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودرو سراتو» در فهرست رسمی سایپا یدک",
+     "page": "خودرو سراتو"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.xantia",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "زانتیا",
+    "en": "Xantia"
+   },
+   "aliases": [],
+   "make": null,
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودروی زانتیا» در فهرست رسمی سایپا یدک",
+     "page": "خودروی زانتیا"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.c5",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "C5",
+    "en": "C5"
+   },
+   "aliases": [],
+   "make": null,
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودروی C5» در فهرست رسمی سایپا یدک",
+     "page": "خودروی C5"
+    }
+   ],
+   "models": [
+    {
+     "key": "saipa.c5.first",
+     "name": {
+      "fa": "C5",
+      "en": "C5"
+     },
+     "aliases": [],
+     "supply": null,
+     "supplier": null,
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "saipayadak-owner-manuals",
+       "claim": "دفترچهٔ «خودروی C5» در فهرست رسمی سایپا یدک",
+       "page": "خودروی C5"
+      }
+     ]
+    },
+    {
+     "key": "saipa.c5.new",
+     "name": {
+      "fa": "C5 جدید",
+      "en": "New C5"
+     },
+     "aliases": [],
+     "supply": null,
+     "supplier": null,
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "saipayadak-owner-manuals",
+       "claim": "دفترچهٔ «خودروی new c5» در فهرست رسمی سایپا یدک",
+       "page": "خودروی new c5"
+      }
+     ]
+    }
+   ],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.c3-xr",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "C3 XR",
+    "en": "C3 XR"
+   },
+   "aliases": [
+    "C3-XR"
+   ],
+   "make": null,
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودروی C3_XR» در فهرست رسمی سایپا یدک",
+     "page": "خودروی C3_XR"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.renault-megane",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "رنو مگان",
+    "en": "Renault Megane"
+   },
+   "aliases": [
+    "مگان"
+   ],
+   "make": {
+    "fa": "رنو",
+    "en": "Renault"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودروی مگان» در فهرست رسمی سایپا یدک",
+     "page": "خودروی مگان"
+    },
+    {
+     "ref": "wiki-fa-pars-khodro",
+     "claim": "رنو مگان در محصولات پارس خودرو"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.renault-sandero",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "رنو ساندرو",
+    "en": "Renault Sandero"
+   },
+   "aliases": [
+    "ساندرو",
+    "استپ وی"
+   ],
+   "make": {
+    "fa": "رنو",
+    "en": "Renault"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودرو ساندرو» در فهرست رسمی سایپا یدک",
+     "page": "خودرو ساندرو"
+    },
+    {
+     "ref": "wiki-fa-pars-khodro",
+     "claim": "رنو ساندرو و ساندرو استپ‌وی در محصولات پارس خودرو"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.renault-koleos",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "رنو کولئوس",
+    "en": "Renault Koleos"
+   },
+   "aliases": [
+    "کلیوس",
+    "کولئوس"
+   ],
+   "make": {
+    "fa": "رنو",
+    "en": "Renault"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودروی کلیوس» در فهرست رسمی سایپا یدک",
+     "page": "خودروی کلیوس"
+    },
+    {
+     "ref": "wiki-fa-pars-khodro",
+     "claim": "رنو کولئوس در خودروهای وارداتی پارس خودرو"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.nissan-maxima",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "نیسان ماکسیما",
+    "en": "Nissan Maxima"
+   },
+   "aliases": [
+    "ماکسیما"
+   ],
+   "make": {
+    "fa": "نیسان",
+    "en": "Nissan"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودروی ماکسیما» در فهرست رسمی سایپا یدک",
+     "page": "خودروی ماکسیما"
+    },
+    {
+     "ref": "wiki-fa-pars-khodro",
+     "claim": "نیسان ماکسیما در محصولات پارس خودرو"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.nissan-murano",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "نیسان مورانو",
+    "en": "Nissan Murano"
+   },
+   "aliases": [
+    "مورانو"
+   ],
+   "make": {
+    "fa": "نیسان",
+    "en": "Nissan"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودروی مورانو» در فهرست رسمی سایپا یدک",
+     "page": "خودروی مورانو"
+    },
+    {
+     "ref": "wiki-fa-pars-khodro",
+     "claim": "نیسان مورانو در خودروهای وارداتی پارس خودرو"
+    }
+   ],
+   "models": [
+    {
+     "key": "saipa.nissan-murano.z51",
+     "name": {
+      "fa": "مورانو Z51",
+      "en": "Murano Z51"
+     },
+     "aliases": [],
+     "supply": "imported",
+     "supplier": null,
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "saipayadak-owner-manuals",
+       "claim": "دفترچهٔ «خودروی مورانو z51» در فهرست رسمی سایپا یدک",
+       "page": "خودروی مورانو z51"
+      }
+     ]
+    }
+   ],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.nissan-qashqai",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "نیسان قشقایی",
+    "en": "Nissan Qashqai"
+   },
+   "aliases": [
+    "قشقایی"
+   ],
+   "make": {
+    "fa": "نیسان",
+    "en": "Nissan"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودروی قشقایی» در فهرست رسمی سایپا یدک",
+     "page": "خودروی قشقایی"
+    },
+    {
+     "ref": "wiki-fa-pars-khodro",
+     "claim": "نیسان قشقایی در محصولات پارس خودرو"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.nissan-teana",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "نیسان تیانا",
+    "en": "Nissan Teana"
+   },
+   "aliases": [
+    "تیانا",
+    "تینا"
+   ],
+   "make": {
+    "fa": "نیسان",
+    "en": "Nissan"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودروی تیانا» در فهرست رسمی سایپا یدک",
+     "page": "خودروی تیانا"
+    },
+    {
+     "ref": "wiki-fa-pars-khodro",
+     "claim": "نیسان تیانا در محصولات پارس خودرو"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.nissan-roniz",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "نیسان رونیز",
+    "en": "Nissan Roniz"
+   },
+   "aliases": [
+    "رونیز"
+   ],
+   "make": {
+    "fa": "نیسان",
+    "en": "Nissan"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودروی رونیز» در فهرست رسمی سایپا یدک",
+     "page": "خودروی رونیز"
+    },
+    {
+     "ref": "wiki-fa-pars-khodro",
+     "claim": "نیسان رونیز در محصولات پارس خودرو"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.nissan-seranza",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "نیسان سرانزا",
+    "en": "Nissan Seranza"
+   },
+   "aliases": [
+    "سرانزا"
+   ],
+   "make": {
+    "fa": "نیسان",
+    "en": "Nissan"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودروی سرانزا» در فهرست رسمی سایپا یدک",
+     "page": "خودروی سرانزا"
+    },
+    {
+     "ref": "wiki-fa-pars-khodro",
+     "claim": "نیسان سرانزا در محصولات پارس خودرو"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.nissan-pickup",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "نیسان پیکاپ",
+    "en": "Nissan Pickup"
+   },
+   "aliases": [
+    "پیکاپ"
+   ],
+   "make": {
+    "fa": "نیسان",
+    "en": "Nissan"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودروی پیکاپ» در فهرست رسمی سایپا یدک",
+     "page": "خودروی پیکاپ"
+    },
+    {
+     "ref": "wiki-fa-pars-khodro",
+     "claim": "نیسان پیکاپ در محصولات پارس خودرو"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.brilliance-h220-h230",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "برلیانس H220 و H230",
+    "en": "Brilliance H220/H230"
+   },
+   "aliases": [],
+   "make": {
+    "fa": "برلیانس",
+    "en": "Brilliance"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودروهای H220 ; H230» در فهرست رسمی سایپا یدک",
+     "page": "خودروهای H220 ; H230"
+    },
+    {
+     "ref": "wiki-fa-pars-khodro",
+     "claim": "برلیانس اچ۲۲۰ و اچ۲۳۰ در محصولات پارس خودرو"
+    }
+   ],
+   "models": [
+    {
+     "key": "saipa.brilliance-h220-h230.h220",
+     "name": {
+      "fa": "H220",
+      "en": "H220"
+     },
+     "aliases": [],
+     "supply": null,
+     "supplier": null,
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "saipayadak-owner-manuals",
+       "claim": "دفترچهٔ «خودروهای H220 ; H230» در فهرست رسمی سایپا یدک",
+       "page": "خودروهای H220 ; H230"
+      }
+     ]
+    },
+    {
+     "key": "saipa.brilliance-h220-h230.h230",
+     "name": {
+      "fa": "H230",
+      "en": "H230"
+     },
+     "aliases": [],
+     "supply": null,
+     "supplier": null,
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "saipayadak-owner-manuals",
+       "claim": "دفترچهٔ «خودروهای H220 ; H230» در فهرست رسمی سایپا یدک",
+       "page": "خودروهای H220 ; H230"
+      }
+     ]
+    }
+   ],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.brilliance-h320",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "برلیانس H320",
+    "en": "Brilliance H320"
+   },
+   "aliases": [],
+   "make": {
+    "fa": "برلیانس",
+    "en": "Brilliance"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودروهای H320» در فهرست رسمی سایپا یدک",
+     "page": "خودروهای H320"
+    },
+    {
+     "ref": "wiki-fa-pars-khodro",
+     "claim": "برلیانس اچ۳۲۰ در محصولات پارس خودرو"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.brilliance-h330",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "برلیانس H330",
+    "en": "Brilliance H330"
+   },
+   "aliases": [],
+   "make": {
+    "fa": "برلیانس",
+    "en": "Brilliance"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودروی H330» در فهرست رسمی سایپا یدک",
+     "page": "خودروی H330"
+    },
+    {
+     "ref": "wiki-fa-pars-khodro",
+     "claim": "برلیانس اچ۳۳۰ در محصولات پارس خودرو"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.brilliance-cross",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "برلیانس کراس",
+    "en": "Brilliance Cross"
+   },
+   "aliases": [
+    "H320 کراس"
+   ],
+   "make": {
+    "fa": "برلیانس",
+    "en": "Brilliance"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودروهای cross» در فهرست رسمی سایپا یدک",
+     "page": "خودروهای cross"
+    },
+    {
+     "ref": "wiki-fa-pars-khodro",
+     "claim": "برلیانس کراس در محصولات پارس خودرو"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.changan-cs35-plus",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "چانگان CS35 پلاس",
+    "en": "Changan CS35 Plus"
+   },
+   "aliases": [
+    "CS35 پلاس",
+    "CS35PLUS"
+   ],
+   "make": {
+    "fa": "چانگان",
+    "en": "Changan"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودروی چانگان CS35PLUS» در فهرست رسمی سایپا یدک",
+     "page": "خودروی چانگان CS35PLUS"
+    },
+    {
+     "ref": "wiki-fa-pars-khodro",
+     "claim": "چانگان سی‌اس۳۵ پلاس در محصولات پارس خودرو"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.changan-uni-k",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "چانگان UNI-K",
+    "en": "Changan UNI-K"
+   },
+   "aliases": [
+    "یونی کی",
+    "UNI-K"
+   ],
+   "make": {
+    "fa": "چانگان",
+    "en": "Changan"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودرو چانگان UNI-K» در فهرست رسمی سایپا یدک",
+     "page": "خودرو چانگان UNI-K"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.cs35",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "CS35",
+    "en": "CS35"
+   },
+   "aliases": [],
+   "make": null,
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودروی CS35» در فهرست رسمی سایپا یدک",
+     "page": "خودروی CS35"
+    }
+   ],
+   "models": [],
+   "equivalences": [],
+   "note": "برند در عنوان دفترچه نیامده است؛ نسبت با چانگان CS35 پلاس بررسی شود."
+  },
+  {
+   "key": "saipa.cs55-plus",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "CS55 پلاس",
+    "en": "CS55 Plus"
+   },
+   "aliases": [
+    "CS55PLUS"
+   ],
+   "make": null,
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودروی CS55PLUS» در فهرست رسمی سایپا یدک",
+     "page": "خودروی CS55PLUS"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.eado",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "ایدو",
+    "en": "EADO"
+   },
+   "aliases": [
+    "EADO"
+   ],
+   "make": null,
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودروی EADO» در فهرست رسمی سایپا یدک",
+     "page": "خودروی EADO"
+    }
+   ],
+   "models": [
+    {
+     "key": "saipa.eado.ev460",
+     "name": {
+      "fa": "ایدو EV460",
+      "en": "EADO EV460"
+     },
+     "aliases": [],
+     "supply": null,
+     "supplier": null,
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "saipayadak-owner-manuals",
+       "claim": "دفترچهٔ «خودروی EADO EV460» در فهرست رسمی سایپا یدک",
+       "page": "خودروی EADO EV460"
+      }
+     ]
+    }
+   ],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.hunter-plus",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "هانتر پلاس",
+    "en": "Hunter Plus"
+   },
+   "aliases": [],
+   "make": null,
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودرو هانتر پلاس» در فهرست رسمی سایپا یدک",
+     "page": "خودرو هانتر پلاس"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.roewe-erx5",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "رووه eRX5",
+    "en": "Roewe eRX5"
+   },
+   "aliases": [
+    "ROEWE eRX5"
+   ],
+   "make": {
+    "fa": "رووه",
+    "en": "Roewe"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودروی ROEWE eRX5» در فهرست رسمی سایپا یدک",
+     "page": "خودروی ROEWE eRX5"
+    },
+    {
+     "ref": "wiki-fa-pars-khodro",
+     "claim": "رووی ئی‌آرایکس۵ در خودروهای وارداتی پارس خودرو"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.zotye-dl5",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "زوتی DL5",
+    "en": "Zotye DL5"
+   },
+   "aliases": [
+    "DL5"
+   ],
+   "make": {
+    "fa": "زوتی",
+    "en": "Zotye"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودروی DL5» در فهرست رسمی سایپا یدک",
+     "page": "خودروی DL5"
+    },
+    {
+     "ref": "wiki-fa-pars-khodro",
+     "claim": "زوتی دی‌ال۵ در خودروهای وارداتی پارس خودرو"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.ario",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "آریو",
+    "en": "Ario"
+   },
+   "aliases": [
+    "S300"
+   ],
+   "make": null,
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودروی آریو ( s300 )» در فهرست رسمی سایپا یدک",
+     "page": "خودروی آریو ( s300 )"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.korando",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "کوراندو",
+    "en": "Korando"
+   },
+   "aliases": [],
+   "make": null,
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودروی کوراندو» در فهرست رسمی سایپا یدک",
+     "page": "خودروی کوراندو"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.cherman",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "چیرمن",
+    "en": "Cherman"
+   },
+   "aliases": [],
+   "make": null,
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودروی چیرمن» در فهرست رسمی سایپا یدک",
+     "page": "خودروی چیرمن"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.ciena",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "سی‌ینا",
+    "en": "Ciena"
+   },
+   "aliases": [
+    "سی ینا"
+   ],
+   "make": null,
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودروی سی ینا» در فهرست رسمی سایپا یدک",
+     "page": "خودروی سی ینا"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.v5",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "V5",
+    "en": "V5"
+   },
+   "aliases": [],
+   "make": null,
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودروی V5» در فهرست رسمی سایپا یدک",
+     "page": "خودروی V5"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.karvan",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "کاروان",
+    "en": "Karvan"
+   },
+   "aliases": [],
+   "make": null,
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودروی کاروان» در فهرست رسمی سایپا یدک",
+     "page": "خودروی کاروان"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.441p",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "441P",
+    "en": "441P"
+   },
+   "aliases": [],
+   "make": null,
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودروی 441P» در فهرست رسمی سایپا یدک",
+     "page": "خودروی 441P"
+    }
+   ],
+   "models": [],
+   "equivalences": [],
+   "note": "نام فایل دفترچه به CS55PLUS اشاره دارد؛ هم‌ارزی تأیید نشد."
+  },
+  {
+   "key": "saipa.421p",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "421P",
+    "en": "421P"
+   },
+   "aliases": [],
+   "make": null,
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودروی 421P» در فهرست رسمی سایپا یدک",
+     "page": "خودروی 421P"
+    }
+   ],
+   "models": [],
+   "equivalences": [],
+   "note": "نام فایل دفترچه به CS35PLUS اشاره دارد؛ هم‌ارزی تأیید نشد."
+  },
+  {
+   "key": "saipa.haise-h2l",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "ون هایس H2L",
+    "en": "Haise H2L van"
+   },
+   "aliases": [
+    "H2L"
+   ],
+   "make": null,
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودرو ون H2L HAISE» در فهرست رسمی سایپا یدک",
+     "page": "خودرو ون H2L HAISE"
+    },
+    {
+     "ref": "wiki-fa-pars-khodro",
+     "claim": "واردات هایس H2L از جینبی چین توسط پارس خودرو"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.zamyad-pickup",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "وانت زامیاد",
+    "en": "Zamyad pickup"
+   },
+   "aliases": [
+    "زامیاد",
+    "نیسان آبی",
+    "Z24"
+   ],
+   "make": null,
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «وانت زامیاد» در فهرست رسمی سایپا یدک",
+     "page": "وانت زامیاد"
+    }
+   ],
+   "models": [
+    {
+     "key": "saipa.zamyad-pickup.diesel-euro3",
+     "name": {
+      "fa": "دیزل یورو ۳",
+      "en": "Diesel Euro 3"
+     },
+     "aliases": [],
+     "supply": null,
+     "supplier": null,
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "saipayadak-owner-manuals",
+       "claim": "دفترچهٔ «وانت زامیاد دیزل EURO3» در فهرست رسمی سایپا یدک",
+       "page": "وانت زامیاد دیزل EURO3"
+      }
+     ]
+    },
+    {
+     "key": "saipa.zamyad-pickup.diesel-euro5",
+     "name": {
+      "fa": "دیزل یورو ۵",
+      "en": "Diesel Euro 5"
+     },
+     "aliases": [],
+     "supply": null,
+     "supplier": null,
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "saipayadak-owner-manuals",
+       "claim": "دفترچهٔ «زامیاد - وانت دیزل EUOR5» در فهرست رسمی سایپا یدک",
+       "page": "زامیاد - وانت دیزل EUOR5"
+      }
+     ]
+    },
+    {
+     "key": "saipa.zamyad-pickup.euro5",
+     "name": {
+      "fa": "یورو ۵ (تک‌سوز و دوگانه‌سوز)",
+      "en": "Euro 5 (petrol and CNG)"
+     },
+     "aliases": [],
+     "supply": null,
+     "supplier": null,
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "saipayadak-owner-manuals",
+       "claim": "دفترچهٔ «وانت زامیاد یورو 5 (تک سوز و دوگانه سوز)» در فهرست رسمی سایپا یدک",
+       "page": "وانت زامیاد یورو 5 (تک سوز و دوگانه سوز)"
+      }
+     ]
+    },
+    {
+     "key": "saipa.zamyad-pickup.shooka",
+     "name": {
+      "fa": "شوکا (لوکس)",
+      "en": "Shooka"
+     },
+     "aliases": [],
+     "supply": null,
+     "supplier": null,
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "saipayadak-owner-manuals",
+       "claim": "دفترچهٔ «وانت لوکس زامیاد شوکا» در فهرست رسمی سایپا یدک",
+       "page": "وانت لوکس زامیاد شوکا"
+      }
+     ]
+    },
+    {
+     "key": "saipa.zamyad-pickup.dump",
+     "name": {
+      "fa": "کمپرسی",
+      "en": "Dump body"
+     },
+     "aliases": [],
+     "supply": null,
+     "supplier": null,
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "saipayadak-owner-manuals",
+       "claim": "دفترچهٔ «کمپرسی وانت زامیاد» در فهرست رسمی سایپا یدک",
+       "page": "کمپرسی وانت زامیاد"
+      }
+     ]
+    }
+   ],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.zamyad-ex",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "کامیونت زامیاد EX",
+    "en": "Zamyad EX light truck"
+   },
+   "aliases": [],
+   "make": null,
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «کامیونت زامیاد EX» در فهرست رسمی سایپا یدک",
+     "page": "کامیونت زامیاد EX"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.padra",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "پادرا",
+    "en": "Padra"
+   },
+   "aliases": [],
+   "make": null,
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودروی پادرا» در فهرست رسمی سایپا یدک",
+     "page": "خودروی پادرا"
+    }
+   ],
+   "models": [
+    {
+     "key": "saipa.padra.base",
+     "name": {
+      "fa": "پادرا",
+      "en": "Padra"
+     },
+     "aliases": [],
+     "supply": null,
+     "supplier": null,
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "saipayadak-owner-manuals",
+       "claim": "دفترچهٔ «خودروی پادرا» در فهرست رسمی سایپا یدک",
+       "page": "خودروی پادرا"
+      }
+     ]
+    },
+    {
+     "key": "saipa.padra.plus",
+     "name": {
+      "fa": "پادرا پلاس",
+      "en": "Padra Plus"
+     },
+     "aliases": [],
+     "supply": null,
+     "supplier": null,
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "saipayadak-owner-manuals",
+       "claim": "دفترچهٔ «پادرا پلاس تک سوز و دوگانه سوز (یورو5)» در فهرست رسمی سایپا یدک",
+       "page": "پادرا پلاس تک سوز و دوگانه سوز (یورو5)"
+      }
+     ]
+    }
+   ],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.karun",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "وانت کارون",
+    "en": "Karun pickup"
+   },
+   "aliases": [
+    "کارون"
+   ],
+   "make": null,
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودروی وانت کارون» در فهرست رسمی سایپا یدک",
+     "page": "خودروی وانت کارون"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "saipa.rich",
+   "groups": [
+    "SAIPA"
+   ],
+   "name": {
+    "fa": "وانت ریچ",
+    "en": "Rich pickup"
+   },
+   "aliases": [
+    "ریچ"
+   ],
+   "make": null,
+   "status": "official",
+   "sources": [
+    {
+     "ref": "saipayadak-owner-manuals",
+     "claim": "دفترچهٔ «خودروی ریچ» در فهرست رسمی سایپا یدک",
+     "page": "خودروی ریچ"
+    },
+    {
+     "ref": "wiki-fa-pars-khodro",
+     "claim": "تولید وانت ریچ در پارس خودرو (۱۳۹۲)"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "toyota.corolla",
+   "groups": [
+    "TOYOTA"
+   ],
+   "name": {
+    "fa": "تویوتا کرولا",
+    "en": "Toyota Corolla"
+   },
+   "aliases": [
+    "کرولا"
+   ],
+   "make": {
+    "fa": "تویوتا",
+    "en": "Toyota"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "toyota-iran-products",
+     "claim": "کرولا در فهرست محصولات تویوتا در ایران"
+    }
+   ],
+   "models": [
+    {
+     "key": "toyota.corolla.1-8",
+     "name": {
+      "fa": "کرولا ۱٫۸",
+      "en": "Corolla 1.8"
+     },
+     "aliases": [],
+     "supply": "imported",
+     "supplier": {
+      "fa": "نمایندگی رسمی تویوتا در ایران",
+      "en": "Toyota’s official representative in Iran"
+     },
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "toyota-iran-corolla1-8",
+       "claim": "«1.8 کرولا» در فهرست محصولات تویوتا در ایران"
+      }
+     ]
+    },
+    {
+     "key": "toyota.corolla.2-0",
+     "name": {
+      "fa": "کرولا ۲٫۰",
+      "en": "Corolla 2.0"
+     },
+     "aliases": [],
+     "supply": "imported",
+     "supplier": {
+      "fa": "نمایندگی رسمی تویوتا در ایران",
+      "en": "Toyota’s official representative in Iran"
+     },
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "toyota-iran-corolla1-2-t",
+       "claim": "«2.0 L کرولا» در فهرست محصولات تویوتا در ایران"
+      }
+     ]
+    },
+    {
+     "key": "toyota.corolla.hybrid-2025",
+     "name": {
+      "fa": "کرولا هیبرید ۲۰۲۵",
+      "en": "Corolla Hybrid 2025"
+     },
+     "aliases": [],
+     "supply": "imported",
+     "supplier": {
+      "fa": "نمایندگی رسمی تویوتا در ایران",
+      "en": "Toyota’s official representative in Iran"
+     },
+     "years": {
+      "from": 2025,
+      "to": 2025,
+      "calendar": "gregorian",
+      "source": {
+       "ref": "toyota-iran-toyotacorollahybrid",
+       "claim": "«Corolla Hybrid 2025» در فهرست محصولات تویوتا در ایران"
+      }
+     },
+     "status": "official",
+     "sources": [
+      {
+       "ref": "toyota-iran-toyotacorollahybrid",
+       "claim": "«Corolla Hybrid 2025» در فهرست محصولات تویوتا در ایران"
+      }
+     ]
+    }
+   ],
+   "equivalences": []
+  },
+  {
+   "key": "toyota.corolla-cross",
+   "groups": [
+    "TOYOTA"
+   ],
+   "name": {
+    "fa": "تویوتا کرولا کراس",
+    "en": "Toyota Corolla Cross"
+   },
+   "aliases": [
+    "کرولا کراس"
+   ],
+   "make": {
+    "fa": "تویوتا",
+    "en": "Toyota"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "toyota-iran-corollacross",
+     "claim": "«COROLLA CROSS 2.0» در فهرست محصولات تویوتا در ایران"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "toyota.levin",
+   "groups": [
+    "TOYOTA"
+   ],
+   "name": {
+    "fa": "تویوتا لوین",
+    "en": "Toyota Levin"
+   },
+   "aliases": [
+    "لوین"
+   ],
+   "make": {
+    "fa": "تویوتا",
+    "en": "Toyota"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "toyota-iran-products",
+     "claim": "لوین در فهرست محصولات تویوتا در ایران"
+    }
+   ],
+   "models": [
+    {
+     "key": "toyota.levin.1-8",
+     "name": {
+      "fa": "لوین ۱٫۸",
+      "en": "Levin 1.8"
+     },
+     "aliases": [],
+     "supply": "imported",
+     "supplier": {
+      "fa": "نمایندگی رسمی تویوتا در ایران",
+      "en": "Toyota’s official representative in Iran"
+     },
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "toyota-iran-d8aad988db8cd988d8aad8a7-d984d988db8cd98",
+       "claim": "«لوین 1.8» در فهرست محصولات تویوتا در ایران"
+      }
+     ]
+    },
+    {
+     "key": "toyota.levin.1-2t",
+     "name": {
+      "fa": "لوین ۱٫۲ توربو",
+      "en": "Levin 1.2T"
+     },
+     "aliases": [],
+     "supply": "imported",
+     "supplier": {
+      "fa": "نمایندگی رسمی تویوتا در ایران",
+      "en": "Toyota’s official representative in Iran"
+     },
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "toyota-iran-d8aad988db8cd988d8aad8a7-d984d988db8cd98",
+       "claim": "«1.2 T لوین» در فهرست محصولات تویوتا در ایران"
+      }
+     ]
+    }
+   ],
+   "equivalences": []
+  },
+  {
+   "key": "toyota.camry",
+   "groups": [
+    "TOYOTA"
+   ],
+   "name": {
+    "fa": "تویوتا کمری",
+    "en": "Toyota Camry"
+   },
+   "aliases": [
+    "کمری"
+   ],
+   "make": {
+    "fa": "تویوتا",
+    "en": "Toyota"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "toyota-iran-products",
+     "claim": "کمری در فهرست محصولات تویوتا در ایران"
+    }
+   ],
+   "models": [
+    {
+     "key": "toyota.camry.2-0",
+     "name": {
+      "fa": "کمری ۲٫۰",
+      "en": "Camry 2.0"
+     },
+     "aliases": [],
+     "supply": "imported",
+     "supplier": {
+      "fa": "نمایندگی رسمی تویوتا در ایران",
+      "en": "Toyota’s official representative in Iran"
+     },
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "toyota-iran-daa9d985d8b1db8c-2-0",
+       "claim": "«کمری 2.0» در فهرست محصولات تویوتا در ایران"
+      }
+     ]
+    },
+    {
+     "key": "toyota.camry.2-5",
+     "name": {
+      "fa": "کمری ۲٫۵",
+      "en": "Camry 2.5"
+     },
+     "aliases": [],
+     "supply": "imported",
+     "supplier": {
+      "fa": "نمایندگی رسمی تویوتا در ایران",
+      "en": "Toyota’s official representative in Iran"
+     },
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "toyota-iran-daa9d985d8b1db8c-2-5",
+       "claim": "«کمری 2.5» در فهرست محصولات تویوتا در ایران"
+      }
+     ]
+    },
+    {
+     "key": "toyota.camry.2023",
+     "name": {
+      "fa": "کمری ۲۰۲۳",
+      "en": "Camry 2023"
+     },
+     "aliases": [],
+     "supply": "imported",
+     "supplier": {
+      "fa": "نمایندگی رسمی تویوتا در ایران",
+      "en": "Toyota’s official representative in Iran"
+     },
+     "years": {
+      "from": 2023,
+      "to": 2023,
+      "calendar": "gregorian",
+      "source": {
+       "ref": "toyota-iran-camry-2023",
+       "claim": "«کمری 2023» در فهرست محصولات تویوتا در ایران"
+      }
+     },
+     "status": "official",
+     "sources": [
+      {
+       "ref": "toyota-iran-camry-2023",
+       "claim": "«کمری 2023» در فهرست محصولات تویوتا در ایران"
+      }
+     ]
+    }
+   ],
+   "equivalences": []
+  },
+  {
+   "key": "toyota.avalon",
+   "groups": [
+    "TOYOTA"
+   ],
+   "name": {
+    "fa": "تویوتا اوالون",
+    "en": "Toyota Avalon"
+   },
+   "aliases": [
+    "اوالون",
+    "آوالون"
+   ],
+   "make": {
+    "fa": "تویوتا",
+    "en": "Toyota"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "toyota-iran-avalon-2-5l",
+     "claim": "«Avalon 2.5L» در فهرست محصولات تویوتا در ایران"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "toyota.aurion",
+   "groups": [
+    "TOYOTA"
+   ],
+   "name": {
+    "fa": "تویوتا آریون",
+    "en": "Toyota Aurion"
+   },
+   "aliases": [
+    "آریون",
+    "اوریون"
+   ],
+   "make": {
+    "fa": "تویوتا",
+    "en": "Toyota"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "toyota-iran-aurion",
+     "claim": "«آریون» در فهرست محصولات تویوتا در ایران"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "toyota.yaris",
+   "groups": [
+    "TOYOTA"
+   ],
+   "name": {
+    "fa": "تویوتا یاریس",
+    "en": "Toyota Yaris"
+   },
+   "aliases": [
+    "یاریس"
+   ],
+   "make": {
+    "fa": "تویوتا",
+    "en": "Toyota"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "toyota-iran-yaris",
+     "claim": "«یاریس» در فهرست محصولات تویوتا در ایران"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "toyota.prius",
+   "groups": [
+    "TOYOTA"
+   ],
+   "name": {
+    "fa": "تویوتا پریوس",
+    "en": "Toyota Prius"
+   },
+   "aliases": [
+    "پریوس"
+   ],
+   "make": {
+    "fa": "تویوتا",
+    "en": "Toyota"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "toyota-iran-products",
+     "claim": "پریوس در فهرست محصولات تویوتا در ایران"
+    }
+   ],
+   "models": [
+    {
+     "key": "toyota.prius.2018",
+     "name": {
+      "fa": "پریوس ۲۰۱۸",
+      "en": "Prius 2018"
+     },
+     "aliases": [],
+     "supply": "imported",
+     "supplier": {
+      "fa": "نمایندگی رسمی تویوتا در ایران",
+      "en": "Toyota’s official representative in Iran"
+     },
+     "years": {
+      "from": 2018,
+      "to": 2018,
+      "calendar": "gregorian",
+      "source": {
+       "ref": "toyota-iran-2018-prius",
+       "claim": "«پریوس 2018» در فهرست محصولات تویوتا در ایران"
+      }
+     },
+     "status": "official",
+     "sources": [
+      {
+       "ref": "toyota-iran-2018-prius",
+       "claim": "«پریوس 2018» در فهرست محصولات تویوتا در ایران"
+      }
+     ]
+    }
+   ],
+   "equivalences": []
+  },
+  {
+   "key": "toyota.rav4",
+   "groups": [
+    "TOYOTA"
+   ],
+   "name": {
+    "fa": "تویوتا راوفور",
+    "en": "Toyota RAV4"
+   },
+   "aliases": [
+    "راو۴",
+    "RAV4",
+    "راوفور"
+   ],
+   "make": {
+    "fa": "تویوتا",
+    "en": "Toyota"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "toyota-iran-products",
+     "claim": "راوفور در فهرست محصولات تویوتا در ایران"
+    }
+   ],
+   "models": [
+    {
+     "key": "toyota.rav4.base",
+     "name": {
+      "fa": "راوفور",
+      "en": "RAV4"
+     },
+     "aliases": [],
+     "supply": "imported",
+     "supplier": {
+      "fa": "نمایندگی رسمی تویوتا در ایران",
+      "en": "Toyota’s official representative in Iran"
+     },
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "toyota-iran-rav4",
+       "claim": "«راوفور» در فهرست محصولات تویوتا در ایران"
+      }
+     ]
+    },
+    {
+     "key": "toyota.rav4.2-5",
+     "name": {
+      "fa": "راوفور ۲٫۵",
+      "en": "RAV4 2.5"
+     },
+     "aliases": [],
+     "supply": "imported",
+     "supplier": {
+      "fa": "نمایندگی رسمی تویوتا در ایران",
+      "en": "Toyota’s official representative in Iran"
+     },
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "toyota-iran-rav4hib",
+       "claim": "«راوفور 2.5» در فهرست محصولات تویوتا در ایران"
+      }
+     ]
+    }
+   ],
+   "equivalences": []
+  },
+  {
+   "key": "toyota.c-hr",
+   "groups": [
+    "TOYOTA"
+   ],
+   "name": {
+    "fa": "تویوتا سی‌اچ‌آر",
+    "en": "Toyota C-HR"
+   },
+   "aliases": [
+    "سی اچ آر",
+    "CHR"
+   ],
+   "make": {
+    "fa": "تویوتا",
+    "en": "Toyota"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "toyota-iran-chr",
+     "claim": "«سی اچ آر» در فهرست محصولات تویوتا در ایران"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "toyota.highlander",
+   "groups": [
+    "TOYOTA"
+   ],
+   "name": {
+    "fa": "تویوتا هایلندر",
+    "en": "Toyota Highlander"
+   },
+   "aliases": [
+    "هایلندر"
+   ],
+   "make": {
+    "fa": "تویوتا",
+    "en": "Toyota"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "toyota-iran-highlander",
+     "claim": "«هایلندر» در فهرست محصولات تویوتا در ایران"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "toyota.fortuner",
+   "groups": [
+    "TOYOTA"
+   ],
+   "name": {
+    "fa": "تویوتا فورچونر",
+    "en": "Toyota Fortuner"
+   },
+   "aliases": [
+    "فورچونر"
+   ],
+   "make": {
+    "fa": "تویوتا",
+    "en": "Toyota"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "toyota-iran-fortuner",
+     "claim": "«فورچونر» در فهرست محصولات تویوتا در ایران"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "toyota.prado",
+   "groups": [
+    "TOYOTA"
+   ],
+   "name": {
+    "fa": "تویوتا پرادو",
+    "en": "Toyota Prado"
+   },
+   "aliases": [
+    "پرادو",
+    "لندکروزر پرادو"
+   ],
+   "make": {
+    "fa": "تویوتا",
+    "en": "Toyota"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "toyota-iran-products",
+     "claim": "پرادو در فهرست محصولات تویوتا در ایران"
+    }
+   ],
+   "models": [
+    {
+     "key": "toyota.prado.4door",
+     "name": {
+      "fa": "پرادو",
+      "en": "Prado"
+     },
+     "aliases": [],
+     "supply": "imported",
+     "supplier": {
+      "fa": "نمایندگی رسمی تویوتا در ایران",
+      "en": "Toyota’s official representative in Iran"
+     },
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "toyota-iran-prado",
+       "claim": "«پرادو» در فهرست محصولات تویوتا در ایران"
+      }
+     ]
+    },
+    {
+     "key": "toyota.prado.2door",
+     "name": {
+      "fa": "پرادو دو در",
+      "en": "Prado two-door"
+     },
+     "aliases": [],
+     "supply": "imported",
+     "supplier": {
+      "fa": "نمایندگی رسمی تویوتا در ایران",
+      "en": "Toyota’s official representative in Iran"
+     },
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "toyota-iran-prado2door",
+       "claim": "«پرادو دو درب» در فهرست محصولات تویوتا در ایران"
+      }
+     ]
+    }
+   ],
+   "equivalences": []
+  },
+  {
+   "key": "toyota.land-cruiser",
+   "groups": [
+    "TOYOTA"
+   ],
+   "name": {
+    "fa": "تویوتا لندکروزر",
+    "en": "Toyota Land Cruiser"
+   },
+   "aliases": [
+    "لندکروزر",
+    "لند کروزر"
+   ],
+   "make": {
+    "fa": "تویوتا",
+    "en": "Toyota"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "toyota-iran-products",
+     "claim": "لندکروزر در فهرست محصولات تویوتا در ایران"
+    }
+   ],
+   "models": [
+    {
+     "key": "toyota.land-cruiser.base",
+     "name": {
+      "fa": "لندکروزر",
+      "en": "Land Cruiser"
+     },
+     "aliases": [],
+     "supply": "imported",
+     "supplier": {
+      "fa": "نمایندگی رسمی تویوتا در ایران",
+      "en": "Toyota’s official representative in Iran"
+     },
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "toyota-iran-landcruiser",
+       "claim": "«لندکروزر» در فهرست محصولات تویوتا در ایران"
+      }
+     ]
+    },
+    {
+     "key": "toyota.land-cruiser.vxr",
+     "name": {
+      "fa": "لندکروزر VXR",
+      "en": "Land Cruiser VXR"
+     },
+     "aliases": [],
+     "supply": "imported",
+     "supplier": {
+      "fa": "نمایندگی رسمی تویوتا در ایران",
+      "en": "Toyota’s official representative in Iran"
+     },
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "toyota-iran-landcruiservxr",
+       "claim": "«Land Cruiser VXR» در فهرست محصولات تویوتا در ایران"
+      }
+     ]
+    }
+   ],
+   "equivalences": []
+  },
+  {
+   "key": "toyota.fj-cruiser",
+   "groups": [
+    "TOYOTA"
+   ],
+   "name": {
+    "fa": "تویوتا اف‌جی کروزر",
+    "en": "Toyota FJ Cruiser"
+   },
+   "aliases": [
+    "اف جی کروزر",
+    "FJ"
+   ],
+   "make": {
+    "fa": "تویوتا",
+    "en": "Toyota"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "toyota-iran-fj-cruiser",
+     "claim": "«اف جی کروزر» در فهرست محصولات تویوتا در ایران"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "toyota.hilux",
+   "groups": [
+    "TOYOTA"
+   ],
+   "name": {
+    "fa": "تویوتا هایلوکس",
+    "en": "Toyota Hilux"
+   },
+   "aliases": [
+    "هایلوکس"
+   ],
+   "make": {
+    "fa": "تویوتا",
+    "en": "Toyota"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "toyota-iran-hilux",
+     "claim": "«هایلوکس» در فهرست محصولات تویوتا در ایران"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "toyota.hiace",
+   "groups": [
+    "TOYOTA"
+   ],
+   "name": {
+    "fa": "تویوتا هایس",
+    "en": "Toyota Hiace"
+   },
+   "aliases": [
+    "هایس"
+   ],
+   "make": {
+    "fa": "تویوتا",
+    "en": "Toyota"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "toyota-iran-hiace",
+     "claim": "«هایس» در فهرست محصولات تویوتا در ایران"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "toyota.previa",
+   "groups": [
+    "TOYOTA"
+   ],
+   "name": {
+    "fa": "تویوتا پریویا",
+    "en": "Toyota Previa"
+   },
+   "aliases": [
+    "پریویا"
+   ],
+   "make": {
+    "fa": "تویوتا",
+    "en": "Toyota"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "toyota-iran-previa",
+     "claim": "«پریویا» در فهرست محصولات تویوتا در ایران"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "toyota.86",
+   "groups": [
+    "TOYOTA"
+   ],
+   "name": {
+    "fa": "تویوتا ۸۶",
+    "en": "Toyota 86"
+   },
+   "aliases": [
+    "GT86"
+   ],
+   "make": {
+    "fa": "تویوتا",
+    "en": "Toyota"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "toyota-iran-86",
+     "claim": "«تویوتا 86» در فهرست محصولات تویوتا در ایران"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "toyota.wildlander",
+   "groups": [
+    "TOYOTA"
+   ],
+   "name": {
+    "fa": "تویوتا وایلدلندر",
+    "en": "Toyota Wildlander"
+   },
+   "aliases": [
+    "وایلدلندر"
+   ],
+   "make": {
+    "fa": "تویوتا",
+    "en": "Toyota"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "toyota-iran-wildlanderhev",
+     "claim": "«وایلدلندر» در فهرست محصولات تویوتا در ایران"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "toyota.frontlander",
+   "groups": [
+    "TOYOTA"
+   ],
+   "name": {
+    "fa": "تویوتا فرانت‌لندر",
+    "en": "Toyota Frontlander"
+   },
+   "aliases": [
+    "فرانتلندر"
+   ],
+   "make": {
+    "fa": "تویوتا",
+    "en": "Toyota"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "toyota-iran-frontlander",
+     "claim": "«Frontlander 2.0» در فهرست محصولات تویوتا در ایران"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "toyota.bz4x",
+   "groups": [
+    "TOYOTA"
+   ],
+   "name": {
+    "fa": "تویوتا bZ4X",
+    "en": "Toyota bZ4X"
+   },
+   "aliases": [
+    "BZ4X"
+   ],
+   "make": {
+    "fa": "تویوتا",
+    "en": "Toyota"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "toyota-iran-bz4x",
+     "claim": "«BZ4X» در فهرست محصولات تویوتا در ایران"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "toyota.lexus-es",
+   "groups": [
+    "TOYOTA"
+   ],
+   "name": {
+    "fa": "لکسوس ES",
+    "en": "Lexus ES"
+   },
+   "aliases": [],
+   "make": {
+    "fa": "لکسوس",
+    "en": "Lexus"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "toyota-iran-d984daa9d8b3d988d8b3-es",
+     "claim": "«لکسوس آی اس» در فهرست محصولات تویوتا در ایران"
+    }
+   ],
+   "models": [],
+   "equivalences": [],
+   "note": "عنوان فارسی صفحه «لکسوس آی اس» است؛ نشانی صفحه ES را نشان می‌دهد."
+  },
+  {
+   "key": "toyota.lexus-is",
+   "groups": [
+    "TOYOTA"
+   ],
+   "name": {
+    "fa": "لکسوس IS",
+    "en": "Lexus IS"
+   },
+   "aliases": [],
+   "make": {
+    "fa": "لکسوس",
+    "en": "Lexus"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "toyota-iran-d984daa9d8b3d988d8b3is",
+     "claim": "«لکسوس آی اس» در فهرست محصولات تویوتا در ایران"
+    }
+   ],
+   "models": [],
+   "equivalences": []
+  },
+  {
+   "key": "toyota.lexus-gs",
+   "groups": [
+    "TOYOTA"
+   ],
+   "name": {
+    "fa": "لکسوس GS",
+    "en": "Lexus GS"
+   },
+   "aliases": [],
+   "make": {
+    "fa": "لکسوس",
+    "en": "Lexus"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "toyota-iran-products",
+     "claim": "لکسوس GS در فهرست محصولات تویوتا در ایران"
+    }
+   ],
+   "models": [
+    {
+     "key": "toyota.lexus-gs.250",
+     "name": {
+      "fa": "GS 250",
+      "en": "GS 250"
+     },
+     "aliases": [],
+     "supply": "imported",
+     "supplier": {
+      "fa": "نمایندگی رسمی تویوتا در ایران",
+      "en": "Toyota’s official representative in Iran"
+     },
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "toyota-iran-d984daa9d8b3d988d8b3gs250",
+       "claim": "«لکسوس جی اس 250» در فهرست محصولات تویوتا در ایران"
+      }
+     ]
+    }
+   ],
+   "equivalences": []
+  },
+  {
+   "key": "toyota.lexus-ct",
+   "groups": [
+    "TOYOTA"
+   ],
+   "name": {
+    "fa": "لکسوس CT",
+    "en": "Lexus CT"
+   },
+   "aliases": [],
+   "make": {
+    "fa": "لکسوس",
+    "en": "Lexus"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "toyota-iran-products",
+     "claim": "لکسوس CT در فهرست محصولات تویوتا در ایران"
+    }
+   ],
+   "models": [
+    {
+     "key": "toyota.lexus-ct.200",
+     "name": {
+      "fa": "CT 200",
+      "en": "CT 200"
+     },
+     "aliases": [],
+     "supply": "imported",
+     "supplier": {
+      "fa": "نمایندگی رسمی تویوتا در ایران",
+      "en": "Toyota’s official representative in Iran"
+     },
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "toyota-iran-d984daa9d8b3d988d8b3-ct200",
+       "claim": "«لکسوس سی تی 200» در فهرست محصولات تویوتا در ایران"
+      }
+     ]
+    }
+   ],
+   "equivalences": []
+  },
+  {
+   "key": "toyota.lexus-nx",
+   "groups": [
+    "TOYOTA"
+   ],
+   "name": {
+    "fa": "لکسوس NX",
+    "en": "Lexus NX"
+   },
+   "aliases": [],
+   "make": {
+    "fa": "لکسوس",
+    "en": "Lexus"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "toyota-iran-products",
+     "claim": "لکسوس NX در فهرست محصولات تویوتا در ایران"
+    }
+   ],
+   "models": [
+    {
+     "key": "toyota.lexus-nx.200",
+     "name": {
+      "fa": "NX 200",
+      "en": "NX 200"
+     },
+     "aliases": [],
+     "supply": "imported",
+     "supplier": {
+      "fa": "نمایندگی رسمی تویوتا در ایران",
+      "en": "Toyota’s official representative in Iran"
+     },
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "toyota-iran-d984daa9d8b3d988d8b3-nx200",
+       "claim": "«لکسوس ان ایکس 200» در فهرست محصولات تویوتا در ایران"
+      }
+     ]
+    },
+    {
+     "key": "toyota.lexus-nx.300",
+     "name": {
+      "fa": "NX 300",
+      "en": "NX 300"
+     },
+     "aliases": [],
+     "supply": "imported",
+     "supplier": {
+      "fa": "نمایندگی رسمی تویوتا در ایران",
+      "en": "Toyota’s official representative in Iran"
+     },
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "toyota-iran-d984daa9d8b3d988d8b3-nx300",
+       "claim": "«لکسوس ان ایکس 300» در فهرست محصولات تویوتا در ایران"
+      }
+     ]
+    }
+   ],
+   "equivalences": []
+  },
+  {
+   "key": "hyundai.kona",
+   "groups": [
+    "HYUNDAI"
+   ],
+   "name": {
+    "fa": "هیوندای کونا",
+    "en": "Hyundai Kona"
+   },
+   "aliases": [
+    "کونا",
+    "Kona"
+   ],
+   "make": {
+    "fa": "هیوندای",
+    "en": "Hyundai"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "hyundai-kerman-models",
+     "claim": "کونا در فهرست مدل‌ها"
+    }
+   ],
+   "models": [
+    {
+     "key": "hyundai.kona.sx2",
+     "name": {
+      "fa": "کونا SX2",
+      "en": "Kona SX2"
+     },
+     "aliases": [],
+     "supply": null,
+     "supplier": {
+      "fa": "کرمان موتور",
+      "en": "Kerman Motor"
+     },
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "hyundai-kerman-2024-kona",
+       "claim": "«Kona SX2» در فهرست مدل‌های هیوندای کرمان موتور"
+      }
+     ]
+    },
+    {
+     "key": "hyundai.kona.sx2-2025",
+     "name": {
+      "fa": "کونا SX2 (۲۰۲۵)",
+      "en": "Kona SX2 (2025)"
+     },
+     "aliases": [],
+     "supply": null,
+     "supplier": {
+      "fa": "کرمان موتور",
+      "en": "Kerman Motor"
+     },
+     "years": {
+      "from": 2025,
+      "to": 2025,
+      "calendar": "gregorian",
+      "source": {
+       "ref": "hyundai-kerman-2025-kona",
+       "claim": "«Kona SX2 (2025)» در فهرست مدل‌های هیوندای کرمان موتور"
+      }
+     },
+     "status": "official",
+     "sources": [
+      {
+       "ref": "hyundai-kerman-2025-kona",
+       "claim": "«Kona SX2 (2025)» در فهرست مدل‌های هیوندای کرمان موتور"
+      }
+     ]
+    }
+   ],
+   "equivalences": []
+  },
+  {
+   "key": "hyundai.azera",
+   "groups": [
+    "HYUNDAI"
+   ],
+   "name": {
+    "fa": "هیوندای آزرا",
+    "en": "Hyundai Azera"
+   },
+   "aliases": [
+    "آزرا",
+    "گرنجور",
+    "Grandeur"
+   ],
+   "make": {
+    "fa": "هیوندای",
+    "en": "Hyundai"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "hyundai-kerman-models",
+     "claim": "آزرا در فهرست مدل‌ها"
+    }
+   ],
+   "models": [
+    {
+     "key": "hyundai.azera.ig",
+     "name": {
+      "fa": "آزرا IG",
+      "en": "Azera IG"
+     },
+     "aliases": [],
+     "supply": null,
+     "supplier": {
+      "fa": "کرمان موتور",
+      "en": "Kerman Motor"
+     },
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "hyundai-kerman-azera",
+       "claim": "«Azera IG» در فهرست مدل‌های هیوندای کرمان موتور"
+      }
+     ]
+    }
+   ],
+   "equivalences": []
+  },
+  {
+   "key": "hyundai.sonata",
+   "groups": [
+    "HYUNDAI"
+   ],
+   "name": {
+    "fa": "هیوندای سوناتا",
+    "en": "Hyundai Sonata"
+   },
+   "aliases": [
+    "سوناتا"
+   ],
+   "make": {
+    "fa": "هیوندای",
+    "en": "Hyundai"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "hyundai-kerman-models",
+     "claim": "سوناتا در فهرست مدل‌ها"
+    }
+   ],
+   "models": [
+    {
+     "key": "hyundai.sonata.lf",
+     "name": {
+      "fa": "سوناتا LF",
+      "en": "Sonata LF"
+     },
+     "aliases": [],
+     "supply": null,
+     "supplier": {
+      "fa": "کرمان موتور",
+      "en": "Kerman Motor"
+     },
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "hyundai-kerman-sonata",
+       "claim": "«Sonata LF» در فهرست مدل‌های هیوندای کرمان موتور"
+      }
+     ]
+    }
+   ],
+   "equivalences": []
+  },
+  {
+   "key": "hyundai.tucson",
+   "groups": [
+    "HYUNDAI"
+   ],
+   "name": {
+    "fa": "هیوندای توسان",
+    "en": "Hyundai Tucson"
+   },
+   "aliases": [
+    "توسان",
+    "ix35"
+   ],
+   "make": {
+    "fa": "هیوندای",
+    "en": "Hyundai"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "hyundai-kerman-models",
+     "claim": "توسان در فهرست مدل‌ها"
+    }
+   ],
+   "models": [
+    {
+     "key": "hyundai.tucson.tl",
+     "name": {
+      "fa": "توسان TL",
+      "en": "Tucson TL"
+     },
+     "aliases": [],
+     "supply": null,
+     "supplier": {
+      "fa": "کرمان موتور",
+      "en": "Kerman Motor"
+     },
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "hyundai-kerman-tucson",
+       "claim": "«Tucson TL» در فهرست مدل‌های هیوندای کرمان موتور"
+      }
+     ]
+    },
+    {
+     "key": "hyundai.tucson.nx4e",
+     "name": {
+      "fa": "توسان NX4E",
+      "en": "Tucson NX4E"
+     },
+     "aliases": [],
+     "supply": null,
+     "supplier": {
+      "fa": "کرمان موتور",
+      "en": "Kerman Motor"
+     },
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "hyundai-kerman-2023-tucson",
+       "claim": "«Tucson NX4E» در فهرست مدل‌های هیوندای کرمان موتور"
+      }
+     ]
+    },
+    {
+     "key": "hyundai.tucson.2026",
+     "name": {
+      "fa": "توسان ۲۰۲۶",
+      "en": "Tucson 2026"
+     },
+     "aliases": [],
+     "supply": null,
+     "supplier": {
+      "fa": "کرمان موتور",
+      "en": "Kerman Motor"
+     },
+     "years": {
+      "from": 2026,
+      "to": 2026,
+      "calendar": "gregorian",
+      "source": {
+       "ref": "hyundai-kerman-2026-tucson",
+       "claim": "«Tucson 2026» در فهرست مدل‌های هیوندای کرمان موتور"
+      }
+     },
+     "status": "official",
+     "sources": [
+      {
+       "ref": "hyundai-kerman-2026-tucson",
+       "claim": "«Tucson 2026» در فهرست مدل‌های هیوندای کرمان موتور"
+      }
+     ]
+    }
+   ],
+   "equivalences": []
+  },
+  {
+   "key": "hyundai.santa-fe",
+   "groups": [
+    "HYUNDAI"
+   ],
+   "name": {
+    "fa": "هیوندای سانتافه",
+    "en": "Hyundai Santa Fe"
+   },
+   "aliases": [
+    "سانتافه",
+    "Santafe"
+   ],
+   "make": {
+    "fa": "هیوندای",
+    "en": "Hyundai"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "hyundai-kerman-models",
+     "claim": "سانتافه در فهرست مدل‌ها"
+    }
+   ],
+   "models": [
+    {
+     "key": "hyundai.santa-fe.dm",
+     "name": {
+      "fa": "سانتافه DM",
+      "en": "Santa Fe DM"
+     },
+     "aliases": [],
+     "supply": null,
+     "supplier": {
+      "fa": "کرمان موتور",
+      "en": "Kerman Motor"
+     },
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "hyundai-kerman-santafe",
+       "claim": "«SantaFe DM» در فهرست مدل‌های هیوندای کرمان موتور"
+      }
+     ]
+    }
+   ],
+   "equivalences": []
+  },
+  {
+   "key": "hyundai.elantra",
+   "groups": [
+    "HYUNDAI"
+   ],
+   "name": {
+    "fa": "هیوندای النترا",
+    "en": "Hyundai Elantra"
+   },
+   "aliases": [
+    "النترا",
+    "آوانته"
+   ],
+   "make": {
+    "fa": "هیوندای",
+    "en": "Hyundai"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "hyundai-kerman-models",
+     "claim": "النترا در فهرست مدل‌ها"
+    }
+   ],
+   "models": [
+    {
+     "key": "hyundai.elantra.ad",
+     "name": {
+      "fa": "النترا AD",
+      "en": "Elantra AD"
+     },
+     "aliases": [],
+     "supply": null,
+     "supplier": {
+      "fa": "کرمان موتور",
+      "en": "Kerman Motor"
+     },
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "hyundai-kerman-elantra",
+       "claim": "«Elantra AD» در فهرست مدل‌های هیوندای کرمان موتور"
+      }
+     ]
+    },
+    {
+     "key": "hyundai.elantra.cn7",
+     "name": {
+      "fa": "النترا CN7",
+      "en": "Elantra CN7"
+     },
+     "aliases": [],
+     "supply": null,
+     "supplier": {
+      "fa": "کرمان موتور",
+      "en": "Kerman Motor"
+     },
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "hyundai-kerman-2023-elantra",
+       "claim": "«Elantra CN7» در فهرست مدل‌های هیوندای کرمان موتور"
+      }
+     ]
+    },
+    {
+     "key": "hyundai.elantra.2025",
+     "name": {
+      "fa": "النترا ۲۰۲۵",
+      "en": "Elantra 2025"
+     },
+     "aliases": [],
+     "supply": null,
+     "supplier": {
+      "fa": "کرمان موتور",
+      "en": "Kerman Motor"
+     },
+     "years": {
+      "from": 2025,
+      "to": 2025,
+      "calendar": "gregorian",
+      "source": {
+       "ref": "hyundai-kerman-2025-elantra",
+       "claim": "«Elantra 2025» در فهرست مدل‌های هیوندای کرمان موتور"
+      }
+     },
+     "status": "official",
+     "sources": [
+      {
+       "ref": "hyundai-kerman-2025-elantra",
+       "claim": "«Elantra 2025» در فهرست مدل‌های هیوندای کرمان موتور"
+      }
+     ]
+    }
+   ],
+   "equivalences": []
+  },
+  {
+   "key": "hyundai.accent",
+   "groups": [
+    "HYUNDAI"
+   ],
+   "name": {
+    "fa": "هیوندای اکسنت",
+    "en": "Hyundai Accent"
+   },
+   "aliases": [
+    "اکسنت",
+    "ورنا"
+   ],
+   "make": {
+    "fa": "هیوندای",
+    "en": "Hyundai"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "hyundai-kerman-models",
+     "claim": "اکسنت در فهرست مدل‌ها"
+    }
+   ],
+   "models": [
+    {
+     "key": "hyundai.accent.rb",
+     "name": {
+      "fa": "اکسنت RB",
+      "en": "Accent RB"
+     },
+     "aliases": [],
+     "supply": null,
+     "supplier": {
+      "fa": "کرمان موتور",
+      "en": "Kerman Motor"
+     },
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "hyundai-kerman-accent",
+       "claim": "«Accent RB» در فهرست مدل‌های هیوندای کرمان موتور"
+      }
+     ]
+    },
+    {
+     "key": "hyundai.accent.hci",
+     "name": {
+      "fa": "اکسنت HCI",
+      "en": "Accent HCI"
+     },
+     "aliases": [],
+     "supply": null,
+     "supplier": {
+      "fa": "کرمان موتور",
+      "en": "Kerman Motor"
+     },
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "hyundai-kerman-2023-accent",
+       "claim": "«Accent HCI» در فهرست مدل‌های هیوندای کرمان موتور"
+      }
+     ]
+    }
+   ],
+   "equivalences": []
+  },
+  {
+   "key": "hyundai.i20",
+   "groups": [
+    "HYUNDAI"
+   ],
+   "name": {
+    "fa": "هیوندای i20",
+    "en": "Hyundai i20"
+   },
+   "aliases": [
+    "آی ۲۰",
+    "i20"
+   ],
+   "make": {
+    "fa": "هیوندای",
+    "en": "Hyundai"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "hyundai-kerman-models",
+     "claim": "«آی 20 GB» در فهرست مدل‌ها (فقط کاتالوگ)"
+    }
+   ],
+   "models": [
+    {
+     "key": "hyundai.i20.gb",
+     "name": {
+      "fa": "i20 GB",
+      "en": "i20 GB"
+     },
+     "aliases": [],
+     "supply": null,
+     "supplier": {
+      "fa": "کرمان موتور",
+      "en": "Kerman Motor"
+     },
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "hyundai-kerman-models",
+       "claim": "«آی 20 GB» در فهرست مدل‌ها"
+      }
+     ]
+    }
+   ],
+   "equivalences": []
+  },
+  {
+   "key": "hyundai.i10",
+   "groups": [
+    "HYUNDAI"
+   ],
+   "name": {
+    "fa": "هیوندای i10",
+    "en": "Hyundai i10"
+   },
+   "aliases": [
+    "آی ۱۰",
+    "i10"
+   ],
+   "make": {
+    "fa": "هیوندای",
+    "en": "Hyundai"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "hyundai-kerman-models",
+     "claim": "«آی 10 IA» در فهرست مدل‌ها (فقط کاتالوگ)"
+    }
+   ],
+   "models": [
+    {
+     "key": "hyundai.i10.ia",
+     "name": {
+      "fa": "i10 IA",
+      "en": "i10 IA"
+     },
+     "aliases": [],
+     "supply": null,
+     "supplier": {
+      "fa": "کرمان موتور",
+      "en": "Kerman Motor"
+     },
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "hyundai-kerman-models",
+       "claim": "«آی 10 IA» در فهرست مدل‌ها"
+      }
+     ]
+    }
+   ],
+   "equivalences": []
+  },
+  {
+   "key": "hyundai.creta",
+   "groups": [
+    "HYUNDAI"
+   ],
+   "name": {
+    "fa": "هیوندای کرتا",
+    "en": "Hyundai Creta"
+   },
+   "aliases": [
+    "کرتا",
+    "Creta"
+   ],
+   "make": {
+    "fa": "هیوندای",
+    "en": "Hyundai"
+   },
+   "status": "official",
+   "sources": [
+    {
+     "ref": "hyundai-kerman-models",
+     "claim": "کرتا در فهرست مدل‌ها"
+    }
+   ],
+   "models": [
+    {
+     "key": "hyundai.creta.su2id",
+     "name": {
+      "fa": "کرتا SU2ID",
+      "en": "Creta SU2ID"
+     },
+     "aliases": [],
+     "supply": null,
+     "supplier": {
+      "fa": "کرمان موتور",
+      "en": "Kerman Motor"
+     },
+     "years": null,
+     "status": "official",
+     "sources": [
+      {
+       "ref": "hyundai-kerman-2023-creta",
+       "claim": "«Creta Su2ID» در فهرست مدل‌های هیوندای کرمان موتور"
+      }
+     ]
+    }
+   ],
+   "equivalences": []
+  },
+  {
+   "key": "ikco.rd",
+   "groups": [
+    "IKCO"
+   ],
+   "name": {
+    "fa": "آردی",
+    "en": "RD"
+   },
+   "aliases": [],
+   "make": {
+    "fa": "ایران‌خودرو",
+    "en": "Iran Khodro"
+   },
+   "status": "needs_review",
+   "sources": [
+    {
+     "ref": "ikco-products",
+     "claim": "در فهرست فعلی نیست"
+    }
+   ],
+   "models": [],
+   "equivalences": [],
+   "existing": {
+    "slug": "rd"
+   },
+   "note": "ردیف موجود «آردی» حفظ شد؛ منبع معتبر برای عرضه و سال‌ها پیدا نشد (صفحهٔ ویکی‌پدیا در دسترس نبود)."
+  }
+ ],
+ "notes": [
+  "پیکان و پیکان وانت: سال‌های تولید فقط در منبع ثانویه (ویکی‌پدیا: سواری تا ۲۰۰۵، وانت تا ۲۰۱۵ میلادی) آمده است؛ وارد نشد.",
+  "ویکی‌پدیای فارسی (پارس خودرو) سال‌های تولید را برای بسیاری از خودروهای پارس خودرو آورده است (مثلاً رنو تندر ۹۰ از ۱۳۸۶ تا ۱۳۹۷، نیسان ماکسیما از ۱۳۸۱ تا ۱۳۹۱)؛ چون ثانویه است، وارد نشد.",
+  "دفترچه‌های «کلاچ برقی هوشمند»، «گروه خودروی x100»، «سیستم صوتی مگان/کلیوس» و «برلیانس h200-h300» راهنمای عمومی یا سامانه‌اند و خودروی جدا ثبت نشدند.",
+  "BYD Sealion 06 در همان فهرست کرمان موتور آمده اما برند هیوندای نیست؛ در گروه هیوندای وارد نشد.",
+  "مدل‌های قدیمی‌تر هیوندای و تویوتا که در فهرست‌های رسمی فعلی نیستند (مثلاً ورنا، سانتافه نسل‌های قبلی، کمری‌های قدیمی) منبع رسمی ایرانی نداشتند و وارد نشدند."
+ ]
+}
