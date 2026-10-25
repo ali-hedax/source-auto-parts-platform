@@ -12,6 +12,15 @@
 
 ## نقطهٔ فعلی
 
+### Implemented Pending Verification — display-only Hero review — 2026-10-25, Asia/Tehran
+
+- **Owner scope:** approved six-item list and said start. This revision is Preview-first; no Production rollout, Merge or Production taxonomy mutation until the owner reviews it. Prior Hero release approval does not authorize this new appearance release.
+- **Baseline:** reused premium worktree; inspected root/web instructions, PROGRESS, Git, open PR16/20 and passing main CI. New branch `codex/hero-editorial-preview`, reconciled main with the pushed final delivery checkpoint; inspected base4d5bb01. Existing Production/Preview infrastructure unchanged.
+- **Implemented Pending Verification:** display-only Hero (no eyebrow/search/CTA); independent full-width columns without negative overlap; shopping cards/categories are a separate sibling section below the banner, one orange vehicle card. Lalezar display type in Persian/Latin is self-hosted with OFL and font preloads. Existing film/still/motion controls and Appearance text/media persistence retained. Hidden link/button fields removed from the cinematic block's panel; discovery toggle relabelled. Brand-card logo frame enlarged within its existing fixed-height area.
+- **Assets:** four downloaded logos normalized to JPG800×500/0.4MP, 19–32KB (Iran Khodro official source is73×88, suitable only at the small card display size); Toyota/Hyundai official sources and SAIPA Commons provenance recorded in design-system/pages/hero-editorial.md. Font files52,128+16,572bytes. Downloads verified without disabling TLS checks; Python trust failures were resolved using Windows curl's normal certificate validation. Originals and JPGs in this chat work/outputs; not yet uploaded into Preview administration.
+- **Completed & Tested so far:** initial focused web typecheck/ESLint exit0 and web production build exit0. Later font preload/brand-frame changes require final candidate checks/browser QA. No new unit tests written for cosmetic-only changes. Local build read no Production database or customer data.
+- **Next:** build/deploy candidate to the existing isolated Preview only, register the four JPG logos via the normal Preview media/taxonomy endpoints and test panel persistence. Review actual desktop/mobile/RTL/English screenshots, whole-image framing, banner-only content, card placement, static/reduced-motion and video playback. Commit/push a reviewable feature PR, report actual Preview link and wait for owner approval before Production.
+
 ### Completed & Tested — public Preview and Production Hero — 2026-10-25, Asia/Tehran
 
 - **Authorization:** the owner explicitly approved the existing-host Preview changes, then separately requested completing Merge and Hero publication on Production. No server purchase/payment was made. Arvan and server access worked; the Production owner session expired and the owner signed in again. Normal MFA/session/panel workflows were used; no login bypass.

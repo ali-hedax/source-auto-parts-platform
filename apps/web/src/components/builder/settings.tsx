@@ -19,8 +19,8 @@ export function BlockSettings({ block: b, change, device, media, pick, data }: {
       <LocalizedField id="block-body" path="body" label="متن" value={b.body} onChange={body => change({ ...b, body })} maxLength={8000} multiline errors={{}} {...(b.kind === 'cinematic-hero' ? { hint: 'ذخیره می‌شود، اما فعلاً در Hero عمومی نمایش داده نمی‌شود.' } : {})} />
       {b.kind !== 'cinematic-hero' ? <><ImageField id="block-image" label="تصویر دسکتاپ" value={b.imageUrl} onChange={imageUrl => change({ ...b, imageUrl })} />
       <LocalizedField id="block-alt" path="alt" label="متن جایگزین" value={b.alt} onChange={alt => change({ ...b, alt })} maxLength={160} errors={{}} /></> : null}
-      <LinkField id="block-href" label="لینک تصویر و دکمه" value={b.href} onChange={href => change({ ...b, href })} />
-      <LocalizedField id="block-button" path="button" label="متن دکمه" value={b.button} onChange={button => change({ ...b, button })} maxLength={60} errors={{}} />
+      {b.kind !== 'cinematic-hero' ? <><LinkField id="block-href" label="لینک تصویر و دکمه" value={b.href} onChange={href => change({ ...b, href })} />
+      <LocalizedField id="block-button" path="button" label="متن دکمه" value={b.button} onChange={button => change({ ...b, button })} maxLength={60} errors={{}} /></> : null}
     </>}
     {b.kind === 'cinematic-hero' && b.film ? <FilmSettings block={{ ...b, film: b.film }} change={change} pick={pick} /> : <>
     <div className="flex flex-wrap gap-2"><Button size="sm" variant="secondary" onClick={() => media(false)}>انتخاب تصویر از کتابخانه</Button><Button size="sm" variant="secondary" onClick={() => media(true)}>تصویر موبایل از کتابخانه</Button></div>
@@ -144,6 +144,6 @@ function FilmSettings({ block: b, change, pick }: { block: BuilderBlock & { film
       <label>عرض لوگو (درصد عرض فیلم)<input type="number" min={10} max={60} value={film.logoWidth} onChange={e => set({ logoWidth: Math.max(10, Math.min(60, Math.round(Number(e.target.value) || 28))) })} /></label>
       <ImageField id="film-logo" label="لوگوی اختصاصی (خالی = لوگوی سایت)" value={film.logoUrl} onChange={logoUrl => set({ logoUrl })} />
     </> : null}
-    <label className="!flex-row items-center"><input type="checkbox" checked={film.discovery} onChange={e => set({ discovery: e.target.checked })} />بخش جست‌وجو و مسیرهای خرید زیر فیلم</label>
+    <label className="!flex-row items-center"><input type="checkbox" checked={film.discovery} onChange={e => set({ discovery: e.target.checked })} />کارت‌ها و دسته‌بندی‌ها در بخش مستقل زیر بنر</label>
   </details>;
 }

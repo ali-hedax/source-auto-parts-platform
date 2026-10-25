@@ -1,6 +1,6 @@
 import type { BuilderBlock, BuilderFilm, CategoryView, SiteContentView } from '@hedax/contracts';
 import { DEFAULT_BUILDER_FILM, localize } from '@hedax/contracts/constants';
-import { ArrowLeft, ArrowRight, Search } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CarFront, Boxes, PackageSearch } from 'lucide-react';
 import { preload } from 'react-dom';
 import { Link } from '@/i18n/navigation';
 import { CinematicFilm } from './cinematic-film';
@@ -21,10 +21,12 @@ export function CinematicHero({ block: b, content, categories, locale }: { block
   const name = (n: { fa: string; en: string | null }) => (fa ? n.fa : (n.en ?? n.fa));
   const digits = (n: number) => n.toLocaleString(fa ? 'fa-IR' : 'en-US');
   const brand = content?.brand;
+  preload('/fonts/hero/lalezar-arabic.woff2', { as: 'font', type: 'font/woff2', crossOrigin: 'anonymous' });
+  preload('/fonts/hero/lalezar-latin.woff2', { as: 'font', type: 'font/woff2', crossOrigin: 'anonymous' });
   const paths = [
-    { href: '/cars', title: fa ? 'خودروی من' : 'My vehicle', text: fa ? 'برند، مدل و سال خودرو را انتخاب کنید' : 'Pick the make, model and year' },
-    { href: '/parts', title: fa ? 'کاتالوگ قطعات' : 'Parts catalogue', text: fa ? 'دسته‌بندی‌ها، برندها و سازنده‌ها' : 'Categories, brands and makers' },
-    { href: '/request-part', title: fa ? 'درخواست تأمین' : 'Request a part', text: fa ? 'پیدا نشد؟ با شماره فنی یا VIN بسپارید' : 'Not listed? Send the number or VIN' },
+    { href: '/cars', icon: CarFront, title: fa ? 'خودروی من' : 'My vehicle', text: fa ? 'قطعه‌ای که به خودروی شما می‌خورد' : 'Parts that fit your vehicle' },
+    { href: '/parts', icon: Boxes, title: fa ? 'کاتالوگ قطعات' : 'Parts catalogue', text: fa ? 'از شماره فنی تا قطعهٔ مورد نیازتان' : 'From a part number to the part you need' },
+    { href: '/request-part', icon: PackageSearch, title: fa ? 'درخواست تأمین' : 'Request a part', text: fa ? 'قطعه‌تان را پیدا نکردید؟ به ما بسپارید' : 'Can’t find your part? Leave it with us' },
   ];
   const top = categories.filter(c => !c.parentSlug).slice(0, 10);
   // The hero image is the page's LCP element: fetch it from <head>, one file per device (same choice as CinematicFilm).
@@ -34,40 +36,29 @@ export function CinematicHero({ block: b, content, categories, locale }: { block
   if (lcpMobile) preload(lcpMobile, { as: 'image', fetchPriority: 'high', media: '(max-width: 639px)' });
   if (lcpDesktop) preload(lcpDesktop, { as: 'image', fetchPriority: 'high', media: '(min-width: 640px)' });
 
-  return <section className="cine" aria-labelledby={`${b.id}-title`}>
+  return <><section className="cine" aria-labelledby={`${b.id}-title`}>
     <div className="cine-stage">
       <div className="cine-copy" data-assistant-avoid>
-        <p className="cine-eyebrow" dir="ltr">SOURCE <span>by</span> HEDAX</p>
         <h1 id={`${b.id}-title`} className="cine-title" lang={fa ? 'fa' : 'en'} dir={fa ? 'rtl' : 'ltr'}>{L(b.title)}</h1>
         {secondaryTitle ? <p className="cine-tagline" lang={fa ? 'en' : 'fa'} dir={fa ? 'ltr' : 'rtl'}>{secondaryTitle}</p> : null}
-        {/* The saved body text (panel → film block → «متن») is kept but not shown for now, to keep the hero uncluttered. */}
-        {/* The page's main search (the header's quick search hides on phones while this one is present). */}
-        <form action={`/${locale}/parts`} method="get" role="search" className="cine-search">
-          <label htmlFor="hero-search" className="sr-only">{fa ? 'نام قطعه، شماره فنی یا شماره OEM' : 'Part name, part number or OEM reference'}</label>
-          <div className="cine-search-field">
-            <Search aria-hidden size={20} />
-            <input id="hero-search" name="q" type="search" autoComplete="off" enterKeyHint="search" placeholder={fa ? 'نام یا شماره قطعه' : 'Part name or number'} />
-            <button type="submit"><Search aria-hidden size={18} />{fa ? 'جست‌وجوی قطعه' : 'Find a part'}</button>
-          </div>
-        </form>
-        {b.href && L(b.button) ? <div className="cine-actions"><Link className="cine-cta cine-cta-ghost" href={b.href}>{L(b.button)}<Arrow aria-hidden size={18} /></Link></div> : null}
       </div>
       <CinematicFilm film={film} still={b.imageUrl} mobileStill={b.mobileImageUrl} alt={L(b.alt)} logoUrl={film.logoUrl || brand?.logoUrl || DEFAULT_LOGO} logoAlt={L(brand?.logoAlt) || 'SOURCE by HEDAX'} locale={locale} />
     </div>
 
-    {film.discovery ? <div className="cine-discover">
+  </section>
+    {film.discovery ? <section className="cine-discover" aria-label={fa ? 'مسیرهای خرید قطعه' : 'Find your way to the right part'}>
       <div className="cine-discover-inner">
-        <ol className="cine-paths">
-          {paths.map((p, i) => <li key={p.href}><Link href={p.href}>
-            <span className="cine-path-index" dir="ltr">{String(i + 1).padStart(2, '0')}</span>
+        <ul className="cine-paths">
+          {paths.map(p => <li key={p.href}><Link href={p.href}>
+            <span className="cine-path-icon"><p.icon aria-hidden size={28} strokeWidth={1.6} /></span>
             <span className="cine-path-text"><strong>{p.title}</strong><span>{p.text}</span></span>
             <Arrow aria-hidden size={18} className="cine-path-arrow" />
           </Link></li>)}
-        </ol>
+        </ul>
         {top.length ? <nav className="cine-categories" aria-label={fa ? 'دسته‌بندی قطعات' : 'Part categories'}>
           <ul>{top.map(c => <li key={c.slug}><Link href={`/parts?category=${encodeURIComponent(c.slug)}`}>{name(c.name)}{c.productCount ? <span className="num">{digits(c.productCount)}</span> : null}</Link></li>)}</ul>
         </nav> : null}
       </div>
-    </div> : null}
-  </section>;
+    </section> : null}
+  </>;
 }
