@@ -111,7 +111,7 @@ export function newBuilderBlock(kind: BuilderBlock['kind'], id: string): Builder
   if (kind !== 'cinematic-hero') return block;
   return {
     ...block, film: { ...DEFAULT_BUILDER_FILM, clips: [] },
-    title: { fa: 'قطعهٔ درست، برای خودروی شما', en: 'The right part, for your vehicle' },
+    title: { fa: 'دنیای قطعات خودرو، هوشمندتر از همیشه', en: 'Smarter Parts. Better Driving.' },
     body: { fa: 'نام قطعه، شماره فنی یا شماره OEM را جست‌وجو کنید؛ یا خودروی خود را انتخاب کنید تا قطعات مناسب آن را ببینید.', en: 'Search by part name, part number or OEM reference — or choose your vehicle to see the parts that fit it.' },
     alt: { fa: 'قطعات یک خودروی کراس‌اوور به‌صورت پیوسته کنار هم قرار می‌گیرند و خودرو کامل می‌شود.', en: 'The parts of a crossover come together in one continuous shot until the car is complete.' },
     href: '/cars', button: { fa: 'انتخاب خودروی من', en: 'Choose my vehicle' },
