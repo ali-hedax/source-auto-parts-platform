@@ -8,6 +8,7 @@ import { LegacyHomeView } from './legacy-home';
 import { BannerSlider } from './slider';
 import { VehicleFinder } from './vehicle-finder';
 import { CinematicHero } from './cinematic-hero';
+import { CinematicBanner } from './cinematic-banner';
 import type { BuilderData } from './data';
 import { blockVariables, themeVariables } from './styles';
 import './builder.css';
@@ -22,7 +23,9 @@ function Picture({ block, locale }: { block: Pick<BuilderBlock, 'imageUrl' | 'mo
 export function BuilderBlockView({ block: b, data, locale }: { block: BuilderBlock; data: BuilderData; locale: string }) {
   const L = (v: Parameters<typeof localize>[0]) => localize(v, locale);
   if (b.kind === 'legacy' && b.legacy && data.content) return <LegacyHomeView {...data} locale={locale} mobileImageUrl={b.mobileImageUrl} imageAlt={L(b.alt)} content={{ ...data.content, home: { sections: [{ ...b.legacy, id: b.id, visible: true }] } }} />;
-  if (b.kind === 'cinematic-hero') return <CinematicHero block={b} content={data.content} categories={data.categories} locale={locale} />;
+  if (b.kind === 'cinematic-hero') return b.style.template === 'compact'
+    ? <CinematicBanner block={b} locale={locale} />
+    : <CinematicHero block={b} content={data.content} categories={data.categories} locale={locale} />;
   if (b.kind === 'makers') return <MakersHomeSection makers={data.makers} title={localize(b.title, locale)} />;
   const title = L(b.title);
   const heading = title ? <h2 className="builder-heading">{title}</h2> : null;

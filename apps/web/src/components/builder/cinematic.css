@@ -250,3 +250,18 @@ html[lang='en'] .cine-lede { max-width: 28rem; }
     font-size: clamp(1.35rem, min(2cqi, 3.8svh), 2.5rem); line-height: 1.3; margin-top: .6rem;
   }
 }
+
+/* A single short brand interlude after products, with its own reserved panoramic frame. */
+.builder-root .builder-block[data-builder-kind='cinematic-hero'][data-template='compact'] > .builder-block-inner {
+  max-width: var(--builder-width, 1280px); padding: 24px;
+}
+.cine-strip { background: #05090e; border-radius: 8px; }
+.cine-strip .cine-film {
+  aspect-ratio: 25 / 4; width: 100%; height: auto; max-width: none; max-height: none;
+  min-height: 0; margin: 0; order: initial;
+}
+.cine-strip .cine-controls { inset-inline-end: 8px; bottom: 6px; top: auto; }
+.cine-strip .cine-progress { display: none; }
+@container (max-width: 700px) {
+  .builder-root .builder-block[data-builder-kind='cinematic-hero'][data-template='compact'] > .builder-block-inner { padding: 16px 12px; }
+}

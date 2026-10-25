@@ -112,7 +112,11 @@ function FilmSettings({ block: b, change, pick }: { block: BuilderBlock & { film
   const set = (patch: Partial<BuilderFilm>) => change({ ...b, film: { ...film, ...patch } });
   const setClip = (i: number, patch: Partial<BuilderFilmClip>) => set({ clips: film.clips.map((c, j) => (i === j ? { ...c, ...patch } : c)) });
   const moveClip = (i: number, to: number) => { const clips = [...film.clips]; const [c] = clips.splice(i, 1); clips.splice(to, 0, c!); set({ clips }); };
-  return <details open className="rounded-xl border p-3"><summary className="cursor-pointer font-bold">فیلم‌های بنر اصلی (Hero)</summary>
+  return <details open className="rounded-xl border p-3"><summary className="cursor-pointer font-bold">فیلم و نحوهٔ نمایش بنر</summary>
+    <label>نوع نمایش<select value={b.style.template === 'compact' ? 'compact' : 'classic'} onChange={e => change({ ...b, style: { ...b.style, template: e.target.value as 'classic' | 'compact' }, film: { ...film, ...(e.target.value === 'compact' ? { discovery: false } : {}) } })}>
+      <option value="classic">افتتاحیه با شعار</option><option value="compact">بنر باریک میان صفحه</option>
+    </select></label>
+    {b.style.template === 'compact' ? <p className="my-2 text-xs leading-6 text-steel">فیلم در کادر باریک با نسبت ۲۵ به ۴ نمایش داده می‌شود؛ عنوان و مسیرهای خرید تکرار نمی‌شوند. فایل هم‌نسبت انتخاب کنید. پخش پس از رسیدن بنر به دید شروع می‌شود.</p> : null}
     <p className="my-2 text-xs leading-6 text-steel">فیلم‌های فعال به همین ترتیب پشت سر هم پخش می‌شوند. هر بازدیدکننده فقط فایل متناسب با دستگاه خود را دریافت می‌کند. انتشار عمومی فقط با فایل‌های کتابخانه که «تأیید انتشار» دارند ممکن است.</p>
     <ol className="space-y-3">{film.clips.map((clip, i) => <li key={clip.id} className="rounded-lg border p-3" data-film-clip={i}>
       <div className="flex flex-wrap items-center justify-between gap-2"><strong>فیلم {(i + 1).toLocaleString('fa-IR')}</strong>

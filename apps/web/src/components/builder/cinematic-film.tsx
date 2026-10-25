@@ -34,8 +34,9 @@ function source(clip: Clip, mobile: boolean, webm: boolean) {
  * loaded, one file at a time, never for reduced motion, data saving or the 'static' mode, and on slow links only when
  * the visitor presses play. The logo appears once, `film.logoAt` seconds into the last clip.
  */
-export function CinematicFilm({ film, still, mobileStill, alt, logoUrl, logoAlt, locale }: {
+export function CinematicFilm({ film, still, mobileStill, alt, logoUrl, logoAlt, locale, deferUntilVisible = false }: {
   film: BuilderFilm; still: string; mobileStill: string; alt: string; logoUrl: string; logoAlt: string; locale: string;
+  deferUntilVisible?: boolean;
 }) {
   const fa = locale === 'fa';
   const clips = film.clips.filter(c => c.active && (c.desktop || c.mobile));
@@ -56,10 +57,20 @@ export function CinematicFilm({ film, still, mobileStill, alt, logoUrl, logoAlt,
     if (film.playback === 'static' || !clipKey) return;
     if (matchMedia(REDUCED).matches || saveData()) { setState('still'); setResolved(true); return; }
     if (slowLink()) { setState('ondemand'); return; }
-    return afterLoad(() => startTransition(start));
+    if (!deferUntilVisible) return afterLoad(() => startTransition(start));
+    const el = frame.current;
+    if (!el) return;
+    let cancelLoad: (() => void) | undefined;
+    const io = new IntersectionObserver(([entry]) => {
+      if (!entry || entry.intersectionRatio < 0.2) return;
+      io.disconnect();
+      cancelLoad = afterLoad(() => startTransition(start));
+    }, { threshold: [0.2] });
+    io.observe(el);
+    return () => { io.disconnect(); cancelLoad?.(); };
     // clipKey captures every field of the active clips that changes the files.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [film.playback, clipKey]);
+  }, [film.playback, clipKey, deferUntilVisible]);
 
   function start() {
     const mobile = matchMedia(MOBILE).matches;
@@ -110,7 +121,7 @@ export function CinematicFilm({ film, still, mobileStill, alt, logoUrl, logoAlt,
   };
   const isStill = state === 'still';
   const poster = first?.poster || still; const mobilePoster = first?.mobilePoster || first?.poster || mobileStill || still;
-  const picture = (desktop: string, mobile: string) => desktop || mobile ? <><source media={MOBILE} srcSet={mobile || desktop} /><img src={desktop || mobile} alt={alt} width={1280} height={720} fetchPriority="high" decoding="async" /></> : null;
+  const picture = (desktop: string, mobile: string) => desktop || mobile ? <><source media={MOBILE} srcSet={mobile || desktop} /><img src={desktop || mobile} alt={alt} width={deferUntilVisible ? 1400 : 1280} height={deferUntilVisible ? 224 : 720} loading={deferUntilVisible ? 'lazy' : 'eager'} fetchPriority={deferUntilVisible ? 'low' : 'high'} decoding="async" /></> : null;
   const label = state === 'playing' ? (fa ? 'توقف فیلم' : 'Pause film') : state === 'ended' ? (fa ? 'پخش دوباره' : 'Replay film') : (fa ? 'پخش فیلم' : 'Play film');
   const Icon = state === 'playing' ? Pause : state === 'ended' ? RotateCcw : Play;
 
