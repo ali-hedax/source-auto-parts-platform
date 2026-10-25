@@ -1,6 +1,6 @@
 # Source by HEDAX — وضعیت و نقطهٔ ادامه
 
-آخرین به‌روزرسانی: 2026-10-25، Asia/Tehran؛ کارت محصول مطابق مرجع و افزودن مستقیم به سبد، همراه Hero عمودی و شعار تایپی در Preview آزموده شد؛ PR #35 پیش‌نویس است و انتشار Production منتظر تأیید مالک است.
+آخرین به‌روزرسانی: 2026-10-25، Asia/Tehran؛ شعار فارسی نقره‌ای و انگلیسی آبی در Preview منتشر و آزموده شدند؛ چیدمان عمودی، تایپ و کارت‌های محصول حفظ شدند. PR #35 پیش‌نویس است و انتشار Production منتظر تأیید مالک است.
 
 > توجه: این worktree جدا (`Desktop/source-premium-experience`) است. checkpoint انتشار
 > PR #29 در PROGRESS.md پوشهٔ اصلی (شاخهٔ `codex/assistant-phase-one`، تغییر commit‌نشدهٔ
@@ -12,12 +12,14 @@
 
 ## نقطهٔ فعلی
 
-### Implemented Pending Verification — silver Persian / blue English slogans — 2026-10-25, Asia/Tehran
+### Completed & Tested — silver Persian / blue English slogans on Preview — 2026-10-25, Asia/Tehran
 
 - **Owner scope:** final correction requests silver for Persian Hero slogan and blue for English; this supersedes the interrupted orange request. Change colors only on the current Preview, retain font/typing/vertical layout/product cards. No merge/Production authorization.
 - **Baseline:** clean inspected codex/hero-editorial-preview HEAD10385bb364f431bab7cf78db0e3c9c7bff94b813; prior code12e9c9e CI40171812069 passed, documentation CI40172152070 in progress. Root/web instructions, continuity and scoped design read; interrupted color turn left no changes.
 - **Implementation:** language-scoped Hero copy CSS: FA#C0C0C0 silver, EN#39A0FF blue on either locale page. Transparent source/typewriter overlay and full-text fallback inherit the correct phrase color. Scoped design note updated; no content/account/data writes.
-- **Next:** diff check, push exact candidate to draft PR35, build/roll only isolated Preview web with current12e9c9e rollback and Production-preservation guards. Verify actual computed colors/readability during/after typing at desktop/phone in both languages, plus reduced-motion/no-JS fallback. Keep Production unchanged.
+- **Completed & Tested — rollout:** diff check exit0; codefa8541f8fb86bc2556d107947943c900e3246a09 pushed to draft PR35. CI40172337576 SUCCESS; remote exact-source web build exit0. Only isolated Preview web rolled to hedax-typewriter-web:fa8541f8fb86, candidate /opt/hedax-preview-candidates/typewriter-fa8541f8fb86; previous12e9c9e image overlay retained in images.before.yml. Healthy/public HTTP200; Production web/api/worker/postgres/caddy identities and published document hash preserved; Preview API/database identities preserved. No data/content/account changes.
+- **Completed & Tested — hosted:** real computed parent/typing-overlay colors FA rgb192/192/192 and EN rgb57/160/255, keyed to phrase language in both locale pages at1440/390. Complete after intro, no overflow/page errors; reduced-motion and JS-disabled full text keeps the same colors. Contrast against#05080D: silver11.02:1, blue7.30:1. Browser check exit0; mobile screenshot visually reviewed. Evidence this chat outputs/slogan-colors/acceptance.json and {fa,en}-{1440,390}.png. This small CSS-only change did not warrant new repository tests or unrelated retesting; existing CI ran automatically.
+- **Requires Owner Decision / Next:** owner can refresh https://preview.sourcebyhedax.ir/fa for silver/blue review. Keep PR35 draft/unmerged pending explicit Production approval. Subsequent checkpoint commit is documentation-only; deployed code remainsfa8541f. Previous cold-mobile CWV follow-up remains open, not remeasured.
 
 ### Completed & Tested — reference product cards/quick cart on Preview — 2026-10-25, Asia/Tehran
 
