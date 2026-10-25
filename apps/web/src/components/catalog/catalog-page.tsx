@@ -63,10 +63,13 @@ export async function CatalogPage({
   const name = (n: { fa: string; en: string | null }) => (locale === 'en' ? (n.en ?? n.fa) : n.fa);
   const page = Number(params.page ?? 1) || 1;
   const selection = result?.selection ?? null;
+  // «سمند LX» already names its vehicle: say the vehicle once in sentences («برای سمند LX»).
+  const vehicleAndModel = selection ? (selection.model && name(selection.model.name).startsWith(name(selection.vehicle.name)) ? name(selection.model.name)
+    : [name(selection.vehicle.name), selection.model ? name(selection.model.name) : ''].filter(Boolean).join(' ')) : '';
   const selectionName = selection ? [selection.group ? name(selection.group.name) : '', name(selection.vehicle.name), selection.model ? name(selection.model.name) : '', selection.year ? `${selection.year.toLocaleString(locale === 'fa' ? 'fa-IR' : 'en-US', { useGrouping: false })} (${selection.calendar === 'jalali' ? t('finder.jalali') : t('finder.gregorian')})` : ''].filter(Boolean) : [];
   const requestForSelection = selection ? `/request-part?${new URLSearchParams({
     ...(selection.group ? { vehicleBrand: selection.group.slug } : {}),
-    vehicleModel: [name(selection.vehicle.name), selection.model ? name(selection.model.name) : ''].filter(Boolean).join(' ').slice(0, 80),
+    vehicleModel: vehicleAndModel.slice(0, 80),
     ...(selection.year ? { vehicleYear: String(selection.year) } : {}),
   }).toString()}` : '/request-part';
   const query = params.q?.trim();
@@ -129,7 +132,7 @@ export async function CatalogPage({
                 </ButtonLink>
               </EmptyState>
             ) : selection ? (
-              <EmptyState title={t('finder.noParts', { vehicle: selectionName.slice(1).join(' ') || selectionName.join(' ') })}>
+              <EmptyState title={t('finder.noParts', { vehicle: [vehicleAndModel, ...selectionName.slice(selection?.model ? 3 : 2)].join(' ') })}>
                 <p>{t('finder.noPartsHint')}</p>
                 <ButtonLink href={requestForSelection} className="mt-4">{t('finder.requestForVehicle')}</ButtonLink>
               </EmptyState>
