@@ -1,6 +1,6 @@
 # Source by HEDAX — وضعیت و نقطهٔ ادامه
 
-آخرین به‌روزرسانی: 2026-10-25، Asia/Tehran؛ چیدمان و افکت تایپ شعارهای Hero در Preview عمومی آزموده شدند؛ PR #35 پیش‌نویس است و انتشار این اصلاح‌ها روی Production منتظر تأیید مالک است.
+آخرین به‌روزرسانی: 2026-10-25، Asia/Tehran؛ Hero عمودی تمام‌عرض با ویدئو بالا و شعارهای تایپی زیر آن در Preview عمومی آزموده شد؛ PR #35 پیش‌نویس است و انتشار روی Production منتظر تأیید مالک است.
 
 > توجه: این worktree جدا (`Desktop/source-premium-experience`) است. checkpoint انتشار
 > PR #29 در PROGRESS.md پوشهٔ اصلی (شاخهٔ `codex/assistant-phase-one`، تغییر commit‌نشدهٔ
@@ -12,13 +12,15 @@
 
 ## نقطهٔ فعلی
 
-### Implemented Pending Verification — full-width vertical Hero — 2026-10-25, Asia/Tehran
+### Completed & Tested — full-width vertical Hero on Preview — 2026-10-25, Asia/Tehran
 
 - **Owner scope:** move the full-width banner/film above both slogans, no side-by-side layout. Keep the existing typewriter effect. Preview-only revision; PR35 stays draft pending explicit release approval.
 - **Baseline:** clean branch codex/hero-editorial-preview at c0d5cf4a300dc9eaeae402a606bb720140a209ea, prior final CI40169529111 SUCCESS. Root/web instructions and scoped design record read. Existing Preview image117a51d and Production PR33 retained before rollout.
 - **Implementation:** single column in every locale/viewport; edge-to-edge uncropped16:9 media first, centered slogan block below; shopping cards remain outside and below the Hero. Natural media aspect can extend the banner below the first fold on wide screens; communicated this consequence to the owner. Start the existing one-time typing sequence when the shared slogan block enters view so it does not finish unseen below a tall film. Keep reduced-motion/no-JS behavior and existing panel text/media values. Changed cinematic.css, cinematic-typewriter.tsx, scoped design record and this checkpoint.
-- **Completed & Tested — layout prototype:** browser-only injection of candidate stylesheet on public Preview (no persisted changes), FA/EN at1920/1440/768/390/360: full viewport media width, media above centered text without overlap, no horizontal overflow, uncropped16:9 frame, cards below. Desktop/phone screenshots reviewed in this chat outputs/vertical-layout-local/. Prototype exposed excess tablet grid-row spacing; stage alignment now starts at the top, to verify in hosted candidate. Entry observer needs final type/lint and hosted browser checks.
-- **Next:** push candidate to PR35, build exact source, roll only isolated Preview web with existing rollback/Production-preservation guards, verify vertical geometry plus visible one-time typing and accessibility fallbacks on the real public URL. No Production/content/account mutations authorized or needed.
+- **Completed & Tested — layout prototype:** browser-only injection of candidate stylesheet on public Preview (no persisted changes), FA/EN at1920/1440/768/390/360: full viewport media width, media above centered text without overlap, no horizontal overflow, uncropped16:9 frame, cards below. Desktop/phone screenshots reviewed in this chat outputs/vertical-layout-local/. Prototype exposed excess tablet grid-row spacing; start alignment fixed it and hosted768px confirms film and copy now touch without the excess gap. Focused local web typecheck/ESLint and diff check exit0.
+- **Completed & Tested — candidate/deployment:** code8cb1003d34a1b3bd29a0c1d5095fd19df464bc90 pushed to PR35; CI40169875180 SUCCESS (lint/types/unit/catalogue/CMS/backup drill/web build). Exact-source remote build exit0; only existing isolated Preview web replaced with hedax-typewriter-web:8cb1003d34a1, candidate /opt/hedax-preview-candidates/typewriter-8cb1003d34a1. Previous image overlay retained in images.before.yml. Preview web healthy/public HTTP200; Production web/api/worker/postgres/caddy identities and published content hash preserved, Preview API/database identities preserved. No content/account/media/Production mutation.
+- **Completed & Tested — hosted acceptance:** real public URL, no stylesheet injection: FA/EN at1920/1440/768/390/360 (10 scenarios) confirm full viewport width, uncropped16:9 frame above centered slogans, no overlap/overflow, cards below. On wide screens typing remains unstarted while below the fold, starts when scrolled into view, and does not replay after leaving/reentering. Separate FA/EN1440/390 typing checks confirm sequential partial→complete phrases, accessible complete heading, no changing copy bounds, no loop, reload restart. Reduced-motion, runtime preference change and JS-disabled fallbacks PASS. Both browser scripts exit0; hosted mobile screenshot visually reviewed; evidence this chat outputs/vertical-layout/acceptance.json and hero-{fa,en}-{1440,390}.png, outputs/vertical-typewriter/acceptance.json and partial/complete screenshots.
+- **Requires Owner Decision / Next:** owner can reload https://preview.sourcebyhedax.ir/fa to review the vertical arrangement. Keep PR35 draft/unmerged until explicit release approval. Subsequent checkpoint commit is documentation-only; deployed code remains8cb1003. Previous cold-mobile CWV follow-up remains unresolved and was not remeasured here.
 
 ### Completed & Tested — typewriter slogan intro on Preview — 2026-10-25, Asia/Tehran
 
