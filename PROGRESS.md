@@ -12,6 +12,13 @@
 
 ## نقطهٔ فعلی
 
+### Implemented Pending Verification — silver Persian / blue English slogans — 2026-10-25, Asia/Tehran
+
+- **Owner scope:** final correction requests silver for Persian Hero slogan and blue for English; this supersedes the interrupted orange request. Change colors only on the current Preview, retain font/typing/vertical layout/product cards. No merge/Production authorization.
+- **Baseline:** clean inspected codex/hero-editorial-preview HEAD10385bb364f431bab7cf78db0e3c9c7bff94b813; prior code12e9c9e CI40171812069 passed, documentation CI40172152070 in progress. Root/web instructions, continuity and scoped design read; interrupted color turn left no changes.
+- **Implementation:** language-scoped Hero copy CSS: FA#C0C0C0 silver, EN#39A0FF blue on either locale page. Transparent source/typewriter overlay and full-text fallback inherit the correct phrase color. Scoped design note updated; no content/account/data writes.
+- **Next:** diff check, push exact candidate to draft PR35, build/roll only isolated Preview web with current12e9c9e rollback and Production-preservation guards. Verify actual computed colors/readability during/after typing at desktop/phone in both languages, plus reduced-motion/no-JS fallback. Keep Production unchanged.
+
 ### Completed & Tested — reference product cards/quick cart on Preview — 2026-10-25, Asia/Tehran
 
 - **Owner scope:** match the supplied white AUTODOC product-card screenshot's colors/layout and bottom cart action for home-page products. Use the shared PartCard in home collections and catalogue. Keep all current Hero work; Preview only, PR35 remains draft with no Production release approval.

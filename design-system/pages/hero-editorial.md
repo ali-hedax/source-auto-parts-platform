@@ -12,6 +12,11 @@ shopping ground #F2F5F8, ink #15243A. Typography: self-hosted Lalezar display
 lettering in Arabic/Persian and Latin; existing Vazirmatn/Montserrat for the UI.
 Lalezar comes from Google Fonts, with its OFL included next to the font files.
 
+Latest slogan colors: Persian #C0C0C0 (silver), English #39A0FF (blue), keyed by
+the phrase's language in both FA/EN pages. The owner's final blue instruction
+supersedes the interrupted orange request. Typeface, typing and layout stay as
+reviewed; reduced-motion/no-JS full text inherits the same language colors.
+
 Latest owner revision: full-width 16:9 film first, centered full-width slogan
 block below, in both languages and on every device. No side-by-side columns.
 Keep the entire uncropped film; the vertical banner can extend below the first
