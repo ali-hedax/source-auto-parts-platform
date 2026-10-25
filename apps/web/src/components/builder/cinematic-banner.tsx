@@ -6,7 +6,7 @@ import { CinematicFilm } from './cinematic-film';
 export function CinematicBanner({ block, locale }: { block: BuilderBlock; locale: string }) {
   if (!block.film) return null;
   const alt = localize(block.alt, locale) || 'Source by HEDAX';
-  return <section className="cine cine-strip" aria-label={alt}>
+  return <section className="cine cine-strip" aria-label={alt} data-assistant-avoid>
     <CinematicFilm film={block.film} still={block.imageUrl} mobileStill={block.mobileImageUrl}
       alt={alt} logoUrl="" logoAlt="" locale={locale} deferUntilVisible />
   </section>;
