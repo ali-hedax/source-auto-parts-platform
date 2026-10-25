@@ -130,3 +130,101 @@ html[lang='en'] .cine-lede { max-width: 28rem; }
   .cine *, .cine *::before, .cine *::after { animation: none !important; transition: none !important; }
   .cine-logo { opacity: 1; }
 }
+
+/* Owner's display-only banner revision: self-hosted poster lettering in both scripts. */
+@font-face {
+  font-family: Lalezar; font-style: normal; font-weight: 400; font-display: swap;
+  src: url('/fonts/hero/lalezar-arabic.woff2') format('woff2');
+  unicode-range: U+0600-06FF, U+0750-077F, U+0800-08FF, U+200C-200E, U+FB50-FDFF, U+FE70-FEFF;
+}
+@font-face {
+  font-family: Lalezar; font-style: normal; font-weight: 400; font-display: swap;
+  src: url('/fonts/hero/lalezar-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+2000-206F, U+2122;
+}
+.cine { background: #05080d; }
+.cine::after { display: none; }
+.cine-stage {
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start; align-items: start;
+  gap: 0; min-height: calc(100svh - 7rem); padding: 0;
+}
+.cine-copy { width: 100%; max-width: 100rem; margin-inline: auto; padding: clamp(1.75rem, 4cqi, 4rem) clamp(1rem, 4cqi, 5rem); text-align: center; }
+.builder-root .cine .cine-title {
+  font-family: Lalezar, var(--font-fa); font-weight: 400; font-synthesis: none;
+  font-size: clamp(2.8rem, 5.2cqi, 6rem); line-height: 1.3; letter-spacing: 0; margin: 0;
+}
+.builder-root .cine .cine-title[lang='en'] { font-size: clamp(3rem, 5.1cqi, 6rem); line-height: 1.12; }
+.cine .cine-tagline {
+  font-family: Lalezar, var(--font-fa); font-weight: 400; font-synthesis: none;
+  font-size: clamp(1.7rem, 2.6cqi, 3.15rem); line-height: 1.45; margin-top: 1.1rem; color: #bfcddb;
+}
+.cine .cine-copy [lang='fa'] { color: #c0c0c0; }
+.cine .cine-copy [lang='en'] { color: #39a0ff; }
+/* Reserve the final lines while whole graphemes type, preserving Persian shaping. */
+.cine-typewriter { display: block; position: relative; }
+.cine-typewriter-source { display: block; color: transparent; }
+.cine-typewriter-visible { position: absolute; inset: 0; user-select: none; }
+.cine-typewriter-caret { display: inline-block; position: relative; width: 0; }
+.cine-typewriter-caret::after {
+  content: ''; position: absolute; inset-inline-start: .06em; bottom: -.05em;
+  width: 2px; height: .8em; background: currentColor;
+  animation: cine-typewriter-blink .65s step-end infinite;
+}
+@keyframes cine-typewriter-blink { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .cine-typewriter-source { color: inherit; }
+  .cine-typewriter-visible { display: none; }
+}
+.cine-film { order: -1; width: 100%; min-width: 0; margin: 0; -webkit-mask-image: none; mask-image: none; }
+.cine-controls { inset-inline-end: 1rem; bottom: 3%; top: auto; }
+.cine-discover {
+  --cine-ink: #15243a; --cine-ink-mid: #4a5568; --cine-line: #cbd5e0; --cine-signal: #2467a9;
+  padding: 2rem clamp(1rem, 4cqi, 4.5rem) 1.5rem; background: #f2f5f8; color: #15243a;
+}
+.cine-discover :focus-visible { outline: 3px solid #1976ff; outline-offset: 5px; }
+.cine-discover-inner { max-width: 1440px; }
+.cine-paths { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.15rem; border: 0; margin: 0; }
+.cine-paths li + li { border: 0; }
+.cine-paths a {
+  display: grid; grid-template-columns: 3.25rem minmax(0, 1fr) 1.25rem; align-items: center; gap: 1.05rem;
+  min-height: 9.5rem; height: 100%; padding: 1.6rem; border: 1px solid #d6dfe8; border-radius: 1.4rem;
+  background: #fff; box-shadow: 0 12px 30px -24px #071b3466; transition: transform .18s ease, border-color .18s ease;
+}
+.cine-paths a:hover { transform: translateY(-3px); border-color: #3182ce; background: #fff; }
+.cine-paths li:first-child a { background: #ff8a00; border-color: #ff8a00; color: #101820; }
+.cine-paths li:first-child a:hover { border-color: #101820; }
+.cine-path-icon { display: grid; place-items: center; width: 3.25rem; height: 3.25rem; border-radius: 1rem; background: #eaf2fb; color: #2467a9; }
+.cine-paths li:first-child .cine-path-icon { background: #10182012; color: #101820; }
+.cine-path-text { gap: .35rem; }
+.cine-path-text strong { font-size: clamp(1.05rem, 1.6cqi, 1.3rem); font-weight: 800; color: inherit; }
+.cine-path-text > span { font-size: .875rem; line-height: 1.7; color: #4a5568; }
+.cine-paths li:first-child .cine-path-text > span { color: #27313a; }
+.cine-path-arrow { justify-self: end; }
+.cine-categories ul { gap: .55rem; margin-top: 1.35rem; }
+.cine-categories a { min-height: 2.75rem; background: #fff; color: #334155; }
+.cine-categories a:hover { background: #fff; }
+@container (max-width: 1000px) {
+  .cine-paths { gap: .75rem; }
+  .cine-paths a { grid-template-columns: 2.75rem minmax(0, 1fr); gap: .75rem; padding: 1.2rem; }
+  .cine-path-icon { width: 2.75rem; height: 2.75rem; border-radius: .85rem; }
+  .cine-path-arrow { display: none; }
+}
+@container (max-width: 700px) {
+  .cine-stage { align-content: start; min-height: calc(100svh - 7.75rem); }
+  .cine-copy { padding: 1.75rem 1rem 2rem; }
+  .builder-root .cine .cine-title { font-size: clamp(2.6rem, 8cqi, 4rem); }
+  .builder-root .cine .cine-title[lang='en'] { font-size: clamp(2.7rem, 9cqi, 4rem); }
+  .cine .cine-tagline { font-size: clamp(1.6rem, 5.6cqi, 2.4rem); margin-top: .85rem; }
+  .cine-controls { bottom: 0; inset-inline-end: .5rem; }
+  .cine-progress { display: none; }
+  .cine-discover { padding: 1.25rem 1rem; }
+  .cine-paths { grid-template-columns: minmax(0, 1fr); gap: .75rem; }
+  .cine-paths a { grid-template-columns: 3.25rem minmax(0, 1fr) 1.25rem; min-height: 7.5rem; padding: 1.25rem; border-radius: 1.2rem; }
+  .cine-path-icon { width: 3.25rem; height: 3.25rem; }
+  .cine-path-arrow { display: block; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cine-discover * { animation: none !important; transition: none !important; }
+  .cine-paths a:hover { transform: none; }
+}
