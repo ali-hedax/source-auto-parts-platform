@@ -11,7 +11,7 @@ import { CardCartButton } from './card-cart-button';
 import './part-card.css';
 
 /** The same white product/purchase card on the home page and in the catalogue. */
-export function PartCard({ product, priority = false }: { product: ProductCard; priority?: boolean }) {
+export function PartCard({ product, priority = false, hideCountUnit = false }: { product: ProductCard; priority?: boolean; hideCountUnit?: boolean }) {
   const t = useTranslations();
   const locale = useLocale() as 'fa' | 'en';
   const name = locale === 'en' ? (product.name.en ?? product.name.fa) : product.name.fa;
@@ -20,6 +20,7 @@ export function PartCard({ product, priority = false }: { product: ProductCard; 
   const kind = [t(`partType.${product.partType}`), product.condition !== 'NEW' ? t(`condition.${product.condition}`) : '', product.origin === 'IMPORTED' ? t('origin.IMPORTED') : ''].filter(Boolean).join(locale === 'en' ? ', ' : '، ');
   const canBuy = product.purchasable && product.price.kind === 'price' && product.availability !== 'OUT_OF_STOCK';
   const status = canBuy ? product.availability : 'SOURCEABLE';
+  const priceUnit = hideCountUnit && product.unit.name.trim() === 'عدد' ? undefined : product.unit;
   return <article className="part-card">
     <Link href={`/parts/${product.slug}`} className="part-card-main">
       <div className="part-card-media">
@@ -45,7 +46,7 @@ export function PartCard({ product, priority = false }: { product: ProductCard; 
     <div className="part-card-bottom">
       <div className="part-card-price">{product.price.kind === 'inquiry'
         ? <span data-testid="card-sourceable">{t('parts.requestSupply')}</span>
-        : <Price price={product.price} size="lg" unit={product.unit} />}</div>
+        : <Price price={product.price} size="lg" unit={priceUnit} />}</div>
       {canBuy ? <CardCartButton productId={product.id} name={name} unit={product.unit} />
         : <Link href={`/request-part?part=${encodeURIComponent(product.partNumber || product.sku)}`} className="part-card-source"><PackageSearch aria-hidden size={21} />{t('parts.requestSupply')}</Link>}
       {product.manufacturer ? <p className="part-card-maker">{locale === 'en' ? product.manufacturer.name.en || product.manufacturer.name.fa : product.manufacturer.name.fa}</p> : null}

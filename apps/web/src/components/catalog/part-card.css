@@ -39,4 +39,26 @@
 .builder-products article.part-card { background: #fff; border-radius: 3px; box-shadow: none; }
 .builder-products .part-card h3 { font-size: var(--b-titleSize, 1.2rem); }
 .builder-products .part-card-price bdi { font-size: var(--b-priceSize, 1.75rem); }
+
+/* The homepage collection stays light and compact, while keeping every product detail. */
+.builder-block[data-builder-kind='new-products'] .part-card { border-color: #e2e8ef; border-radius: 8px; }
+.builder-block[data-builder-kind='new-products'] .part-card-media { aspect-ratio: 1.8; max-height: var(--b-imageHeight, 180px); }
+.builder-block[data-builder-kind='new-products'] .part-card-media img { padding: 1rem; }
+.builder-block[data-builder-kind='new-products'] .part-card-stock { inset-block-start: .625rem; inset-inline-end: .625rem; }
+.builder-block[data-builder-kind='new-products'] .part-card-description { gap: .3rem; padding: .5rem 1rem 0; }
+.builder-block[data-builder-kind='new-products'] .part-card h3 { font-size: var(--b-titleSize, 1rem); font-weight: 600; line-height: 1.5; }
+.builder-block[data-builder-kind='new-products'] .part-card-meta { font-size: .8125rem; line-height: 1.55; }
+.builder-block[data-builder-kind='new-products'] .part-card-meta .code { font-size: inherit; }
+.builder-block[data-builder-kind='new-products'] .part-card-fitment,
+.builder-block[data-builder-kind='new-products'] .part-card-kind { font-size: .75rem; line-height: 1.5; }
+.builder-block[data-builder-kind='new-products'] .part-card-more { font-size: .875rem; gap: .375rem; }
+.builder-block[data-builder-kind='new-products'] .part-card-bottom { padding: .625rem 1rem 1rem; }
+.builder-block[data-builder-kind='new-products'] .part-card-price { min-height: 2.75rem; margin-block: .25rem .625rem; }
+.builder-block[data-builder-kind='new-products'] .part-card-price bdi { font-size: var(--b-priceSize, 1.25rem); line-height: 1.4; }
+.builder-block[data-builder-kind='new-products'] .part-card-price [data-testid='price-unit'] { font-size: .75rem; white-space: nowrap; }
+.builder-block[data-builder-kind='new-products'] .part-card-cart,
+.builder-block[data-builder-kind='new-products'] .part-card-source { min-height: 3rem; border-radius: 6px; font-size: .8125rem; }
+.builder-block[data-builder-kind='new-products'] .part-card-cart svg,
+.builder-block[data-builder-kind='new-products'] .part-card-source svg { width: 20px; height: 20px; }
+.builder-block[data-builder-kind='new-products'] .part-card-maker { margin-top: .4rem; font-size: .75rem; }
 @media (prefers-reduced-motion: reduce) { .part-card * { animation: none !important; transition: none !important; } }
