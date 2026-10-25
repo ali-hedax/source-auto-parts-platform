@@ -1,0 +1,42 @@
+/* Owner's reference: white paper, blue details and a red purchase bar. */
+.part-card {
+  --part-card-red: #d92916; --part-card-red-hover: #ba2111; --part-card-link: #0069df;
+  display: flex; flex-direction: column; height: 100%; min-width: 0;
+  background: #fff; color: #172831; border: 1px solid #edf0f3; border-radius: 3px;
+}
+.part-card:focus-within { border-color: #527d94; }
+.part-card :focus-visible { outline: 3px solid #0069df; outline-offset: 3px; }
+.part-card-main { display: flex; flex-direction: column; min-width: 0; color: inherit; }
+.part-card-media { position: relative; aspect-ratio: 1.2; min-width: 0; background: #fff; overflow: hidden; }
+.part-card-media .part-placeholder { min-height: 100%; background: #f8fafc; color: #527d94; }
+.part-card-media .part-placeholder-mark, .part-card-media .part-placeholder .text-mist { color: #5c6b76; }
+.part-card-stock { position: absolute; inset-block-start: 1rem; inset-inline-end: 1rem; }
+.part-card-description { display: flex; flex-direction: column; gap: .5rem; padding: .5rem 1.5rem 0; }
+.part-card h3 { margin: 0; font-size: 1.2rem; font-weight: 600; line-height: 1.5; overflow-wrap: anywhere; text-wrap: pretty; }
+.part-card-main:hover h3 { color: var(--part-card-link); }
+.part-card-meta, .part-card-fitment, .part-card-kind, .part-card-maker { color: #5c6b76; font-size: .9375rem; line-height: 1.6; overflow-wrap: anywhere; }
+.part-card-meta .code { color: inherit; font-weight: 500; white-space: normal; overflow-wrap: anywhere; }
+.part-card-fitment { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.part-card-kind, .part-card-fallback { font-size: .8125rem; color: #5c6b76; }
+.part-card-fallback { display: block; font-weight: 400; }
+.part-card-more { display: inline-flex; align-items: center; gap: .5rem; min-height: 2.75rem; color: var(--part-card-link); font-size: 1rem; }
+.part-card-bottom { margin-top: auto; padding: 1rem 1.5rem 1.25rem; }
+.part-card-price { min-height: 3.5rem; margin-block: .5rem 1rem; }
+.part-card-price bdi { color: #172831; font-size: 1.75rem; font-weight: 600; line-height: 1.3; }
+.part-card-cart, .part-card-source {
+  display: flex; align-items: center; justify-content: center; gap: .5rem; width: 100%; min-height: 4.5rem;
+  border-radius: 3px; background: var(--part-card-red); color: #fff; cursor: pointer; transition: background-color .15s ease;
+}
+.part-card-cart:hover, .part-card-source:hover { background: var(--part-card-red-hover); }
+.part-card-cart:disabled { cursor: wait; opacity: .7; }
+.part-card-source { background: #0069bf; font-size: .9375rem; font-weight: 600; }
+.part-card-source:hover { background: #005395; }
+.part-card-feedback { font-size: .8125rem; line-height: 1.7; }
+.part-card-feedback:not(:empty) { margin-top: .6rem; }
+.part-card-feedback a { color: var(--part-card-link); text-decoration: underline; text-underline-offset: 3px; }
+.part-card-error { color: #a52016; }
+.part-card-maker { margin-top: .6rem; font-size: .875rem; }
+.builder-products article.part-card { background: #fff; border-radius: 3px; box-shadow: none; }
+.builder-products .part-card h3 { font-size: var(--b-titleSize, 1.2rem); }
+.builder-products .part-card-price bdi { font-size: var(--b-priceSize, 1.75rem); }
+@media (prefers-reduced-motion: reduce) { .part-card * { animation: none !important; transition: none !important; } }
