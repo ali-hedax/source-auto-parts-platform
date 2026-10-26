@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { contentImageSchema, contentLinkSchema, homeSectionSchema, localizedSchema } from './content.js';
 // Moved to the zod-free constants so public pages can create blocks; still exported here.
 export { newBuilderBlock } from './constants.js';
+import { DEFAULT_BUILDER_LOGO } from './constants.js';
 
 const color = z.string().regex(/^#[0-9a-fA-F]{6}$/);
 const size = (max: number) => z.number().int().min(0).max(max);
@@ -76,10 +77,22 @@ export const builderThemeSchema = z.object({
   button: color, link: color, contentWidth: z.number().int().min(640).max(1920), radius: size(48), spacing: size(120),
   font: z.enum(['brand', 'system']), fontSize: z.number().int().min(14).max(22), headingWeight: z.enum(['600', '700', '800']),
 }).strict();
+/**
+ * Logos of the header (replaceable without code): the logo on the dark header (empty = the site logo
+ * from site content), its phone version (empty = the same), a version for light backgrounds, and a
+ * size/alignment chosen from safe presets so a large centred logo never crowds the phone header.
+ */
+export const builderLogoSchema = z.object({
+  headerUrl: contentImageSchema, mobileUrl: contentImageSchema, onLightUrl: contentImageSchema,
+  size: z.enum(['md', 'lg', 'xl']), align: z.enum(['center', 'start']),
+}).strict();
 export const builderChromeSchema = z.object({
   headerBackground: color, footerBackground: color, logoWidth: z.number().int().min(70).max(280),
   logoPosition: z.enum(['start', 'end']), searchRounded: z.boolean(), footerColumns: z.number().int().min(1).max(4),
   menu: z.array(z.object({ label: localizedSchema(60), href: contentLinkSchema, visible: z.boolean() }).strict()).max(12),
+  /** Home page header: «minimal» (centred logo over the film, search in the finder below) or the «classic» bar. */
+  homeHeader: z.enum(['minimal', 'classic']).default('minimal'),
+  logo: builderLogoSchema.default(DEFAULT_BUILDER_LOGO),
 }).strict();
 export const builderDocumentSchema = z.object({
   schemaVersion: z.literal(1), title: localizedSchema(120), description: localizedSchema(170),
@@ -105,4 +118,4 @@ export interface BuilderMedia {
 }
 
 export const DEFAULT_BUILDER_THEME: BuilderDocument['theme'] = { primary: '#096ce5', background: '#f7faff', foreground: '#15243a', card: '#ffffff', border: '#e1eaf5', button: '#096ce5', link: '#096ce5', contentWidth: 1280, radius: 16, spacing: 48, font: 'brand', fontSize: 16, headingWeight: '700' };
-export const DEFAULT_BUILDER_CHROME: BuilderDocument['chrome'] = { headerBackground: '#09182e', footerBackground: '#101b2b', logoWidth: 130, logoPosition: 'start', searchRounded: true, footerColumns: 3, menu: [] };
+export const DEFAULT_BUILDER_CHROME: BuilderDocument['chrome'] = { headerBackground: '#09182e', footerBackground: '#101b2b', logoWidth: 130, logoPosition: 'start', searchRounded: true, footerColumns: 3, menu: [], homeHeader: 'minimal', logo: DEFAULT_BUILDER_LOGO };

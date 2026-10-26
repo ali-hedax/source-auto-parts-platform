@@ -165,20 +165,28 @@ describe('finder steps', () => {
     expect(wrong.status).toBe(400);
     expect(wrong.body.error).toMatchObject({ code: 'VEHICLE_SELECTION_INVALID', details: { field: 'vehicle' } });
     expect((await anon().get<any>('/catalog/vehicle-finder/vehicles?group=nope')).status).toBe(400);
+    // Every step is optional: the vehicle list also works without a group and names each vehicle's groups.
+    const all = (await anon().get<any[]>('/catalog/vehicle-finder/vehicles')).body;
+    expect(all.find((v) => v.slug === tondar.slug).groups).toEqual(['iran-khodro', 'saipa']);
+    expect(all.map((v) => v.slug)).not.toContain('peugeot');
+    expect((await anon().get<any[]>('/catalog/vehicle-finder/models?vehicle=samand')).body.length).toBe(models.length);
   });
 });
 
 describe('parts for a selection', () => {
-  it('rejects invalid selections on the server instead of listing unrelated parts', async () => {
+  it('accepts any combination of steps but rejects selections that do not belong together', async () => {
     const lx = await s.prisma.vehicleModel.findFirstOrThrow({ where: { dataKey: `ikco.samand.lx${run}` } });
+    for (const qs of ['group=iran-khodro', 'group=iran-khodro&vehicle=samand', 'group=iran-khodro&vehicle=samand&year=1395', `group=iran-khodro&vehicle=samand&model=${lx.slug}`]) {
+      expect((await search(qs)).status, qs).toBe(200);
+    }
     const cases: Array<[string, string]> = [
       ['group=nope&vehicle=samand', 'group'],
       ['group=saipa&vehicle=samand', 'vehicle'],
-      ['group=iran-khodro', 'vehicle'],
       ['group=iran-khodro&vehicle=peugeot', 'vehicle'],
+      ['group=iran-khodro&model=x', 'model'],
+      ['group=iran-khodro&year=1395', 'year'],
       ['group=iran-khodro&vehicle=samand&model=not-a-model', 'model'],
       [`group=iran-khodro&vehicle=${ids.tondar}&model=${lx.slug}`, 'model'],
-      ['group=iran-khodro&vehicle=samand&year=1395', 'year'],
       [`group=iran-khodro&vehicle=samand&model=${lx.slug}&year=1401`, 'year'],
       [`group=iran-khodro&vehicle=samand&model=${lx.slug}&year=2015`, 'year'],
       ['vehicle=samand&year=1395', 'year'],
@@ -190,7 +198,7 @@ describe('parts for a selection', () => {
     }
   });
 
-  it('lists only linked parts; a vehicle without parts gives an empty list, not the catalogue', async () => {
+  it('ranks parts: verified links first, then unconfirmed, then suggestions — never claiming an unrecorded fit', async () => {
     const lx = await s.prisma.vehicleModel.findFirstOrThrow({ where: { dataKey: `ikco.samand.lx${run}` } });
     const se = await s.prisma.vehicleModel.findFirstOrThrow({ where: { dataKey: `ikco.samand.se${run}` } });
     const samand = await s.prisma.vehicle.findUniqueOrThrow({ where: { slug: 'samand' } });
@@ -201,30 +209,75 @@ describe('parts for a selection', () => {
     await createProduct(owner, { sku: `VF-GREG-${run}`, nameFa: 'سال میلادی', onHand: 1, vehicles: v([{ vehicleId: samand.id, modelId: lx.id, yearFrom: 2010, yearTo: 2012 }]) });
     await createProduct(owner, { sku: `VF-SE-${run}`, nameFa: 'فقط SE', onHand: 1, vehicles: v([{ vehicleId: samand.id, modelId: se.id }]) });
     await createProduct(owner, { sku: `VF-WHOLE-${run}`, nameFa: 'کل سمند', onHand: 1, vehicles: v([{ vehicleId: samand.id, modelId: null }]) });
+    await createProduct(owner, { sku: `VF-TAG-${run}`, nameFa: 'برچسب گروه', onHand: 1, vehicleBrandCodes: ['IKCO'] });
+    await createProduct(owner, { sku: `VF-NAME-${run}`, nameFa: 'فیلتر روغن سمند', onHand: 1, vehicleBrandCodes: ['TOYOTA'] });
+    await createProduct(owner, { sku: `VF-TXT-${run}`, nameFa: 'شمع موتور', onHand: 1, vehicleBrandCodes: ['TOYOTA'] });
 
-    const mine = (list: string[]) => list.filter((x) => x.endsWith(run));
-    expect(mine(await skus('group=iran-khodro&vehicle=samand'))).toEqual([`VF-COVER-${run}`, `VF-GREG-${run}`, `VF-NOYEAR-${run}`, `VF-OUT-${run}`, `VF-SE-${run}`, `VF-WHOLE-${run}`].sort());
-    expect(mine(await skus(`group=iran-khodro&vehicle=samand&model=${lx.slug}`))).toEqual([`VF-COVER-${run}`, `VF-GREG-${run}`, `VF-NOYEAR-${run}`, `VF-OUT-${run}`, `VF-WHOLE-${run}`].sort());
+    const ranked = async (qs: string) => {
+      const res = await search(qs);
+      expect(res.status, qs).toBe(200);
+      const items = (res.body.items as any[]).filter((p) => p.sku.endsWith(run));
+      return {
+        body: res.body,
+        order: items.map((p) => p.sku.replace(`-${run}`, '') as string),
+        match: Object.fromEntries(items.map((p) => [p.sku.replace(`-${run}`, ''), `${p.finderMatch?.tier}:${p.finderMatch?.reason}`])) as Record<string, string>,
+      };
+    };
+    const tierOrder = (order: string[], match: Record<string, string>) => order.map((k) => ['verified', 'relevant', 'related', 'text'].indexOf(match[k]!.split(':')[0]!));
 
-    const res = await search(`group=iran-khodro&vehicle=samand&model=${lx.slug}&year=1396`);
-    expect(res.status).toBe(200);
-    const items = (res.body.items as any[]).filter((p) => p.sku.endsWith(run));
-    expect(items.map((p) => p.sku).sort()).toEqual([`VF-COVER-${run}`, `VF-GREG-${run}`, `VF-NOYEAR-${run}`, `VF-WHOLE-${run}`].sort());
-    const flag = Object.fromEntries(items.map((p) => [p.sku, p.fitmentYearUnconfirmed ?? false]));
-    expect(flag).toEqual({ [`VF-COVER-${run}`]: false, [`VF-NOYEAR-${run}`]: true, [`VF-GREG-${run}`]: true, [`VF-WHOLE-${run}`]: true });
-    expect(res.body.selection).toMatchObject({ group: { slug: 'iran-khodro' }, vehicle: { slug: 'samand' }, model: { slug: lx.slug }, year: 1396, calendar: 'jalali' });
+    // Vehicle only: a whole-vehicle link is verified; a link to one model is relevant (the model is not known).
+    let r = await ranked('group=iran-khodro&vehicle=samand');
+    expect(r.match).toMatchObject({
+      'VF-WHOLE': 'verified:VEHICLE', 'VF-COVER': 'relevant:SOME_MODEL', 'VF-NOYEAR': 'relevant:SOME_MODEL', 'VF-OUT': 'relevant:SOME_MODEL',
+      'VF-GREG': 'relevant:SOME_MODEL', 'VF-SE': 'relevant:SOME_MODEL', 'VF-TAG': 'related:GROUP_TAG', 'VF-NAME': 'related:NAME_MATCH',
+    });
+    expect(tierOrder(r.order, r.match)).toEqual([...tierOrder(r.order, r.match)].sort());
+    expect(r.body.tiers.verified).toBeGreaterThanOrEqual(1);
 
-    const empty = await search(`group=saipa&vehicle=${ids.tondar}`);
+    // With the model: links to it or to the whole vehicle are verified; another model is only a suggestion.
+    r = await ranked(`group=iran-khodro&vehicle=samand&model=${lx.slug}`);
+    expect(r.match).toMatchObject({ 'VF-COVER': 'verified:MODEL', 'VF-NOYEAR': 'verified:MODEL', 'VF-OUT': 'verified:MODEL', 'VF-GREG': 'verified:MODEL', 'VF-WHOLE': 'verified:MODEL', 'VF-SE': 'related:OTHER_MODEL' });
+
+    // With a year: only a covering range in the same calendar is verified.
+    r = await ranked(`group=iran-khodro&vehicle=samand&model=${lx.slug}&year=1396`);
+    expect(r.match).toMatchObject({
+      'VF-COVER': 'verified:MODEL', 'VF-NOYEAR': 'relevant:YEAR_UNCONFIRMED', 'VF-GREG': 'relevant:YEAR_UNCONFIRMED', 'VF-WHOLE': 'relevant:YEAR_UNCONFIRMED',
+      'VF-OUT': 'related:OTHER_YEARS', 'VF-SE': 'related:OTHER_MODEL',
+    });
+    expect(r.order[0]).toBe('VF-COVER');
+    expect(r.body.selection).toMatchObject({ group: { slug: 'iran-khodro' }, vehicle: { slug: 'samand' }, model: { slug: lx.slug }, year: 1396, calendar: 'jalali' });
+
+    // A year without a model compares the links' own years.
+    r = await ranked('group=iran-khodro&vehicle=samand&year=1396');
+    expect(r.match['VF-WHOLE']).toBe('relevant:YEAR_UNCONFIRMED');
+    expect(r.match['VF-COVER']).toBe('relevant:SOME_MODEL');
+
+    // Only a group: parts recorded for a vehicle of the group, then parts tagged with it.
+    r = await ranked('group=iran-khodro');
+    expect(r.body.selection.vehicle).toBeNull();
+    expect(r.match).toMatchObject({ 'VF-COVER': 'verified:GROUP', 'VF-WHOLE': 'verified:GROUP', 'VF-TAG': 'related:GROUP_TAG' });
+    expect(r.match['VF-TXT']).toBeUndefined();
+
+    // A typed search is narrowed by the selection but keeps other matches last, labelled as text only.
+    r = await ranked(`group=iran-khodro&vehicle=samand&q=${encodeURIComponent('شمع موتور')}`);
+    expect(r.match).toEqual({ 'VF-TXT': 'text:TEXT' });
+    expect((await ranked(`group=iran-khodro&vehicle=samand&q=VF-WHOLE-${run}`)).match).toEqual({ 'VF-WHOLE': 'verified:VEHICLE' });
+
+    // Nothing related and no text: no fitted parts and never the whole catalogue.
+    const nomake = await s.prisma.vehicle.findFirstOrThrow({ where: { dataKey: `saipa.nomake-${run}` } });
+    const empty = await search(`group=saipa&vehicle=${nomake.slug}`);
     expect(empty.status).toBe(200);
-    expect(empty.body.items).toEqual([]);
-    expect(empty.body.total).toBe(0);
+    expect((empty.body.items as any[]).every((p) => p.finderMatch?.tier === 'related')).toBe(true);
+    expect((empty.body.items as any[]).filter((p) => p.sku.endsWith(run))).toEqual([]);
+    expect(empty.body.tiers.verified + empty.body.tiers.relevant).toBe(0);
   });
 
   it('older rows count only through a confirmed equivalence with the exact older model', async () => {
     const p2008 = await s.prisma.vehicle.findFirstOrThrow({ where: { dataKey: `ikco.peugeot-2008-${run}` } });
     const vitara = await s.prisma.vehicle.findFirstOrThrow({ where: { dataKey: `ikco.vitara-${run}` } });
-    expect((await skus(`group=iran-khodro&vehicle=${p2008.slug}`)).filter((x) => x.endsWith(run))).toEqual([`VF-LEG2008-${run}`]);
-    expect((await skus(`group=iran-khodro&vehicle=${vitara.slug}`)).filter((x) => x.endsWith(run))).toEqual([]);
+    const verified = async (qs: string) => ((await search(qs)).body.items as any[]).filter((p) => p.sku.endsWith(run) && p.finderMatch?.tier === 'verified').map((p) => p.sku);
+    expect(await verified(`group=iran-khodro&vehicle=${p2008.slug}`)).toEqual([`VF-LEG2008-${run}`]);
+    expect(await verified(`group=iran-khodro&vehicle=${vitara.slug}`)).toEqual([]);
     // The /cars pages and the older vehicle filter keep working on the original rows.
     expect((await skus('vehicle=peugeot')).filter((x) => x.endsWith(run))).toEqual([`VF-LEG2008-${run}`, `VF-LEGPEUGEOT-${run}`].sort());
   });
@@ -252,5 +305,27 @@ describe('Appearance', () => {
     expect(live.sections.find((b) => b.id === film.id)).toEqual(film);
     expect(live.sections.find((b) => b.id === products.id)).toEqual(products);
     expect(live.sections.find((b) => b.id === finder.id)).toMatchObject({ kind: 'vehicle-finder', button: finder.button, title: finder.title });
+  });
+
+  it('header logos and the home header style are managed in the page settings, with safe defaults for older pages', async () => {
+    const endpoint = `/admin/content/builder/logo-${run}`;
+    const draft = (await owner.get<BuilderState>(endpoint)).body;
+    // An older page saved without the new fields gets the defaults.
+    const { logo: _logo, homeHeader: _homeHeader, ...olderChrome } = draft.document.chrome as any;
+    expect((await owner.put(endpoint, { version: draft.version, document: { ...draft.document, chrome: olderChrome } })).status).toBe(200);
+    const saved = (await owner.get<BuilderState>(endpoint)).body;
+    expect(saved.document.chrome).toMatchObject({ homeHeader: 'minimal', logo: { headerUrl: '', mobileUrl: '', onLightUrl: '', size: 'lg', align: 'center' } });
+    const logo = { headerUrl: '/media/content/logo/new-header.webp', mobileUrl: '/media/content/logo/new-mobile.webp', onLightUrl: '', size: 'xl', align: 'start' };
+    const next = { ...saved.document, chrome: { ...saved.document.chrome, logo, homeHeader: 'classic' } };
+    expect((await owner.put(endpoint, { version: saved.version, document: next })).status).toBe(200);
+    const again = (await owner.get<BuilderState>(endpoint)).body;
+    expect((await owner.post(`${endpoint}/publish`, { version: again.version })).status).toBe(201);
+    const live = (await anon().get<BuilderDocument>(`/site/builder/logo-${run}`)).body;
+    expect(live.chrome).toMatchObject({ homeHeader: 'classic', logo });
+    // Only safe presets and site-relative or https images are accepted.
+    for (const bad of [{ size: 'huge' }, { align: 'end' }, { headerUrl: 'javascript:alert(1)' }]) {
+      const res = await owner.put(endpoint, { version: again.version + 1, document: { ...next, chrome: { ...next.chrome, logo: { ...logo, ...bad } } } });
+      expect(res.status, JSON.stringify(bad)).toBe(400);
+    }
   });
 });

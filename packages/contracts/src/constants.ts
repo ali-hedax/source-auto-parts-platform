@@ -97,6 +97,10 @@ export const DEFAULT_BUILDER_FILM = {
   clips: [] as Array<{ id: string; active: boolean; desktop: string; desktopWebm: string; mobile: string; poster: string; mobilePoster: string }>,
   playback: 'once' as 'once' | 'loop' | 'static', logoAt: 9.8 as number | null, logoUrl: '', logoWidth: 28, discovery: true,
 };
+/** Header logos by default: the site logo from site content, large and centred on the home header. */
+export const DEFAULT_BUILDER_LOGO: { headerUrl: string; mobileUrl: string; onLightUrl: string; size: 'md' | 'lg' | 'xl'; align: 'center' | 'start' } = {
+  headerUrl: '', mobileUrl: '', onLightUrl: '', size: 'lg', align: 'center',
+};
 /** Upper bound of one hero video upload (the /api proxy ceiling is 60 MB). Keep in sync with VIDEO_LIMITS. */
 export const BUILDER_VIDEO_MAX_BYTES = 50 * 1024 * 1024;
 
@@ -106,7 +110,7 @@ export function newBuilderBlock(kind: BuilderBlock['kind'], id: string): Builder
   const block: BuilderBlock = { id, kind, visible: true, title: text(), body: text(), imageUrl: '', mobileImageUrl: '', alt: text(), href: '', button: text(), style: {}, items: [], startsAt: null, endsAt: null, interval: 6000, query: { category: '', brand: '', vehicle: '', model: '', productSlugs: [], limit: 8 } };
   // Home-page vehicle finder (group → vehicle → model → year) and the shopping paths with the part
   // categories, which used to sit inside the film block; both are ordinary movable sections.
-  if (kind === 'vehicle-finder') return { ...block, title: { fa: 'قطعهٔ مناسب خودروی خود را پیدا کنید', en: 'Find parts for your vehicle' }, body: { fa: 'گروه خودرو، خودرو، مدل و سال را انتخاب کنید تا قطعات ثبت‌شده برای آن را ببینید.', en: 'Choose the group, vehicle, model and year to see the parts recorded for it.' }, button: { fa: 'نمایش قطعات خودرو', en: 'Show parts for this vehicle' }, href: '/request-part' };
+  if (kind === 'vehicle-finder') return { ...block, title: { fa: 'قطعهٔ مناسب خودروی خود را پیدا کنید', en: 'Find parts for your vehicle' }, body: { fa: 'نام یا شمارهٔ قطعه را بنویسید، خودروی خود را انتخاب کنید، یا هر دو.', en: 'Type a part name or number, choose your vehicle, or both.' }, button: { fa: 'جست‌وجوی قطعه', en: 'Search parts' }, href: '/request-part' };
   if (kind === 'shopping-paths') return { ...block, title: { fa: 'مسیرهای خرید قطعه', en: 'Ways to find your part' } };
   if (kind !== 'cinematic-hero') return block;
   return {

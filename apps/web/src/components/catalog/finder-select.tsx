@@ -17,13 +17,16 @@ export interface FinderOption {
  * One numbered step of the vehicle finder: a button showing the step and its choice, opening a
  * searchable list (WAI-ARIA combobox + listbox). Typing filters with the site's normalization (ی/ي،
  * ک/ك، digits, spaces, half-spaces); arrows move, Enter picks, Escape closes. A step without data is
- * disabled and says why — it never offers made-up options.
+ * disabled and says why — it never offers made-up options. Steps are optional: `clearLabel` adds a
+ * first entry that removes the choice; `onOpen` lets a list load only when it is opened.
  */
 export function FinderSelect({
-  step, label, placeholder, options, value, onChange, disabled = false, active = false, status, searchLabel, noMatch, loading = false, locale,
+  step, label, placeholder, options: given, value, onChange, disabled = false, active = false, status, searchLabel, noMatch, loading = false, locale,
+  clearLabel, onOpen, loadingText,
 }: {
   step: number; label: string; placeholder: string; options: FinderOption[]; value: string; onChange: (value: string) => void;
   disabled?: boolean; active?: boolean; status?: string | null; searchLabel: string; noMatch: string; loading?: boolean; locale: string;
+  clearLabel?: string; onOpen?: () => void; loadingText?: string;
 }) {
   const id = useId();
   const [open, setOpen] = useState(false);
@@ -33,7 +36,8 @@ export function FinderSelect({
   const trigger = useRef<HTMLButtonElement>(null);
   const input = useRef<HTMLInputElement>(null);
   const list = useRef<HTMLUListElement>(null);
-  const selected = options.find((o) => o.value === value) ?? null;
+  const options = useMemo(() => (clearLabel && value ? [{ value: '', label: clearLabel }, ...given] : given), [clearLabel, value, given]);
+  const selected = given.find((o) => o.value === value) ?? null;
   const filtered = useMemo(() => {
     const q = compactSearchText(query);
     if (!q) return options;
@@ -47,12 +51,15 @@ export function FinderSelect({
     document.addEventListener('mousedown', close);
     return () => document.removeEventListener('mousedown', close);
   }, [open]);
-  useEffect(() => {
-    if (!open) return;
+  // The search resets only when the list opens (in the opening event): a list that finishes loading
+  // while the visitor types keeps what they typed.
+  const openList = () => {
+    onOpen?.();
     setQuery('');
     setCursor(Math.max(0, options.findIndex((o) => o.value === value)));
-    requestAnimationFrame(() => input.current?.focus());
-  }, [open, options, value]);
+    setOpen(true);
+  };
+  useEffect(() => { if (open) requestAnimationFrame(() => input.current?.focus()); }, [open]);
   useEffect(() => { list.current?.querySelector(`[data-index="${cursor}"]`)?.scrollIntoView({ block: 'nearest' }); }, [cursor]);
 
   const choose = (o: FinderOption) => { onChange(o.value); setOpen(false); requestAnimationFrame(() => trigger.current?.focus()); };
@@ -69,7 +76,7 @@ export function FinderSelect({
   return <div ref={root} className="vf-step" data-active={active && !disabled} data-filled={Boolean(selected)} data-disabled={disabled}>
     <button ref={trigger} type="button" className="vf-field" disabled={disabled} aria-haspopup="listbox" aria-expanded={open}
       aria-controls={open ? `${id}-list` : undefined} aria-describedby={status ? `${id}-status` : undefined}
-      onClick={() => setOpen((o) => !o)} onKeyDown={(e) => { if (e.key === 'ArrowDown' && !open) { e.preventDefault(); setOpen(true); } }}>
+      onClick={() => (open ? setOpen(false) : openList())} onKeyDown={(e) => { if (e.key === 'ArrowDown' && !open) { e.preventDefault(); openList(); } }}>
       <span className="vf-number" aria-hidden>{selected ? <Check size={16} strokeWidth={3} /> : digits(step)}</span>
       <span className="vf-text">
         <span className="vf-label">{label}</span>
@@ -85,9 +92,9 @@ export function FinderSelect({
       <ul ref={list} id={`${id}-list`} role="listbox" aria-label={label} className="vf-list">
         {filtered.map((o, i) => <li key={o.value} id={`${id}-o${i}`} role="option" aria-selected={o.value === value} data-index={i} data-cursor={i === cursor}
           onMouseDown={(e) => e.preventDefault()} onMouseEnter={() => setCursor(i)} onClick={() => choose(o)} className="vf-option">
-          <span>{o.label}</span>{o.hint ? <small>{o.hint}</small> : null}
+          <span className={o.value === '' ? 'vf-option-clear' : undefined}>{o.label}</span>{o.hint ? <small>{o.hint}</small> : null}
         </li>)}
-        {!filtered.length ? <li role="presentation" className="vf-empty">{noMatch}</li> : null}
+        {!filtered.length ? <li role="presentation" className="vf-empty">{loading && loadingText ? loadingText : noMatch}</li> : null}
       </ul>
     </div> : null}
     {status ? <p id={`${id}-status`} className="vf-status" role="status">{status}</p> : null}

@@ -16,12 +16,14 @@ import { TitaniumHome } from '@/components/store/titanium-home';
 import '@/components/store/titanium.css';
 import { PreviewFrame } from './preview-frame';
 import { SiteHeaderView } from '@/components/layout/site-header-view';
+import { HomeHeaderView } from '@/components/layout/home-header-view';
+import { DEFAULT_BUILDER_LOGO } from '@hedax/contracts/constants';
 import { SiteFooterView } from '@/components/layout/site-footer-view';
 import { loadBuilderData, type BuilderData } from './data';
 import { BlockSettings, ThemeSettings, type Device } from './settings';
 import { MediaLibrary } from './media-library';
 import { blockLabels } from './labels';
-import { LocalizedField, LinkField } from '@/components/admin/content/kit';
+import { ImageField, LocalizedField, LinkField } from '@/components/admin/content/kit';
 
 const tabs = ['صفحه‌ساز بصری', 'مدیریت صفحه اصلی', 'تصاویر و رسانه‌ها', 'بنرها و اسلایدرها', 'سکشن‌ها و باکس‌ها', 'قالب‌ها و استایل‌ها', 'هدر و فوتر', 'موبایل و دسکتاپ', 'مدیریت صفحات', 'پیش‌نمایش و انتشار', 'تاریخچه و بازیابی'];
 function Layer({ block, selected, select, duplicate, remove, toggle, move, index, total }: { block: BuilderBlock; selected: boolean; select: () => void; duplicate: () => void; remove: () => void; toggle: () => void; move: (offset: number) => void; index: number; total: number }) {
@@ -125,7 +127,13 @@ export function VisualBuilder({ slug = 'home', fullPreview = false, logos = NO_L
   if (!doc || !data) return <p role="status">{status}</p>;
   const block = doc.sections.find(b => b.id === selected);
   const canPublish = me?.kind === 'STAFF' && (me.isOwner || me.permissions.includes('content.publish'));
-  const header = <SiteHeaderView content={data.content} chrome={doc.chrome} currency="IRR" />;
+  // The home page previews its own header (minimal centred logo) unless Appearance chooses the classic bar
+  // or the page has no part search (then the classic bar keeps the search box, as on the site).
+  const header = slug === 'home' && doc.chrome.homeHeader !== 'classic' && doc.sections.some(b => b.kind === 'vehicle-finder' && b.visible)
+    ? <HomeHeaderView content={data.content} chrome={doc.chrome} currency="IRR" searchHref="#part-search" />
+    : <SiteHeaderView content={data.content} chrome={doc.chrome} currency="IRR" />;
+  const logo = doc.chrome.logo ?? DEFAULT_BUILDER_LOGO;
+  const setLogo = (patch: Partial<typeof logo>) => change({ ...doc, chrome: { ...doc.chrome, logo: { ...logo, ...patch } } });
   const footer = <SiteFooterView content={data.content} chrome={doc.chrome} now={data.now} />;
   if (fullPreview) return <><p className="mb-4 rounded-xl bg-blue-50 p-4">پیش‌نمایش خصوصی — این پیش‌نویس برای بازدیدکنندگان نمایش داده نمی‌شود.</p><div className="store titanium-store">{header}<main>{slug === 'home' ? <TitaniumHome document={doc} data={data} locale={locale} /> : <BuilderView document={doc} data={data} locale={locale} />}</main>{footer}</div></>;
   return <div className="builder-editor" dir="rtl">
@@ -145,8 +153,17 @@ export function VisualBuilder({ slug = 'home', fullPreview = false, logos = NO_L
     {tab === 2 ? <MediaLibrary canPublish={canPublish} {...(mediaTarget ? { onSelect: chooseMedia, kind: mediaTarget.kind ?? 'image' } : {})} /> : tab === 5 ? <ThemeSettings document={doc} change={change} /> : tab === 6 ? <div className="builder-panel !static !max-h-none">
       <h2 className="text-xl font-bold">هدر و فوتر</h2><p className="my-3 text-sm">لوگو، اطلاعات تماس، شبکه‌های اجتماعی و متن فوتر در تنظیمات محتوای فعلی قابل ویرایش‌اند.</p>
       <div className="flex flex-wrap gap-4"><Link className="text-action underline" href="/admin/content/general">لوگو و هویت برند</Link><Link className="text-action underline" href="/admin/content/contact">اطلاعات تماس</Link><Link className="text-action underline" href="/admin/content/social">شبکه‌های اجتماعی</Link><Link className="text-action underline" href="/admin/content/announcement">نوار اطلاع‌رسانی</Link></div>
+      <h3 className="mt-6 font-bold">لوگوی سورس در هدر</h3>
+      <p className="text-xs">خالی = لوگوی سایت از «لوگو و هویت برند». تغییرها در پیش‌نویس می‌مانند تا با «پیش‌نمایش کامل» دیده و سپس منتشر شوند.</p>
+      <label>هدر صفحهٔ اصلی<select value={doc.chrome.homeHeader ?? 'minimal'} onChange={e => change({ ...doc, chrome: { ...doc.chrome, homeHeader: e.target.value as 'minimal' | 'classic' } })}><option value="minimal">مینیمال با لوگوی بزرگ (جست‌وجو در بخش «انتخاب خودرو»؛ بدون آن بخش، هدر کلاسیک می‌ماند)</option><option value="classic">کلاسیک با نوار جست‌وجو</option></select></label>
+      <ImageField id="chrome-logo-header" purpose="logo" dark label="لوگوی هدر (روی زمینهٔ تیره)" value={logo.headerUrl} onChange={headerUrl => setLogo({ headerUrl })} hint="PNG یا SVG با زمینهٔ شفاف؛ نسبت افقی حدود ۳ به ۱ بهترین نتیجه را دارد." />
+      <ImageField id="chrome-logo-mobile" purpose="logo" dark label="لوگوی موبایل (خالی = همان لوگوی هدر)" value={logo.mobileUrl} onChange={mobileUrl => setLogo({ mobileUrl })} />
+      <ImageField id="chrome-logo-light" purpose="logo" label="لوگو برای زمینهٔ روشن" value={logo.onLightUrl} onChange={onLightUrl => setLogo({ onLightUrl })} hint="نسخهٔ تیرهٔ لوگو. فعلاً هدر و فوتر سایت تیره‌اند و این نسخه فقط ذخیره می‌شود تا در زمینه‌های روشن بعدی استفاده شود." />
+      <label>اندازهٔ لوگو<select value={logo.size} onChange={e => setLogo({ size: e.target.value as typeof logo.size })}><option value="md">متوسط</option><option value="lg">بزرگ</option><option value="xl">خیلی بزرگ</option></select></label>
+      <label>تراز لوگو<select value={logo.align} onChange={e => setLogo({ align: e.target.value as typeof logo.align })}><option value="center">وسط</option><option value="start">ابتدای هدر</option></select></label>
+      <p className="text-xs">در موبایل اندازهٔ لوگو خودکار محدود می‌شود تا منو، سبد خرید و جست‌وجو جا داشته باشند.</p>
       {(['headerBackground', 'footerBackground'] as const).map(key => <label key={key}>{key === 'headerBackground' ? 'رنگ هدر' : 'رنگ فوتر'}<input type="color" value={doc.chrome[key]} onChange={e => change({ ...doc, chrome: { ...doc.chrome, [key]: e.target.value } })} /></label>)}
-      <label>عرض لوگو<input type="number" min="70" max="280" value={doc.chrome.logoWidth} onChange={e => change({ ...doc, chrome: { ...doc.chrome, logoWidth: Math.max(70, Math.min(280, Number(e.target.value))) } })} /></label>
+      <label>عرض لوگو در هدر کلاسیک و صفحه‌های دیگر<input type="number" min="70" max="280" value={doc.chrome.logoWidth} onChange={e => change({ ...doc, chrome: { ...doc.chrome, logoWidth: Math.max(70, Math.min(280, Number(e.target.value))) } })} /></label>
       <label>جایگاه لوگو<select value={doc.chrome.logoPosition} onChange={e => change({ ...doc, chrome: { ...doc.chrome, logoPosition: e.target.value as 'start' | 'end' } })}><option value="start">ابتدای هدر</option><option value="end">انتهای هدر</option></select></label>
       <label>ستون‌های فوتر<input type="number" min="1" max="4" value={doc.chrome.footerColumns} onChange={e => change({ ...doc, chrome: { ...doc.chrome, footerColumns: Math.max(1, Math.min(4, Number(e.target.value))) } })} /></label>
       <label><input type="checkbox" checked={doc.chrome.searchRounded} onChange={e => change({ ...doc, chrome: { ...doc.chrome, searchRounded: e.target.checked } })} />جستجوی گوشه‌گرد</label>

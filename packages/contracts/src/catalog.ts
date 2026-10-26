@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { type Currency, type LocalizedText, type MoneyDto, amountMinorSchema, currencySchema, idSchema, skuSchema, slugSchema } from './common.js';
-import { type FitmentView, type VehicleSelectionView, productVehicleSchema } from './vehicles.js';
+import { type FinderMatch, type FinderMatchTier, type FitmentView, type VehicleSelectionView, productVehicleSchema } from './vehicles.js';
 
 export const PART_TYPE_VALUES = ['GENUINE', 'OEM', 'AFTERMARKET'] as const;
 export const CONDITION_VALUES = ['NEW', 'USED', 'REFURBISHED'] as const;
@@ -133,10 +133,10 @@ export interface ProductCard {
   unit: UnitRef;
   price: PriceView;
   /**
-   * Only on a search with a model year: the part is linked to the vehicle/model, but its link has no
-   * year range for that year's calendar, so the year is not confirmed — the card says so.
+   * Only on a vehicle-finder search: how the part relates to the chosen vehicle. «verified» comes from a
+   * recorded fitment link; every other tier is a suggestion and the card says so (never "fits").
    */
-  fitmentYearUnconfirmed?: boolean;
+  finderMatch?: FinderMatch;
 }
 
 export interface ProductDetail extends ProductCard {
@@ -192,6 +192,8 @@ export interface SearchResult {
   query: string | null;
   /** The validated vehicle-finder selection, when the search came from it. */
   selection?: VehicleSelectionView;
+  /** Vehicle-finder search: how many results each tier has (results are ordered by tier). */
+  tiers?: Record<FinderMatchTier, number>;
 }
 
 // ---------------------------------------------------------------------------

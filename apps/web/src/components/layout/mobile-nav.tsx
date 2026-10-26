@@ -4,13 +4,14 @@ import * as RDialog from '@radix-ui/react-dialog';
 import Image from 'next/image';
 import { Menu, X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { Suspense, useState } from 'react';
+import { Suspense, useState, type ReactNode } from 'react';
 import type { Currency } from '@hedax/contracts';
 import { CurrencySwitcher, LocaleSwitcher } from './switchers';
 import { Link, usePathname } from '@/i18n/navigation';
 
-/** Drawer navigation for small screens (focus trapped, Escape closes, focus returns). */
-export function MobileNav({ items, currency = 'IRR' }: { items: Array<{ href: string; label: string }>; currency?: Currency }) {
+/** Drawer navigation (focus trapped, Escape closes, focus returns): small screens, or every size on the
+ *  minimal home header (`alwaysVisible`), where `extra` (e.g. the currency choice) sits under the links. */
+export function MobileNav({ items, alwaysVisible = false, extra, currency = 'IRR' }: { items: Array<{ href: string; label: string }>; alwaysVisible?: boolean; extra?: ReactNode; currency?: Currency }) {
   const t = useTranslations('common');
   const tn = useTranslations('nav');
   const locale = useLocale();
@@ -20,7 +21,7 @@ export function MobileNav({ items, currency = 'IRR' }: { items: Array<{ href: st
   const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(`${href}/`));
   return (
     <RDialog.Root open={open} onOpenChange={setOpen}>
-      <RDialog.Trigger className="-ms-2 grid size-11 cursor-pointer place-items-center rounded-[var(--radius-control)] transition-colors hover:bg-white/10 md:hidden" aria-label={t('openMenu')}>
+      <RDialog.Trigger className={`-ms-2 grid size-11 cursor-pointer place-items-center rounded-[var(--radius-control)] transition-colors hover:bg-white/10 ${alwaysVisible ? '' : 'md:hidden'}`} aria-label={t('openMenu')}>
         <Menu aria-hidden className="size-6" />
       </RDialog.Trigger>
       <RDialog.Portal>
@@ -58,7 +59,7 @@ export function MobileNav({ items, currency = 'IRR' }: { items: Array<{ href: st
               })}
             </ul>
           </nav>
-          <div className="flex items-center gap-4 px-4 py-5"><Suspense fallback={null}><LocaleSwitcher /></Suspense><CurrencySwitcher initial={currency} /></div>
+          <div className="flex items-center gap-4 px-4 py-5">{extra || <><Suspense fallback={null}><LocaleSwitcher /></Suspense><CurrencySwitcher initial={currency} /></>}</div>
         </RDialog.Content>
       </RDialog.Portal>
     </RDialog.Root>
