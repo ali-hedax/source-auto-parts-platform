@@ -12,6 +12,13 @@
 
 ## نقطهٔ فعلی
 
+### Implemented Pending Verification — owner-authorized publication — 2026-10-26, Asia/Tehran
+
+- Owner explicitly approved commit/push and Production publication of the reviewed design, followed by consolidating Content/Appearance administration. First design commit `5bcfe04`; reconciled latest committed finder `fc819d2` in merge `3d06255`, preserving flexible ranked search/contracts and the new home route group while retaining the actually approved titanium header/layout. Separate checkouts untouched.
+- Shared production host recovered enough for read-only checks: all current containers running/healthy, public pages200 and readiness200. Latest historical CPU-starvation incident and 87% disk usage mean no heavy build is launched on the live host. Added short-lived GitHub artifact workflow to build immutable images off-host, with checksums/revision labels; no secrets, registry grants, network exposure or automatic deployment.
+- Web typecheck passed after rebuilding local contracts. Existing Production remains unchanged while candidate CI/build/backup/migration/rollout checks are prepared. New additive finder schema and verified metadata require explicit review as part of rollout; preserve original CMS documents/media and inventory.
+- Next: push branch/create review PR; validate candidate and resource budget, backup/rollback before any rollout. Then complete unified administration and verify only effective controls for the titanium composition.
+
 ### Completed & Tested — headline motion and contact refinement — 2026-10-26, Asia/Tehran
 
 - Owner retained the overall design and requested complete film framing, more expressive Persian slogan motion, an orderly contact area, then slow typewriter English beneath it. Opening strip now uses contain for video AND still (no picture cropping), modest desktop height288px at1440 and mobile170px; black pillar space preserves the entire frame. Existing movie sources and playback policy unchanged.

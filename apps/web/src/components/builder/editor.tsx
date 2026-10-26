@@ -16,7 +16,6 @@ import { TitaniumHome } from '@/components/store/titanium-home';
 import '@/components/store/titanium.css';
 import { PreviewFrame } from './preview-frame';
 import { SiteHeaderView } from '@/components/layout/site-header-view';
-import { HomeHeaderView } from '@/components/layout/home-header-view';
 import { DEFAULT_BUILDER_LOGO } from '@hedax/contracts/constants';
 import { SiteFooterView } from '@/components/layout/site-footer-view';
 import { loadBuilderData, type BuilderData } from './data';
@@ -127,11 +126,8 @@ export function VisualBuilder({ slug = 'home', fullPreview = false, logos = NO_L
   if (!doc || !data) return <p role="status">{status}</p>;
   const block = doc.sections.find(b => b.id === selected);
   const canPublish = me?.kind === 'STAFF' && (me.isOwner || me.permissions.includes('content.publish'));
-  // The home page previews its own header (minimal centred logo) unless Appearance chooses the classic bar
-  // or the page has no part search (then the classic bar keeps the search box, as on the site).
-  const header = slug === 'home' && doc.chrome.homeHeader !== 'classic' && doc.sections.some(b => b.kind === 'vehicle-finder' && b.visible)
-    ? <HomeHeaderView content={data.content} chrome={doc.chrome} currency="IRR" searchHref="#part-search" />
-    : <SiteHeaderView content={data.content} chrome={doc.chrome} currency="IRR" />;
+  // Private preview uses the exact header approved for the public titanium storefront.
+  const header = <SiteHeaderView content={data.content} chrome={doc.chrome} currency="IRR" />;
   const logo = doc.chrome.logo ?? DEFAULT_BUILDER_LOGO;
   const setLogo = (patch: Partial<typeof logo>) => change({ ...doc, chrome: { ...doc.chrome, logo: { ...logo, ...patch } } });
   const footer = <SiteFooterView content={data.content} chrome={doc.chrome} now={data.now} />;
