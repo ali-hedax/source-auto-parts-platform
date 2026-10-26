@@ -105,7 +105,7 @@ export function ContentFrame({ title, description, children }: { title: string; 
     <div className="flex flex-col gap-6 pb-4">
       <div>
         <ButtonLink href="/admin/content" variant="ghost" size="sm" className="-ms-2 mb-1">
-          <ArrowRight aria-hidden className={`size-4 ${locale === 'fa' ? '' : 'rotate-180'}`} /> {l('محتوای سایت', 'Site content')}
+          <ArrowRight aria-hidden className={`size-4 ${locale === 'fa' ? '' : 'rotate-180'}`} /> {l('مدیریت سایت', 'Website management')}
         </ButtonLink>
         <PageHeader title={title} {...(description ? { description } : {})} />
       </div>

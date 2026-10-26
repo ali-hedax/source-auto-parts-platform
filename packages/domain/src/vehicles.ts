@@ -132,3 +132,15 @@ export function fitmentLabels(fitments: readonly FitmentNames[], locale: 'fa' | 
   }
   return out;
 }
+
+/**
+ * Calendar of a four-digit model year as entered on fitment links. The two ranges cannot overlap:
+ * 1300–1499 are Persian (jalali) years, 1900–2100 Gregorian. Nothing is converted; any other value
+ * has no known calendar.
+ */
+export function yearCalendarOf(year: number | null | undefined): 'jalali' | 'gregorian' | null {
+  if (year === null || year === undefined || !Number.isInteger(year)) return null;
+  if (year >= 1300 && year <= 1499) return 'jalali';
+  if (year >= 1900 && year <= 2100) return 'gregorian';
+  return null;
+}

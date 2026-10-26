@@ -15,6 +15,7 @@ import { Prisma, PrismaService } from '../../common/prisma.service.js';
 import { InventoryService } from '../inventory/inventory.service.js';
 import { type CurrentRate, PricingService } from '../pricing/pricing.service.js';
 import { fromSteps, unitRef } from './units.service.js';
+import { VehicleFinderService } from './vehicle-finder.service.js';
 
 /** Largest amount (in the unit) one cart line may hold. */
 export const MAX_LINE_AMOUNT = 999;
@@ -52,6 +53,7 @@ export class CatalogService {
     private readonly inventory: InventoryService,
     private readonly pricing: PricingService,
     @Inject(ENV) private readonly env: Env,
+    private readonly finder: VehicleFinderService,
   ) {}
 
   /** Builder collections use the same publication checks, stock and viewer-specific prices. */
@@ -178,6 +180,8 @@ export class CatalogService {
     const warehouseId = await this.inventory.defaultWarehouseId();
     const rate = await this.pricing.currentRate();
     const conditions: Prisma.Sql[] = [Prisma.sql`p."published" = TRUE`, Prisma.sql`p."archived_at" IS NULL`];
+    // A vehicle-finder selection (group → vehicle → model → year) is checked first: an invalid one is a 400.
+    const selection = await this.finder.resolve(query);
 
     const normalized = query.q ? normalizeSearchText(query.q) : '';
     const tokens = query.q ? searchTokens(query.q) : [];
@@ -215,7 +219,11 @@ export class CatalogService {
       conditions.push(Prisma.sql`EXISTS (SELECT 1 FROM "product_vehicle_brand" pvb JOIN "vehicle_brand" vb ON vb."id" = pvb."vehicle_brand_id"
         WHERE pvb."product_id" = p."id" AND vb."slug" = ${query.brand})`);
     }
-    if (query.vehicle) {
+    // Finder results are ranked (verified → relevant → related → text), not cut to the exact links.
+    const match = selection ? this.finder.matchCode(selection, !!normalized) : null;
+    if (match) {
+      conditions.push(Prisma.sql`${match} IS NOT NULL`);
+    } else if (query.vehicle) {
       // A vehicle includes its models; a model also includes parts for the whole vehicle.
       const modelFilter = query.model
         ? Prisma.sql`AND EXISTS (SELECT 1 FROM "vehicle_model" vm WHERE vm."vehicle_id" = v."id" AND vm."slug" = ${query.model} AND vm."active"
@@ -250,7 +258,7 @@ export class CatalogService {
     const score = normalized
       ? Prisma.sql`GREATEST(similarity(p."search_text", ${normalized}), similarity(p."search_compact", ${compact}))`
       : Prisma.sql`0`;
-    const orderBy =
+    const sorted =
       query.sort === 'price_asc'
         ? Prisma.sql`${priceExpr} ASC NULLS LAST, p."id"`
         : query.sort === 'price_desc'
@@ -262,6 +270,7 @@ export class CatalogService {
               : normalized
                 ? Prisma.sql`${exact} DESC, ${inStock} DESC, ${score} DESC, p."id"`
                 : Prisma.sql`${inStock} DESC, p."published_at" DESC NULLS LAST, p."id"`;
+    const orderBy = match ? Prisma.sql`${match} ASC, ${sorted}` : sorted;
 
     const from = Prisma.sql`FROM "product" p
       JOIN "category" c ON c."id" = p."category_id"
@@ -270,12 +279,16 @@ export class CatalogService {
     const offset = (query.page - 1) * query.pageSize;
     const run = (search: Prisma.Sql | null) => {
       const where = Prisma.join([...conditions, ...(search ? [search] : [])].map((c) => Prisma.sql`(${c})`), ' AND ');
+      const code = match ?? Prisma.sql`NULL::text`;
       return Promise.all([
-        this.prisma.$queryRaw<Array<{ id: string }>>`SELECT p."id" ${from} WHERE ${where} ORDER BY ${orderBy} LIMIT ${query.pageSize} OFFSET ${offset}`,
+        this.prisma.$queryRaw<Array<{ id: string; code: string | null }>>`SELECT p."id", ${code} AS "code" ${from} WHERE ${where} ORDER BY ${orderBy} LIMIT ${query.pageSize} OFFSET ${offset}`,
         this.prisma.$queryRaw<Array<{ total: bigint }>>`SELECT COUNT(*)::bigint AS total ${from} WHERE ${where}`,
+        match
+          ? this.prisma.$queryRaw<Array<{ rank: string; n: bigint }>>`SELECT left(t."code", 1) AS "rank", COUNT(*)::bigint AS "n" FROM (SELECT ${match} AS "code" ${from} WHERE ${where}) t GROUP BY 1`
+          : Promise.resolve([] as Array<{ rank: string; n: bigint }>),
       ]);
     };
-    let [idRows, countRows] = await run(strict);
+    let [idRows, countRows, tierRows] = await run(strict);
     if (fuzzy && query.page === 1 && Number(countRows[0]?.total ?? 0n) === 0) {
       // Near misses: one page, no separate count, and at most 1.5 s — on a large catalog a short or
       // common query reads many rows; when it runs out of time the page offers a sourcing request.
@@ -284,22 +297,39 @@ export class CatalogService {
         .$transaction(async (tx) => {
           await tx.$executeRaw`SET LOCAL statement_timeout = 1500`;
           const where = Prisma.join([...conditions, near].map((c) => Prisma.sql`(${c})`), ' AND ');
-          return tx.$queryRaw<Array<{ id: string }>>`SELECT p."id" ${from} WHERE ${where} ORDER BY ${orderBy} LIMIT ${query.pageSize}`;
+          return tx.$queryRaw<Array<{ id: string; code: string | null }>>`SELECT p."id", ${match ?? Prisma.sql`NULL::text`} AS "code" ${from} WHERE ${where} ORDER BY ${orderBy} LIMIT ${query.pageSize}`;
         })
         .catch(() => []);
       countRows = [{ total: BigInt(idRows.length) }];
+      tierRows = [];
+      for (const r of idRows) {
+        const rank = r.code?.[0];
+        if (!rank) continue;
+        const row = tierRows.find((t) => t.rank === rank);
+        if (row) row.n += 1n; else tierRows.push({ rank, n: 1n });
+      }
     }
     const ids = idRows.map((r) => r.id);
     const products = ids.length
       ? await this.prisma.product.findMany({ where: { id: { in: ids } }, include: productInclude(warehouseId) })
       : [];
     const byId = new Map(products.map((p) => [p.id, p]));
+    const codes = new Map(idRows.map((r) => [r.id, r.code]));
+    const tiers = match
+      ? { verified: 0, relevant: 0, related: 0, text: 0, ...Object.fromEntries(tierRows.map((t) => [this.finder.parseMatch(`${t.rank}:`)?.tier ?? 'text', Number(t.n)])) }
+      : null;
     return {
-      items: ids.map((id) => byId.get(id)).filter((p): p is HydratedProduct => !!p).map((p) => this.toCard(p, viewer, rate)),
+      items: ids.map((id) => byId.get(id)).filter((p): p is HydratedProduct => !!p).map((p) => {
+        const card = this.toCard(p, viewer, rate);
+        const finderMatch = match ? this.finder.parseMatch(codes.get(p.id) ?? null) : null;
+        return finderMatch ? { ...card, finderMatch } : card;
+      }),
       total: Number(countRows[0]?.total ?? 0n),
       page: query.page,
       pageSize: query.pageSize,
       query: normalized || null,
+      ...(selection ? { selection: selection.view } : {}),
+      ...(tiers ? { tiers } : {}),
     };
   }
 

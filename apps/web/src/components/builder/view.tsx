@@ -9,6 +9,8 @@ import { BannerSlider } from './slider';
 import { VehicleFinder } from './vehicle-finder';
 import { CinematicHero } from './cinematic-hero';
 import { CinematicBanner } from './cinematic-banner';
+import { ShoppingPaths } from './shopping-paths';
+import { VehicleFinderSection } from './vehicle-finder-section';
 import type { BuilderData } from './data';
 import { blockVariables, themeVariables } from './styles';
 import './builder.css';
@@ -20,12 +22,15 @@ function Picture({ block, locale }: { block: Pick<BuilderBlock, 'imageUrl' | 'mo
     <img src={block.imageUrl} alt={localize(block.alt, locale)} loading="lazy" className="builder-image" />
   </picture>;
 }
-export function BuilderBlockView({ block: b, data, locale }: { block: BuilderBlock; data: BuilderData; locale: string }) {
+export function BuilderBlockView({ block: b, data, locale, hasShoppingPaths = false }: { block: BuilderBlock; data: BuilderData; locale: string; hasShoppingPaths?: boolean }) {
   const L = (v: Parameters<typeof localize>[0]) => localize(v, locale);
   if (b.kind === 'legacy' && b.legacy && data.content) return <LegacyHomeView {...data} locale={locale} mobileImageUrl={b.mobileImageUrl} imageAlt={L(b.alt)} content={{ ...data.content, home: { sections: [{ ...b.legacy, id: b.id, visible: true }] } }} />;
+  // The shopping paths sit under the film only while the page has no «مسیرهای خرید» section of its own.
   if (b.kind === 'cinematic-hero') return b.style.template === 'compact'
     ? <CinematicBanner block={b} locale={locale} />
-    : <CinematicHero block={b} content={data.content} categories={data.categories} locale={locale} />;
+    : <CinematicHero block={b} content={data.content} categories={data.categories} locale={locale} discovery={!hasShoppingPaths} />;
+  if (b.kind === 'vehicle-finder') return <VehicleFinderSection block={b} groups={data.finderGroups ?? []} locale={locale} />;
+  if (b.kind === 'shopping-paths') return <div className="cine-discover-host"><ShoppingPaths categories={data.categories} locale={locale} title={L(b.title)} /></div>;
   if (b.kind === 'makers') return <MakersHomeSection makers={data.makers} title={localize(b.title, locale)} />;
   const title = L(b.title);
   const heading = title ? <h2 className="builder-heading">{title}</h2> : null;
@@ -50,11 +55,13 @@ export function BuilderBlockView({ block: b, data, locale }: { block: BuilderBlo
 export function BuilderView({ document, data, locale, editing = false, selectedId, onSelect, now = data.now }: {
   document: BuilderDocument; data: BuilderData; locale: string; editing?: boolean; selectedId?: string; onSelect?: (id: string) => void; now?: number;
 }) {
+  const shown = document.sections.filter(b => editing || (b.visible && (!b.startsAt || Date.parse(b.startsAt) <= now) && (!b.endsAt || Date.parse(b.endsAt) > now)));
+  const hasShoppingPaths = shown.some(b => b.kind === 'shopping-paths' && b.visible);
   return <div className="builder-root autodoc-inspired-home" style={themeVariables(document.theme)} dir={locale === 'fa' ? 'rtl' : 'ltr'}>
-    {document.sections.filter(b => editing || (b.visible && (!b.startsAt || Date.parse(b.startsAt) <= now) && (!b.endsAt || Date.parse(b.endsAt) > now))).map(b =>
+    {shown.map(b =>
       <div key={b.id} data-builder-kind={b.kind} data-builder-id={b.id} data-custom-background={Boolean(b.style.background)} data-template={b.style.template ?? 'classic'} data-selected={editing && selectedId === b.id} className={`builder-block ${editing ? 'builder-editable' : ''} ${!b.visible ? 'builder-muted' : ''}`} style={blockVariables(b.style)}
         {...(onSelect ? { onClickCapture: (e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); onSelect(b.id); }, tabIndex: 0, role: 'button', 'aria-label': LTitle(b, locale), onKeyDown: (e: React.KeyboardEvent) => { if (e.key === 'Enter') onSelect(b.id); } } : {})}>
-        <div className="builder-block-inner"><BuilderBlockView block={b} data={data} locale={locale} /></div>
+        <div className="builder-block-inner"><BuilderBlockView block={b} data={data} locale={locale} hasShoppingPaths={hasShoppingPaths} /></div>
       </div>)}
   </div>;
 }

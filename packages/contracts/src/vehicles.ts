@@ -127,3 +127,69 @@ export interface FitmentView {
   yearTo?: number | null;
   note?: string | null;
 }
+
+// ---------------------------------------------------------------------------
+// Home-page vehicle finder: group → vehicle → model/trim → year, loaded one step at a time.
+// ---------------------------------------------------------------------------
+
+export const YEAR_CALENDARS = ['jalali', 'gregorian'] as const;
+/** Years are kept in the calendar their source uses; Persian and Gregorian years are never converted. */
+export type YearCalendar = (typeof YEAR_CALENDARS)[number];
+export type VehicleSupply = 'domestic' | 'assembled' | 'imported';
+
+/** Step 1: a group (ایران‌خودرو، سایپا، تویوتا، هیوندای). vehicleCount = vehicles listed under it. */
+export interface FinderGroupView {
+  slug: string;
+  name: LocalizedText;
+  logoUrl: string | null;
+  vehicleCount: number;
+}
+
+/** Step 2: a vehicle (family) of the group. `make` is its original brand (پژو، رنو …) when different. */
+export interface FinderVehicleView {
+  slug: string;
+  name: LocalizedText;
+  make: LocalizedText | null;
+  aliases: string[];
+  modelCount: number;
+  /** Slugs of the groups it is listed under (a vehicle chosen first fills in its group). */
+  groups: string[];
+}
+
+/** Step 3: a model/trim. `years` only when a cited source gives them (otherwise the year step says so). */
+export interface FinderModelView {
+  slug: string;
+  name: LocalizedText;
+  aliases: string[];
+  supply: VehicleSupply | null;
+  supplier: LocalizedText | null;
+  years: { from: number; to: number; calendar: YearCalendar } | null;
+}
+
+/** The validated selection echoed with search results (names for the page heading and a sourcing link). */
+export interface VehicleSelectionView {
+  group: { slug: string; name: LocalizedText } | null;
+  /** Null when only a group was chosen (every step of the finder is optional). */
+  vehicle: { slug: string; name: LocalizedText } | null;
+  model: { slug: string; name: LocalizedText } | null;
+  year: number | null;
+  calendar: YearCalendar | null;
+}
+
+/**
+ * Ranking of a vehicle-finder result. verified: a recorded fitment link for the selection (and the
+ * year, when one is chosen). relevant: linked to the vehicle, but the year or the exact model is not
+ * confirmed. related: a suggestion only (another model/year of the vehicle, the same group, or the
+ * vehicle named in the part). text: matches the typed search only, no fitment information.
+ */
+export const FINDER_MATCH_TIERS = ['verified', 'relevant', 'related', 'text'] as const;
+export type FinderMatchTier = (typeof FINDER_MATCH_TIERS)[number];
+export type FinderMatchReason =
+  | 'MODEL' | 'VEHICLE' | 'GROUP'
+  | 'YEAR_UNCONFIRMED' | 'SOME_MODEL'
+  | 'OTHER_MODEL' | 'OTHER_YEARS' | 'GROUP_TAG' | 'NAME_MATCH'
+  | 'TEXT';
+export interface FinderMatch {
+  tier: FinderMatchTier;
+  reason: FinderMatchReason;
+}

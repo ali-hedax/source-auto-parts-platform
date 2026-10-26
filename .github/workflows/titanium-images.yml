@@ -1,0 +1,43 @@
+name: Titanium release images
+
+on:
+  push:
+    branches: ['codex/titanium-layout']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: titanium-images-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  images:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          persist-credentials: false
+      - name: Build immutable release images away from the live host
+        env:
+          REVISION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          for target in web; do
+            docker build --target "$target" --label "org.opencontainers.image.revision=$REVISION" \
+              --build-arg PUBLIC_BASE_URL=https://sourcebyhedax.ir \
+              --build-arg API_INTERNAL_URL=http://api:4000/api/v1 \
+              --build-arg NEXT_PUBLIC_WS_URL=same-origin \
+              -t "hedax-titanium-$target:$REVISION" -f infra/docker/Dockerfile .
+          done
+          mkdir release-images
+          docker save "hedax-titanium-web:$REVISION" | gzip -1 > release-images/images.tar.gz
+          printf '%s\n' "$REVISION" > release-images/revision.txt
+          cd release-images && sha256sum images.tar.gz > SHA256SUMS
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: titanium-images-${{ github.sha }}
+          path: release-images/
+          retention-days: 3
+          compression-level: 0

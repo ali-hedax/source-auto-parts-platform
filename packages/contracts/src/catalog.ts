@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { type Currency, type LocalizedText, type MoneyDto, amountMinorSchema, currencySchema, idSchema, skuSchema, slugSchema } from './common.js';
-import { type FitmentView, productVehicleSchema } from './vehicles.js';
+import { type FinderMatch, type FinderMatchTier, type FitmentView, type VehicleSelectionView, productVehicleSchema } from './vehicles.js';
 
 export const PART_TYPE_VALUES = ['GENUINE', 'OEM', 'AFTERMARKET'] as const;
 export const CONDITION_VALUES = ['NEW', 'USED', 'REFURBISHED'] as const;
@@ -22,6 +22,10 @@ export const productListQuerySchema = z.object({
   vehicle: z.string().max(80).optional(),
   /** With `vehicle`: one model's slug; parts for that model plus parts for the whole vehicle. */
   model: z.string().max(80).optional(),
+  /** Vehicle finder: the group the vehicle is listed under; the server checks group → vehicle → model → year. */
+  group: z.string().max(64).optional(),
+  /** Vehicle finder: model year, in the model's own calendar (requires `model`). */
+  year: z.coerce.number().int().min(1300).max(2100).optional(),
   category: z.string().max(64).optional(),
   /** Manufacturer (part brand) slug. */
   maker: z.string().max(80).optional(),
@@ -128,6 +132,11 @@ export interface ProductCard {
   /** The price is per this unit («… تومان / دست»). */
   unit: UnitRef;
   price: PriceView;
+  /**
+   * Only on a vehicle-finder search: how the part relates to the chosen vehicle. «verified» comes from a
+   * recorded fitment link; every other tier is a suggestion and the card says so (never "fits").
+   */
+  finderMatch?: FinderMatch;
 }
 
 export interface ProductDetail extends ProductCard {
@@ -181,6 +190,10 @@ export interface SearchResult {
   pageSize: number;
   /** Echo of the normalized query, used to prefill a sourcing request when nothing matches. */
   query: string | null;
+  /** The validated vehicle-finder selection, when the search came from it. */
+  selection?: VehicleSelectionView;
+  /** Vehicle-finder search: how many results each tier has (results are ordered by tier). */
+  tiers?: Record<FinderMatchTier, number>;
 }
 
 // ---------------------------------------------------------------------------

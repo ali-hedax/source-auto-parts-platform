@@ -849,6 +849,7 @@
     "auditAction_vehicle_model_updated": "Vehicle model edited",
     "auditAction_vehicle_model_deleted": "Vehicle model deleted",
     "auditAction_vehicle_model_reordered": "Vehicle models reordered",
+    "auditAction_vehicles_dataset_imported": "Reviewed vehicle list imported",
     "auditAction_product_updated": "Product edited",
     "auditAction_product_published": "Product published",
     "auditAction_product_unpublished": "Product unpublished",
@@ -901,6 +902,7 @@
     "auditEntity_unit": "Unit",
     "auditEntity_vehicle": "Vehicle",
     "auditEntity_vehicle_category": "Vehicle category",
+    "auditEntity_vehicle_dataset": "Vehicle list",
     "auditEntity_user": "User",
     "auditEntity_quote_version": "Quote version",
     "auditEntity_refund": "Refund",
@@ -1202,5 +1204,42 @@
     "disclaimer": "Messages are sent to an AI service to generate replies. Answers may be inaccurate; confirm fitment, price and availability before purchase. Do not send sensitive information.",
     "input": "Part name, number or question",
     "send": "Send"
+  },
+  "finder": {
+    "selected": "Parts for",
+    "change": "Change vehicle",
+    "chooseAgain": "Choose the vehicle again",
+    "jalali": "Persian calendar",
+    "gregorian": "Gregorian",
+    "invalidTitle": "This vehicle selection is not valid",
+    "invalid": {
+      "group": "The vehicle group was not found. Please choose again.",
+      "vehicle": "This vehicle is not in the chosen group or is no longer listed.",
+      "model": "This model or trim does not belong to the chosen vehicle.",
+      "year": "This year is not recorded for the chosen model."
+    },
+    "noParts": "No parts are recorded for {vehicle} yet",
+    "noPartsHint": "Send us the vehicle and the part; our sourcing team will find it for you.",
+    "requestForVehicle": "Request a part for this vehicle",
+    "noVerifiedTitle": "No part with verified fitment is recorded for this choice",
+    "noVerifiedHint": "The items below are suggestions only; their fit with your vehicle is not confirmed. To be sure, send a sourcing request and our team will find the right part.",
+    "tier": {
+      "verified": "Verified fitment",
+      "relevant": "Relevant — full fit with your choice not confirmed",
+      "related": "Similar suggestions — fitment not checked",
+      "text": "Text search results — no fitment information"
+    },
+    "reason": {
+      "MODEL": "Fits the chosen model (recorded)",
+      "VEHICLE": "Fits this vehicle (recorded)",
+      "GROUP": "Recorded for a vehicle of this group",
+      "YEAR_UNCONFIRMED": "Recorded for this vehicle; your model year is not confirmed",
+      "SOME_MODEL": "Recorded for one model of this vehicle; check yours",
+      "OTHER_MODEL": "Suggestion: recorded for another model of this vehicle",
+      "OTHER_YEARS": "Suggestion: recorded for other years of this vehicle",
+      "GROUP_TAG": "Suggestion: related to this vehicle group; fitment not checked",
+      "NAME_MATCH": "Suggestion: the vehicle is named in the part title; fitment not checked",
+      "TEXT": "Matches the search text only; no fitment information"
+    }
   }
 }

@@ -80,3 +80,61 @@ export function fixtureAdminFitment(sku: string): Array<{ vehicleId: string; mod
     return v ? [{ vehicleId: v.id, modelId: m?.id ?? null, vehicleName: v.fa, modelName: m?.fa ?? null }] : [];
   });
 }
+
+// ---------------------------------------------------------------------------
+// Vehicle finder (fixture preview): group → vehicle → model → year. Sample data only; each finder
+// vehicle points at the sample fitments above (like a reviewed equivalence), never by similar names.
+// ---------------------------------------------------------------------------
+
+interface FixtureFinderModel { slug: string; fa: string; en: string; years: { from: number; to: number; calendar: 'jalali' | 'gregorian' } | null; fits: { vehicle: string; model: string | null } }
+interface FixtureFinderVehicle { slug: string; fa: string; en: string; make: { fa: string; en: string }; fits: { vehicle: string; model: string | null }; models: FixtureFinderModel[] }
+export const fixtureFinder: Record<string, FixtureFinderVehicle[]> = {
+  'iran-khodro': [
+    { slug: 'peugeot-206', fa: 'پژو ۲۰۶', en: 'Peugeot 206', make: { fa: 'پژو', en: 'Peugeot' }, fits: { vehicle: 'peugeot', model: '206' }, models: [
+      { slug: 'type-2', fa: 'تیپ ۲', en: 'Type 2', years: { from: 1381, to: 1402, calendar: 'jalali' }, fits: { vehicle: 'peugeot', model: '206' } },
+      { slug: 'type-5', fa: 'تیپ ۵', en: 'Type 5', years: null, fits: { vehicle: 'peugeot', model: '206' } },
+    ] },
+    { slug: 'samand', fa: 'سمند', en: 'Samand', make: { fa: 'ایران خودرو', en: 'Iran Khodro' }, fits: { vehicle: 'samand', model: null }, models: [] },
+    { slug: 'dena', fa: 'دنا', en: 'Dena', make: { fa: 'ایران خودرو', en: 'Iran Khodro' }, fits: { vehicle: 'dena', model: null }, models: [
+      { slug: 'turbo', fa: 'توربو', en: 'Turbo', years: { from: 1397, to: 1404, calendar: 'jalali' }, fits: { vehicle: 'dena', model: 'turbo' } },
+    ] },
+  ],
+  saipa: [
+    { slug: 'pride', fa: 'پراید', en: 'Pride', make: { fa: 'کیا', en: 'Kia' }, fits: { vehicle: 'pride', model: null }, models: [
+      { slug: 'saba', fa: 'صبا', en: 'Saba', years: { from: 1373, to: 1399, calendar: 'jalali' }, fits: { vehicle: 'pride', model: 'saba' } },
+    ] },
+  ],
+  toyota: [],
+  hyundai: [],
+};
+
+type FixtureMatch = { tier: 'verified' | 'relevant' | 'related' | 'text'; reason: 'MODEL' | 'VEHICLE' | 'GROUP' | 'YEAR_UNCONFIRMED' | 'NAME_MATCH' | 'TEXT' };
+export type FixtureFinderResolution =
+  | { invalid: 'group' | 'vehicle' | 'model' | 'year' }
+  | { selection: { group: { slug: string; name: { fa: string; en: string } }; vehicle: { slug: string; name: { fa: string; en: string } } | null; model: { slug: string; name: { fa: string; en: string } } | null; year: number | null; calendar: 'jalali' | 'gregorian' | null }; match: (sku: string, name: string, typed: boolean) => FixtureMatch | null };
+
+/** Like the API: every step optional, results ranked (sample links carry no years, so a year is never confirmed). */
+export function fixtureFinderResolve(group: string, vehicle: string | null, model: string | null, year: string | null): FixtureFinderResolution {
+  const list = fixtureFinder[group];
+  const brand = { 'iran-khodro': { fa: 'ایران خودرو', en: 'Iran Khodro' }, saipa: { fa: 'سایپا', en: 'Saipa' }, toyota: { fa: 'تویوتا', en: 'Toyota' }, hyundai: { fa: 'هیوندای', en: 'Hyundai' } }[group];
+  if (!list || !brand) return { invalid: 'group' };
+  const v = vehicle ? list.find((x) => x.slug === vehicle) : undefined;
+  if (vehicle && !v) return { invalid: 'vehicle' };
+  if (model && !v) return { invalid: 'model' };
+  const m = model && v ? v.models.find((x) => x.slug === model) : undefined;
+  if (model && !m) return { invalid: 'model' };
+  const y = year ? Number(year) : null;
+  if (year && (!v || !Number.isInteger(y) || (m?.years && (y! < m.years.from || y! > m.years.to)))) return { invalid: 'year' };
+  const calendar = m?.years?.calendar ?? (y === null ? null : y >= 1300 && y <= 1499 ? 'jalali' : 'gregorian');
+  const target = m?.fits ?? v?.fits;
+  const match = (sku: string, name: string, typed: boolean): FixtureMatch | null => {
+    if (!v) return list.some((x) => fixtureFits(sku, x.fits.vehicle, x.fits.model)) ? { tier: 'verified', reason: 'GROUP' } : typed ? { tier: 'text', reason: 'TEXT' } : null;
+    if (target && fixtureFits(sku, target.vehicle, target.model)) return y !== null ? { tier: 'relevant', reason: 'YEAR_UNCONFIRMED' } : { tier: 'verified', reason: m ? 'MODEL' : 'VEHICLE' };
+    if (name.replace(/\s|\u200c/g, '').includes(v.fa.replace(/\s|\u200c/g, ''))) return { tier: 'related', reason: 'NAME_MATCH' };
+    return typed ? { tier: 'text', reason: 'TEXT' } : null;
+  };
+  return {
+    selection: { group: { slug: group, name: brand }, vehicle: v ? { slug: v.slug, name: { fa: v.fa, en: v.en } } : null, model: m ? { slug: m.slug, name: { fa: m.fa, en: m.en } } : null, year: y, calendar },
+    match,
+  };
+}

@@ -6,6 +6,30 @@
 .builder-block:has(.hedax-home-hero)>.builder-block-inner{max-width:none;padding:var(--b-desktop-padding,0px)}
 .builder-root .builder-block[data-builder-kind=cinematic-hero]{margin-block:0}
 .builder-block[data-builder-kind=cinematic-hero]>.builder-block-inner{max-width:none;padding:0}
+/* «مسیرهای خرید» keeps the full-width light band it had under the film, with its own query container. */
+.builder-root .builder-block[data-builder-kind=shopping-paths]{margin-block:0}
+.builder-block[data-builder-kind=shopping-paths]>.builder-block-inner{max-width:none;padding:0}
+.cine-discover-host{container-type:inline-size}
+/* «مسیرهای خرید» as its own section: same ground, width and gutters as the vehicle finder, compact
+   cards, orange kept for the finder's active step and the main actions (the film's band is unchanged). */
+.cine-discover-host .cine-discover{background:var(--color-paper,#f6f8fc);padding:clamp(1.25rem,3vw,2rem) clamp(1rem,3vw,1.5rem)}
+.cine-discover-host .cine-discover-inner{max-width:calc(var(--builder-width,1280px) - 3rem)}
+.cine-discover-host .cine-paths{gap:.85rem}
+.cine-discover-host .cine-paths a{grid-template-columns:2.75rem minmax(0,1fr) 1.25rem;min-height:0;padding:1.05rem 1.2rem;border-radius:.75rem;border-color:var(--color-line-soft,#e2e8f0);box-shadow:none}
+.cine-discover-host .cine-paths a:hover{transform:none;border-color:var(--color-action,#2467a9)}
+.cine-discover-host .cine-paths li:first-child a{background:#fff;border-color:var(--color-line-soft,#e2e8f0);color:inherit}
+.cine-discover-host .cine-paths li:first-child a:hover{border-color:var(--color-action,#2467a9)}
+.cine-discover-host .cine-paths li:first-child .cine-path-icon{background:#fff3e5;color:#b35c00}
+.cine-discover-host .cine-paths li:first-child .cine-path-text>span{color:#4a5568}
+.cine-discover-host .cine-path-icon{width:2.75rem;height:2.75rem;border-radius:.7rem}
+.cine-discover-host .cine-path-text strong{font-size:1.05rem}
+.cine-discover-host .cine-categories ul{margin-top:1rem}
+/* Right under the finder the two read as one area: no seam, a fine rule within the content width. */
+.builder-block[data-builder-kind=vehicle-finder]:has(+.builder-block[data-builder-kind=shopping-paths]) .vf-band{border-bottom:0}
+.builder-block[data-builder-kind=vehicle-finder]+.builder-block[data-builder-kind=shopping-paths] .cine-discover{padding-top:0}
+.builder-block[data-builder-kind=vehicle-finder]+.builder-block[data-builder-kind=shopping-paths] .cine-discover-inner{border-top:1px solid var(--color-line-soft,#e2e8f0);padding-top:clamp(1.1rem,2.5vw,1.6rem)}
+@container (max-width:1000px){.cine-discover-host .cine-paths a{grid-template-columns:2.5rem minmax(0,1fr) 1.1rem;padding:.85rem 1rem}.cine-discover-host .cine-path-arrow{display:block}.cine-discover-host .cine-path-icon{width:2.5rem;height:2.5rem}}
+@container (max-width:700px){.cine-discover-host .cine-path-text>span{font-size:.82rem}.cine-discover-host .cine-categories a{min-height:2.5rem;font-size:.85rem}}
 .builder-block .hedax-home-hero{min-height:var(--b-desktop-height,0px)}
 .builder-block[data-custom-background=true] .hedax-home-hero{background:var(--b-background)}
 .builder-block .hedax-home-hero img{object-position:var(--b-focal,50% 50%);object-fit:var(--b-imageFit,cover)}

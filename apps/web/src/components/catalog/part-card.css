@@ -62,3 +62,7 @@
 .builder-block[data-builder-kind='new-products'] .part-card-source svg { width: 20px; height: 20px; }
 .builder-block[data-builder-kind='new-products'] .part-card-maker { margin-top: .4rem; font-size: .75rem; }
 @media (prefers-reduced-motion: reduce) { .part-card * { animation: none !important; transition: none !important; } }
+/* Vehicle-finder label: verified fitment (green), not fully confirmed (amber), suggestion (neutral). */
+.part-card-match { margin-top: .15rem; padding: .3rem .55rem; border-radius: .45rem; font-size: .78rem; line-height: 1.6; font-weight: 600; background: #f1f5f9; color: #475569; }
+.part-card-match[data-tier='verified'] { background: #e7f6ec; color: #17603a; }
+.part-card-match[data-tier='relevant'] { background: #fff4e0; color: #8a4b00; }

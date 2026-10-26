@@ -8,7 +8,7 @@ import { usePathname, useRouter } from '@/i18n/navigation';
 import { Checkbox, Field, Select } from '@/components/ui/field';
 import { Num } from '@/components/ui/format';
 
-export type FilterKey = 'q' | 'vehicle' | 'model' | 'brand' | 'maker' | 'category' | 'partType' | 'condition' | 'origin' | 'inStock' | 'sort';
+export type FilterKey = 'q' | 'group' | 'vehicle' | 'model' | 'year' | 'brand' | 'maker' | 'category' | 'partType' | 'condition' | 'origin' | 'inStock' | 'sort';
 
 /**
  * All filters live in the URL, so back/forward restore the exact view; navigation transitions
@@ -69,7 +69,8 @@ export function CatalogFilters({ categories, brands, makers = [], vehicles = [],
         <ChevronDown aria-hidden className={`ms-auto size-5 text-steel transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
       <div id="filters-body" className={`${open ? 'flex' : 'hidden'} flex-col gap-4 border-t border-line-soft p-4 lg:flex lg:border-t-0`}>
-        {!fixedVehicle && vehicles.length ? (
+        {/* A vehicle-finder selection (group → vehicle → model → year) is changed from its summary, not here. */}
+        {!fixedVehicle && !current.group && vehicles.length ? (
           <Field id="filter-vehicle" label={t('parts.vehicle')} hint={t('parts.vehicleHint')}>
             <Select id="filter-vehicle" value={current.vehicle ?? ''} aria-describedby="filter-vehicle-hint" onChange={(e) => update({ vehicle: e.target.value || null, model: null })}>
               <option value="">{t('common.all')}</option>
@@ -77,7 +78,7 @@ export function CatalogFilters({ categories, brands, makers = [], vehicles = [],
             </Select>
           </Field>
         ) : null}
-        {chosenVehicle && chosenVehicle.models.length ? (
+        {!current.group && chosenVehicle && chosenVehicle.models.length ? (
           <Field id="filter-model" label={t('parts.vehicleModel')}>
             <Select id="filter-model" value={current.model ?? ''} onChange={(e) => update({ model: e.target.value || null })}>
               <option value="">{t('parts.allModels')}</option>

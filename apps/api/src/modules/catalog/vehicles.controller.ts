@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Res } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Query, Res } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import {
@@ -9,6 +9,7 @@ import type { z } from 'zod';
 import { Public, RequirePermissions } from '../../common/auth/decorators.js';
 import { notFound } from '../../common/errors.js';
 import { ApiZodBody, zod } from '../../common/zod.js';
+import { VehicleFinderService } from './vehicle-finder.service.js';
 import { VehiclesService } from './vehicles.service.js';
 
 /**
@@ -147,7 +148,29 @@ export class VehiclesAdminController {
 @Public()
 @Controller('catalog')
 export class VehiclesPublicController {
-  constructor(private readonly vehicles: VehiclesService) {}
+  constructor(
+    private readonly vehicles: VehiclesService,
+    private readonly finder: VehicleFinderService,
+  ) {}
+
+  // Vehicle finder, one step at a time (the home page never loads every vehicle up front).
+  @Get('vehicle-finder/groups')
+  finderGroups(@Res({ passthrough: true }) res: Response) {
+    res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+    return this.finder.groups();
+  }
+
+  @Get('vehicle-finder/vehicles')
+  finderVehicles(@Query('group') group: string | undefined, @Res({ passthrough: true }) res: Response) {
+    res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+    return this.finder.vehicles(group ? String(group) : undefined);
+  }
+
+  @Get('vehicle-finder/models')
+  finderModels(@Query('group') group: string | undefined, @Query('vehicle') vehicle: string | undefined, @Res({ passthrough: true }) res: Response) {
+    res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+    return this.finder.models(group ? String(group) : undefined, String(vehicle ?? ''));
+  }
 
   @Get('vehicles')
   list(@Res({ passthrough: true }) res: Response) {

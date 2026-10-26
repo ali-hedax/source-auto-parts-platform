@@ -75,17 +75,23 @@ export function RequestForm({ brands }: { brands: VehicleBrandView[] }) {
       /* storage unavailable */
     }
     const part = search.get('part');
-    if (!initial || (part && !initial.items.some((i) => i.partName === part))) {
+    // From the vehicle finder (no parts for the chosen vehicle): group, vehicle/model text and year.
+    const vehicleModel = (search.get('vehicleModel') ?? '').slice(0, 80);
+    const fromVehicle = !part && (search.has('vehicleBrand') || vehicleModel !== '');
+    if (!initial || (part && !initial.items.some((i) => i.partName === part)) || (fromVehicle && !initial.items.some((i) => i.vehicleModel === vehicleModel))) {
       initial = newDraft();
       if (part) {
         initial.title = part.slice(0, 200);
         // «درخواست تأمین» on a catalog part also brings its technical number (?code=).
         initial.items = [{ ...emptyItem(part.slice(0, 200)), partCode: (search.get('code') ?? '').slice(0, 80) }];
+      } else if (fromVehicle) {
+        const brand = brands.find((b) => b.slug === search.get('vehicleBrand'))?.code ?? '';
+        initial.items = [{ ...emptyItem(), brand, vehicleModel, vehicleYear: toAscii(search.get('vehicleYear') ?? '').replace(/\D/g, '').slice(0, 4) }];
       }
     }
     setDraft(initial);
     api<MeView>('/me').then(setMe).catch(() => setMe(null));
-  }, [search]);
+  }, [search, brands]);
 
   useEffect(() => {
     if (!draft) return;

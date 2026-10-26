@@ -1,4 +1,4 @@
-import type { CategoryView, ManufacturerView, SearchResult, VehicleBrandView, VehiclePublicView } from '@hedax/contracts';
+import type { CategoryView, FinderMatchTier, ManufacturerView, ProductCard, SearchResult, VehicleBrandView, VehiclePublicView } from '@hedax/contracts';
 import { SearchX, X } from 'lucide-react';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { ButtonLink } from '@/components/ui/button';
@@ -6,12 +6,13 @@ import { Alert, EmptyState } from '@/components/ui/misc';
 import { ChapterBand } from '@/components/store/chapter-band';
 import { Link } from '@/i18n/navigation';
 import { serverApi } from '@/lib/api/server';
+import { ApiRequestError } from '@/lib/api/errors';
 import { displayCurrency } from '@/lib/preferences';
 import { CatalogFilters } from './filters';
 import { Pagination } from './pagination';
 import { PartCard } from './part-card';
 
-const KEYS = ['q', 'vehicle', 'model', 'brand', 'maker', 'category', 'partType', 'condition', 'origin', 'inStock', 'sort', 'page'] as const;
+const KEYS = ['q', 'group', 'vehicle', 'model', 'year', 'brand', 'maker', 'category', 'partType', 'condition', 'origin', 'inStock', 'sort', 'page'] as const;
 
 export async function CatalogPage({
   searchParams,
@@ -48,8 +49,12 @@ export async function CatalogPage({
   if (fixedVehicle) params.vehicle = fixedVehicle.slug;
   if (!params.vehicle) params.model = undefined;
   const qs = new URLSearchParams(Object.entries({ ...params, currency, pageSize: '24' }).filter((e): e is [string, string] => !!e[1]));
-  const [result, categories, brands, vehicles, makers] = await Promise.all([
-    serverApi<SearchResult>(`${endpoint}?${qs.toString()}`, { publicCache: 60 }).catch(() => null),
+  // A vehicle-finder selection the server rejects (unknown group, vehicle outside its group, model or
+  // year that does not belong) shows that, never the unfiltered catalog.
+  const [{ result, invalidStep }, categories, brands, vehicles, makers] = await Promise.all([
+    serverApi<SearchResult>(`${endpoint}?${qs.toString()}`, { publicCache: 60 })
+      .then((r) => ({ result: r as SearchResult | null, invalidStep: null as string | null }))
+      .catch((e: unknown) => ({ result: null, invalidStep: e instanceof ApiRequestError && e.code === 'VEHICLE_SELECTION_INVALID' ? String(e.details?.field ?? 'vehicle') : null })),
     serverApi<CategoryView[]>('/catalog/categories', { publicCache: 300 }).catch(() => []),
     serverApi<VehicleBrandView[]>('/catalog/vehicle-brands', { publicCache: 300 }).catch(() => []),
     serverApi<VehiclePublicView[]>('/catalog/vehicles', { publicCache: 300 }).catch(() => []),
@@ -57,6 +62,26 @@ export async function CatalogPage({
   ]);
   const name = (n: { fa: string; en: string | null }) => (locale === 'en' ? (n.en ?? n.fa) : n.fa);
   const page = Number(params.page ?? 1) || 1;
+  const selection = result?.selection ?? null;
+  // «سمند LX» or «Corolla Hybrid 2025» already name their vehicle (and year): say each part once in sentences.
+  const yearText = selection?.year ? `${selection.year.toLocaleString(locale === 'fa' ? 'fa-IR' : 'en-US', { useGrouping: false })} (${selection.calendar === 'jalali' ? t('finder.jalali') : t('finder.gregorian')})` : '';
+  const vehicleText = (() => {
+    if (!selection) return '';
+    if (!selection.vehicle) return selection.group ? name(selection.group.name) : '';
+    const vehicle = name(selection.vehicle.name);
+    const model = selection.model ? name(selection.model.name) : '';
+    const base = vehicle.split(' ').at(-1) ?? vehicle;
+    return [model && (model.includes(vehicle) || model.includes(base)) ? '' : vehicle, model].filter(Boolean).join(' ');
+  })();
+  const yearDigits = selection?.year ? selection.year.toLocaleString(locale === 'fa' ? 'fa-IR' : 'en-US', { useGrouping: false }) : '';
+  const vehicleAndModel = [vehicleText, yearDigits && !vehicleText.includes(yearDigits) ? yearText : ''].filter(Boolean).join(' ');
+  const selectionName = selection ? [selection.group ? name(selection.group.name) : '', selection.vehicle ? name(selection.vehicle.name) : '', selection.model ? name(selection.model.name) : '', yearText].filter(Boolean) : [];
+  const requestForSelection = selection ? `/request-part?${new URLSearchParams({
+    ...(selection.group ? { vehicleBrand: selection.group.slug } : {}),
+    ...(selection.vehicle ? { vehicleModel: vehicleText.slice(0, 80) } : {}),
+    ...(params.q ? { part: params.q.slice(0, 120) } : {}),
+    ...(selection.year ? { vehicleYear: String(selection.year) } : {}),
+  }).toString()}` : '/request-part';
   const query = params.q?.trim();
   const clearQuery = { pathname, query: Object.fromEntries(Object.entries(current).filter((e): e is [string, string] => !!e[1] && e[0] !== 'q' && e[0] !== 'page')) };
   return (
@@ -95,7 +120,18 @@ export async function CatalogPage({
           <CatalogFilters categories={categories} brands={brands} makers={makers} vehicles={vehicles} {...(fixedVehicle ? { fixedVehicle } : {})} current={current} showOrigin={endpoint === '/catalog/products'} />
         </aside>
         <div className="min-w-0">
-          {!result ? (
+          {selection ? (
+            <div className="store-card mb-4 flex flex-wrap items-center justify-between gap-3 px-4 py-3" data-testid="vehicle-selection">
+              <p className="min-w-0 text-sm leading-7"><span className="font-semibold text-steel">{t('finder.selected')}: </span><strong>{selectionName.join(' › ')}</strong></p>
+              <a className="inline-flex min-h-11 items-center text-sm font-bold text-action underline underline-offset-4" href={`/${locale}#vehicle-finder`}>{t('finder.change')}</a>
+            </div>
+          ) : null}
+          {invalidStep ? (
+            <Alert tone="warning" title={t('finder.invalidTitle')}>
+              <p>{t(`finder.invalid.${invalidStep === 'group' || invalidStep === 'model' || invalidStep === 'year' ? invalidStep : 'vehicle'}`)}</p>
+              <a className="mt-2 inline-flex min-h-11 items-center font-bold text-action underline underline-offset-4" href={`/${locale}#vehicle-finder`}>{t('finder.chooseAgain')}</a>
+            </Alert>
+          ) : !result ? (
             <Alert tone="warning" title={t('common.unavailable')} />
           ) : result.items.length === 0 ? (
             query ? (
@@ -105,6 +141,11 @@ export async function CatalogPage({
                   {t('search.requestThis')}
                 </ButtonLink>
               </EmptyState>
+            ) : selection ? (
+              <EmptyState title={t('finder.noParts', { vehicle: vehicleAndModel })}>
+                <p>{t('finder.noPartsHint')}</p>
+                <ButtonLink href={requestForSelection} className="mt-4">{t('finder.requestForVehicle')}</ButtonLink>
+              </EmptyState>
             ) : (
               <EmptyState title={t('parts.empty')}>
                 <ButtonLink href="/request-part" variant="secondary" className="mt-2">{t('nav.requestPart')}</ButtonLink>
@@ -112,11 +153,28 @@ export async function CatalogPage({
             )
           ) : (
             <>
-              <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
-                {result.items.map((p, i) => (
-                  <li key={p.id}><PartCard product={p} priority={i < 3} /></li>
-                ))}
-              </ul>
+              {/* Finder results come ranked: verified fitment first, then labelled suggestions. */}
+              {result.tiers && !result.tiers.verified ? (
+                <Alert tone="info" title={t('finder.noVerifiedTitle')}>
+                  <p>{t('finder.noVerifiedHint')}</p>
+                  <a className="mt-2 inline-flex min-h-11 items-center font-bold text-action underline underline-offset-4" href={`/${locale}${requestForSelection}`}>{t('finder.requestForVehicle')}</a>
+                </Alert>
+              ) : null}
+              {groupByTier(result.items).map((part) => (
+                <section key={`${part.tier ?? 'all'}-${part.items[0]!.id}`} className="mt-4 first:mt-0" aria-labelledby={part.tier ? `tier-${part.tier}` : undefined}>
+                  {part.tier && result.tiers ? (
+                    <h2 id={`tier-${part.tier}`} className="mb-3 flex flex-wrap items-baseline gap-x-2 text-base font-bold" data-testid={`tier-${part.tier}`}>
+                      {t(`finder.tier.${part.tier}`)}
+                      <span className="text-sm font-medium text-steel">{t('common.results', { count: result.tiers[part.tier] })}</span>
+                    </h2>
+                  ) : null}
+                  <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
+                    {part.items.map((p) => (
+                      <li key={p.id}><PartCard product={p} priority={result.items.indexOf(p) < 3} /></li>
+                    ))}
+                  </ul>
+                </section>
+              ))}
               <Pagination pathname={pathname} params={{ ...params, brand: fixedBrand ? undefined : params.brand, vehicle: fixedVehicle ? undefined : params.vehicle }} page={page} pageSize={result.pageSize} total={result.total} />
             </>
           )}
@@ -131,4 +189,15 @@ export async function CatalogPage({
       </div>
     </div>
   );
+}
+
+/** Consecutive results of the same finder tier (the server orders by tier); one group without a finder search. */
+function groupByTier(items: ProductCard[]): Array<{ tier: FinderMatchTier | null; items: ProductCard[] }> {
+  const parts: Array<{ tier: FinderMatchTier | null; items: ProductCard[] }> = [];
+  for (const p of items) {
+    const tier = p.finderMatch?.tier ?? null;
+    const last = parts.at(-1);
+    if (last && last.tier === tier) last.items.push(p); else parts.push({ tier, items: [p] });
+  }
+  return parts;
 }
