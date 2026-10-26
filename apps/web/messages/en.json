@@ -139,8 +139,7 @@
     "wholeVehicle": "All models",
     "requestSupply": "Request this part",
     "sourceableText": "This part has no price or stock right now. Send a sourcing request and we will tell you the price and when it can be ready.",
-    "clearSearch": "Clear the search",
-    "yearUnconfirmed": "This year is not recorded on the part’s fitment; please confirm with support before buying."
+    "clearSearch": "Clear the search"
   },
   "availability": {
     "IN_STOCK": "In stock",
@@ -1221,6 +1220,26 @@
     },
     "noParts": "No parts are recorded for {vehicle} yet",
     "noPartsHint": "Send us the vehicle and the part; our sourcing team will find it for you.",
-    "requestForVehicle": "Request a part for this vehicle"
+    "requestForVehicle": "Request a part for this vehicle",
+    "noVerifiedTitle": "No part with verified fitment is recorded for this choice",
+    "noVerifiedHint": "The items below are suggestions only; their fit with your vehicle is not confirmed. To be sure, send a sourcing request and our team will find the right part.",
+    "tier": {
+      "verified": "Verified fitment",
+      "relevant": "Relevant — full fit with your choice not confirmed",
+      "related": "Similar suggestions — fitment not checked",
+      "text": "Text search results — no fitment information"
+    },
+    "reason": {
+      "MODEL": "Fits the chosen model (recorded)",
+      "VEHICLE": "Fits this vehicle (recorded)",
+      "GROUP": "Recorded for a vehicle of this group",
+      "YEAR_UNCONFIRMED": "Recorded for this vehicle; your model year is not confirmed",
+      "SOME_MODEL": "Recorded for one model of this vehicle; check yours",
+      "OTHER_MODEL": "Suggestion: recorded for another model of this vehicle",
+      "OTHER_YEARS": "Suggestion: recorded for other years of this vehicle",
+      "GROUP_TAG": "Suggestion: related to this vehicle group; fitment not checked",
+      "NAME_MATCH": "Suggestion: the vehicle is named in the part title; fitment not checked",
+      "TEXT": "Matches the search text only; no fitment information"
+    }
   }
 }

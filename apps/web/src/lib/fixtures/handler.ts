@@ -156,8 +156,11 @@ function list(params: URLSearchParams, forceImported: boolean): SearchResult {
   const group = params.get('group');
   const finder = group ? fixtureFinderResolve(group, params.get('vehicle'), params.get('model'), params.get('year')) : null;
   const vehicle = params.get('vehicle');
-  if (finder && 'selection' in finder) items = items.filter((p) => finder.fits(p.sku));
-  else if (vehicle) items = items.filter((p) => fixtureFits(p.sku, vehicle, params.get('model')));
+  const matchOf = new Map<string, NonNullable<ReturnType<Extract<NonNullable<typeof finder>, { match: unknown }>['match']>>>();
+  if (finder && 'selection' in finder) {
+    for (const p of items) { const mt = finder.match(p.sku, p.fa, !!q); if (mt) matchOf.set(p.sku, mt); }
+    items = items.filter((p) => matchOf.has(p.sku));
+  } else if (vehicle) items = items.filter((p) => fixtureFits(p.sku, vehicle, params.get('model')));
   const category = params.get('category');
   if (category) items = items.filter((p) => fixtureCategories.find((c) => c.slug === category)?.code === p.category);
   const maker = params.get('maker');
@@ -181,14 +184,17 @@ function list(params: URLSearchParams, forceImported: boolean): SearchResult {
   const exact = (p: FixtureProduct) => !!key && [p.partNumber, ...(p.equivalents ?? [])].some((n) => n && compactSearchText(n) === key);
   const buyable = (p: FixtureProduct) => p.price !== null && p.onHand - p.reserved > 0;
   if (!sort || sort === 'relevance') items.sort((a, b) => Number(exact(b)) - Number(exact(a)) || Number(buyable(b)) - Number(buyable(a)));
+  // Finder results: verified first, then the labelled suggestions (like the API).
+  const rank = (p: FixtureProduct) => ['verified', 'relevant', 'related', 'text'].indexOf(matchOf.get(p.sku)?.tier ?? 'text');
+  if (matchOf.size) items.sort((a, b) => rank(a) - rank(b));
   const page = Math.max(1, Number(params.get('page') ?? 1));
   const pageSize = Math.min(60, Math.max(1, Number(params.get('pageSize') ?? 24)));
-  // With a year the sample links carry no years, so the year is never confirmed (as the API reports it).
-  const year = finder && 'selection' in finder && finder.selection.year !== null;
+  const tiers = { verified: 0, relevant: 0, related: 0, text: 0 };
+  for (const mt of matchOf.values()) tiers[mt.tier] += 1;
   return {
-    items: items.slice((page - 1) * pageSize, page * pageSize).map((p) => (year ? { ...card(p, display), fitmentYearUnconfirmed: true } : card(p, display))),
+    items: items.slice((page - 1) * pageSize, page * pageSize).map((p) => { const mt = matchOf.get(p.sku); return mt ? { ...card(p, display), finderMatch: mt } : card(p, display); }),
     total: items.length, page, pageSize, query: q ? normalizeSearchText(q) : null,
-    ...(finder && 'selection' in finder ? { selection: finder.selection } : {}),
+    ...(finder && 'selection' in finder ? { selection: finder.selection, tiers } : {}),
   };
 }
 
@@ -247,20 +253,23 @@ export async function handleFixture(method: string, pathWithQuery: string, rawBo
     if (finder && 'invalid' in finder) return { status: 400, body: { error: { code: 'VEHICLE_SELECTION_INVALID', message: 'The vehicle selection is not valid', requestId: 'fixture', details: { field: finder.invalid } } } };
     if (!group && params.get('year')) return { status: 400, body: { error: { code: 'VEHICLE_SELECTION_INVALID', message: 'The vehicle selection is not valid', requestId: 'fixture', details: { field: 'year' } } } };
   }
-  // Tests of the finder layout set hedax_fixture_home=finder: a published home with the film, then the
-  // vehicle finder and the shopping paths right under it, then new products. Otherwise no published page.
+  // Tests of the finder layout set hedax_fixture_home=finder: a published home with the film, the part
+  // search / vehicle finder under it, new products, and the shopping paths last, before the footer. Otherwise no published page.
   if (route === 'GET /site/builder/home' && cookies['hedax_fixture_home'] === 'finder') return ok(fixtureFinderHome());
   if (route === 'GET /catalog/products') return ok(list(params, false));
   if (route === 'GET /catalog/vehicle-finder/groups') {
     return ok(fixtureBrands.map((b) => ({ slug: b.slug, name: b.name, logoUrl: b.logoUrl, vehicleCount: fixtureFinder[b.slug]?.length ?? 0 })));
   }
   if (route === 'GET /catalog/vehicle-finder/vehicles') {
-    const list = fixtureFinder[params.get('group') ?? ''];
-    if (!list) return { status: 400, body: { error: { code: 'VEHICLE_SELECTION_INVALID', message: 'unknown group', requestId: 'fixture', details: { field: 'group' } } } };
-    return ok(list.map((v) => ({ slug: v.slug, name: { fa: v.fa, en: v.en }, make: v.make, aliases: [], modelCount: v.models.length })));
+    // Without a group: every group's vehicles (the vehicle step works on its own).
+    const g = params.get('group');
+    const entries = g ? (fixtureFinder[g] ? [[g, fixtureFinder[g]] as const] : null) : Object.entries(fixtureFinder);
+    if (!entries) return { status: 400, body: { error: { code: 'VEHICLE_SELECTION_INVALID', message: 'unknown group', requestId: 'fixture', details: { field: 'group' } } } };
+    return ok(entries.flatMap(([slug, list]) => list.map((v) => ({ slug: v.slug, name: { fa: v.fa, en: v.en }, make: v.make, aliases: [], modelCount: v.models.length, groups: [slug] }))));
   }
   if (route === 'GET /catalog/vehicle-finder/models') {
-    const v = fixtureFinder[params.get('group') ?? '']?.find((x) => x.slug === params.get('vehicle'));
+    const g = params.get('group');
+    const v = (g ? fixtureFinder[g] ?? [] : Object.values(fixtureFinder).flat()).find((x) => x.slug === params.get('vehicle'));
     if (!v) return { status: 400, body: { error: { code: 'VEHICLE_SELECTION_INVALID', message: 'vehicle not in group', requestId: 'fixture', details: { field: 'vehicle' } } } };
     return ok(v.models.map((m) => ({ slug: m.slug, name: { fa: m.fa, en: m.en }, aliases: [], supply: null, supplier: null, years: m.years })));
   }
@@ -501,5 +510,5 @@ function fixtureFinderHome() {
   const state = fixtureBuilderState('home');
   const film = { ...newBuilderBlock('cinematic-hero', 'film'), film: { ...newBuilderBlock('cinematic-hero', 'film').film!, discovery: true } };
   const products = { ...newBuilderBlock('new-products', 'new-products'), title: { fa: 'محصولات جدید', en: 'New products' }, query: { category: '', brand: '', vehicle: '', model: '', productSlugs: [], limit: 4 } };
-  return { ...state.document, sections: [film, newBuilderBlock('vehicle-finder', 'vehicle-finder'), newBuilderBlock('shopping-paths', 'shopping-paths'), products] };
+  return { ...state.document, sections: [film, newBuilderBlock('vehicle-finder', 'vehicle-finder'), products, newBuilderBlock('shopping-paths', 'shopping-paths')] };
 }

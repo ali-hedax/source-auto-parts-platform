@@ -1,4 +1,4 @@
-import type { CategoryView, ManufacturerView, SearchResult, VehicleBrandView, VehiclePublicView } from '@hedax/contracts';
+import type { CategoryView, FinderMatchTier, ManufacturerView, ProductCard, SearchResult, VehicleBrandView, VehiclePublicView } from '@hedax/contracts';
 import { SearchX, X } from 'lucide-react';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { ButtonLink } from '@/components/ui/button';
@@ -67,6 +67,7 @@ export async function CatalogPage({
   const yearText = selection?.year ? `${selection.year.toLocaleString(locale === 'fa' ? 'fa-IR' : 'en-US', { useGrouping: false })} (${selection.calendar === 'jalali' ? t('finder.jalali') : t('finder.gregorian')})` : '';
   const vehicleText = (() => {
     if (!selection) return '';
+    if (!selection.vehicle) return selection.group ? name(selection.group.name) : '';
     const vehicle = name(selection.vehicle.name);
     const model = selection.model ? name(selection.model.name) : '';
     const base = vehicle.split(' ').at(-1) ?? vehicle;
@@ -74,10 +75,11 @@ export async function CatalogPage({
   })();
   const yearDigits = selection?.year ? selection.year.toLocaleString(locale === 'fa' ? 'fa-IR' : 'en-US', { useGrouping: false }) : '';
   const vehicleAndModel = [vehicleText, yearDigits && !vehicleText.includes(yearDigits) ? yearText : ''].filter(Boolean).join(' ');
-  const selectionName = selection ? [selection.group ? name(selection.group.name) : '', name(selection.vehicle.name), selection.model ? name(selection.model.name) : '', yearText].filter(Boolean) : [];
+  const selectionName = selection ? [selection.group ? name(selection.group.name) : '', selection.vehicle ? name(selection.vehicle.name) : '', selection.model ? name(selection.model.name) : '', yearText].filter(Boolean) : [];
   const requestForSelection = selection ? `/request-part?${new URLSearchParams({
     ...(selection.group ? { vehicleBrand: selection.group.slug } : {}),
-    vehicleModel: vehicleText.slice(0, 80),
+    ...(selection.vehicle ? { vehicleModel: vehicleText.slice(0, 80) } : {}),
+    ...(params.q ? { part: params.q.slice(0, 120) } : {}),
     ...(selection.year ? { vehicleYear: String(selection.year) } : {}),
   }).toString()}` : '/request-part';
   const query = params.q?.trim();
@@ -151,11 +153,28 @@ export async function CatalogPage({
             )
           ) : (
             <>
-              <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
-                {result.items.map((p, i) => (
-                  <li key={p.id}><PartCard product={p} priority={i < 3} /></li>
-                ))}
-              </ul>
+              {/* Finder results come ranked: verified fitment first, then labelled suggestions. */}
+              {result.tiers && !result.tiers.verified ? (
+                <Alert tone="info" title={t('finder.noVerifiedTitle')}>
+                  <p>{t('finder.noVerifiedHint')}</p>
+                  <a className="mt-2 inline-flex min-h-11 items-center font-bold text-action underline underline-offset-4" href={`/${locale}${requestForSelection}`}>{t('finder.requestForVehicle')}</a>
+                </Alert>
+              ) : null}
+              {groupByTier(result.items).map((part) => (
+                <section key={`${part.tier ?? 'all'}-${part.items[0]!.id}`} className="mt-4 first:mt-0" aria-labelledby={part.tier ? `tier-${part.tier}` : undefined}>
+                  {part.tier && result.tiers ? (
+                    <h2 id={`tier-${part.tier}`} className="mb-3 flex flex-wrap items-baseline gap-x-2 text-base font-bold" data-testid={`tier-${part.tier}`}>
+                      {t(`finder.tier.${part.tier}`)}
+                      <span className="text-sm font-medium text-steel">{t('common.results', { count: result.tiers[part.tier] })}</span>
+                    </h2>
+                  ) : null}
+                  <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
+                    {part.items.map((p) => (
+                      <li key={p.id}><PartCard product={p} priority={result.items.indexOf(p) < 3} /></li>
+                    ))}
+                  </ul>
+                </section>
+              ))}
               <Pagination pathname={pathname} params={{ ...params, brand: fixedBrand ? undefined : params.brand, vehicle: fixedVehicle ? undefined : params.vehicle }} page={page} pageSize={result.pageSize} total={result.total} />
             </>
           )}
@@ -170,4 +189,15 @@ export async function CatalogPage({
       </div>
     </div>
   );
+}
+
+/** Consecutive results of the same finder tier (the server orders by tier); one group without a finder search. */
+function groupByTier(items: ProductCard[]): Array<{ tier: FinderMatchTier | null; items: ProductCard[] }> {
+  const parts: Array<{ tier: FinderMatchTier | null; items: ProductCard[] }> = [];
+  for (const p of items) {
+    const tier = p.finderMatch?.tier ?? null;
+    const last = parts.at(-1);
+    if (last && last.tier === tier) last.items.push(p); else parts.push({ tier, items: [p] });
+  }
+  return parts;
 }

@@ -68,3 +68,16 @@
   .vf-actions { flex-direction: column; align-items: stretch; }
 }
 @media (prefers-reduced-motion: reduce) { .vf-field { transition: none; } }
+/* Free-text part search above the optional steps (name, SKU, technical number). */
+.vf-query { position: relative; display: block; margin-bottom: .85rem; }
+.vf-query input {
+  width: 100%; min-height: 3.5rem; padding-block: .6rem; padding-inline: 3rem 1rem; border: 1px solid var(--vf-line); border-radius: .6rem;
+  background: #fff; color: var(--vf-ink); font-size: 1.02rem; transition: border-color .15s ease, box-shadow .15s ease;
+}
+.vf-query input::placeholder { color: var(--vf-steel); opacity: .85; }
+.vf-query input:hover { border-color: var(--vf-blue); }
+.vf-query input:focus-visible { outline: none; border-color: var(--vf-blue); box-shadow: 0 0 0 3px #2467a933; }
+.vf-query-icon { position: absolute; inset-inline-start: 1rem; top: 50%; transform: translateY(-50%); color: var(--vf-steel); pointer-events: none; }
+.vf-option-clear { color: var(--vf-steel); font-weight: 500; }
+@media (prefers-reduced-motion: reduce) { .vf-query input { transition: none; } }
+#part-search, #vehicle-finder { scroll-margin-top: 7.5rem; }

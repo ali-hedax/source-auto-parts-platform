@@ -4,11 +4,12 @@ import * as RDialog from '@radix-ui/react-dialog';
 import Image from 'next/image';
 import { Menu, X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Link, usePathname } from '@/i18n/navigation';
 
-/** Drawer navigation for small screens (focus trapped, Escape closes, focus returns). */
-export function MobileNav({ items }: { items: Array<{ href: string; label: string }> }) {
+/** Drawer navigation (focus trapped, Escape closes, focus returns): small screens, or every size on the
+ *  minimal home header (`alwaysVisible`), where `extra` (e.g. the currency choice) sits under the links. */
+export function MobileNav({ items, alwaysVisible = false, extra }: { items: Array<{ href: string; label: string }>; alwaysVisible?: boolean; extra?: ReactNode }) {
   const t = useTranslations('common');
   const tn = useTranslations('nav');
   const locale = useLocale();
@@ -18,7 +19,7 @@ export function MobileNav({ items }: { items: Array<{ href: string; label: strin
   const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(`${href}/`));
   return (
     <RDialog.Root open={open} onOpenChange={setOpen}>
-      <RDialog.Trigger className="-ms-2 grid size-11 cursor-pointer place-items-center rounded-[var(--radius-control)] transition-colors hover:bg-white/10 md:hidden" aria-label={t('openMenu')}>
+      <RDialog.Trigger className={`-ms-2 grid size-11 cursor-pointer place-items-center rounded-[var(--radius-control)] transition-colors hover:bg-white/10 ${alwaysVisible ? '' : 'md:hidden'}`} aria-label={t('openMenu')}>
         <Menu aria-hidden className="size-6" />
       </RDialog.Trigger>
       <RDialog.Portal>
@@ -56,6 +57,7 @@ export function MobileNav({ items }: { items: Array<{ href: string; label: strin
               })}
             </ul>
           </nav>
+          {extra ? <div className="flex items-center gap-2 border-t border-white/10 px-4 py-3">{extra}</div> : null}
         </RDialog.Content>
       </RDialog.Portal>
     </RDialog.Root>

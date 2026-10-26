@@ -163,13 +163,13 @@ export class VehiclesPublicController {
   @Get('vehicle-finder/vehicles')
   finderVehicles(@Query('group') group: string | undefined, @Res({ passthrough: true }) res: Response) {
     res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
-    return this.finder.vehicles(String(group ?? ''));
+    return this.finder.vehicles(group ? String(group) : undefined);
   }
 
   @Get('vehicle-finder/models')
   finderModels(@Query('group') group: string | undefined, @Query('vehicle') vehicle: string | undefined, @Res({ passthrough: true }) res: Response) {
     res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
-    return this.finder.models(String(group ?? ''), String(vehicle ?? ''));
+    return this.finder.models(group ? String(group) : undefined, String(vehicle ?? ''));
   }
 
   @Get('vehicles')
