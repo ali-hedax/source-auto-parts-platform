@@ -10,7 +10,7 @@
   --ti-silver-stop: 830px;
   display: flow-root;
   min-height: 100dvh;
-  background: linear-gradient(180deg, #29313a 0, #4d5a66 var(--ti-dark-stop), #99a7b4 var(--ti-silver-stop), #cbd3db 95%, #d2d9df 100%);
+  background: linear-gradient(180deg, var(--ti-top, #29313a) 0, #4d5a66 var(--ti-dark-stop), #99a7b4 var(--ti-silver-stop), #cbd3db 95%, var(--ti-bottom, #d2d9df) 100%);
   color: var(--ti-ink);
   --radius-control: 12px;
   --radius-card: 18px;
@@ -26,7 +26,7 @@
 .titanium-store .container-page { max-width: 1240px; }
 .titanium-header { position: relative; z-index: 40; color: #f4f7fb; background: transparent; }
 .titanium-header-inner { min-height: 110px; display: flex; align-items: center; gap: 20px; }
-.titanium-logo { display: block; flex: 0 0 242px; min-width: 0; }
+.titanium-logo { display: block; flex: 0 0 var(--ti-logo-width, 242px); min-width: 0; }
 .titanium-logo img { width: 100%; height: auto; display: block; }
 .titanium-desktop-nav { flex: 1; min-width: 0; }
 .titanium-desktop-nav nav.container-page { padding: 0; gap: 8px; flex-wrap: wrap; }
@@ -240,8 +240,8 @@
 
 /* Owner revision: full-width film strip, repeating typed headline, six illustrated groups. */
 .titanium-opening-film { width: 100%; position: relative; }
-.titanium-store .titanium-opening-film .cine-film { width: 100%; height: clamp(170px, 20vw, 290px); aspect-ratio: auto; margin: 0; background: #05080d; mask-image: none; -webkit-mask-image: none; }
-.titanium-store .titanium-opening-film :is(.cine-still img, .cine-video) { object-fit: contain; object-position: center; }
+.titanium-store .titanium-opening-film .cine-film { width: 100%; height: clamp(170px, 25vw, var(--ti-opening-height, 360px)); aspect-ratio: auto; margin: 0; background: #05080d; mask-image: none; -webkit-mask-image: none; }
+.titanium-store .titanium-opening-film :is(.cine-still img, .cine-video) { object-fit: cover; object-position: center 60%; }
 .titanium-opening-film .cine-controls { bottom: 16px; inset-inline-end: max(20px, calc((100vw - 1200px)/2)); }
 .titanium-slogan-only { display: block; text-align: center; padding-block: 30px 40px; }
 .titanium-slogan-only .titanium-tagline { margin-top: 10px; text-align: center; font-size: 18px; }
@@ -282,7 +282,7 @@
  .titanium-slogan h1 { font-size: clamp(24px, 7vw, 32px); }
  .titanium-slogan-only .titanium-tagline { font-size: 14px; }
  .titanium-type-toggle { inset-inline-end: 0; bottom: -24px; }
- .titanium-store .titanium-opening-film .cine-film { height: 170px; }
+ .titanium-store .titanium-opening-film .cine-film { height: var(--ti-opening-mobile-height, 170px); }
 }
 
 .titanium-opening-film { --cine-ink: #f6f8fc; --cine-ground: #05080d; --cine-signal: #39a0ff; --cine-ink-mid: #d4e1ed; }
@@ -363,13 +363,15 @@
 .titanium-footer .titanium-social-row a:hover { border-color: #0060f5; box-shadow: 0 0 12px #087dff35; }
 .titanium-footer .titanium-social-row .titanium-social-pending { color: #52677e; border-style: dashed; }
 .titanium-footer .titanium-social-row .titanium-social-extra { width: auto; padding-inline: 10px; }
-.titanium-english-type { position: relative; display: inline-block; font-family: ui-monospace, 'Courier New', monospace; font-size: 15px !important; line-height: 1.8; }
+.titanium-english-type { position: relative; display: inline-block; font-family: ui-monospace, 'Courier New', monospace; font-size: clamp(9px, calc(130vw / var(--ti-type-length, 29)), 15px) !important; line-height: 1.8; }
 .titanium-english-visual { display: none; }
 @media(prefers-reduced-motion:no-preference) {
  .titanium-slogan:not([data-paused=true]) .titanium-english-source { opacity: 0; }
- .titanium-slogan:not([data-paused=true]) .titanium-english-visual { display: block; position: absolute; inset: 0 auto 0 0; overflow: hidden; white-space: nowrap; border-right: 1px solid #0873c9; box-sizing: content-box; animation: ti-english-type 12s steps(29,end) infinite, ti-caret .8s steps(1,end) infinite; }
+ .titanium-slogan:not([data-paused=true]) .titanium-english-visual { display: block; position: absolute; inset: 0 auto 0 0; overflow: hidden; white-space: nowrap; border-right: 1px solid #0873c9; box-sizing: content-box; animation: ti-english-type 12s steps(var(--ti-type-length, 29),end) infinite, ti-caret .8s steps(1,end) infinite; }
 }
 @keyframes ti-english-type { 0%,12% { width: 0; } 68%,93% { width: 100%; } 100% { width: 0; } }
 @keyframes ti-caret { 50% { border-color: transparent; } }
 @media(max-width:1023px) { .titanium-footer-grid { grid-template-columns: 1fr 1fr; } }
 @media(max-width:639px) { .titanium-contact-list { grid-template-columns: 1fr 1fr; gap: 18px 20px; } .titanium-contact-row:has(a[href^="mailto:"]), .titanium-contact-row:last-child { grid-column: 1/-1; } }
+
+.titanium-store .titanium-float { border-color: var(--ti-blue); box-shadow: inset 0 0 0 1px #e3f7ff77, 0 0 0 1px var(--ti-blue), 0 0 8px color-mix(in srgb, var(--ti-blue) 40%, transparent), 0 12px 24px -15px #071526ab; }

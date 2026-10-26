@@ -33,7 +33,7 @@ export function SiteFooterView({ content, chrome, now }: { content: SiteContentV
     <footer className="titanium-footer render-lazy text-sm">
       <div className="container-page titanium-footer-grid">
         <div className="titanium-footer-brand max-w-sm">
-          <Image src={brand?.logoUrl && brand.logoUrl !== '/brand/source/logo-dark.png' ? brand.logoUrl : DEFAULT_LOGO} width={600} height={191} unoptimized alt={localize(brand?.logoAlt, locale) || localize(brand?.siteName, locale)} className="titanium-footer-logo" />
+          <Image src={chrome?.logo?.onLightUrl || (brand?.logoUrl && brand.logoUrl !== '/brand/source/logo-dark.png' ? brand.logoUrl : DEFAULT_LOGO)} width={600} height={191} unoptimized alt={localize(brand?.logoAlt, locale) || localize(brand?.siteName, locale)} className="titanium-footer-logo" style={chrome?.logo?.onLightUrl ? { filter: 'none' } : undefined} />
           {tagline ? <p className="mt-4 font-medium text-signal">{tagline}</p> : null}
           {about ? <p className="mt-2 leading-7">{about}</p> : null}
 

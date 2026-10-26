@@ -8,13 +8,13 @@ import { SectionEditor } from '@/components/admin/content/home';
 import type { BuilderData } from './data';
 import { ProductPicker } from './product-picker';
 export type Device = 'desktop' | 'tablet' | 'mobile';
-export function BlockSettings({ block: b, change, device, media, pick, data }: { block: BuilderBlock; change: (block: BuilderBlock) => void; device: Device; media: (mobile: boolean) => void; pick: MediaPick; data: BuilderData }) {
+export function BlockSettings({ block: b, change, device, media, pick, data, titanium = false }: { block: BuilderBlock; change: (block: BuilderBlock) => void; device: Device; media: (mobile: boolean) => void; pick: MediaPick; data: BuilderData; titanium?: boolean }) {
   const style = (patch: Partial<BuilderStyle>) => change({ ...b, style: { ...b.style, ...patch } });
   const layout = b.style[device] ?? {};
   return <div className="space-y-4">
     <h2 className="font-bold">تنظیمات بخش انتخاب‌شده</h2>
     <label className="!flex-row items-center"><input type="checkbox" checked={b.visible} onChange={e => change({ ...b, visible: e.target.checked })} />نمایش بخش</label>
-    {b.legacy ? <SectionEditor section={b.legacy} onChange={legacy => change({ ...b, legacy, title: legacy.title })} errors={{}} path="legacy" /> : <>
+    {titanium && b.kind === 'cinematic-hero' ? <p className="text-xs leading-6">شعار و ارتفاع نوار از «طراحی و باکس‌ها» ویرایش می‌شوند. اینجا فایل فیلم، پوستر و پخش را مدیریت کنید.</p> : b.legacy ? <SectionEditor section={b.legacy} onChange={legacy => change({ ...b, legacy, title: legacy.title })} errors={{}} path="legacy" /> : <>
       <LocalizedField id="block-title" path="title" label={b.kind === 'cinematic-hero' ? 'شعار فارسی و انگلیسی' : b.kind === 'shopping-paths' ? 'نام بخش' : 'عنوان'} value={b.title} onChange={title => change({ ...b, title })} maxLength={160} errors={{}} {...(b.kind === 'cinematic-hero' ? { hint: 'هر دو زبان در بنر نمایش داده می‌شوند؛ زبان صفحه عنوان اصلی است. برای پنهان‌کردن شعار دوم، متن آن زبان را خالی کنید.' } : b.kind === 'shopping-paths' ? { hint: 'روی صفحه نمایش داده نمی‌شود؛ نام این بخش برای صفحه‌خوان‌هاست. سه مسیر و دسته‌بندی‌ها خودکار ساخته می‌شوند.' } : {})} />
       {b.kind !== 'shopping-paths' ? <LocalizedField id="block-body" path="body" label={b.kind === 'vehicle-finder' ? 'متن زیر عنوان' : 'متن'} value={b.body} onChange={body => change({ ...b, body })} maxLength={8000} multiline errors={{}} {...(b.kind === 'cinematic-hero' ? { hint: 'ذخیره می‌شود، اما فعلاً در Hero عمومی نمایش داده نمی‌شود.' } : {})} /> : null}
       {/* The finder and the shopping paths have no picture; their links and labels are their own. */}
@@ -23,10 +23,11 @@ export function BlockSettings({ block: b, change, device, media, pick, data }: {
       {b.kind !== 'cinematic-hero' && b.kind !== 'shopping-paths' ? <><LinkField id="block-href" label={b.kind === 'vehicle-finder' ? 'لینک «درخواست تأمین» (وقتی خودرو در فهرست نیست)' : 'لینک تصویر و دکمه'} value={b.href} onChange={href => change({ ...b, href })} />
       <LocalizedField id="block-button" path="button" label={b.kind === 'vehicle-finder' ? 'متن دکمهٔ جست‌وجوی قطعات' : 'متن دکمه'} value={b.button} onChange={button => change({ ...b, button })} maxLength={60} errors={{}} /></> : null}
     </>}
-    {b.kind === 'cinematic-hero' && b.film ? <FilmSettings block={{ ...b, film: b.film }} change={change} pick={pick} /> : <>
+    {b.kind === 'cinematic-hero' && b.film ? <FilmSettings block={{ ...b, film: b.film }} change={change} pick={pick} titanium={titanium} /> : <>
     <div className="flex flex-wrap gap-2"><Button size="sm" variant="secondary" onClick={() => media(false)}>انتخاب تصویر از کتابخانه</Button><Button size="sm" variant="secondary" onClick={() => media(true)}>تصویر موبایل از کتابخانه</Button></div>
     <ImageField id="block-mobile-image" label="تصویر موبایل" value={b.mobileImageUrl} onChange={mobileImageUrl => change({ ...b, mobileImageUrl })} />
     </>}
+    {!titanium ? <>
     {b.kind !== 'cinematic-hero' && b.legacy?.type !== 'hero' ? <label>قالب آمادهٔ بخش<select value="" onChange={e => { const preset = SECTION_PRESETS.find(x => x.id === e.target.value); if (preset) change({ ...b, style: structuredClone(preset.style) }); }}>
       <option value="">انتخاب قالب… (ظاهر فعلی جایگزین می‌شود؛ «بازگشت» آن را برمی‌گرداند)</option>{SECTION_PRESETS.map(x => <option key={x.id} value={x.id}>{x.label}</option>)}</select></label> : null}
     <details open><summary className="cursor-pointer font-bold">ابعاد و فاصله‌ها — {device === 'desktop' ? 'دسکتاپ' : device === 'tablet' ? 'تبلت' : 'موبایل'}</summary>
@@ -43,6 +44,7 @@ export function BlockSettings({ block: b, change, device, media, pick, data }: {
       <label>سایه<select value={b.style.shadow ?? 'none'} onChange={e => style({ shadow: e.target.value as 'none' | 'soft' | 'raised' })}><option value="none">بدون سایه</option><option value="soft">ملایم</option><option value="raised">برجسته</option></select></label>
       <label>قالب کارت<select value={b.style.template ?? 'classic'} onChange={e => style({ template: e.target.value as 'classic' | 'compact' | 'horizontal' | 'outlined' })}><option value="classic">کلاسیک</option><option value="compact">فشرده</option><option value="horizontal">افقی</option><option value="outlined">حاشیه‌دار</option></select></label>
     </details>
+    </> : <p className="text-xs leading-6">قاب شفاف، ستون‌ها و جایگاه بخش‌ها مطابق طرح تأییدشده‌اند. رنگ‌ها و باکس‌های جدید از «طراحی و باکس‌ها» تغییر می‌کنند.</p>}
     <details><summary className="cursor-pointer font-bold">زمان‌بندی نمایش</summary>
       <p className="text-xs">زمان بر اساس منطقهٔ زمانی مرورگر شما است.</p>
       {(['startsAt', 'endsAt'] as const).map(key => <label key={key}>{key === 'startsAt' ? 'شروع' : 'پایان'}<input type="datetime-local" value={b[key] ? new Date(Date.parse(b[key]!) - new Date(b[key]!).getTimezoneOffset() * 60000).toISOString().slice(0, 16) : ''} onChange={e => change({ ...b, [key]: e.target.value ? new Date(e.target.value).toISOString() : null })} /></label>)}
@@ -106,7 +108,7 @@ function Release({ url, library }: { url: string; library: Map<string, BuilderMe
  * The opening film: an ordered list of clips (each with its own desktop/mobile movie and posters), independent
  * desktop/mobile still images, playback mode and the logo. Movies and images come from the media library.
  */
-function FilmSettings({ block: b, change, pick }: { block: BuilderBlock & { film: BuilderFilm }; change: (block: BuilderBlock) => void; pick: MediaPick }) {
+function FilmSettings({ block: b, change, pick, titanium = false }: { block: BuilderBlock & { film: BuilderFilm }; change: (block: BuilderBlock) => void; pick: MediaPick; titanium?: boolean }) {
   const film = b.film;
   const [library, setLibrary] = useState(new Map<string, BuilderMedia>());
   useEffect(() => { void api<BuilderMedia[]>('/admin/content/media?q=').then(rows => setLibrary(new Map(rows.map(r => [r.url, r])))).catch(() => undefined); }, [film]);
@@ -141,8 +143,9 @@ function FilmSettings({ block: b, change, pick }: { block: BuilderBlock & { film
       <ImageField id={`film-${key}`} label={label} value={b[key]} onChange={url => change({ ...b, [key]: url })} />
       <Button size="sm" variant="secondary" onClick={() => pick('image', m => change({ ...b, [key]: m.url }))}>انتخاب از کتابخانه</Button><Release url={b[key]} library={library} /></div>)}
     <LocalizedField id="film-alt" path="alt" label="توضیح تصویر برای صفحه‌خوان" value={b.alt} onChange={alt => change({ ...b, alt })} maxLength={160} errors={{}} />
-    <label>نحوهٔ پخش<select value={film.playback} onChange={e => set({ playback: e.target.value as BuilderFilm['playback'] })}><option value="once">یک بار پخش و توقف روی آخرین تصویر</option><option value="loop">تکرار پیوسته</option><option value="static">فقط تصویر — بدون فیلم</option></select></label>
-    <h3 className="mt-4 font-bold">لوگو روی فیلم</h3>
+    <label>نحوهٔ پخش<select value={titanium && film.playback !== 'static' ? 'loop' : film.playback} onChange={e => set({ playback: e.target.value as BuilderFilm['playback'] })}>{!titanium ? <option value="once">یک بار پخش و توقف روی آخرین تصویر</option> : null}<option value="loop">تکرار پیوسته</option><option value="static">فقط تصویر — بدون فیلم</option></select></label>
+    {!titanium ? <h3 className="mt-4 font-bold">لوگو روی فیلم</h3> : null}
+    {!titanium ? <>
     <label className="!flex-row items-center"><input type="checkbox" checked={film.logoAt !== null} onChange={e => set({ logoAt: e.target.checked ? 9.8 : null })} />نمایش لوگو (فقط یک بار)</label>
     {film.logoAt !== null ? <>
       <label>زمان ظاهرشدن در آخرین فیلم (ثانیه)<input type="number" min={0} max={120} step={0.1} value={film.logoAt} onChange={e => set({ logoAt: Math.max(0, Math.min(120, Number(e.target.value) || 0)) })} /></label>
@@ -150,5 +153,6 @@ function FilmSettings({ block: b, change, pick }: { block: BuilderBlock & { film
       <ImageField id="film-logo" label="لوگوی اختصاصی (خالی = لوگوی سایت)" value={film.logoUrl} onChange={logoUrl => set({ logoUrl })} />
     </> : null}
     <label className="!flex-row items-center"><input type="checkbox" checked={film.discovery} onChange={e => set({ discovery: e.target.checked })} />کارت‌ها و دسته‌بندی‌ها در بخش مستقل زیر بنر</label>
+    </> : null}
   </details>;
 }

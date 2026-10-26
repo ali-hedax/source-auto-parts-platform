@@ -24,7 +24,7 @@ jobs:
           REVISION: ${{ github.sha }}
         run: |
           set -euo pipefail
-          for target in api worker web tools; do
+          for target in web; do
             docker build --target "$target" --label "org.opencontainers.image.revision=$REVISION" \
               --build-arg PUBLIC_BASE_URL=https://sourcebyhedax.ir \
               --build-arg API_INTERNAL_URL=http://api:4000/api/v1 \
@@ -32,7 +32,7 @@ jobs:
               -t "hedax-titanium-$target:$REVISION" -f infra/docker/Dockerfile .
           done
           mkdir release-images
-          docker save "hedax-titanium-api:$REVISION" "hedax-titanium-worker:$REVISION" "hedax-titanium-web:$REVISION" "hedax-titanium-tools:$REVISION" | gzip -1 > release-images/images.tar.gz
+          docker save "hedax-titanium-web:$REVISION" | gzip -1 > release-images/images.tar.gz
           printf '%s\n' "$REVISION" > release-images/revision.txt
           cd release-images && sha256sum images.tar.gz > SHA256SUMS
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
