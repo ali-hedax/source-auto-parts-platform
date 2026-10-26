@@ -12,6 +12,8 @@ import { isApiError } from '@/lib/api/errors';
 import { Button } from '@/components/ui/button';
 import { Link } from '@/i18n/navigation';
 import { BuilderView } from './view';
+import { TitaniumHome } from '@/components/store/titanium-home';
+import '@/components/store/titanium.css';
 import { PreviewFrame } from './preview-frame';
 import { SiteHeaderView } from '@/components/layout/site-header-view';
 import { SiteFooterView } from '@/components/layout/site-footer-view';
@@ -125,7 +127,7 @@ export function VisualBuilder({ slug = 'home', fullPreview = false, logos = NO_L
   const canPublish = me?.kind === 'STAFF' && (me.isOwner || me.permissions.includes('content.publish'));
   const header = <SiteHeaderView content={data.content} chrome={doc.chrome} currency="IRR" />;
   const footer = <SiteFooterView content={data.content} chrome={doc.chrome} now={data.now} />;
-  if (fullPreview) return <><p className="mb-4 rounded-xl bg-blue-50 p-4">پیش‌نمایش خصوصی — این پیش‌نویس برای بازدیدکنندگان نمایش داده نمی‌شود.</p>{header}<BuilderView document={doc} data={data} locale={locale} />{footer}</>;
+  if (fullPreview) return <><p className="mb-4 rounded-xl bg-blue-50 p-4">پیش‌نمایش خصوصی — این پیش‌نویس برای بازدیدکنندگان نمایش داده نمی‌شود.</p><div className="store titanium-store">{header}<main>{slug === 'home' ? <TitaniumHome document={doc} data={data} locale={locale} /> : <BuilderView document={doc} data={data} locale={locale} />}</main>{footer}</div></>;
   return <div className="builder-editor" dir="rtl">
     <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><p className="text-sm text-steel">SOURCE BY HEDAX</p><h1 className="text-2xl font-bold">مدیریت ظاهر سایت</h1><p className="mt-1 text-sm text-steel">{doc.title.fa} — بخش را انتخاب کنید، تغییر دهید و سپس منتشر کنید.</p></div><Link href={slug === 'home' ? '/' : ['about', 'contact'].includes(slug) ? `/${slug}` : `/pages/${slug}`} target="_blank" className="text-action underline">مشاهده صفحه عمومی</Link></div>
     <div className="builder-toolbar">
@@ -157,7 +159,7 @@ export function VisualBuilder({ slug = 'home', fullPreview = false, logos = NO_L
         <aside className="builder-panel"><h2 className="mb-3 font-bold">بخش‌ها و لایه‌ها</h2><DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={drop}><SortableContext items={doc.sections.map(b => b.id)} strategy={verticalListSortingStrategy}><ol>{doc.sections.map((b, i) => <Layer key={b.id} block={b} index={i} total={doc.sections.length} selected={selected === b.id} select={() => setSelected(b.id)} toggle={() => changeBlock({ ...b, visible: !b.visible })} remove={() => change({ ...doc, sections: doc.sections.filter(x => x.id !== b.id) })} duplicate={() => { if (doc.sections.length >= 40) return; const id = crypto.randomUUID(); change({ ...doc, sections: [...doc.sections.slice(0, i + 1), { ...structuredClone(b), id }, ...doc.sections.slice(i + 1)] }); setSelected(id); }} move={offset => move(i, i + offset)} />)}</ol></SortableContext></DndContext>
           <label>افزودن بخش<select value={kind} onChange={e => setKind(e.target.value as BuilderBlock['kind'])}>{BUILDER_KINDS.filter(k => k !== 'legacy').map(k => <option key={k} value={k}>{blockLabels[k]}</option>)}</select></label><Button className="w-full" size="sm" disabled={doc.sections.length >= 40} onClick={() => { const b = newBuilderBlock(kind, crypto.randomUUID()); b.title.fa = blockLabels[kind]; change({ ...doc, sections: [...doc.sections, b] }); setSelected(b.id); }}>افزودن بخش جدید</Button>
         </aside>
-        <div className="builder-canvas"><PreviewFrame width={device === 'mobile' ? 390 : device === 'tablet' ? 768 : 1280} locale={locale}><div onClickCapture={e => { e.preventDefault(); e.stopPropagation(); setTab(6); }}>{header}</div><BuilderView document={doc} data={data} locale={locale} editing selectedId={selected} onSelect={setSelected} /><div onClickCapture={e => { e.preventDefault(); e.stopPropagation(); setTab(6); }}>{footer}</div></PreviewFrame></div>
+        <div className="builder-canvas"><PreviewFrame width={device === 'mobile' ? 390 : device === 'tablet' ? 768 : 1280} locale={locale}><div className="store titanium-store"><div onClickCapture={e => { e.preventDefault(); e.stopPropagation(); setTab(6); }}>{header}</div><BuilderView document={doc} data={data} locale={locale} editing selectedId={selected} onSelect={setSelected} /><div onClickCapture={e => { e.preventDefault(); e.stopPropagation(); setTab(6); }}>{footer}</div></div></PreviewFrame></div>
         <aside className="builder-panel builder-panel-settings">{block ? <BlockSettings data={data} block={block} change={changeBlock} device={device} pick={(kind, apply) => { setMediaTarget({ id: block.id, mobile: false, kind, apply }); setTab(2); }} media={mobile => { setMediaTarget({ id: block.id, mobile }); setTab(2); }} /> : <p className="text-sm">بخشی را در پیش‌نمایش یا فهرست انتخاب کنید.</p>}</aside>
       </div>
     </>}

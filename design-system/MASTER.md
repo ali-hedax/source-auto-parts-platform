@@ -123,3 +123,21 @@
 - فارسی: `lang="fa" dir="rtl"`، Vazirmatn، ارقام فارسی، تقویم جلالی به وقت تهران.
 - انگلیسی: `lang="en" dir="ltr"`، Montserrat (Vazirmatn برای متن فارسی)، ارقام لاتین، تقویم میلادی به وقت تهران.
 - سرصفحه با زمینهٔ Dark Carbon و متن Metallic Silver؛ واحد پول و شمارهٔ نسخه همیشه نمایش داده می‌شود؛ هیچ هزینهٔ داخلی یا یادداشت کارکنان در سند نیست. نمونه‌ها: `docs/test-artifacts/quote-fa.pdf` و `quote-en.pdf`.
+
+## Owner-approved storefront override — 2026-10-26
+
+This section supersedes the older storefront rules about white sheets, horizontal chapter bands, orange/red purchase bars and avoiding gradients. Admin data-management surfaces retain their existing system.
+
+- One uninterrupted titanium gradient from dark graphite `#29313A` through satin titanium `#99A7B4` to light silver `#D2D9DF`, spanning header through footer. No horizontal section rules or alternating opaque backgrounds.
+- Transparent cards float using sapphire `#0060F5` / ice-blue `#299BFF` bevel edges and restrained shadows. No filled coloured card interiors. Product pictures remain real catalogue photographs; the generated groups are marketing illustrations only.
+- Approved Source geometry, distinctive S/blue corner and small right-aligned by HEDAX. Quiet header; full logo remains on phones. Search is available through the catalogue; language/currency stay reachable in the mobile drawer.
+- Latest owner revision: full-width narrow looping existing opening film; repeating two-line typed slogan below it. No static hero parts picture or hero shopping CTA buttons. Pause controls and reduced-motion still/full-text fallback remain accessible.
+- Six illustrated shopping groups: service/consumables; steering/suspension; engine/drivetrain; lighting/electrical; body/exterior; upgrades/accessories. Links use actual category records when present, otherwise a transparent catalogue text search; this UI change does not create taxonomy or inventory records.
+- Homepage order: opening film → typed slogan → existing four-step finder → six illustrated groups → published products → brands → three-column automotive hub → FAQ → compact sourcing invitation with Source box → thinner existing compact brand film → four-column footer. Respect published collection visibility/schedules; no CMS document or product/order data writes.
+- Four product columns on desktop, two on tablets, one on phones; preserve real names, SKU, availability, price/currency and purchase/sourcing actions. Keep count-unit suffix suppression for New products.
+- New sections must inherit this same surface language. Storefront CSS lives in `components/store/titanium.css`; new opaque chapter backgrounds are not permitted by this approved direction.
+- Current isolated implementation is based on committed finder branch `c4453b6`. New uncommitted finder/home-shell work in the separate VS Code checkout is intentionally not copied or overwritten. Reconcile those subsequent changes before any eventual release.
+
+- Automotive hub: three transparent raised cards with illustrative covers, after brands and before FAQ. Prices remain unavailable until a real source is connected; basic technical guidance is static; video selection explicitly awaits Aparat. No fabricated current prices, viewing counts or rankings. Native disclosure controls must work with keyboard.
+
+- Owner refinement 2026-10-26: opening movie/still must fit completely (contain) inside a restrained black strip, ~288px desktop/170px phone. Persian slogan uses fluid staggered light-wave entry; English tagline beneath types slowly with caret. Shared pause/reduced-motion display complete text. Footer contacts use aligned icon/label/value rows and an ordered social rail; absent destinations stay explicit, never fabricated.

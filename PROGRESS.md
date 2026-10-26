@@ -1,6 +1,6 @@
 # Source by HEDAX — وضعیت و نقطهٔ ادامه
 
-آخرین به‌روزرسانی: 2026-10-25 19:40، Asia/Tehran؛ «انتخاب خودرو» و «مسیرهای خرید و دسته‌بندی قطعات» فقط روی صفحهٔ اصلی Preview جدا، بلافاصله بعد از Hero فعال و آزموده شدند (PR پیش‌نویس #42، منتظر تأیید مالک). Production تغییری نکرده است.
+آخرین به‌روزرسانی: 2026-10-26، Asia/Tehran؛ طرح تیتانیومی و سه باکس مجله/بازار/ویدیو در پیش‌نمایش محلی اجرا و بررسی شدند. Production تغییری نکرده است.
 
 > توجه: این worktree جدا (`Desktop/source-premium-experience`) است. checkpoint انتشار
 > PR #29 در PROGRESS.md پوشهٔ اصلی (شاخهٔ `codex/assistant-phase-one`، تغییر commit‌نشدهٔ
@@ -11,6 +11,26 @@
 هیچ رمز، توکن، دادهٔ مشتری یا محتوای محرمانهٔ فایل تأمین‌کننده در این فایل ثبت نشود.
 
 ## نقطهٔ فعلی
+
+### Completed & Tested — headline motion and contact refinement — 2026-10-26, Asia/Tehran
+
+- Owner retained the overall design and requested complete film framing, more expressive Persian slogan motion, an orderly contact area, then slow typewriter English beneath it. Opening strip now uses contain for video AND still (no picture cropping), modest desktop height288px at1440 and mobile170px; black pillar space preserves the entire frame. Existing movie sources and playback policy unchanged.
+- Persian lines enter in staggered fluid waves with a restrained sapphire/silver light sweep and long readable hold. English tagline types character-by-character over ~6.7 seconds with caret, holds, and repeats. Shared pause displays complete static text; reduced-motion shows static text without effects. Persian letters remain joined.
+- Footer now has aligned icon/label/value rows for WhatsApp, phone numbers/extensions, email, support hours and address, followed by ordered WhatsApp/Instagram/LinkedIn/Telegram/Bale icons. Values come from existing content; absent address explicitly says not provided, missing account links are noninteractive labelled placeholders. Other existing networks are retained. Desktop/tablet grid and mobile two-column contacts verified; social targets44px. No invented address/account or remote content writes.
+- Verification: final web TypeScript noEmit exit0; targeted ESLint all3 changed TSX exit0 (existing pages-directory rule diagnostic only). Browser1440/390: no overflow, complete-picture contain sizing, new wave/typewriter animation names and changing text reveal width verified, pause restores full text, social targets44x44. Footer screenshot saved in chat outputs. git diff check passes.
+- External limitation: current public Preview media endpoint times out; existing opening poster failed to load and playback fell back to still in the local browser. Production fallback for this Preview-owned movie returned403; no replacement movie was invented. Complete framing is implemented but final visible playback with this source needs recheck when the public media endpoint responds. Previous milestone playback evidence predates this source outage.
+- Still local branch `codex/titanium-layout` at base `c4453b6`; no commit/push/deploy/remote changes. Review patch refreshed. Next: review latest visual changes, recheck opening playback when source recovers, reconcile newer finder work before any separately authorized release.
+
+### Completed & Tested — local titanium storefront and automotive hub — 2026-10-26, Asia/Tehran
+
+- Branch `codex/titanium-layout`, dependency/base `c4453b6` after fetched main `fe52169`. Separate VS Code finder checkout and its ongoing uncommitted changes remain untouched; reconcile those newer changes before eventual release. Current implementation reuses the committed four-step finder.
+- Implemented TitaniumHome, continuous titanium/sapphire surface, approved logo, quiet responsive header, accessible repeating slogan, six illustrated shopping groups, published product/brand collections, four-column footer and matching private builder preview. Existing movies now form full-width looping strips: opening ~259px and closing ~170px at1440; smaller Source-box sourcing invitation immediately above closing film, which directly precedes footer. Preserve CMS visibility/schedules and actual catalogue fields/actions; no remote data writes.
+- Latest owner request completed: THREE covered columns after brands and before FAQ: daily car prices (sample names and dash values, no invented prices), magazine/basic technical guide (working native disclosure), popular-video shell (illustrative cover and explicit pending Aparat connection). No live feeds, daily scheduler, video rankings or API integrations enabled. These connections are Deferred Later.
+- Web TypeScript noEmit, targeted ESLint for changed TSX and message consistency check passed exit0. Final browser matrix FA/EN at1440/768/390/360 passed: no horizontal overflow, one H1, six groups, three hub cards, four products/finder steps, two films, transparent card interiors, correct hub/FAQ/sourcing/movie/footer order, no hero shopping CTA. All three FAQ disclosures open with nonempty authoritative answers and close; basic guide, mobile language/currency, typing pause/resume and both movie playback/loop behaviors verified. Evidence: chat outputs `titanium-final-acceptance.json`, `titanium-faq-checks.json`, final screenshots.
+- Local preview `127.0.0.1:3290` reads public sample Preview data through read-only helper3292, with visible notice; all non-GET/HEAD methods rejected (POST405 verified), no credentials forwarded, no local database or .env copied. Compressed content-length forwarding failure was fixed locally. Owned public media fallback supplies the existing smoke/car film. Neither Production nor hosted Preview was changed.
+- Dependencies: offline metadata missing / registry resets caused install cancellation; existing installed packages reused through local junctions and local contracts/domain built. No package or lockfile changes. Next-generated next-env.d.ts is restored before packaging; build/cache/runtime helpers excluded from deliverable. Production build and authenticated/checkout acceptance were not run.
+- Reviewable code and generated marketing-only WebP assets retained locally; binary Git patch saved to chat outputs. No push, PR, merge, deployment, migration/import, order/payment, Kling generation or credit purchase. Next: owner reviews local design, then separately authorize any live-feed integration/release after reconciling newer finder work.
+
 
 ### Requires Owner Decision — vehicle finder and shopping paths active on Preview home only (branch feature/iran-vehicle-finder, draft PR #42) — 2026-10-25 19:40, Asia/Tehran
 

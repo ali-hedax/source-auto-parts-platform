@@ -4,11 +4,13 @@ import * as RDialog from '@radix-ui/react-dialog';
 import Image from 'next/image';
 import { Menu, X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
+import type { Currency } from '@hedax/contracts';
+import { CurrencySwitcher, LocaleSwitcher } from './switchers';
 import { Link, usePathname } from '@/i18n/navigation';
 
 /** Drawer navigation for small screens (focus trapped, Escape closes, focus returns). */
-export function MobileNav({ items }: { items: Array<{ href: string; label: string }> }) {
+export function MobileNav({ items, currency = 'IRR' }: { items: Array<{ href: string; label: string }>; currency?: Currency }) {
   const t = useTranslations('common');
   const tn = useTranslations('nav');
   const locale = useLocale();
@@ -56,6 +58,7 @@ export function MobileNav({ items }: { items: Array<{ href: string; label: strin
               })}
             </ul>
           </nav>
+          <div className="flex items-center gap-4 px-4 py-5"><Suspense fallback={null}><LocaleSwitcher /></Suspense><CurrencySwitcher initial={currency} /></div>
         </RDialog.Content>
       </RDialog.Portal>
     </RDialog.Root>

@@ -3,9 +3,9 @@ import type { Metadata } from 'next';
 import { setRequestLocale } from 'next-intl/server';
 import { getSiteContent, seoMetadata } from '@/lib/site-content';
 import { getBuilderData, getPublishedBuilder } from '@/lib/builder-server';
-import { BuilderView } from '@/components/builder/view';
-import { LegacyHomeView } from '@/components/builder/legacy-home';
-import { MakersHomeSection } from '@/components/catalog/makers-home';
+import type { FinderGroupView } from '@hedax/contracts';
+import { serverApi } from '@/lib/api/server';
+import { TitaniumHome } from '@/components/store/titanium-home';
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
@@ -26,11 +26,6 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   const document = await getPublishedBuilder('home');
   const data = await getBuilderData(document);
   if (!data.content) return null;
-  if (document) return <BuilderView document={document} data={data} locale={locale} />;
-  const visible = data.content.home.sections.filter(s => s.visible);
-  const blocks = visible.map(section => <LegacyHomeView key={section.id} {...data} content={{ ...data.content!, home: { sections: [section] } }} locale={locale} />);
-  // Browsing by part brand (maker) comes after the vehicle brands (or after the hero, without them).
-  const after = visible.findIndex(s => s.type === 'brands');
-  if (data.makers.length) blocks.splice(after >= 0 ? after + 1 : visible.findIndex(s => s.type === 'hero') + 1, 0, <MakersHomeSection key="makers" makers={data.makers} />);
-  return <div className="autodoc-inspired-home">{blocks}</div>;
+  if (!document?.sections.some(b => b.kind === 'vehicle-finder')) data.finderGroups = await serverApi<FinderGroupView[]>('/catalog/vehicle-finder/groups', { publicCache: 60 }).catch(() => []);
+  return <TitaniumHome document={document} data={data} locale={locale} />;
 }
