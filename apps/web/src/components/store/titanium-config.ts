@@ -23,5 +23,5 @@ export function newTitaniumConfig(): BuilderBlock {
 }
 export function titaniumCanvasStyle(config: BuilderBlock | undefined): CSSProperties {
   if (!config) return {};
-  return { ...(config.style.background ? { '--ti-top': config.style.background } : {}), ...(config.style.foreground ? { '--ti-bottom': config.style.foreground } : {}), ...(config.style.borderColor ? { '--ti-blue': config.style.borderColor } : {}) } as CSSProperties;
+  return { ...(config.style.background ? { '--ti-top': config.style.background } : {}), ...(config.style.foreground ? { '--ti-bottom': config.style.foreground } : {}), ...(config.style.borderColor ? { '--ti-blue': config.style.borderColor, '--ti-edge': config.style.borderColor, '--ti-float': `inset 0 0 0 1px #e3f7ff77, 0 0 0 1px ${config.style.borderColor}, 0 0 8px color-mix(in srgb, ${config.style.borderColor} 40%, transparent), 0 12px 24px -15px #071526ab` } : {}) } as CSSProperties;
 }
