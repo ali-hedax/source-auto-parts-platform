@@ -431,8 +431,9 @@
 .titanium-footer .titanium-social-row > :is(a,span) { color: #dce7f5; border-color: #a0b3cb; box-shadow: inset 0 1px 1px #f4f8ff55, 0 0 8px #c5daf525; }
 .titanium-footer .titanium-social-row a:hover { border-color: #edf5ff; box-shadow: 0 0 12px #d5e7ff55; }
 .titanium-footer .titanium-social-row .titanium-social-pending { color: #9baec5; }
-.titanium-hero .titanium-type-visual { background-image: linear-gradient(105deg,#c5d1df 20%,#8fa4be 40%,#fff 48%,#afc0d5 56%,#c5d1df 76%); }
+.titanium-hero .titanium-slogan h1 .titanium-type-visual { display: none; }
 .titanium-slogan .titanium-english-visual { border-right-color: #d6e3f3; }
 @media(prefers-reduced-motion:no-preference) {
+  .titanium-hero .titanium-slogan:not([data-paused=true]) h1 .titanium-type-visual { display: block; background-image: linear-gradient(105deg,#c5d1df 20%,#8fa4be 40%,#fff 48%,#afc0d5 56%,#c5d1df 76%); }
   .titanium-path:hover { box-shadow: var(--ti-float), 0 0 16px #d6e7ff33; }
 }
