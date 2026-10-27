@@ -25,7 +25,9 @@ export class AssistantService {
     };
     return { provider: this.env.ASSISTANT_AI_PROVIDER, model: this.env.ASSISTANT_TEXT_MODEL, configured, liveCallsEnabled: this.env.ASSISTANT_LIVE_CALLS_ENABLED, assistantEnabled: settings.enabled, timeoutMs: this.env.ASSISTANT_TIMEOUT_MS, maxOutputTokens: settings.ai.maxOutputTokens, dailyRequestLimit: settings.ai.dailyRequestLimit,
       checks, configurationReady: Object.values(checks).every(Boolean), connectionVerified: false,
-      knowledgeSource: 'catalog_products', referenceDocumentsConnected: false,
+      // Only the local retrieval path is known here. A gateway can independently attach RAG.
+      knowledgeSource: 'catalog_products', referenceDocumentsSynced: false,
+      referenceDocumentsConnected: null, externalKnowledgeStatus: 'UNVERIFIED',
     };
   }
 

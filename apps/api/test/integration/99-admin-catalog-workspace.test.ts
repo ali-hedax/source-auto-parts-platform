@@ -104,7 +104,7 @@ describe('catalog administration workflows with real persistence', () => {
     const customer = await loginCustomer(app);
     expect((await customer.get('/admin/knowledge-catalog')).status).toBe(403);
     const status = await owner.get('/admin/assistant/status');
-    expect(status.body).toMatchObject({ connectionVerified: false, referenceDocumentsConnected: false, knowledgeSource: 'catalog_products', configurationReady: false });
+    expect(status.body).toMatchObject({ connectionVerified: false, referenceDocumentsConnected: null, referenceDocumentsSynced: false, externalKnowledgeStatus: 'UNVERIFIED', knowledgeSource: 'catalog_products', configurationReady: false });
     expect(JSON.stringify(status.body)).not.toContain('ARVAN_AI_API_KEY');
   });
 });

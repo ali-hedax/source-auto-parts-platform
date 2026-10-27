@@ -112,8 +112,8 @@ test('assistant diagnostics distinguish configuration and reference files from a
   await page.route('**/api/v1/admin/settings/assistant**', route => route.fulfill({ json: { ...DEFAULT_ASSISTANT_SETTINGS, version: 1 } }));
   await page.goto('/fa/admin/assistant');
   await expect(page.getByText('حالت آزمایشی؛ اتصال واقعی نیست')).toBeVisible();
-  await expect(page.getByText('منبع فعلی: اطلاعات ثبت‌شدهٔ محصولات')).toBeVisible();
-  await expect(page.getByText(/بارگذاری یا تأیید یک PDF به معنی آموزش دستیار نیست/)).toBeVisible();
+  await expect(page.getByText('منبع مستقیم سایت: اطلاعات ثبت‌شدهٔ محصولات')).toBeVisible();
+  await expect(page.getByText(/پایگاه دانش خارجی می‌تواند در خودِ درگاه آروان متصل باشد/)).toBeVisible();
 });
 
 test('read-only staff see no import/create actions and cannot submit the part form', async ({ page }) => {

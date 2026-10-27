@@ -49,8 +49,10 @@ years; part fitment remains a separate product-level record.
 The admin status now lists real runtime configuration gates without displaying a
 credential or making a paid request. Configured, mock and verified connectivity
 are distinct. The existing assistant retrieves product facts through CatalogService.
-Reference documents and external Arvan RAG are **not connected** to this answer
-path. No credential, provider setting or paid service was changed by this work.
+The site does not automatically sync reference documents. The gateway may attach
+its own external RAG independently, so runtime status reports this as unverified
+rather than disconnected. Opening settings does not verify its indexed content.
+No credential, provider setting or paid service was changed by this work.
 
 ## Verification and deployment
 

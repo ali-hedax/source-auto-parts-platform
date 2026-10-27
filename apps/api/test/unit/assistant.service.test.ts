@@ -7,6 +7,14 @@ const env = { ASSISTANT_AI_PROVIDER: 'mock', ASSISTANT_LIVE_CALLS_ENABLED: false
 const product = { slug: 'brake-pad', sku: 'SYN-1', name: { fa: 'لنت ترمز', en: 'Brake pad' }, partNumber: '58101-TEST', availability: 'IN_STOCK', unit: { name: 'دست', nameEn: 'set' }, price: { kind: 'price', payable: { amount: '1000', currency: 'IRR' }, display: { amount: '1000', currency: 'IRR' }, displayIsReference: false }, fitments: [], primaryImage: null };
 
 describe('AssistantService isolated provider', () => {
+  it('does not infer remote knowledge connectivity from the local product retrieval path', async () => {
+    const list = vi.fn(); const fetchMock = vi.spyOn(globalThis, 'fetch');
+    const service = new AssistantService(env, { list } as unknown as CatalogService, { assistant: vi.fn().mockResolvedValue({ enabled: true, ai: { maxOutputTokens: 200, dailyRequestLimit: 5 } }) } as never, {} as never);
+    try {
+      expect(await service.status()).toMatchObject({ knowledgeSource: 'catalog_products', referenceDocumentsSynced: false, referenceDocumentsConnected: null, externalKnowledgeStatus: 'UNVERIFIED', connectionVerified: false });
+      expect(fetchMock).not.toHaveBeenCalled(); expect(list).not.toHaveBeenCalled();
+    } finally { fetchMock.mockRestore(); }
+  });
   it('uses CatalogService facts and never asks the mock model to invent product fields', async () => {
     const list = vi.fn().mockResolvedValue({ items: [product], total: 1, page: 1, pageSize: 4, query: 'لنت' });
     const service = new AssistantService(env, { list } as unknown as CatalogService, { assistant: vi.fn().mockResolvedValue({ enabled: true, ai: { systemPrompt: { fa: 'test', en: 'test' }, maxOutputTokens: 200, dailyRequestLimit: 5 } }) } as never, { estimate: vi.fn(), reserve: vi.fn(), actual: vi.fn(), settle: vi.fn() } as never);
