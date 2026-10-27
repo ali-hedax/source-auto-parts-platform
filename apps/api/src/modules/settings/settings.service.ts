@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { assistantSettingsSchema, DEFAULT_ASSISTANT_SETTINGS, siteSettingsSchema, type ShippingOptionView } from '@hedax/contracts';
+import { assistantSettingsSchema, DEFAULT_ASSISTANT_AI, DEFAULT_ASSISTANT_SETTINGS, siteSettingsSchema, type ShippingOptionView } from '@hedax/contracts';
 import type { BusinessCalendar, TaxRule } from '@hedax/domain';
 import type { z } from 'zod';
 import type { PolicyKind } from '../../generated/prisma/enums.js';
@@ -15,7 +15,7 @@ export class SettingsService {
 
   async assistant() {
     const row = await this.prisma.siteSetting.findUnique({ where: { key: 'assistant.phase1' } });
-    return { ...assistantSettingsSchema.parse(row?.value ?? DEFAULT_ASSISTANT_SETTINGS), version: row?.version ?? 0 };
+    return { ...assistantSettingsSchema.parse(row?.value ?? { ...DEFAULT_ASSISTANT_SETTINGS, ai: DEFAULT_ASSISTANT_AI }), version: row?.version ?? 0 };
   }
 
   async site(tx?: Tx): Promise<SiteSettings & { version: number }> {
