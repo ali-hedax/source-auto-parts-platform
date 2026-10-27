@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Production rollout of release 289d257 (PR #51: Hexi conversation log + persona prompt).
+# Production rollout of release 5d18d21 (PR #51 Hexi messages + PR #50/#52 navy storefront).
 # Run as root on the Production server:   bash rollout-hexi.sh
 #
 # What it does, in order (stops at the first problem; nothing is deleted):
@@ -13,10 +13,10 @@
 #   8. on any failure after step 7 started: switches back to the previous images automatically
 set -euo pipefail
 
-TAG="289d257b7cc1-production"
+TAG="5d18d21cde04-production"
 REG="ghcr.io/ali-hedax"
 STAMP="$(date +%Y%m%d-%H%M%S)"
-DIR="/opt/hedax-release-candidates/hexi-289d257-${STAMP}"
+DIR="/opt/hedax-release-candidates/release-5d18d21-${STAMP}"
 SITE="https://sourcebyhedax.ir"
 
 say() { printf '\n==> %s\n' "$*"; }
