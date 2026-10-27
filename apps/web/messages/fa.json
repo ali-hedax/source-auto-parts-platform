@@ -892,6 +892,7 @@
     "auditAction_role_updated": "ویرایش نقش",
     "auditAction_settings_updated": "تغییر تنظیمات سایت",
     "auditAction_assistant_settings_updated": "تغییر تنظیمات راهنمای سایت",
+    "auditAction_assistant_conversation_deleted": "حذف گفتگوی دستیار هوشمند",
     "auditAction_shipping_created": "ساخت روش ارسال",
     "auditAction_shipping_updated": "ویرایش روش ارسال",
     "auditAction_sourcing_assigned": "ارجاع درخواست تأمین",
@@ -920,6 +921,7 @@
     "auditEntity_staff_invitation": "دعوت کارمند",
     "auditEntity_sourcing_request": "درخواست تأمین",
     "auditEntity_site_setting": "تنظیمات سایت",
+    "auditEntity_assistant_conversation": "گفتگوی دستیار هوشمند",
     "auditEntity_shipping_method": "روش ارسال",
     "auditEntity_procurement_item": "قلم تأمین",
     "auditEntity_procurement": "سفارش تأمین",
@@ -1204,7 +1206,7 @@
     "makersTitle": "مرور بر اساس برند سازنده"
   },
   "assistant": {
-    "open": "باز کردن راهنمای HEDAX",
+    "open": "باز کردن هکسی، راهنمای سورس",
     "close": "بستن راهنما",
     "minimize": "کوچک‌کردن کاراکتر",
     "expand": "بزرگ‌کردن کاراکتر",
@@ -1213,8 +1215,8 @@
     "pause": "توقف حرکت",
     "resume": "ادامهٔ حرکت",
     "launcher": "کمک می‌خواهید؟",
-    "phase": "دستیار متنی HEDAX",
-    "disclaimer": "پیام برای پاسخ‌گویی به سرویس هوش مصنوعی ارسال می‌شود. پاسخ ممکن است خطا داشته باشد؛ سازگاری، قیمت و موجودی را پیش از خرید تأیید کنید. اطلاعات حساس نفرستید.",
+    "phase": "دستیار هوشمند سورس",
+    "disclaimer": "پیام برای پاسخ‌گویی به سرویس هوش مصنوعی ارسال می‌شود و برای بهبود کیفیت پاسخ‌ها تا ۹۰ روز نگهداری می‌شود. پاسخ ممکن است خطا داشته باشد؛ سازگاری، قیمت و موجودی را پیش از خرید تأیید کنید. اطلاعات حساس نفرستید.",
     "input": "نام قطعه، شماره فنی یا پرسش",
     "send": "ارسال"
   },

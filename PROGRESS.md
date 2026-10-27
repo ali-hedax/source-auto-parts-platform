@@ -1,6 +1,6 @@
 # Source by HEDAX — وضعیت و نقطهٔ ادامه
 
-آخرین به‌روزرسانی: 2026-10-27، Asia/Tehran؛ کد نهایی 05b1060 و صفحهٔ اصلی نسخهٔ 240 روی Production منتشر شدند. بررسی نهایی و سامان‌دهی فضای دیسک ادامه دارد.
+آخرین به‌روزرسانی: 2026-10-27 18:25، Asia/Tehran؛ شاخهٔ بازبینی feat/hexi-assistant-messages (پیام‌های هکسی و پرامپت) آماده و منتشرنشده است. کد نهایی 05b1060 و صفحهٔ اصلی نسخهٔ 240 روی Production منتشر شدند. بررسی نهایی و سامان‌دهی فضای دیسک ادامه دارد.
 
 > مرجع فعلی انتشار: work/source-release-final روی05b1060. یادداشت‌های worktreeهای
 > قدیمی تاریخی‌اند؛ تغییرات محلی کاربر در آن‌ها حفظ شده‌اند و نباید بازنویسی شوند.
@@ -10,6 +10,15 @@
 هیچ رمز، توکن، دادهٔ مشتری یا محتوای محرمانهٔ فایل تأمین‌کننده در این فایل ثبت نشود.
 
 ## نقطهٔ فعلی
+
+### Implemented Pending Verification — Hexi guide: conversation log + persona prompt — 2026-10-27 18:25 Asia/Tehran
+
+- Branch `feat/hexi-assistant-messages` from `main` @ `0ea4336`; reviewable PR only. **Not merged, not deployed; no Production migration, data or settings change.** Owner approval is required before merge/deploy (AGENTS.md).
+- Owner requests (2026-10-27): the guide is named «هکسی» / Hexi (with ک); save every visitor question and the guide's answer and show them in Admin → AI Chatbot beside Personality / Appearance / General; a polished persona prompt in General settings (never claims to be ChatGPT; friendly, fun, energetic, addresses visitors as «شما»; mechanical help, part usage, site stock/price; off-topic → a joke then back to parts; HEDAX intro from the brand guide; contact details from the footer); keep logs 90 days.
+- Implemented: additive migration `20261027150000_assistant_conversations` (`assistant_conversation`, `assistant_message`, FK to user ON DELETE SET NULL, status CHECK); `AssistantLogService` records ANSWERED and FAILED (with reason, SKUs shown, tokens, latency, hashed IP never returned) without ever blocking a reply; admin API `GET /admin/assistant/conversations[?q&status&page]`, `GET …/:id`, `DELETE …/:id` (settings.manage, audited without content); hourly worker cleanup deletes conversations 90 days after their last message; widget sends a per-tab random `conversationId` (sessionStorage) and the notice says messages are kept 90 days.
+- Prompt: fixed server base prompt (identity: never ChatGPT/other model, data rules, plain text) is always sent before the owner's panel prompt, so the panel cannot remove it; SITE_FACTS (footer contact, social links, footer about, visible FAQ; 60 s cache) added automatically. Hexi persona prompt FA/EN in zod-free `@hedax/contracts/assistant-prompt` (admin chunk only — verified not in public chunks); panel prompt limit 2000 → 8000 chars, button «قراردادن پرامپت پیشنهادی هکسی», default output cap 600. History item limit 1000 → 4000 chars so longer answers do not break follow-up questions. Public default name/greeting now Hexi (stored Production settings unchanged).
+- Evidence (local, this sandbox): contracts/API/web typecheck passed; eslint 0 errors; web `next build` passed; API unit 77 passed (7 failures identical on unchanged `main`: missing `dist` + local xlsx substitute); contracts unit 22 passed; integration on real PostgreSQL 18: `96-assistant-settings` + new `98-assistant-log` 9/9, plus `00-platform`, `30-chat`, `81-site`, `83-staff-trash`, `97-release` 30/30. Local-only workarounds (NOT committed): Prisma schema engine/sheetjs CDN blocked → client generated with `PRISMA_SCHEMA_ENGINE_BINARY`, migrations applied with psql, xlsx 0.18.5 substitute in node_modules only. Playwright browser unavailable here → new e2e scenario in `e2e/assistant.spec.ts` written but not run.
+- Next action: owner reviews PR → CI → approved deploy (migration is additive) → in panel: General settings → «قراردادن پرامپت پیشنهادی هکسی» → Save → ask Hexi a few questions → check the Messages tab. Real web search is not available to the model (it answers from its own knowledge + Arvan gateway knowledge base, still unverified); live web search would need a separate search API.
 
 ### Completed & Tested — Production rollout, approved Redis recovery, mounted new disk — 2026-10-27
 

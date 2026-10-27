@@ -892,6 +892,7 @@
     "auditAction_role_updated": "Role edited",
     "auditAction_settings_updated": "Site settings changed",
     "auditAction_assistant_settings_updated": "Website guide settings changed",
+    "auditAction_assistant_conversation_deleted": "AI guide conversation deleted",
     "auditAction_shipping_created": "Shipping method created",
     "auditAction_shipping_updated": "Shipping method edited",
     "auditAction_sourcing_assigned": "Sourcing request assigned",
@@ -920,6 +921,7 @@
     "auditEntity_staff_invitation": "Staff invitation",
     "auditEntity_sourcing_request": "Sourcing request",
     "auditEntity_site_setting": "Site settings",
+    "auditEntity_assistant_conversation": "AI guide conversation",
     "auditEntity_shipping_method": "Shipping method",
     "auditEntity_procurement_item": "Procurement item",
     "auditEntity_procurement": "Procurement order",
@@ -1204,7 +1206,7 @@
     "makersTitle": "Browse by part brand"
   },
   "assistant": {
-    "open": "Open HEDAX guide",
+    "open": "Open Hexi, the Source guide",
     "close": "Close guide",
     "minimize": "Minimize character",
     "expand": "Expand character",
@@ -1213,8 +1215,8 @@
     "pause": "Pause motion",
     "resume": "Resume motion",
     "launcher": "Need a hand?",
-    "phase": "HEDAX text assistant",
-    "disclaimer": "Messages are sent to an AI service to generate replies. Answers may be inaccurate; confirm fitment, price and availability before purchase. Do not send sensitive information.",
+    "phase": "Source AI guide",
+    "disclaimer": "Messages are sent to an AI service to generate replies and kept for 90 days to improve answer quality. Answers may be inaccurate; confirm fitment, price and availability before purchase. Do not send sensitive information.",
     "input": "Part name, number or question",
     "send": "Send"
   },

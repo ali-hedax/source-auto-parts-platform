@@ -60,6 +60,7 @@ export function HedaxAssistantWidget({ locale, settings }: { locale: 'fa' | 'en'
   const [viewport, setViewport] = useState<{ top: number; height: number } | null>(null);
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
   const end = useRef<HTMLDivElement>(null);
+  const conversationId = useRef<string | null>(null);
   const dock = useRef<HTMLElement>(null);
   const drag = useRef<{ pointerId: number; startX: number; startY: number; originX: number; originY: number; moved: boolean } | null>(null);
   const suppressOpen = useRef(false);
@@ -162,13 +163,25 @@ export function HedaxAssistantWidget({ locale, settings }: { locale: 'fa' | 'en'
     if (active.moved) { suppressOpen.current = true; persistPosition(clamp(active.originX + event.clientX - active.startX, active.originY + event.clientY - active.startY)); window.setTimeout(() => { suppressOpen.current = false; }, 0); }
     drag.current = null;
   };
+  /** One random id per browser tab, so the owner's log groups this visitor's messages; no content is stored here. */
+  const chatSessionId = () => {
+    if (conversationId.current) return conversationId.current;
+    let id: string | null = null;
+    try { id = sessionStorage.getItem('hedax-guide-conversation'); } catch { /* Optional. */ }
+    if (!id || !/^[0-9a-f-]{36}$/i.test(id)) {
+      id = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : null;
+      try { if (id) sessionStorage.setItem('hedax-guide-conversation', id); } catch { /* Optional. */ }
+    }
+    conversationId.current = id;
+    return id;
+  };
   const append = (question: string, reply: AssistantReply, products?: AssistantMessageResult['products']) => setMessages((m) => [...m.slice(-19), { question, reply, products }]);
   const ask = async (question: string) => {
     if (!question.trim() || busy) return;
     setBusy(true);
     try {
       const history = messages.slice(-4).flatMap((m) => [{ role: 'user' as const, content: m.question }, { role: 'assistant' as const, content: m.reply.text }]);
-      const result = await api<AssistantMessageResult>('/assistant/messages', { method: 'POST', body: { locale, message: question.trim(), history } });
+      const result = await api<AssistantMessageResult>('/assistant/messages', { method: 'POST', body: { locale, message: question.trim(), history, ...(chatSessionId() ? { conversationId: chatSessionId() } : {}) } });
       append(question.trim(), { text: result.text, links: [] }, result.products); setDraft('');
     } catch { append(question.trim(), { text: locale === 'fa' ? 'اتصال دستیار اکنون در دسترس نیست. برای پیگیری با ما تماس بگیرید.' : 'The assistant is currently unavailable. Contact us for help.', links: [{ href: '/contact', label: locale === 'fa' ? 'تماس با ما' : 'Contact us' }] }); }
     finally { setBusy(false); }

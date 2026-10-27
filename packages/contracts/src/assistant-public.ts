@@ -5,9 +5,9 @@ export type AssistantTopic = typeof ASSISTANT_TOPICS[number];
 
 export const DEFAULT_ASSISTANT_SETTINGS: AssistantSettings = {
   enabled: false,
-  name: { fa: 'راهنمای HEDAX', en: 'HEDAX Guide' },
-  introduction: { fa: 'راهنمای سایت برای جست‌وجو و خرید قطعه.', en: 'Your guide to finding parts and navigating the store.' },
-  greeting: { fa: 'سلام! از کجا شروع کنیم؟', en: 'Hello! Where would you like to start?' },
+  name: { fa: 'هکسی', en: 'Hexi' },
+  introduction: { fa: 'قطعه پیدا می‌کنم، قیمت و موجودی سایت را می‌گویم و به سؤال‌های مکانیکی‌تان جواب می‌دهم.', en: 'I find parts, tell you what the site lists for price and stock, and answer your mechanical questions.' },
+  greeting: { fa: 'سلام! من هکسی‌ام، روبات راهنمای سورس. دنبال چه قطعه‌ای هستید؟', en: 'Hi! I am Hexi, Source’s robot guide. Which part are you looking for?' },
   animationEnabled: true, mobileSize: 64, desktopSize: 104, placement: 'end', avatarUrl: '',
   topics: {
     search: { label: { fa: 'پیدا کردن قطعه', en: 'Find a part' }, answer: { fa: 'نام یا شماره فنی را در کاتالوگ جست‌وجو کنید. سازگاری را پیش از خرید با تیم فروش تأیید کنید.', en: 'Search the catalog by name or part number. Confirm vehicle compatibility with the team before buying.' } },
@@ -15,7 +15,9 @@ export const DEFAULT_ASSISTANT_SETTINGS: AssistantSettings = {
     order: { label: { fa: 'سفارش یا درخواست تأمین', en: 'Order or request a part' }, answer: { fa: 'از صفحهٔ قطعه و سبد خرید سفارش دهید؛ برای قطعات دیگر فرم درخواست تأمین را تکمیل کنید. این گفتگو چیزی ثبت نمی‌کند.', en: 'Order from a part page and your cart, or complete the sourcing request form. This conversation does not submit anything.' } },
     support: { label: { fa: 'ارتباط با پشتیبانی', en: 'Contact support' }, answer: { fa: 'راه‌های ارتباط واقعی در صفحهٔ تماس هستند. این راهنما وضعیت آنلاین کارشناس را نشان نمی‌دهد.', en: 'Find the configured contact methods on the contact page. This guide does not show an agent’s online status.' } },
   },
-  ai: { systemPrompt: { fa: 'کوتاه، دقیق و فقط بر پایه اطلاعات ثبت‌شده پاسخ بده.', en: 'Answer concisely and only from registered facts.' }, maxOutputTokens: 400, dailyRequestLimit: 100 },
+  // Kept short here because this module ships with public pages; the server and the admin form
+  // use Hexi's full prompt (DEFAULT_ASSISTANT_AI in ./assistant-prompt) as the real default.
+  ai: { systemPrompt: { fa: 'کوتاه، دقیق و فقط بر پایه اطلاعات ثبت‌شده پاسخ بده.', en: 'Answer concisely and only from registered facts.' }, maxOutputTokens: 600, dailyRequestLimit: 100 },
 };
 
 /** Only vetted site routes can be emitted by the deterministic adapter. */

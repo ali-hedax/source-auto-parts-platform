@@ -1,6 +1,7 @@
 import { Inject, Injectable, Logger, type OnModuleDestroy } from '@nestjs/common';
 import { type Job, Queue, Worker } from 'bullmq';
 import { Redis } from 'ioredis';
+import { ASSISTANT_LOG_RETENTION_DAYS } from '@hedax/contracts';
 import { ENV, type Env } from '../config/env.js';
 import { PrismaService } from '../common/prisma.service.js';
 import { PublicCacheService } from '../common/public-cache.service.js';
@@ -222,6 +223,8 @@ export class OutboxDispatcher implements OnModuleDestroy {
           await this.prisma.otpChallenge.deleteMany({ where: { createdAt: { lt: new Date(Date.now() - 7 * 86_400_000) } } });
           await this.prisma.session.deleteMany({ where: { expiresAt: { lt: new Date(Date.now() - 30 * 86_400_000) } } });
           await this.prisma.cart.deleteMany({ where: { userId: null, expiresAt: { lt: new Date() } } });
+          // Site guide conversations are kept for review for a fixed period, then deleted.
+          await this.prisma.assistantConversation.deleteMany({ where: { lastMessageAt: { lt: new Date(Date.now() - ASSISTANT_LOG_RETENTION_DAYS * 86_400_000) } } });
           break;
         case 'trash.purge': {
           const r = await this.trash.purgeExpired();
