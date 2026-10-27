@@ -71,12 +71,12 @@ test.describe('panel: one place for parts', () => {
     await page.context().addCookies([{ name: 'hedax_fixture_role', value: 'staff', url: baseURL as string }]);
   });
 
-  test('menu: «قطعات», «ورود Excel», «ورود دیتابیس برند», «مرکز دانش (فایل‌های مرجع)»', async ({ page }) => {
+  test('one sidebar workspace with task links inside it', async ({ page }) => {
     await page.goto('/fa/admin/products');
-    const nav = page.getByRole('navigation').first();
-    for (const name of ['قطعات', 'ورود Excel', 'ورود دیتابیس برند', 'مرکز دانش (فایل‌های مرجع)']) {
-      await expect(nav.getByRole('link', { name, exact: true })).toBeVisible();
-    }
+    const nav = page.locator('nav[aria-label="پنل مدیریت"]').first();
+    await expect(nav.getByRole('link', { name: 'قطعات و منابع', exact: true })).toBeVisible();
+    await expect(nav.getByRole('link', { name: 'ورود Excel', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('navigation', { name: 'بخش‌های قطعات و منابع' }).getByRole('link', { name: 'قطعات', exact: true })).toBeVisible();
     await expect(page.getByRole('cell', { name: 'بدون قیمت (قابل تأمین)' }).first()).toBeVisible();
   });
 
@@ -118,7 +118,7 @@ test.describe('panel: one place for parts', () => {
     await expect(bulk.getByRole('link', { name: 'فایل نمونه' })).toHaveAttribute('href', '/api/v1/admin/brand-imports/sample.xlsx');
     await expect(bulk.getByRole('link', { name: 'قالب Excel' })).toHaveAttribute('href', '/api/v1/admin/imports/template');
     await page.goto('/fa/admin/products');
-    await expect(page.getByRole('link', { name: 'ورود گروهی قطعه' })).toHaveAttribute('href', '/fa/admin/brand-imports');
+    await expect(page.getByRole('link', { name: 'ورود اکسل', exact: true })).toHaveAttribute('href', '/fa/admin/imports');
   });
 
   test('workbook mapping keeps source choices separate and requires every included sheet to have a part number', async ({ page }) => {

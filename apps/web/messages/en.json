@@ -564,6 +564,11 @@
     "social": "Follow us"
   },
   "admin": {
+    "auditAction_catalog_document_updated": "Catalog reference edited",
+    "auditAction_catalog_document_deleted": "Catalog reference deleted",
+    "auditAction_manufacturer_brand_updated": "Part manufacturer edited",
+    "auditAction_product_restored": "Archived part restored",
+    "auditAction_taxonomy_deleted": "Unused setup entry deleted",
     "title": "Admin panel",
     "dashboard": "Dashboard",
     "myAccount": "My account",
@@ -978,6 +983,14 @@
     "itemsOrFiles": "Add at least one item or attach a parts list file."
   },
   "errors": {
+    "FINDER_GROUP_REQUIRED": "Select at least one valid vehicle group for the finder.",
+    "VEHICLE_YEARS_INVALID": "Invalid year range. Provide both years and one calendar; do not mix calendars.",
+    "VEHICLE_YEAR_SOURCE_REQUIRED": "Provide an HTTPS source link to add or change production years.",
+    "CATALOG_PROCESSING": "The file is processing. Refresh its status after processing completes.",
+    "CATALOG_IN_USE": "This source is linked to a catalog entry. Review that link first; no parts were deleted.",
+    "CATALOG_EXTRACTION_UNSUPPORTED": "Automatic extraction supports Excel and CSV only. PDFs and photos are reference files for now.",
+    "CATALOG_USE_EXTRACTION": "Use Read the rows to start processing.",
+    "TAXONOMY_IN_USE": "This entry is in use and cannot be deleted. Use Edit to deactivate it while preserving its links.",
     "UNAUTHENTICATED": "Please sign in.",
     "FORBIDDEN": "You are not allowed to do this.",
     "MISSING_PERMISSION": "You are not allowed to do this.",

@@ -348,6 +348,16 @@ export class AdminCatalogService {
     });
   }
 
+  /** Restoring never republishes a product or enables sales without staff review. */
+  async restore(id: string, version: number) {
+    return this.prisma.tx(async tx => {
+      const changed = await tx.product.updateMany({ where: { id, version, archivedAt: { not: null } }, data: { archivedAt: null, published: false, isSellable: false, version: { increment: 1 } } });
+      if (changed.count !== 1) throw new DomainError('VERSION_CONFLICT');
+      await this.audit.record(tx, { action: 'product.restored', entityType: 'product', entityId: id });
+      return { id, archived: false };
+    });
+  }
+
   /** The product's photos in display order: sort order, the main one marked. */
   async listMedia(productId: string): Promise<ProductMediaView[]> {
     const media = await this.prisma.productMedia.findMany({ where: { productId, deletedAt: null }, orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }] });

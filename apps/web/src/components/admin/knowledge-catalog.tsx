@@ -5,6 +5,7 @@ import { BookOpen, DatabaseZap, Download, FileSpreadsheet, FileUp } from 'lucide
 import { useLocale, useTranslations } from 'next-intl';
 import { Fragment, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
+import { Dialog } from '@/components/ui/dialog';
 import { Field, Input, Select } from '@/components/ui/field';
 import { DateTime } from '@/components/ui/format';
 import { Alert, EmptyState, PageHeader, Section, StatusBadge, TableScroll, td, th } from '@/components/ui/misc';
@@ -15,7 +16,7 @@ import { Link, useRouter } from '@/i18n/navigation';
 import { useL } from './shell';
 
 const MAX_BYTES = 20 * 1024 * 1024;
-const STATUSES: CatalogDocumentStatus[] = ['UPLOADED', 'PENDING_PROCESSING', 'NEEDS_REVIEW', 'APPROVED', 'REJECTED'];
+const STATUSES: CatalogDocumentStatus[] = ['UPLOADED', 'NEEDS_REVIEW', 'APPROVED', 'REJECTED'];
 
 function statusLabel(status: CatalogDocumentStatus, fa: boolean): string {
   const labels: Record<CatalogDocumentStatus, [string, string]> = {
@@ -38,7 +39,10 @@ function CatalogDocuments({ onConvert }: { onConvert: (documentId: string, ordin
   const l = useL();
   const locale = useLocale();
   const fa = locale === 'fa';
-  const documents = useApi<CatalogDocumentView[]>('/admin/knowledge-catalog');
+  const [query, setQuery] = useState('');
+  const [applied, setApplied] = useState('');
+  const [page, setPage] = useState(1);
+  const documents = useApi<CatalogDocumentView[]>(`/admin/knowledge-catalog?page=${page}&q=${encodeURIComponent(applied)}`);
   const [title, setTitle] = useState('');
   const [version, setVersion] = useState('1.0');
   const [file, setFile] = useState<File | null>(null);
@@ -48,6 +52,7 @@ function CatalogDocuments({ onConvert }: { onConvert: (documentId: string, ordin
   const [updating, setUpdating] = useState<string | null>(null);
   const [previews, setPreviews] = useState<Record<string, CatalogChunkPreview[]>>({});
   const [previewOpen, setPreviewOpen] = useState<string | null>(null);
+  const [moreRows, setMoreRows] = useState<Record<string, boolean>>({});
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -98,6 +103,7 @@ function CatalogDocuments({ onConvert }: { onConvert: (documentId: string, ordin
     setUpdating(id); setMessage(null);
     try {
       await api(`/admin/knowledge-catalog/${id}/extract`, { method: 'POST' });
+      setPreviewOpen(null); setPreviews(prev => ({ ...prev, [id]: [] }));
       await documents.reload();
       setMessage({ tone: 'success', text: l('درخواست استخراج ثبت شد. وضعیت را کمی بعد بررسی کنید.', 'Extraction queued. Check status shortly.') });
     } catch (error) {
@@ -111,10 +117,22 @@ function CatalogDocuments({ onConvert }: { onConvert: (documentId: string, ordin
     try {
       const rows = await api<CatalogChunkPreview[]>(`/admin/knowledge-catalog/${id}/preview`);
       setPreviews((prev) => ({ ...prev, [id]: rows }));
+      setMoreRows(prev => ({ ...prev, [id]: rows.length === 100 }));
       setPreviewOpen(id);
     } catch (error) {
       setMessage({ tone: 'danger', text: isApiError(error) ? errorText(t, error) : l('پیش‌نمایش در دسترس نیست.', 'Preview unavailable.') });
     } finally { setUpdating(null); }
+  };
+
+  const loadMore = async (id: string) => {
+    setUpdating(id); setMessage(null);
+    try {
+      const previous = previews[id] ?? [];
+      const rows = await api<CatalogChunkPreview[]>(`/admin/knowledge-catalog/${id}/preview?after=${previous.at(-1)?.ordinal ?? -1}`);
+      setPreviews(prev => ({ ...prev, [id]: [...previous, ...rows] }));
+      setMoreRows(prev => ({ ...prev, [id]: rows.length === 100 }));
+    } catch (error) { setMessage({ tone: 'danger', text: errorText(t, error) }); }
+    finally { setUpdating(null); }
   };
 
   return (
@@ -140,6 +158,10 @@ function CatalogDocuments({ onConvert }: { onConvert: (documentId: string, ordin
 
       <div className="mt-6">
         <Section title={l('فهرست کاتالوگ‌ها', 'Catalog sources')} id="catalog-list">
+          <form className="mb-4 flex flex-wrap items-end gap-2" onSubmit={e => { e.preventDefault(); setApplied(query.trim()); setPage(1); }}>
+            <Field id="catalog-search" label={l('جست‌وجوی عنوان یا نام فایل', 'Search title or filename')} className="min-w-0 flex-1"><Input id="catalog-search" type="search" maxLength={120} value={query} onChange={e => setQuery(e.target.value)} /></Field>
+            <Button type="submit" variant="secondary">{l('جست‌وجو', 'Search')}</Button><Button variant="ghost" onClick={() => void documents.reload()}>{l('تازه‌سازی وضعیت', 'Refresh status')}</Button>
+          </form>
           {documents.data?.length ? (
             <TableScroll caption={l('فهرست کاتالوگ‌ها', 'Catalog sources')}>
               <thead><tr><th className={th}>{l('عنوان و فایل', 'Title & file')}</th><th className={th}>{l('نسخه', 'Version')}</th><th className={th}>{l('بارگذار / تاریخ', 'Uploader / date')}</th><th className={th}>{l('وضعیت', 'Status')}</th><th className={th}>{l('دریافت', 'Download')}</th><th className={th}>{l('استخراج و بررسی', 'Extract & review')}</th></tr></thead>
@@ -151,7 +173,8 @@ function CatalogDocuments({ onConvert }: { onConvert: (documentId: string, ordin
                   <td className={td}><p>{item.uploadedBy.name ?? item.uploadedBy.email ?? '—'}</p><p className="mt-1 text-xs text-steel"><DateTime iso={item.uploadedAt} /></p></td>
                   <td className={td}>
                     <StatusBadge status={item.status} label={statusLabel(item.status, fa)} />
-                    <Select className="mt-2 min-w-44" value={item.status} disabled={updating === item.id} aria-label={l('تغییر وضعیت', 'Change status')} onChange={(e) => void setStatus(item.id, e.target.value as CatalogDocumentStatus)}>
+                    <Select className="mt-2 min-w-44" value={item.status} disabled={updating === item.id || item.status === 'PENDING_PROCESSING'} aria-label={l('تغییر وضعیت', 'Change status')} onChange={(e) => void setStatus(item.id, e.target.value as CatalogDocumentStatus)}>
+                      {item.status === 'PENDING_PROCESSING' ? <option value="PENDING_PROCESSING">{statusLabel('PENDING_PROCESSING', fa)}</option> : null}
                       {STATUSES.map((status) => <option key={status} value={status}>{statusLabel(status, fa)}</option>)}
                     </Select>
                   </td>
@@ -166,6 +189,8 @@ function CatalogDocuments({ onConvert }: { onConvert: (documentId: string, ordin
                       <Button type="button" disabled={updating === item.id} onClick={() => void togglePreview(item.id)}>
                         {previewOpen === item.id ? l('بستن ردیف‌ها', 'Close rows') : l('دیدن ردیف‌های خوانده‌شده', 'View rows read')}
                       </Button>
+                      <DocumentActions item={item} onDone={async text => { await documents.reload(); setPreviewOpen(null); setMessage({ tone: 'success', text }); }} />
+                      {!['xlsx', 'csv'].includes(item.extension) ? <p className="text-xs leading-6 text-steel">{l('این فایل مرجع است؛ خواندن خودکار PDF و عکس در این نسخه فعال نیست.', 'Reference file; automatic PDF/photo extraction is not enabled in this version.')}</p> : null}
                       {item.processingError ? <p className="text-xs text-steel" dir="auto">{item.processingError}</p> : null}
                     </div>
                   </td>
@@ -183,6 +208,7 @@ function CatalogDocuments({ onConvert }: { onConvert: (documentId: string, ordin
                         </div>
                       )) : <p className="text-sm text-steel">{l('هنوز اطلاعاتی استخراج نشده است.', 'No extracted records yet.')}</p>}
                     </div>
+                    {moreRows[item.id] ? <Button className="mt-3" variant="secondary" loading={updating === item.id} onClick={() => void loadMore(item.id)}>{l('نمایش ردیف‌های بیشتر', 'Load more rows')}</Button> : null}
                   </td></tr>
                 ) : null}
                 </Fragment>
@@ -191,10 +217,30 @@ function CatalogDocuments({ onConvert }: { onConvert: (documentId: string, ordin
           ) : documents.data ? <EmptyState title={l('هنوز کاتالوگی بارگذاری نشده است.', 'No catalog source has been uploaded yet.')} icon={<BookOpen aria-hidden />} />
             : documents.error ? <Alert tone="danger" title={errorText(t, documents.error)} />
             : <p className="text-sm text-steel">{t('common.loading')}</p>}
+          <div className="mt-4 flex items-center gap-3"><Button variant="secondary" disabled={page === 1} onClick={() => setPage(p => p - 1)}>{l('قبلی', 'Previous')}</Button><span>{l('صفحه', 'Page')} {new Intl.NumberFormat(locale).format(page)}</span><Button variant="secondary" disabled={!documents.data || documents.data.length < 50} onClick={() => setPage(p => p + 1)}>{l('بعدی', 'Next')}</Button></div>
         </Section>
       </div>
     </>
   );
+}
+
+function DocumentActions({ item, onDone }: { item: CatalogDocumentView; onDone: (text: string) => Promise<void> }) {
+  const l = useL(); const t = useTranslations();
+  const [mode, setMode] = useState<'edit' | 'delete' | null>(null);
+  const [title, setTitle] = useState(item.title); const [version, setVersion] = useState(item.version);
+  const [busy, setBusy] = useState(false); const [error, setError] = useState('');
+  const perform = async (event: FormEvent) => {
+    event.preventDefault(); setBusy(true); setError('');
+    try {
+      await api(`/admin/knowledge-catalog/${item.id}`, { method: mode === 'delete' ? 'DELETE' : 'PATCH', body: { expectedUpdatedAt: item.updatedAt, ...(mode === 'edit' ? { title: title.trim(), version: version.trim() } : {}) } });
+      setMode(null); await onDone(mode === 'delete' ? l('منبع حذف شد؛ قطعات تغییری نکردند.', 'Reference removed; parts were not changed.') : l('عنوان و نسخه ذخیره شد.', 'Title and version saved.'));
+    } catch (e) { setError(errorText(t, e)); } finally { setBusy(false); }
+  };
+  return <><div className="flex flex-wrap gap-2"><Button variant="ghost" onClick={() => { setTitle(item.title); setVersion(item.version); setError(''); setMode('edit'); }}>{l('ویرایش', 'Edit')}</Button><Button variant="ghost" disabled={item.status === 'PENDING_PROCESSING'} onClick={() => { setError(''); setMode('delete'); }}>{l('حذف منبع', 'Delete reference')}</Button></div>
+    <Dialog open={mode !== null} onOpenChange={open => { if (!open && !busy) setMode(null); }} closeLabel={l('بستن', 'Close')} title={mode === 'delete' ? l('حذف منبع مرجع', 'Delete reference') : l('ویرایش کاتالوگ', 'Edit catalog')}>
+      <form onSubmit={perform} className="space-y-4">{mode === 'edit' ? <><Field id={`catalog-edit-title-${item.id}`} label={l('عنوان', 'Title')} required><Input id={`catalog-edit-title-${item.id}`} required minLength={2} maxLength={160} value={title} onChange={e => setTitle(e.target.value)} /></Field><Field id={`catalog-edit-version-${item.id}`} label={l('نسخه', 'Version')} required><Input id={`catalog-edit-version-${item.id}`} required maxLength={40} dir="ltr" value={version} onChange={e => setVersion(e.target.value)} /></Field></> : <p className="leading-8">{l(`منبع «${item.title}» و ردیف‌های استخراج‌شدهٔ آن از فهرست حذف می‌شوند. هیچ قطعه‌ای حذف نمی‌شود. منبع در حال پردازش یا متصل به رکورد کاتالوگ قابل حذف نیست.`, `“${item.title}” and its extracted rows will be removed. No parts are deleted. Processing sources and sources linked to catalog entries cannot be deleted.`)}</p>}
+      {error ? <Alert tone="danger" title={error} /> : null}<div className="flex gap-2"><Button type="submit" loading={busy} variant={mode === 'delete' ? 'danger' : 'primary'}>{mode === 'delete' ? l('حذف منبع', 'Delete reference') : l('ذخیره', 'Save')}</Button><Button variant="secondary" disabled={busy} onClick={() => setMode(null)}>{l('انصراف', 'Cancel')}</Button></div></form>
+    </Dialog></>;
 }
 
 /**

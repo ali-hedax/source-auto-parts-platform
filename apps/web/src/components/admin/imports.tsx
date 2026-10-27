@@ -4,7 +4,7 @@ import type { AttachmentView, ImportJobListItem, ImportJobView, ImportOutline, I
 import { CLEARABLE_IMPORT_COLUMNS, TEMPLATE_COLUMNS, describeImportCode, formatMoney, importColumnLabel, importFieldLabel, mapHeaders, money } from '@hedax/domain';
 import { ArrowLeft, ArrowRight, CheckCircle2, Download, FileSpreadsheet, Images, KeyRound, Upload } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useCallback, useEffect, useState, type DragEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type DragEvent } from 'react';
 import { Button, ButtonLink } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { Checkbox, Field, Input, Select } from '@/components/ui/field';
@@ -81,12 +81,14 @@ export function ImportsPage() {
   const [phase, setPhase] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
+  const uploadBusy = useRef(false);
 
   const start = async (file: File | undefined) => {
-    if (!file) return;
+    if (!file || phase || uploadBusy.current) return;
     setMessage(null);
     if (!/\.(xlsx|csv)$/i.test(file.name)) return setMessage(t('files.rejected_IMPORT_FORMAT_NOT_ALLOWED'));
     if (file.size > IMPORT_MAX_BYTES) return setMessage(t('files.rejected_FILE_TOO_LARGE'));
+    uploadBusy.current = true;
     try {
       setPhase(l('در حال بارگذاری فایل…', 'Uploading the file…'));
       setProgress(0);
@@ -114,7 +116,7 @@ export function ImportsPage() {
       setMessage(isApiError(e) ? errorText(t, e)
         : reason === 'SCAN_PENDING' ? l('بررسی امنیتی فایل هنوز تمام نشده است. چند دقیقه بعد دوباره بارگذاری کنید؛ اگر تکرار شد، سرویس پردازش (worker) را بررسی کنید.', 'The security check has not finished yet. Upload again in a few minutes; if this repeats, check the background worker.')
         : t.has(`files.rejected_${reason}`) ? t(`files.rejected_${reason}` as never) : t('files.rejected_default'));
-    }
+    } finally { uploadBusy.current = false; }
   };
 
   const onDrop = (e: DragEvent<HTMLLabelElement>) => {

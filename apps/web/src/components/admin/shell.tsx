@@ -4,8 +4,8 @@ import * as RDialog from '@radix-ui/react-dialog';
 import Image from 'next/image';
 import type { MeView } from '@hedax/contracts';
 import {
-  BarChart3, BookOpen, Boxes, DatabaseZap, Car, CalendarDays, CircleUser, ClipboardList, CreditCard, FileSpreadsheet, FileText, Gauge, History, Landmark, LayoutTemplate, LogOut, MessageSquare,
-  Menu, Package, Receipt, RotateCcw, Ruler, ScrollText, Settings, ShieldCheck, Store, Tags, Truck, Users, UserCog, Wallet, X,
+  BarChart3, CalendarDays, CircleUser, ClipboardList, CreditCard, FileText, Gauge, History, Landmark, LayoutTemplate, LogOut, MessageSquare,
+  Menu, Package, Receipt, RotateCcw, ScrollText, Settings, ShieldCheck, Store, Truck, Users, UserCog, Wallet, X,
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useState, type ReactNode } from 'react';
@@ -15,6 +15,7 @@ import { useApi } from '@/lib/use-api';
 import { Async } from '@/components/ui/async';
 import { LocaleSwitcher } from '@/components/layout/switchers';
 import { Suspense } from 'react';
+import { CatalogWorkspace, isCatalogPath } from './catalog-workspace';
 
 /** Inline bilingual microcopy for admin-only labels (both languages always provided). */
 export function useL(): (fa: string, en: string) => string {
@@ -67,14 +68,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
     {
       title: t('products'),
       items: [
-        { href: '/admin/products', label: t('products'), icon: Package, perm: 'products.read' },
-        { href: '/admin/taxonomy', label: t('taxonomy'), icon: Tags, perm: 'products.read' },
-        { href: '/admin/units', label: t('units'), icon: Ruler, perm: 'products.read' },
-        { href: '/admin/vehicles', label: t('vehicles'), icon: Car, perm: 'vehicles.manage' },
-        { href: '/admin/inventory', label: t('inventory'), icon: Boxes, perm: 'inventory.read' },
-        { href: '/admin/imports', label: t('imports'), icon: FileSpreadsheet, perm: 'imports.run' },
-        { href: '/admin/brand-imports', label: t('brandImports'), icon: DatabaseZap, perm: 'imports.run' },
-        { href: '/admin/knowledge-catalog', label: t('knowledgeCatalog'), icon: BookOpen, perm: ['imports.run', 'products.write'] },
+        { href: '/admin/catalog', label: locale === 'fa' ? 'قطعات و منابع' : 'Parts & sources', icon: Package, perm: ['products.read', 'imports.run', 'products.write', 'vehicles.manage', 'inventory.read'] },
       ],
     },
     {
@@ -167,7 +161,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
               <nav aria-label={t('title')} className="hidden border-e border-line-soft bg-white lg:sticky lg:top-14 lg:block lg:h-[calc(100vh-3.5rem)] lg:overflow-y-auto">
                 <AdminNavList groups={groups} permissions={navPermissions(user)} pathname={pathname} />
               </nav>
-              <main id="main" tabIndex={-1} className="min-w-0 px-4 py-5 focus:outline-none md:px-6 md:py-6 lg:px-8 lg:py-8">{children}</main>
+              <main id="main" tabIndex={-1} className="min-w-0 px-4 py-5 focus:outline-none md:px-6 md:py-6 lg:px-8 lg:py-8">{isCatalogPath(pathname) ? <CatalogWorkspace user={user} pathname={pathname} /> : null}{children}</main>
             </div>
           )
         }
@@ -177,6 +171,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
 }
 
 function isActive(href: string, pathname: string): boolean {
+  if (href === '/admin/catalog' && isCatalogPath(pathname)) return true;
   if (href === '/admin/content' && pathname.startsWith('/admin/appearance')) return true;
   return href === '/admin' ? pathname === '/admin' : pathname === href || pathname.startsWith(`${href}/`);
 }

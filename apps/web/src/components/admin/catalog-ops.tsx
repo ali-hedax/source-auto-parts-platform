@@ -9,13 +9,12 @@ import { Async } from '@/components/ui/async';
 import { Dialog } from '@/components/ui/dialog';
 import { Checkbox, Field, Input, Select } from '@/components/ui/field';
 import { DateTime, Quantity } from '@/components/ui/format';
-import { Badge, Code, EmptyState, Ltr, PageHeader, Section, TableScroll, td, th } from '@/components/ui/misc';
+import { Badge, Code, EmptyState, Ltr, PageHeader, TableScroll, td, th } from '@/components/ui/misc';
 import { api } from '@/lib/api/client';
 import { errorText } from '@/lib/api/errors';
 import { typedNumber } from '@/lib/numbers';
 import { useApi } from '@/lib/use-api';
 import { useCodeLabel, useL } from './shell';
-import { ImageField } from './content/kit';
 
 interface InvRow { productId: string; sku: string; nameFa: string; unit: { name: string; allowDecimal: boolean; step: number }; onHand: number; reserved: number; available: number; lowStockThreshold: number; isLow: boolean; version: number; updatedAt: string }
 
@@ -131,101 +130,4 @@ function LedgerDialog({ row, onClose }: { row: InvRow; onClose: () => void }) {
   );
 }
 
-interface VehicleBrandRow { id: string; code: string; slug: string; nameFa: string; nameEn: string | null; logoUrl: string | null; isFeatured: boolean; sortOrder: number; active: boolean }
-
-/**
- * One vehicle make: Persian and English names, logo and «featured» (shown on the home page). The logo goes
- * through the content image upload (type/size/content checks, malware scan, PNG re-encode). On a failed save
- * the form keeps what was typed and the stored brand — logo included — stays as it was.
- */
-function VehicleBrandEditor({ brand, onSaved }: { brand: VehicleBrandRow; onSaved: () => Promise<void> }) {
-  const t = useTranslations();
-  const l = useL();
-  const [open, setOpen] = useState(false);
-  const [v, setV] = useState({ nameFa: brand.nameFa, nameEn: brand.nameEn ?? '', logoUrl: brand.logoUrl ?? '', isFeatured: brand.isFeatured });
-  const [status, setStatus] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const save = async () => {
-    setBusy(true); setStatus(null);
-    try {
-      await api(`/admin/vehicle-brands/${brand.id}`, { method: 'PUT', body: { code: brand.code, nameFa: v.nameFa, nameEn: v.nameEn.trim() || null, logoUrl: v.logoUrl, isFeatured: v.isFeatured, sortOrder: brand.sortOrder, active: brand.active } });
-      setStatus(l('ذخیره شد.', 'Saved.')); await onSaved();
-    } catch (e) { setStatus(errorText(t, e)); }
-    finally { setBusy(false); }
-  };
-  return (
-    <li className="border-b border-line-soft py-2 last:border-0" data-brand={brand.slug}>
-      <div className="flex items-center gap-2">
-        {/* eslint-disable-next-line @next/next/no-img-element -- small admin thumbnail of an uploaded logo */}
-        {brand.logoUrl ? <img src={brand.logoUrl} alt="" className="h-7 w-12 shrink-0 object-contain" /> : <span aria-hidden className="media-placeholder h-7 w-12 shrink-0 rounded" />}
-        <span className="min-w-0 flex-1"><Ltr>{brand.code}</Ltr> — {l(brand.nameFa, brand.nameEn ?? brand.nameFa)}{brand.isFeatured ? <Badge tone="info" className="ms-1">{l('ویژه', 'Featured')}</Badge> : null}</span>
-        <Button size="sm" variant="ghost" aria-expanded={open} onClick={() => setOpen((o) => !o)}>{l('ویرایش', 'Edit')}</Button>
-      </div>
-      {open ? (
-        <div className="mt-3 flex flex-col gap-3 rounded-[var(--radius-card)] bg-surface p-3">
-          <Field id={`vb-${brand.id}-fa`} label={`${t('admin.name')} (فارسی)`}><Input id={`vb-${brand.id}-fa`} value={v.nameFa} onChange={(e) => setV({ ...v, nameFa: e.target.value })} /></Field>
-          <Field id={`vb-${brand.id}-en`} label={`${t('admin.name')} (English)`} hint={l('زیر لوگو نمایش داده می‌شود.', 'Shown under the logo.')}><Input id={`vb-${brand.id}-en`} dir="ltr" value={v.nameEn} onChange={(e) => setV({ ...v, nameEn: e.target.value })} /></Field>
-          <ImageField id={`vb-${brand.id}-logo`} purpose="logo" label={l('لوگوی برند', 'Brand logo')} hint={l('PNG/WebP با زمینهٔ شفاف بهتر است؛ بدون کشیدگی در کادر قرار می‌گیرد.', 'A transparent PNG/WebP works best; it is fitted without stretching.')} value={v.logoUrl} onChange={(logoUrl) => setV({ ...v, logoUrl })} />
-          <Checkbox id={`vb-${brand.id}-featured`} label={l('نمایش در صفحهٔ اصلی (ویژه)', 'Show on the home page (featured)')} checked={v.isFeatured} onChange={(e) => setV({ ...v, isFeatured: e.target.checked })} />
-          <div className="flex items-center gap-3"><Button size="sm" loading={busy} onClick={() => void save()}>{t('common.save')}</Button>{status ? <p role="status" className="text-sm">{status}</p> : null}</div>
-        </div>
-      ) : null}
-    </li>
-  );
-}
-
-interface TaxonomyFull {
-  categories: Array<{ id: string; code: string; slug: string; nameFa: string; nameEn: string | null; active: boolean }>;
-  vehicleBrands: Array<VehicleBrandRow>;
-  manufacturers: Array<{ id: string; nameFa: string; nameEn: string | null }>;
-}
-
-export function TaxonomyPage() {
-  const t = useTranslations();
-  const l = useL();
-  const state = useApi<TaxonomyFull>('/admin/taxonomy');
-  const [kind, setKind] = useState<'categories' | 'vehicle-brands' | 'manufacturer-brands'>('categories');
-  const [v, setV] = useState({ code: '', nameFa: '', nameEn: '' });
-  const [error, setError] = useState<string | null>(null);
-  const create = async () => {
-    setError(null);
-    try {
-      const body = kind === 'manufacturer-brands' ? { nameFa: v.nameFa, nameEn: v.nameEn || null } : { code: v.code.toUpperCase(), nameFa: v.nameFa, nameEn: v.nameEn || null, sortOrder: 0, active: true, ...(kind === 'vehicle-brands' ? { isFeatured: false } : {}) };
-      await api(`/admin/${kind}`, { method: 'POST', body });
-      setV({ code: '', nameFa: '', nameEn: '' });
-      await state.reload();
-    } catch (e) {
-      setError(errorText(t, e));
-    }
-  };
-  return (
-    <>
-      <PageHeader title={t('admin.taxonomy')} description={l('فهرست برندها قابل توسعه است؛ درخواست تأمین برای برندهای خارج از فهرست هم با نام آزاد پذیرفته می‌شود.', 'Brand lists are extensible; sourcing requests also accept free-text brands outside the list.')} />
-      <Async state={state}>
-        {(data) => (
-          <div className="grid gap-6 lg:grid-cols-3">
-            <Section title={t('parts.category')} id="tx-cat"><ul className="text-sm">{data.categories.map((c) => <li key={c.id} className="py-1"><Ltr>{c.code}</Ltr> — {l(c.nameFa, c.nameEn ?? c.nameFa)}</li>)}</ul></Section>
-            <Section title={t('parts.vehicleBrands')} id="tx-vb"><ul className="text-sm">{data.vehicleBrands.map((c) => <VehicleBrandEditor key={c.id} brand={c} onSaved={state.reload} />)}</ul></Section>
-            <Section title={t('parts.manufacturer')} id="tx-mb"><ul className="text-sm">{data.manufacturers.map((c) => <li key={c.id} className="py-1">{l(c.nameFa, c.nameEn ?? c.nameFa)}</li>)}</ul></Section>
-          </div>
-        )}
-      </Async>
-      <Section title={t('common.add')} id="tx-add">
-        <div className="grid gap-3 md:grid-cols-4">
-          <Field id="tx-kind" label={l('نوع', 'Type')}>
-            <Select id="tx-kind" value={kind} onChange={(e) => setKind(e.target.value as typeof kind)}>
-              <option value="categories">{t('parts.category')}</option>
-              <option value="vehicle-brands">{t('parts.vehicleBrands')}</option>
-              <option value="manufacturer-brands">{t('parts.manufacturer')}</option>
-            </Select>
-          </Field>
-          {kind !== 'manufacturer-brands' ? <Field id="tx-code" label={l('کد', 'Code')} hint="A-Z, 0-9, _"><Input id="tx-code" dir="ltr" value={v.code} onChange={(e) => setV({ ...v, code: e.target.value })} /></Field> : null}
-          <Field id="tx-fa" label={`${t('admin.name')} (فارسی)`}><Input id="tx-fa" value={v.nameFa} onChange={(e) => setV({ ...v, nameFa: e.target.value })} /></Field>
-          <Field id="tx-en" label={`${t('admin.name')} (English)`}><Input id="tx-en" dir="ltr" value={v.nameEn} onChange={(e) => setV({ ...v, nameEn: e.target.value })} /></Field>
-        </div>
-        {error ? <p role="alert" className="mt-2 text-sm text-danger">{error}</p> : null}
-        <Button className="mt-3" onClick={() => void create()}>{t('common.add')}</Button>
-      </Section>
-    </>
-  );
-}
+export { TaxonomyPage } from './taxonomy-page';

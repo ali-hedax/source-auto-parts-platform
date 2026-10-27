@@ -16,7 +16,7 @@ import { MB, normalizeSearchText } from '@hedax/domain';
 import { z } from 'zod';
 import { AuditService } from '../../common/audit.service.js';
 import { CurrentActor, RequirePermissions } from '../../common/auth/decorators.js';
-import { badRequest, notFound } from '../../common/errors.js';
+import { badRequest, conflict, notFound } from '../../common/errors.js';
 import { PrismaService } from '../../common/prisma.service.js';
 import type { Actor } from '../../common/request-context.js';
 import { ApiZodBody, zod } from '../../common/zod.js';
@@ -116,6 +116,12 @@ export class AdminCatalogController {
     return this.svc.archive(id, body.version);
   }
 
+  @RequirePermissions('products.write')
+  @Post('products/:id/restore')
+  restore(@Param('id', ParseUUIDPipe) id: string, @Body(zod(versionBody)) body: z.infer<typeof versionBody>) {
+    return this.svc.restore(id, body.version);
+  }
+
   @RequirePermissions('products.read')
   @Get('products/:id/media')
   media(@Param('id', ParseUUIDPipe) id: string) {
@@ -209,13 +215,22 @@ export class AdminCatalogController {
     return this.prisma.tx(async (tx) => {
       const before = await tx.category.findUnique({ where: { id } });
       if (!before) throw notFound();
+      const seen = new Set([id]);
+      let parentId = body.parentId;
+      while (parentId) {
+        if (seen.has(parentId)) throw badRequest('INVALID_PARENT');
+        seen.add(parentId);
+        const parent = await tx.category.findUnique({ where: { id: parentId }, select: { parentId: true } });
+        if (!parent) throw badRequest('INVALID_PARENT');
+        parentId = parent.parentId;
+      }
       const row = await tx.category.update({
         where: { id },
         data: { code: body.code, ...(body.slug ? { slug: body.slug } : {}), nameFa: body.nameFa, nameEn: body.nameEn ?? null, parentId: body.parentId ?? null, sortOrder: body.sortOrder, active: body.active },
       });
       await this.audit.record(tx, { action: 'category.updated', entityType: 'category', entityId: id, before, after: row });
       return row;
-    });
+    }, { isolationLevel: 'Serializable' });
   }
 
   @RequirePermissions('products.write')
@@ -264,5 +279,43 @@ export class AdminCatalogController {
       await this.audit.record(tx, { action: 'manufacturer_brand.created', entityType: 'manufacturer_brand', entityId: row.id, after: row });
       return row;
     });
+  }
+
+  @RequirePermissions('products.write')
+  @Put('manufacturer-brands/:id')
+  async updateManufacturer(@Param('id', ParseUUIDPipe) id: string, @Body(zod(manufacturerSchema)) body: z.infer<typeof manufacturerSchema>) {
+    return this.prisma.tx(async tx => {
+      const before = await tx.manufacturerBrand.findUnique({ where: { id } });
+      if (!before) throw notFound();
+      const row = await tx.manufacturerBrand.update({ where: { id }, data: { ...body, nameEn: body.nameEn || null, countryCode: body.countryCode || null, normalizedName: normalizeSearchText(body.nameEn || body.nameFa) } });
+      await this.audit.record(tx, { action: 'manufacturer_brand.updated', entityType: 'manufacturer_brand', entityId: id, before, after: row });
+      return row;
+    });
+  }
+
+  /** References are restrictive: staff deactivate used entries instead of breaking their links. */
+  @RequirePermissions('products.write')
+  @Delete('taxonomy/:kind/:id')
+  async deleteTaxonomy(@Param('kind', zod(z.enum(['categories', 'vehicle-brands', 'manufacturer-brands']))) kind: 'categories' | 'vehicle-brands' | 'manufacturer-brands', @Param('id', ParseUUIDPipe) id: string) {
+    return this.prisma.tx(async tx => {
+      if (kind === 'categories') {
+        const row = await tx.category.findUnique({ where: { id }, include: { _count: { select: { products: true, children: true, catalogEntries: true } } } });
+        if (!row) throw notFound();
+        if (Object.values(row._count).some(Boolean)) throw conflict('TAXONOMY_IN_USE');
+        await tx.category.delete({ where: { id } });
+      } else if (kind === 'vehicle-brands') {
+        const row = await tx.vehicleBrand.findUnique({ where: { id }, include: { _count: { select: { products: true, catalogEntries: true, sourcingRequestItems: true, finderVehicles: true } } } });
+        if (!row) throw notFound();
+        if (Object.values(row._count).some(Boolean)) throw conflict('TAXONOMY_IN_USE');
+        await tx.vehicleBrand.delete({ where: { id } });
+      } else {
+        const row = await tx.manufacturerBrand.findUnique({ where: { id }, include: { _count: { select: { products: true, catalogEntries: true, brandImports: true, brandImportProfiles: true } } } });
+        if (!row) throw notFound();
+        if (Object.values(row._count).some(Boolean)) throw conflict('TAXONOMY_IN_USE');
+        await tx.manufacturerBrand.delete({ where: { id } });
+      }
+      await this.audit.record(tx, { action: 'taxonomy.deleted', entityType: kind === 'categories' ? 'category' : kind === 'vehicle-brands' ? 'vehicle_brand' : 'manufacturer_brand', entityId: id });
+      return { id, deleted: true };
+    }, { isolationLevel: 'Serializable' });
   }
 }
