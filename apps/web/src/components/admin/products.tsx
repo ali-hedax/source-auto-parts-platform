@@ -1,6 +1,6 @@
 'use client';
 
-import type { AdminProductRow, MoneyDto, PartDraftView, UnitRef, UnitView, VehicleOption } from '@hedax/contracts';
+import type { AdminProductRow, MeView, MoneyDto, PartDraftView, UnitRef, UnitView, VehicleOption } from '@hedax/contracts';
 import { formatQuantity, isValidQuantity, minorToDecimalString, parseDecimalAmount } from '@hedax/domain';
 import { DatabaseZap, ImagePlus, Images, Plus, X } from 'lucide-react';
 import { useParams, useSearchParams } from 'next/navigation';
@@ -9,6 +9,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, ButtonLink } from '@/components/ui/button';
 import { Async } from '@/components/ui/async';
 import { ErrorSummary } from '@/components/ui/error-summary';
+import { Dialog } from '@/components/ui/dialog';
 import { Checkbox, Field, Input, Select, Textarea } from '@/components/ui/field';
 import { Money, Num, Quantity, useListSeparator } from '@/components/ui/format';
 import { Alert, Badge, Code, EmptyState, PageHeader, Section, TableScroll, td, th } from '@/components/ui/misc';
@@ -22,9 +23,9 @@ import { useL, usePriceSourceLabel } from './shell';
 import { type FitmentValue, VehiclePicker } from './vehicle-picker';
 
 interface Taxonomy {
-  categories: Array<{ id: string; code: string; nameFa: string; nameEn: string | null }>;
-  vehicleBrands: Array<{ id: string; code: string; nameFa: string; nameEn: string | null }>;
-  manufacturers: Array<{ id: string; nameFa: string; nameEn: string | null }>;
+  categories: Array<{ id: string; code: string; nameFa: string; nameEn: string | null; active?: boolean }>;
+  vehicleBrands: Array<{ id: string; code: string; nameFa: string; nameEn: string | null; active?: boolean }>;
+  manufacturers: Array<{ id: string; nameFa: string; nameEn: string | null; active?: boolean }>;
   customerGroups: Array<{ id: string; key: string; nameFa: string; nameEn: string }>;
   units: UnitView[];
 }
@@ -35,10 +36,14 @@ export function ProductsList() {
   const l = useL();
   const priceSource = usePriceSourceLabel();
   const search = useSearchParams();
+  const me = useApi<MeView>('/me');
+  const canWrite = me.data?.isOwner || me.data?.permissions.includes('products.write');
+  const canImport = me.data?.isOwner || me.data?.permissions.includes('imports.run');
   const [q, setQ] = useState(search.get('q') ?? '');
   const [applied, setApplied] = useState(q);
   const [archived, setArchived] = useState(false);
-  const state = useApi<{ items: AdminProductRow[]; total: number }>(`/admin/products?pageSize=100${applied ? `&q=${encodeURIComponent(applied)}` : ''}${archived ? '&archived=1' : ''}`);
+  const [page, setPage] = useState(1);
+  const state = useApi<{ items: AdminProductRow[]; total: number }>(`/admin/products?page=${page}&pageSize=50${applied ? `&q=${encodeURIComponent(applied)}` : ''}${archived ? '&archived=1' : ''}`);
   return (
     <>
       <PageHeader
@@ -46,15 +51,14 @@ export function ProductsList() {
         description={l('هر قطعه یک‌جا: شمارهٔ فنی و معادل‌ها، کاربرد، مشخصات و عکس؛ قیمت و موجودی اختیاری است. قطعهٔ بدون قیمت در سایت با «درخواست تأمین» نشان داده می‌شود.', 'Every part in one place: technical number and equivalents, fitment, specs and photos; price and stock are optional. A part without a price is shown on the site with “Request this part”.')}
         actions={(
           <div className="flex flex-wrap gap-2">
-            <ButtonLink href="/admin/brand-imports" variant="secondary" icon={<DatabaseZap aria-hidden className="size-4" />}>{l('ورود گروهی قطعه', 'Bulk import parts')}</ButtonLink>
-            <ButtonLink href="/admin/product-photos" variant="secondary" icon={<Images aria-hidden className="size-4" />}>{l('بارگذاری گروهی عکس', 'Bulk photos')}</ButtonLink>
-            <ButtonLink href="/admin/products/new" icon={<Plus aria-hidden className="size-4" />}>{t('admin.newProduct')}</ButtonLink>
+            {canImport ? <ButtonLink href="/admin/imports" variant="secondary" icon={<DatabaseZap aria-hidden className="size-4" />}>{l('ورود اکسل', 'Import spreadsheet')}</ButtonLink> : null}
+            {canWrite ? <><ButtonLink href="/admin/product-photos" variant="secondary" icon={<Images aria-hidden className="size-4" />}>{l('بارگذاری گروهی عکس', 'Bulk photos')}</ButtonLink><ButtonLink href="/admin/products/new" icon={<Plus aria-hidden className="size-4" />}>{t('admin.newProduct')}</ButtonLink></> : null}
           </div>
         )}
       />
-      <form className="mb-4 flex flex-wrap items-end gap-3" onSubmit={(e) => { e.preventDefault(); setApplied(q); }}>
+      <form className="mb-4 flex flex-wrap items-end gap-3" onSubmit={(e) => { e.preventDefault(); setApplied(q.trim()); setPage(1); }}>
         <Field id="ap-q" label={l('نام، کد کالا یا شمارهٔ فنی', 'Name, SKU or part number')} className="min-w-64 flex-1"><Input id="ap-q" type="search" value={q} onChange={(e) => setQ(e.target.value)} /></Field>
-        <Checkbox id="ap-archived" label={t('admin.archived')} checked={archived} onChange={(e) => setArchived(e.target.checked)} />
+        <Checkbox id="ap-archived" label={t('admin.archived')} checked={archived} onChange={(e) => { setArchived(e.target.checked); setPage(1); }} />
         <Button type="submit" variant="secondary">{t('common.search')}</Button>
       </form>
       <Async state={state}>
@@ -83,6 +87,7 @@ export function ProductsList() {
           </TableScroll>
         ) : <EmptyState title={t('parts.empty')} />}
       </Async>
+      <div className="mt-4 flex flex-wrap items-center gap-3"><Button variant="secondary" disabled={page === 1} onClick={() => setPage(p => p - 1)}>{l('قبلی', 'Previous')}</Button><span>{l('صفحه', 'Page')} <Num value={page} /> · <Num value={state.data?.total ?? 0} /> {l('قطعه', 'parts')}</span><Button variant="secondary" disabled={!state.data || page * 50 >= state.data.total} onClick={() => setPage(p => p + 1)}>{l('بعدی', 'Next')}</Button></div>
     </>
   );
 }
@@ -112,7 +117,7 @@ interface AdminProduct {
 
 const fitKey = (v: { vehicleId: string; modelId: string | null }) => `${v.vehicleId}:${v.modelId ?? ''}`;
 const list = (text: string) => [...new Set(text.split(/[,،;؛\n]+/).map((s) => s.trim()).filter(Boolean))];
-const year = (s: string) => (s.trim() ? Number(s.trim().replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))) : null);
+const year = (s: string) => (s.trim() ? typedNumber(s) : null);
 
 const toForm = (p: AdminProduct | undefined, units: UnitView[]): ProductForm => ({
   sku: p?.sku ?? '', slug: p?.slug ?? '', partNumber: p?.partNumber ?? '', equivalents: (p?.equivalents ?? []).join(', '), replacements: (p?.replacements ?? []).join(', '),
@@ -131,24 +136,31 @@ const toForm = (p: AdminProduct | undefined, units: UnitView[]): ProductForm => 
 });
 
 export function ProductEditorPage() {
+  const l = useL(); const t = useTranslations();
   const { id } = useParams<{ id: string }>();
   const isNew = id === 'new';
   const search = useSearchParams();
   const product = useApi<AdminProduct>(isNew ? null : `/admin/products/${id}`);
   const taxonomy = useApi<Taxonomy>('/admin/taxonomy');
+  const me = useApi<MeView>('/me');
+  const readOnly = !me.data || (!me.data.isOwner && !me.data.permissions.includes('products.write'));
   // «تبدیل به قطعه» from the knowledge center: the form filled from an extracted row.
   const fromDocument = isNew ? search.get('fromDocument') : null;
-  const draft = useApi<PartDraftView>(fromDocument && /^[0-9a-f-]{36}$/.test(fromDocument) ? `/admin/knowledge-catalog/${fromDocument}/candidates/${Number(search.get('ordinal') ?? 0)}/draft` : null);
+  const ordinal = Number(search.get('ordinal') ?? 0);
+  const validSource = !!fromDocument && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(fromDocument) && Number.isInteger(ordinal) && ordinal >= 0;
+  const draft = useApi<PartDraftView>(validSource ? `/admin/knowledge-catalog/${fromDocument}/candidates/${ordinal}/draft` : null);
+  if (fromDocument && !validSource) return <Alert tone="danger" title={l('نشانی ردیف کاتالوگ معتبر نیست؛ از منابع و کاتالوگ‌ها دوباره ردیف را انتخاب کنید.', 'Invalid catalog row address; select the row again from Reference catalogs.')} />;
+  if (fromDocument && draft.error) return <Alert tone="danger" title={errorText(t, draft.error)}><Link href="/admin/knowledge-catalog" className="text-action underline">{l('بازگشت به منابع و کاتالوگ‌ها', 'Back to Reference catalogs')}</Link></Alert>;
   return (
     <Async state={taxonomy}>
       {(tax) => isNew
-        ? (fromDocument && !draft.data && !draft.error ? <p className="text-sm text-steel">…</p> : <ProductEditor taxonomy={tax} {...(draft.data ? { draft: draft.data } : {})} />)
-        : <Async state={product}>{(p) => <ProductEditor taxonomy={tax} product={p} reload={product.reload} />}</Async>}
+        ? (fromDocument && !draft.data && !draft.error ? <p className="text-sm text-steel">…</p> : <ProductEditor readOnly={readOnly} taxonomy={tax} {...(draft.data ? { draft: draft.data } : {})} />)
+        : <Async state={product}>{(p) => <ProductEditor readOnly={readOnly} taxonomy={tax} product={p} reload={product.reload} />}</Async>}
     </Async>
   );
 }
 
-function ProductEditor({ taxonomy, product, reload, draft }: { taxonomy: Taxonomy; product?: AdminProduct; reload?: () => Promise<void>; draft?: PartDraftView }) {
+function ProductEditor({ taxonomy, product, reload, draft, readOnly }: { taxonomy: Taxonomy; product?: AdminProduct; reload?: () => Promise<void>; draft?: PartDraftView; readOnly: boolean }) {
   const t = useTranslations();
   const l = useL();
   const sep = useListSeparator();
@@ -168,6 +180,9 @@ function ProductEditor({ taxonomy, product, reload, draft }: { taxonomy: Taxonom
   const [existing, setExisting] = useState<{ id: string; sku: string } | null>(draft?.existingProductId ? { id: draft.existingProductId, sku: '' } : null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [archiveConfirm, setArchiveConfirm] = useState(false);
+  const [actionBusy, setActionBusy] = useState(false);
+  const [partialSavedId, setPartialSavedId] = useState<string | null>(null);
   // Photos chosen before the first save: uploaded right after the part is created.
   const [queued, setQueued] = useState<File[]>([]);
   const previews = useMemo(() => queued.map((file) => ({ file, url: URL.createObjectURL(file) })), [queued]);
@@ -176,12 +191,17 @@ function ProductEditor({ taxonomy, product, reload, draft }: { taxonomy: Taxonom
   const fail = (e: unknown) => setGeneral(errorText(t, e));
 
   const save = async (publishToo: boolean) => {
+    if (readOnly || partialSavedId || saving) return;
     const e: Record<string, string> = {};
     if (f.sku.trim() && !/^[A-Za-z0-9][A-Za-z0-9._\-/]{0,63}$/.test(f.sku.trim())) e['pf-sku'] = `${t('admin.sku')}: ${l('فقط حروف انگلیسی، عدد و . _ - /', 'Latin letters, digits and . _ - / only')}`;
     if (!f.sku.trim() && !f.partNumber.trim() && !product) e['pf-sku'] = l('کد کالا یا شمارهٔ فنی را بنویسید (کد کالا از شمارهٔ فنی ساخته می‌شود).', 'Enter a SKU or a part number (the SKU is made from the part number).');
     if (f.nameFa.trim().length < 2) e['pf-namefa'] = `${t('admin.name')} (FA): ${t('validation.required')}`;
     if (!f.categoryId) e['pf-category'] = `${t('parts.category')}: ${t('validation.required')}`;
     if (!f.unitId) e['pf-unit'] = `${t('parts.unit')}: ${t('validation.required')}`;
+    const pack = typedNumber(f.packQuantity);
+    if (!Number.isInteger(pack) || pack < 1 || pack > 10000) e['pf-pack'] = l('تعداد در بسته باید عدد صحیح از ۱ تا ۱۰۰۰۰ باشد.', 'Pack quantity must be a whole number from 1 to 10000.');
+    if (f.countryOfManufacture && !/^[A-Z]{2}$/.test(f.countryOfManufacture)) e['pf-country'] = l('کد دوحرفی کشور را بنویسید؛ مثلاً DE.', 'Use a two-letter country code, e.g. DE.');
+    f.specs.forEach((spec, i) => { if (!!spec.labelFa.trim() !== !!spec.value.trim()) e[`pf-${spec.labelFa.trim() ? 'sv' : 'sl'}-${i}`] = l('عنوان و مقدار مشخصه را هر دو تکمیل کنید یا ردیف را حذف کنید.', 'Complete both label and value or remove the row.'); });
     const threshold = typedNumber(f.lowStockThreshold || '0');
     if (selectedUnit && !(threshold === 0 || isValidQuantity(threshold, { name: selectedUnit.name, allowDecimal: selectedUnit.allowDecimal, stepMilli: Math.round(selectedUnit.step * 1000) }))) {
       e['pf-threshold'] = t('parts.quantityInvalid', { step: formatQuantity(selectedUnit.step, 'fa'), unit: selectedUnit.name });
@@ -206,13 +226,14 @@ function ProductEditor({ taxonomy, product, reload, draft }: { taxonomy: Taxonom
       const y = f.years[fitKey(v)];
       const from = y ? year(y.yearFrom) : null;
       const to = y ? year(y.yearTo) : null;
-      const bad = (n: number | null) => n !== null && !((n >= 1300 && n <= 1500) || (n >= 1950 && n <= 2100));
-      if (bad(from) || bad(to) || (from !== null && to !== null && to < from)) e['pf-years'] = l('سال‌ها را چهاررقمی بنویسید (مثل 1395 یا 2015) و «تا سال» از «از سال» کمتر نباشد.', 'Write four-digit years (e.g. 2015); “to” must not be before “from”.');
+      const bad = (n: number | null) => n !== null && (!Number.isInteger(n) || !((n >= 1300 && n <= 1500) || (n >= 1950 && n <= 2100)));
+      if (bad(from) || bad(to) || (from !== null && to !== null && (to < from || (from < 1600) !== (to < 1600)))) e['pf-years'] = l('سال‌ها صحیح، چهاررقمی و همگی شمسی یا همگی میلادی باشند؛ سال پایان از آغاز کمتر نباشد.', 'Use whole four-digit years in one calendar, with the end no earlier than the start.');
     }
     setErrors(e);
     setGeneral(null);
     if (Object.keys(e).length) return;
     setSaving(true);
+    let writtenId: string | undefined;
     try {
       const body = {
         ...(f.sku.trim() ? { sku: f.sku.trim() } : {}), ...(f.slug ? { slug: f.slug } : {}), partNumber: f.partNumber.trim() || null,
@@ -225,12 +246,13 @@ function ProductEditor({ taxonomy, product, reload, draft }: { taxonomy: Taxonom
         }),
         partType: f.partType, condition: f.condition,
         origin: f.origin, countryOfManufacture: f.countryOfManufacture || null, warrantyFa: f.warrantyFa || null, warrantyEn: f.warrantyEn || null, unitId: f.unitId,
-        packQuantity: typedNumber(f.packQuantity) || 1, oemCodes: f.oemCodes.split(',').map((s) => s.trim()).filter(Boolean),
+        packQuantity: pack, oemCodes: list(f.oemCodes),
         specs: f.specs.filter((s) => s.labelFa.trim() && s.value.trim()).map((s, i) => ({ key: s.key || `spec-${i + 1}`, labelFa: s.labelFa.trim(), ...(s.labelEn ? { labelEn: s.labelEn } : {}), value: s.value.trim() })),
         basePrice: baseMinor ? { currency: f.baseCurrency, amountMinor: baseMinor } : null, manualPriceIrr: manualIrr, manualPriceAed: manualAed,
         lowStockThreshold: typedNumber(f.lowStockThreshold) || 0, isSellable: f.isSellable, ...(product ? { version: product.version } : {}),
       };
       const res = await api<{ id: string; version: number }>(product ? `/admin/products/${product.id}` : '/admin/products', { method: product ? 'PUT' : 'POST', body });
+      writtenId = res.id;
       for (const file of queued) {
         const form = new FormData();
         form.append('file', file);
@@ -245,6 +267,7 @@ function ProductEditor({ taxonomy, product, reload, draft }: { taxonomy: Taxonom
       if (!product) router.replace(`/admin/products/${res.id}`);
       else await reload?.();
     } catch (err) {
+      if (writtenId && !product) { setPartialSavedId(writtenId); setGeneral(l('قطعه ثبت شده، اما عکس‌ها یا انتشار کامل نشده است. برای جلوگیری از ثبت تکراری، قطعهٔ ثبت‌شده را باز کنید و همان‌جا ادامه دهید.', 'The part was saved, but photos or publication did not finish. Open the saved part to continue without creating a duplicate.')); return; }
       if (isApiError(err) && err.code === 'PART_NUMBER_EXISTS') {
         const d = err.details as { id?: string; sku?: string } | undefined;
         if (d?.id) setExisting({ id: d.id, sku: d.sku ?? '' });
@@ -261,7 +284,8 @@ function ProductEditor({ taxonomy, product, reload, draft }: { taxonomy: Taxonom
   };
   const archive = async () => {
     if (!product) return;
-    try { await api(`/admin/products/${product.id}/archive`, { method: 'POST', body: { version: product.version } }); await reload?.(); } catch (e) { fail(e); }
+    setActionBusy(true);
+    try { await api(`/admin/products/${product.id}/${product.archived ? 'restore' : 'archive'}`, { method: 'POST', body: { version: product.version } }); setArchiveConfirm(false); setF(v => ({ ...v, isSellable: false })); await reload?.(); } catch (e) { fail(e); } finally { setActionBusy(false); }
   };
   const name = (x: { nameFa: string; nameEn: string | null }) => l(x.nameFa, x.nameEn ?? x.nameFa);
   const vehicleLabel = (v: FitmentValue) => {
@@ -278,15 +302,18 @@ function ProductEditor({ taxonomy, product, reload, draft }: { taxonomy: Taxonom
     <div className="flex flex-col gap-6">
       <PageHeader
         title={product ? <Code>{product.sku}</Code> : t('admin.newProduct')}
-        actions={product ? (
+        actions={product && !readOnly ? (
           <div className="flex flex-wrap gap-2">
             {product.archived ? <Badge tone="danger">{t('admin.archived')}</Badge> : product.published
               ? <Button variant="secondary" onClick={() => publish(false)}>{t('admin.unpublish')}</Button>
               : <Button onClick={() => publish(true)}>{t('admin.publish')}</Button>}
-            {!product.archived ? <Button variant="ghost" onClick={archive}>{t('admin.archive')}</Button> : null}
+            <Button variant="ghost" disabled={saving || actionBusy} onClick={() => setArchiveConfirm(true)}>{product.archived ? l('بازگرداندن از بایگانی', 'Restore archived part') : t('admin.archive')}</Button>
           </div>
         ) : null}
       />
+      {readOnly ? <Alert tone="info" title={l('دسترسی شما فقط برای مشاهده است.', 'Your access is read only.')} /> : null}
+      <Dialog open={archiveConfirm} onOpenChange={open => { if (!actionBusy) setArchiveConfirm(open); }} closeLabel={l('بستن', 'Close')} title={product?.archived ? l('بازگرداندن قطعه', 'Restore part') : l('بایگانی قطعه', 'Archive part')}><p className="mb-4 leading-8">{product?.archived ? l('قطعه به فهرست برمی‌گردد؛ انتشار و قابلیت فروش خاموش می‌مانند تا خودتان بررسی و فعال کنید.', 'The part returns to the list; publishing and sales remain off until you review and enable them.') : l('قطعه از سایت و فروش خارج می‌شود. سوابق، عکس‌ها و موجودی حفظ می‌شوند و بعداً می‌توانید آن را بازگردانید.', 'The part is removed from the storefront and sales. History, photos and stock are retained, and the part can be restored later.')}</p><Button variant={product?.archived ? 'primary' : 'danger'} loading={actionBusy} onClick={() => void archive()}>{l('تأیید', 'Confirm')}</Button></Dialog>
+      {partialSavedId ? <Alert tone="warning" title={l('ادامهٔ تکمیل قطعه', 'Continue the saved part')}><Link href={`/admin/products/${partialSavedId}`} className="font-semibold text-action underline">{l('باز کردن قطعهٔ ثبت‌شده و تکمیل عکس‌ها', 'Open the saved part and finish photos')}</Link></Alert> : null}
       {draft?.unmatchedVehicles.length ? <Alert tone="warning" title={l(`این خودروها در پنل نیستند و اضافه نشدند: ${draft.unmatchedVehicles.join('، ')}`, `These vehicles are not in the panel and were not added: ${draft.unmatchedVehicles.join(', ')}`)} /> : null}
       {existing ? (
         <Alert tone="warning" title={l('قطعه‌ای با همین شمارهٔ فنی از قبل هست.', 'A part with this part number already exists.')}>
@@ -302,6 +329,7 @@ function ProductEditor({ taxonomy, product, reload, draft }: { taxonomy: Taxonom
         </Alert>
       ) : null}
       <form noValidate onSubmit={(e) => { e.preventDefault(); void save(false); }} className="flex flex-col gap-6">
+        <fieldset disabled={readOnly || saving || !!partialSavedId} className="contents"><legend className="sr-only">{l('اطلاعات قطعه', 'Part details')}</legend>
         <Section title={l('شناسه و شماره‌ها', 'Identity and numbers')} id="pf-numbers">
           <div className="grid gap-4 md:grid-cols-2">
             <Field id="pf-partnumber" label={t('parts.partNumber')} error={errors['pf-partnumber']} hint={l('شمارهٔ فنی اصلی؛ برای هر برند سازنده یکتاست. فاصله، خط تیره و ارقام فارسی در جست‌وجو مهم نیست.', 'Main part number; unique per part brand. Spaces, dashes and Persian digits do not matter in search.')} optionalLabel={t('common.optional')}>
@@ -327,19 +355,19 @@ function ProductEditor({ taxonomy, product, reload, draft }: { taxonomy: Taxonom
             <Field id="pf-category" label={t('parts.category')} error={errors['pf-category']} required>
               <Select id="pf-category" value={f.categoryId} onChange={(e) => set('categoryId', e.target.value)}>
                 <option value="">—</option>
-                {taxonomy.categories.map((c) => <option key={c.id} value={c.id}>{name(c)}</option>)}
+                {taxonomy.categories.filter(c => c.active !== false || c.id === f.categoryId).map((c) => <option key={c.id} value={c.id}>{name(c)}</option>)}
               </Select>
             </Field>
             <Field id="pf-maker" label={t('parts.maker')} optionalLabel={t('common.optional')}>
               <Select id="pf-maker" value={f.manufacturerBrandId} onChange={(e) => set('manufacturerBrandId', e.target.value)}>
                 <option value="">—</option>
-                {taxonomy.manufacturers.map((m) => <option key={m.id} value={m.id}>{name(m)}</option>)}
+                {taxonomy.manufacturers.filter(m => m.active !== false || m.id === f.manufacturerBrandId).map((m) => <option key={m.id} value={m.id}>{name(m)}</option>)}
               </Select>
             </Field>
             <fieldset className="flex flex-col gap-1 md:col-span-2">
               <legend className="text-sm font-semibold">{t('parts.vehicleBrands')}</legend>
               <div className="flex flex-wrap gap-x-4">
-                {taxonomy.vehicleBrands.map((b) => (
+                {taxonomy.vehicleBrands.filter(b => b.active !== false || f.vehicleBrandIds.includes(b.id)).map((b) => (
                   <Checkbox key={b.id} id={`pf-vb-${b.id}`} label={name(b)} checked={f.vehicleBrandIds.includes(b.id)}
                     onChange={(e) => set('vehicleBrandIds', e.target.checked ? [...f.vehicleBrandIds, b.id] : f.vehicleBrandIds.filter((x) => x !== b.id))} />
                 ))}
@@ -354,7 +382,7 @@ function ProductEditor({ taxonomy, product, reload, draft }: { taxonomy: Taxonom
             <Field id="pf-origin" label={t('parts.origin')}>
               <Select id="pf-origin" value={f.origin} onChange={(e) => set('origin', e.target.value)}>{(['DOMESTIC', 'IMPORTED', 'UNKNOWN'] as const).map((v) => <option key={v} value={v}>{t(`origin.${v}`)}</option>)}</Select>
             </Field>
-            <Field id="pf-country" label={t('parts.country')} hint="ISO (e.g. DE, JP)" optionalLabel={t('common.optional')}><Input id="pf-country" dir="ltr" maxLength={2} value={f.countryOfManufacture} onChange={(e) => set('countryOfManufacture', e.target.value.toUpperCase())} /></Field>
+            <Field id="pf-country" label={t('parts.country')} error={errors['pf-country']} hint="ISO (e.g. DE, JP)" optionalLabel={t('common.optional')}><Input id="pf-country" dir="ltr" maxLength={2} value={f.countryOfManufacture} onChange={(e) => set('countryOfManufacture', e.target.value.toUpperCase())} /></Field>
             <Field id="pf-unit" label={t('parts.unit')} required error={errors['pf-unit']}
               hint={selectedUnit ? (selectedUnit.allowDecimal ? l(`اعشاری، با گام ${formatQuantity(selectedUnit.step, 'fa')}`, `Decimals, step ${selectedUnit.step}`) : l('فقط عدد صحیح', 'Whole numbers only')) : undefined}>
               <Select id="pf-unit" value={f.unitId} onChange={(e) => set('unitId', e.target.value)} invalid={!!errors['pf-unit']}>
@@ -362,13 +390,13 @@ function ProductEditor({ taxonomy, product, reload, draft }: { taxonomy: Taxonom
                 {unitOptions.map((u) => <option key={u.id} value={u.id}>{l(u.name, u.nameEn || u.name)}{u.active ? '' : l(' (غیرفعال)', ' (inactive)')}</option>)}
               </Select>
             </Field>
-            <Field id="pf-pack" label={t('parts.pack')}><Input id="pf-pack" inputMode="numeric" value={f.packQuantity} onChange={(e) => set('packQuantity', e.target.value)} /></Field>
+            <Field id="pf-pack" label={t('parts.pack')} error={errors['pf-pack']}><Input id="pf-pack" inputMode="numeric" value={f.packQuantity} onChange={(e) => set('packQuantity', e.target.value)} /></Field>
             <Field id="pf-oem" label={l('کدهای فنی قدیمی', 'Older technical codes')} hint={l('کدهایی که قبلاً برای این قطعه ثبت شده‌اند؛ مثل شماره‌های معادل در جست‌وجو پیدا می‌شوند.', 'Codes recorded earlier for this part; found by search like equivalents.')} optionalLabel={t('common.optional')}><Input id="pf-oem" dir="ltr" value={f.oemCodes} onChange={(e) => set('oemCodes', e.target.value)} /></Field>
           </div>
           <div className="mt-6 border-t border-line-soft pt-4">
             <VehiclePicker id="pf-vehicles" value={f.vehicles} onChange={(v) => set('vehicles', v)} options={vehicleOptions.data ?? []} onOptionsChanged={vehicleOptions.reload} />
             {f.vehicles.length ? (
-              <div className="mt-4" id="pf-years">
+              <div className="mt-4" id="pf-years" tabIndex={-1}>
                 <p className="mb-2 text-sm font-semibold">{l('سال‌های کاربرد (اختیاری)', 'Fitment years (optional)')}</p>
                 {errors['pf-years'] ? <p className="mb-2 text-sm text-danger">{errors['pf-years']}</p> : null}
                 <ul className="flex flex-col gap-2">
@@ -394,12 +422,12 @@ function ProductEditor({ taxonomy, product, reload, draft }: { taxonomy: Taxonom
             <div className="flex flex-col gap-2">
               {f.specs.map((s, i) => (
                 <div key={i} className="grid items-end gap-2 sm:grid-cols-[1fr_2fr_auto]">
-                  <Field id={`pf-sl-${i}`} label={l('عنوان', 'Label')}><Input id={`pf-sl-${i}`} maxLength={100} value={s.labelFa} onChange={(e) => set('specs', f.specs.map((x, j) => (j === i ? { ...x, labelFa: e.target.value } : x)))} /></Field>
-                  <Field id={`pf-sv-${i}`} label={l('مقدار', 'Value')}><Input id={`pf-sv-${i}`} dir="auto" maxLength={300} value={s.value} onChange={(e) => set('specs', f.specs.map((x, j) => (j === i ? { ...x, value: e.target.value } : x)))} /></Field>
+                  <Field id={`pf-sl-${i}`} label={l('عنوان', 'Label')} error={errors[`pf-sl-${i}`]}><Input id={`pf-sl-${i}`} maxLength={100} value={s.labelFa} onChange={(e) => set('specs', f.specs.map((x, j) => (j === i ? { ...x, labelFa: e.target.value } : x)))} /></Field>
+                  <Field id={`pf-sv-${i}`} label={l('مقدار', 'Value')} error={errors[`pf-sv-${i}`]}><Input id={`pf-sv-${i}`} dir="auto" maxLength={300} value={s.value} onChange={(e) => set('specs', f.specs.map((x, j) => (j === i ? { ...x, value: e.target.value } : x)))} /></Field>
                   <Button type="button" variant="ghost" aria-label={l('حذف این مشخصه', 'Remove this spec')} onClick={() => set('specs', f.specs.filter((_, j) => j !== i))}><X aria-hidden className="size-4" /></Button>
                 </div>
               ))}
-              <Button type="button" variant="secondary" className="self-start" icon={<Plus aria-hidden className="size-4" />} onClick={() => set('specs', [...f.specs, { key: '', labelFa: '', value: '' }])}>{l('افزودن مشخصه', 'Add a spec')}</Button>
+              <Button type="button" variant="secondary" disabled={f.specs.length >= 50} className="self-start" icon={<Plus aria-hidden className="size-4" />} onClick={() => set('specs', [...f.specs, { key: '', labelFa: '', value: '' }])}>{l('افزودن مشخصه', 'Add a spec')}</Button>
             </div>
           </div>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -459,12 +487,13 @@ function ProductEditor({ taxonomy, product, reload, draft }: { taxonomy: Taxonom
           </Section>
         ) : null}
         <div className="flex flex-wrap gap-2">
-          <Button type="submit" size="lg" variant={product?.published ? 'primary' : 'secondary'} loading={saving}>{t('common.save')}</Button>
-          {!product?.published ? <Button type="button" size="lg" loading={saving} onClick={() => void save(true)}>{l('ذخیره و انتشار', 'Save and publish')}</Button> : null}
+          <Button type="submit" size="lg" disabled={!!partialSavedId} variant={product?.published ? 'primary' : 'secondary'} loading={saving}>{t('common.save')}</Button>
+          {!product?.published && !product?.archived ? <Button type="button" size="lg" disabled={!!partialSavedId} loading={saving} onClick={() => void save(true)}>{l('ذخیره و انتشار', 'Save and publish')}</Button> : null}
         </div>
+        </fieldset>
       </form>
-      {product ? <MediaManager product={product} reload={reload} /> : null}
-      {product ? <PriceRules product={product} groups={taxonomy.customerGroups} reload={reload} /> : null}
+      {product && !readOnly ? <MediaManager product={product} reload={reload} /> : null}
+      {product && !readOnly ? <PriceRules product={product} groups={taxonomy.customerGroups} reload={reload} /> : null}
     </div>
   );
 }

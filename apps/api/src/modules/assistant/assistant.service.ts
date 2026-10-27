@@ -15,7 +15,18 @@ export class AssistantService {
   async status() {
     const settings = await this.settings.assistant();
     const configured = this.env.ASSISTANT_AI_PROVIDER === 'mock' || (this.env.ASSISTANT_AI_PROVIDER === 'arvan' && Boolean(this.env.ARVAN_AI_ENDPOINT && this.env.ARVAN_AI_API_KEY));
-    return { provider: this.env.ASSISTANT_AI_PROVIDER, model: this.env.ASSISTANT_TEXT_MODEL, configured, liveCallsEnabled: this.env.ASSISTANT_LIVE_CALLS_ENABLED, assistantEnabled: settings.enabled, timeoutMs: this.env.ASSISTANT_TIMEOUT_MS, maxOutputTokens: settings.ai.maxOutputTokens, dailyRequestLimit: settings.ai.dailyRequestLimit };
+    const checks = {
+      liveProvider: this.env.ASSISTANT_AI_PROVIDER === 'arvan',
+      endpointPresent: Boolean(this.env.ARVAN_AI_ENDPOINT),
+      credentialPresent: Boolean(this.env.ARVAN_AI_API_KEY),
+      liveCallsEnabled: this.env.ASSISTANT_LIVE_CALLS_ENABLED,
+      assistantEnabled: settings.enabled,
+      budgetEnabled: (this.env.APP_ENV === 'production' ? this.env.ASSISTANT_DAILY_BUDGET_IRR : this.env.ASSISTANT_TEST_BUDGET_IRR) > 0,
+    };
+    return { provider: this.env.ASSISTANT_AI_PROVIDER, model: this.env.ASSISTANT_TEXT_MODEL, configured, liveCallsEnabled: this.env.ASSISTANT_LIVE_CALLS_ENABLED, assistantEnabled: settings.enabled, timeoutMs: this.env.ASSISTANT_TIMEOUT_MS, maxOutputTokens: settings.ai.maxOutputTokens, dailyRequestLimit: settings.ai.dailyRequestLimit,
+      checks, configurationReady: Object.values(checks).every(Boolean), connectionVerified: false,
+      knowledgeSource: 'catalog_products', referenceDocumentsConnected: false,
+    };
   }
 
   async message(input: AssistantMessageInput, actor: Actor | null): Promise<AssistantMessageResult> {

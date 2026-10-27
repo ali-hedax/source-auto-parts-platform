@@ -27,6 +27,11 @@ export const vehicleSchema = z.object({
   active: z.boolean().optional(),
   seoTitle: z.string().trim().max(120).optional().nullable(),
   seoDescription: z.string().trim().max(300).optional().nullable(),
+  makeFa: z.string().trim().max(80).optional().nullable(),
+  makeEn: z.string().trim().max(80).optional().nullable(),
+  aliases: z.array(z.string().trim().min(1).max(80)).max(30).optional(),
+  finderVisible: z.boolean().optional(),
+  finderGroupIds: z.array(idSchema).max(30).optional(),
 });
 export const vehicleUpdateSchema = vehicleSchema.partial();
 
@@ -37,6 +42,13 @@ export const vehicleModelSchema = z.object({
   slug: vehicleSlugSchema.optional(),
   sortOrder: z.number().int().min(0).max(100_000).optional(),
   active: z.boolean().optional(),
+  yearFrom: z.number().int().min(1300).max(2100).optional().nullable(),
+  yearTo: z.number().int().min(1300).max(2100).optional().nullable(),
+  yearCalendar: z.enum(['jalali', 'gregorian']).optional().nullable(),
+  supply: z.enum(['domestic', 'assembled', 'imported']).optional().nullable(),
+  supplierFa: z.string().trim().max(80).optional().nullable(),
+  supplierEn: z.string().trim().max(80).optional().nullable(),
+  sourceUrl: z.url().max(600).refine(v => v.startsWith('https://'), 'HTTPS required').optional().nullable(),
 });
 export const vehicleModelUpdateSchema = vehicleModelSchema.partial();
 
@@ -80,6 +92,13 @@ export interface VehicleModelAdminView {
   sortOrder: number;
   active: boolean;
   productCount: number;
+  yearFrom?: number | null;
+  yearTo?: number | null;
+  yearCalendar?: 'jalali' | 'gregorian' | null;
+  supply?: 'domestic' | 'assembled' | 'imported' | null;
+  supplierFa?: string | null;
+  supplierEn?: string | null;
+  sourceUrl?: string | null;
 }
 
 export interface VehicleAdminView {
@@ -95,6 +114,11 @@ export interface VehicleAdminView {
   /** Products linked to the vehicle or any of its models: such a vehicle is merged or deactivated, never deleted. */
   productCount: number;
   models: VehicleModelAdminView[];
+  makeFa?: string | null;
+  makeEn?: string | null;
+  aliases?: string[];
+  finderVisible?: boolean;
+  finderGroupIds?: string[];
 }
 
 /** Product form picker. */

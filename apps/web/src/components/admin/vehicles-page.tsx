@@ -1,6 +1,6 @@
 'use client';
 
-import type { VehicleAdminView, VehicleCategoryView } from '@hedax/contracts';
+import type { VehicleAdminView, VehicleCategoryView, VehicleModelAdminView } from '@hedax/contracts';
 import { ArrowDown, ArrowUp, GripVertical, Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState, type DragEvent } from 'react';
@@ -14,6 +14,7 @@ import { Tabs } from '@/components/ui/tabs';
 import { api } from '@/lib/api/client';
 import { errorText, isApiError } from '@/lib/api/errors';
 import { useApi } from '@/lib/use-api';
+import { typedNumber } from '@/lib/numbers';
 import { ActionMenu } from './action-menu';
 import { useL } from './shell';
 
@@ -206,12 +207,14 @@ function useSave(onSaved: (n: Notice) => void) {
 function VehicleDialog({ vehicle, categories, onClose, onSaved }: { vehicle: VehicleAdminView | null; categories: VehicleCategoryView[]; onClose: () => void; onSaved: (n: Notice) => void }) {
   const l = useL();
   const t = useTranslations();
-  const [f, setF] = useState({ name: vehicle?.name ?? '', nameEn: vehicle?.nameEn ?? '', slug: vehicle?.slug ?? '', categoryId: vehicle?.categoryId ?? '', active: vehicle?.active ?? true, seoTitle: vehicle?.seoTitle ?? '', seoDescription: vehicle?.seoDescription ?? '' });
+  const [f, setF] = useState({ name: vehicle?.name ?? '', nameEn: vehicle?.nameEn ?? '', slug: vehicle?.slug ?? '', categoryId: vehicle?.categoryId ?? '', active: vehicle?.active ?? true, seoTitle: vehicle?.seoTitle ?? '', seoDescription: vehicle?.seoDescription ?? '', makeFa: vehicle?.makeFa ?? '', makeEn: vehicle?.makeEn ?? '', aliases: (vehicle?.aliases ?? []).join('، '), finderVisible: vehicle?.finderVisible ?? false, finderGroupIds: vehicle?.finderGroupIds ?? [] });
+  const taxonomy = useApi<{ vehicleBrands: Array<{ id: string; nameFa: string; active: boolean }> }>('/admin/taxonomy');
   const { busy, error, save, setError } = useSave(onSaved);
   const submit = () => {
     if (!f.name.trim()) { setError(l('نام خودرو را بنویسید.', 'Enter the vehicle name.')); return; }
     if (f.slug && !/^[a-z0-9][a-z0-9-]*$/.test(f.slug)) { setError(l('آدرس صفحه فقط حروف کوچک انگلیسی، عدد و خط تیره.', 'The address uses lowercase letters, digits and dashes only.')); return; }
-    const body = { name: f.name.trim(), nameEn: f.nameEn.trim() || null, ...(f.slug ? { slug: f.slug } : {}), categoryId: f.categoryId || null, active: f.active, seoTitle: f.seoTitle.trim() || null, seoDescription: f.seoDescription.trim() || null };
+    if (f.finderVisible && !f.finderGroupIds.length) { setError(l('برای نمایش در انتخاب‌گر، حداقل یک گروه خودرو انتخاب کنید.', 'Select at least one vehicle group to show it in the finder.')); return; }
+    const body = { name: f.name.trim(), nameEn: f.nameEn.trim() || null, ...(f.slug ? { slug: f.slug } : {}), categoryId: f.categoryId || null, active: f.active, seoTitle: f.seoTitle.trim() || null, seoDescription: f.seoDescription.trim() || null, makeFa: f.makeFa.trim() || null, makeEn: f.makeEn.trim() || null, aliases: f.aliases.split(/[،,;\n]/).map(s => s.trim()).filter(Boolean), finderVisible: f.finderVisible, finderGroupIds: f.finderGroupIds };
     void save(() => api(vehicle ? `/admin/vehicles/${vehicle.id}` : '/admin/vehicles', { method: vehicle ? 'PATCH' : 'POST', body }), vehicle ? l('خودرو ذخیره شد.', 'Vehicle saved.') : l('خودرو اضافه شد.', 'Vehicle added.'));
   };
   return (
@@ -220,6 +223,11 @@ function VehicleDialog({ vehicle, categories, onClose, onSaved }: { vehicle: Veh
         {error ? <Alert tone="danger" title={error} /> : null}
         <Field id="vd-name" label={l('نام', 'Name')} required><Input id="vd-name" maxLength={80} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></Field>
         <Field id="vd-name-en" label={l('نام انگلیسی', 'English name')} optionalLabel={t('common.optional')}><Input id="vd-name-en" dir="ltr" maxLength={80} value={f.nameEn} onChange={(e) => setF({ ...f, nameEn: e.target.value })} /></Field>
+        <p className="text-sm leading-7 text-steel">{l('نام خودرو مثل «پژو ۲۰۶» است؛ تیپ‌هایی مثل «تیپ ۵» را بعد از ذخیره از مدیریت تیپ‌ها اضافه کنید.', 'Use a vehicle family such as Peugeot 206; add trims such as Type 5 from Manage models after saving.')}</p>
+        <Field id="vd-make-fa" label={l('برند اصلی خودرو (مثلاً پژو)', 'Original make (e.g. Peugeot)')}><Input id="vd-make-fa" maxLength={80} value={f.makeFa} onChange={e => setF({ ...f, makeFa: e.target.value })} /></Field>
+        <Field id="vd-make-en" label={l('برند اصلی به انگلیسی', 'Original make in English')}><Input id="vd-make-en" dir="ltr" maxLength={80} value={f.makeEn} onChange={e => setF({ ...f, makeEn: e.target.value })} /></Field>
+        <Field id="vd-aliases" label={l('نام‌های دیگر برای جست‌وجو', 'Search aliases')} hint={l('با ویرگول جدا کنید.', 'Separate with commas.')}><Input id="vd-aliases" value={f.aliases} onChange={e => setF({ ...f, aliases: e.target.value })} /></Field>
+        <fieldset className="space-y-2 rounded-lg border border-line-soft p-3"><legend className="px-2 text-sm font-semibold">{l('انتخاب‌گر صفحهٔ اصلی', 'Home vehicle finder')}</legend><Checkbox id="vd-finder" label={l('نمایش این خودرو در انتخاب‌گر', 'Show this vehicle in the finder')} checked={f.finderVisible} onChange={e => setF({ ...f, finderVisible: e.target.checked })} /><p className="text-xs leading-6 text-steel">{l('گروه عرضه‌کننده مثل ایران‌خودرو یا سایپا است و می‌تواند با برند اصلی متفاوت باشد.', 'The supplying group, such as IKCO, may differ from the original make.')}</p>{taxonomy.error ? <Alert tone="danger" title={errorText(t, taxonomy.error)} /> : null}{taxonomy.data?.vehicleBrands.filter(g => g.active || f.finderGroupIds.includes(g.id)).map(g => <Checkbox key={g.id} id={`vd-group-${g.id}`} label={g.nameFa} checked={f.finderGroupIds.includes(g.id)} onChange={e => setF({ ...f, finderGroupIds: e.target.checked ? [...f.finderGroupIds, g.id] : f.finderGroupIds.filter(id => id !== g.id) })} />)}</fieldset>
         <Field id="vd-slug" label={l('آدرس صفحه', 'Page address')} hint={l('مثلاً peugeot ← /cars/peugeot؛ خالی = از نام انگلیسی', 'e.g. peugeot → /cars/peugeot; empty = from the English name')} optionalLabel={t('common.optional')}>
           <Input id="vd-slug" dir="ltr" maxLength={70} value={f.slug} onChange={(e) => setF({ ...f, slug: e.target.value.toLowerCase() })} />
         </Field>
@@ -246,12 +254,13 @@ function ModelsDialog({ vehicle, onClose, onChanged }: { vehicle: VehicleAdminVi
   const t = useTranslations();
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [editing, setEditing] = useState<{ id: string; name: string } | null>(null);
-  const call = async (fn: () => Promise<unknown>) => { setError(null); try { await fn(); onChanged(); } catch (e) { setError(errorText(t, e)); } };
+  const [editing, setEditing] = useState<VehicleModelAdminView | null>(null);
+  const [busy, setBusy] = useState(false);
+  const call = async (fn: () => Promise<unknown>) => { if (busy) return false; setError(null); setBusy(true); try { await fn(); onChanged(); return true; } catch (e) { setError(errorText(t, e)); return false; } finally { setBusy(false); } };
   const sortable = useSortable(vehicle.models, async (ids) => { await call(() => api(`/admin/vehicles/${vehicle.id}/models/reorder`, { method: 'POST', body: { ids } })); });
   return (
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }} title={l(`مدل‌ها / تیپ‌های ${vehicle.name}`, `Models of ${vehicle.name}`)} closeLabel={l('بستن', 'Close')}
-      description={l('اختیاری؛ مثلاً پژو ← ۲۰۶، ۴۰۵، پارس. محصول می‌تواند به کل خودرو یا مدل‌های خاص وصل شود.', 'Optional, e.g. Peugeot → 206, 405, Pars. A product fits the whole vehicle or specific models.')}>
+      description={l('تیپ‌ها مثل «تیپ ۵» یا «اتوماتیک» هستند. سال تولید تیپ با سال سازگاری یک قطعه فرق دارد؛ سال را تنها با منبع ثبت کنید.', 'Trims include Type 5 or Automatic. A trim’s production years differ from a part’s fitment years; cite a source for production years.')}>
       <div className="flex flex-col gap-3">
         {error ? <Alert tone="danger" title={error} /> : null}
         {sortable.order.length ? (
@@ -261,15 +270,12 @@ function ModelsDialog({ vehicle, onClose, onChanged }: { vehicle: VehicleAdminVi
                 <button type="button" className="grid size-9 place-items-center rounded hover:bg-surface disabled:opacity-30" disabled={i === 0} onClick={() => sortable.move(m.id, -1)} aria-label={l(`بالا بردن ${m.name}`, `Move ${m.name} up`)}><ArrowUp aria-hidden className="size-4" /></button>
                 <button type="button" className="grid size-9 place-items-center rounded hover:bg-surface disabled:opacity-30" disabled={i === sortable.order.length - 1} onClick={() => sortable.move(m.id, 1)} aria-label={l(`پایین بردن ${m.name}`, `Move ${m.name} down`)}><ArrowDown aria-hidden className="size-4" /></button>
                 {editing?.id === m.id ? (
-                  <form className="flex flex-1 gap-2" onSubmit={(e) => { e.preventDefault(); void call(() => api(`/admin/vehicles/${vehicle.id}/models/${m.id}`, { method: 'PATCH', body: { name: editing.name.trim() } })).then(() => setEditing(null)); }}>
-                    <Input id={`md-edit-${m.id}`} aria-label={l('نام مدل', 'Model name')} value={editing.name} onChange={(e) => setEditing({ id: m.id, name: e.target.value })} />
-                    <Button size="sm" type="submit">{l('ذخیره', 'Save')}</Button>
-                  </form>
+                  <ModelDetailsForm key={m.id} model={editing} busy={busy} cancel={() => setEditing(null)} save={async body => { const ok = await call(() => api(`/admin/vehicles/${vehicle.id}/models/${m.id}`, { method: 'PATCH', body })); if (ok) setEditing(null); }} />
                 ) : (
                   <span className="min-w-24 flex-1"><span className="font-semibold">{m.name}</span> <span className="text-xs text-steel">({l('محصولات', 'products')}: <Num value={m.productCount} />)</span>{m.active ? null : <Badge tone="neutral" className="ms-2">{l('غیرفعال', 'Inactive')}</Badge>}</span>
                 )}
                 <ActionMenu label={l(`عملیات برای ${m.name}`, `Actions for ${m.name}`)} actions={[
-                  { key: 'edit', label: l('تغییر نام', 'Rename'), onSelect: () => setEditing({ id: m.id, name: m.name }) },
+                  { key: 'edit', label: l('ویرایش تیپ و سال', 'Edit trim & years'), disabled: busy, onSelect: () => setEditing(m) },
                   { key: 'active', label: m.active ? l('غیرفعال کردن', 'Deactivate') : l('فعال کردن', 'Activate'), onSelect: () => void call(() => api(`/admin/vehicles/${vehicle.id}/models/${m.id}`, { method: 'PATCH', body: { active: !m.active } })) },
                   { key: 'delete', label: l('حذف', 'Delete'), danger: true, disabled: m.productCount > 0, onSelect: () => void call(() => api(`/admin/vehicles/${vehicle.id}/models/${m.id}`, { method: 'DELETE' })) },
                 ]} />
@@ -277,13 +283,29 @@ function ModelsDialog({ vehicle, onClose, onChanged }: { vehicle: VehicleAdminVi
             ))}
           </ul>
         ) : <p className="text-sm text-steel">{l('هنوز مدلی ثبت نشده است.', 'No models yet.')}</p>}
-        <form className="flex flex-wrap items-end gap-2" onSubmit={(e) => { e.preventDefault(); if (!name.trim()) return; void call(() => api(`/admin/vehicles/${vehicle.id}/models`, { method: 'POST', body: { name: name.trim() } })).then(() => setName('')); }}>
+        <form className="flex flex-wrap items-end gap-2" onSubmit={(e) => { e.preventDefault(); if (!name.trim()) return; void call(() => api(`/admin/vehicles/${vehicle.id}/models`, { method: 'POST', body: { name: name.trim() } })).then(ok => { if (ok) setName(''); }); }}>
           <Field id="md-new" label={l('مدل تازه', 'New model')} className="min-w-40 flex-1"><Input id="md-new" maxLength={80} value={name} onChange={(e) => setName(e.target.value)} /></Field>
-          <Button type="submit" variant="secondary"><Plus aria-hidden className="size-4" /> {l('افزودن مدل', 'Add model')}</Button>
+          <Button type="submit" variant="secondary" loading={busy}><Plus aria-hidden className="size-4" /> {l('افزودن مدل', 'Add model')}</Button>
         </form>
       </div>
     </Dialog>
   );
+}
+
+function ModelDetailsForm({ model, busy, cancel, save }: { model: VehicleModelAdminView; busy: boolean; cancel: () => void; save: (body: Record<string, unknown>) => Promise<void> }) {
+  const l = useL();
+  const [value, setValue] = useState({ name: model.name, nameEn: model.nameEn ?? '', yearFrom: model.yearFrom?.toString() ?? '', yearTo: model.yearTo?.toString() ?? '', yearCalendar: model.yearCalendar ?? 'jalali', supply: model.supply ?? '', supplierFa: model.supplierFa ?? '', supplierEn: model.supplierEn ?? '', sourceUrl: model.sourceUrl ?? '' });
+  const [error, setError] = useState('');
+  const field = (name: keyof typeof value, next: string) => setValue(v => ({ ...v, [name]: next }));
+  return <form className="grid w-full gap-3 rounded-lg bg-surface p-3 sm:grid-cols-2" onSubmit={e => { e.preventDefault(); const from = value.yearFrom.trim() ? typedNumber(value.yearFrom) : null; const to = value.yearTo.trim() ? typedNumber(value.yearTo) : null; if ((from !== null && !Number.isInteger(from)) || (to !== null && !Number.isInteger(to))) { setError(l('سال را به صورت عدد صحیح بنویسید.', 'Enter whole-number years.')); return; } setError(''); void save({ ...value, name: value.name.trim(), nameEn: value.nameEn.trim() || null, yearFrom: from, yearTo: to, yearCalendar: from === null && to === null ? null : value.yearCalendar, supply: value.supply || null, supplierFa: value.supplierFa || null, supplierEn: value.supplierEn || null, sourceUrl: value.sourceUrl || null }); }}>
+    <Field id="model-name" label={l('نام تیپ', 'Trim name')} required><Input id="model-name" maxLength={80} required value={value.name} onChange={e => field('name', e.target.value)} /></Field><Field id="model-name-en" label={l('نام انگلیسی تیپ', 'English trim name')}><Input id="model-name-en" dir="ltr" maxLength={80} value={value.nameEn} onChange={e => field('nameEn', e.target.value)} /></Field>
+    <Field id="model-calendar" label={l('تقویم سال', 'Year calendar')}><Select id="model-calendar" value={value.yearCalendar} onChange={e => field('yearCalendar', e.target.value)}><option value="jalali">{l('شمسی', 'Jalali')}</option><option value="gregorian">{l('میلادی', 'Gregorian')}</option></Select></Field>
+    <Field id="model-supply" label={l('نوع عرضه', 'Supply type')}><Select id="model-supply" value={value.supply} onChange={e => field('supply', e.target.value)}><option value="">{l('نامشخص', 'Unknown')}</option><option value="domestic">{l('تولید داخل', 'Domestic')}</option><option value="assembled">{l('مونتاژ', 'Assembled')}</option><option value="imported">{l('وارداتی', 'Imported')}</option></Select></Field>
+    <Field id="model-year-from" label={l('از سال تولید', 'First production year')}><Input id="model-year-from" inputMode="numeric" value={value.yearFrom} onChange={e => field('yearFrom', e.target.value)} /></Field><Field id="model-year-to" label={l('تا سال تولید', 'Last production year')}><Input id="model-year-to" inputMode="numeric" value={value.yearTo} onChange={e => field('yearTo', e.target.value)} /></Field>
+    <Field id="model-supplier" label={l('تولیدکننده / عرضه‌کننده', 'Manufacturer / supplier')}><Input id="model-supplier" maxLength={80} value={value.supplierFa} onChange={e => field('supplierFa', e.target.value)} /></Field><Field id="model-supplier-en" label={l('عرضه‌کننده به انگلیسی', 'Supplier in English')}><Input id="model-supplier-en" dir="ltr" maxLength={80} value={value.supplierEn} onChange={e => field('supplierEn', e.target.value)} /></Field>
+    <Field id="model-source" className="sm:col-span-2" label={l('پیوند منبع سال و مشخصات', 'Source link for years & details')} hint={l('برای ثبت یا تغییر سال، پیوند HTTPS منبع لازم است. اگر سال معلوم نیست، هر دو سال را خالی بگذارید.', 'An HTTPS source is required to add or change years. If unknown, leave both years blank.')}><Input id="model-source" type="url" dir="ltr" value={value.sourceUrl} onChange={e => field('sourceUrl', e.target.value)} /></Field>
+    {error ? <Alert tone="danger" title={error} /> : null}<div className="flex gap-2 sm:col-span-2"><Button type="submit" loading={busy}>{l('ذخیرهٔ تیپ', 'Save trim')}</Button><Button variant="ghost" disabled={busy} onClick={cancel}>{l('انصراف', 'Cancel')}</Button></div>
+  </form>;
 }
 
 function MergeDialog({ vehicle, vehicles, onClose, onSaved }: { vehicle: VehicleAdminView; vehicles: VehicleAdminView[]; onClose: () => void; onSaved: (n: Notice) => void }) {

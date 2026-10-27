@@ -29,7 +29,7 @@ describe('knowledge catalog phase one', () => {
     expect(created.body.sha256).toMatch(/^[a-f0-9]{64}$/);
 
     const pending = await owner.patch(`/admin/knowledge-catalog/${created.body.id}/status`, { status: 'PENDING_PROCESSING' });
-    expect(pending.status).toBe(200);
+    expect(pending.status).toBe(400);
     const approved = await owner.patch(`/admin/knowledge-catalog/${created.body.id}/status`, { status: 'APPROVED' });
     expect(approved.body.status).toBe('APPROVED');
     expect(approved.body.approvedAt).toBeTruthy();

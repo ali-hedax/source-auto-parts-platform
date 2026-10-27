@@ -402,6 +402,11 @@ export const catalogDocumentStatusSchema = z.object({
   note: optionalText(500),
 });
 
+export const catalogDocumentEditSchema = catalogDocumentCreateSchema.omit({ attachmentId: true }).extend({
+  expectedUpdatedAt: z.iso.datetime(),
+});
+export const catalogDocumentDeleteSchema = z.object({ expectedUpdatedAt: z.iso.datetime() });
+
 /** «تبدیل به قطعه»: the part form filled from an extracted row (nothing is saved). */
 export interface PartDraftView {
   partNumber: string;

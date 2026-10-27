@@ -37,7 +37,7 @@ export class VehiclesService {
     const [categories, vehicles] = await Promise.all([
       this.prisma.vehicleCategory.findMany({ include: { _count: { select: { vehicles: true } } }, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }] }),
       this.prisma.vehicle.findMany({
-        include: { models: { include: { _count: { select: { products: true } } }, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }] }, _count: { select: { products: true } } },
+        include: { finderGroups: true, models: { include: { sources: { orderBy: { createdAt: 'desc' }, take: 1 }, _count: { select: { products: true } } }, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }] }, _count: { select: { products: true } } },
         orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
       }),
     ]);
@@ -47,7 +47,8 @@ export class VehiclesService {
       vehicles: vehicles.map((v) => ({
         id: v.id, name: v.name, nameEn: v.nameEn, slug: v.slug, categoryId: v.categoryId, sortOrder: v.sortOrder, active: v.active,
         seoTitle: v.seoTitle, seoDescription: v.seoDescription, productCount: productCounts.get(v.id) ?? 0,
-        models: v.models.map((m) => ({ id: m.id, name: m.name, nameEn: m.nameEn, slug: m.slug, sortOrder: m.sortOrder, active: m.active, productCount: m._count.products })),
+        makeFa: v.makeFa, makeEn: v.makeEn, aliases: v.aliases, finderVisible: v.finderVisible, finderGroupIds: v.finderGroups.map(g => g.vehicleBrandId),
+        models: v.models.map((m) => ({ id: m.id, name: m.name, nameEn: m.nameEn, slug: m.slug, sortOrder: m.sortOrder, active: m.active, productCount: m._count.products, yearFrom: m.yearFrom, yearTo: m.yearTo, yearCalendar: m.yearCalendar as 'jalali' | 'gregorian' | null, supply: m.supply as 'domestic' | 'assembled' | 'imported' | null, supplierFa: m.supplierFa, supplierEn: m.supplierEn, sourceUrl: m.sources[0]?.url ?? null })),
       })),
     };
   }
@@ -174,8 +175,10 @@ export class VehiclesService {
       data: {
         name: body.name, nameEn: body.nameEn || null, nameKey, slug, categoryId: body.categoryId ?? null, active: body.active ?? true,
         sortOrder: body.sortOrder ?? (await tx.vehicle.count()) + 1, seoTitle: body.seoTitle || null, seoDescription: body.seoDescription || null,
+        makeFa: body.makeFa || null, makeEn: body.makeEn || null, aliases: body.aliases ?? [], finderVisible: body.finderVisible ?? false,
       },
     });
+    await this.setFinderGroups(tx, row.id, body.finderGroupIds ?? [], row.finderVisible);
     await this.audit.record(tx, { action: 'vehicle.created', entityType: 'vehicle', entityId: row.id, after: { name: row.name, slug, categoryId: row.categoryId } });
     return row;
   }
@@ -199,8 +202,14 @@ export class VehiclesService {
           ...(slug ? { slug } : {}), ...(body.categoryId !== undefined ? { categoryId: body.categoryId } : {}),
           ...(body.sortOrder !== undefined ? { sortOrder: body.sortOrder } : {}), ...(body.active !== undefined ? { active: body.active } : {}),
           ...(body.seoTitle !== undefined ? { seoTitle: body.seoTitle || null } : {}), ...(body.seoDescription !== undefined ? { seoDescription: body.seoDescription || null } : {}),
+          ...(body.makeFa !== undefined ? { makeFa: body.makeFa || null } : {}), ...(body.makeEn !== undefined ? { makeEn: body.makeEn || null } : {}),
+          ...(body.aliases !== undefined ? { aliases: body.aliases } : {}), ...(body.finderVisible !== undefined ? { finderVisible: body.finderVisible } : {}),
         },
       });
+      if (body.finderGroupIds !== undefined || body.finderVisible !== undefined) {
+        const groupIds = body.finderGroupIds ?? (await tx.vehicleFinderGroup.findMany({ where: { vehicleId: id } })).map(g => g.vehicleBrandId);
+        await this.setFinderGroups(tx, id, groupIds, row.finderVisible);
+      }
       await this.audit.record(tx, {
         action: 'vehicle.updated', entityType: 'vehicle', entityId: id,
         before: { name: before.name, nameEn: before.nameEn, slug: before.slug, categoryId: before.categoryId, active: before.active },
@@ -237,10 +246,11 @@ export class VehiclesService {
   /** Only a vehicle without products is deleted; otherwise merge it or deactivate it. Its models go with it. */
   async deleteVehicle(id: string) {
     return this.prisma.tx(async (tx) => {
-      const before = await tx.vehicle.findUnique({ where: { id }, include: { models: true } });
+      const before = await tx.vehicle.findUnique({ where: { id }, include: { models: true, _count: { select: { catalogEntries: true, equivalences: true, legacyTargets: true } } } });
       if (!before) throw notFound();
       const products = (await this.productCounts([id], tx)).get(id) ?? 0;
       if (products > 0) throw conflict('VEHICLE_IN_USE', 'Products use this vehicle; merge it into another or deactivate it', { products });
+      if (Object.values(before._count).some(Boolean)) throw conflict('VEHICLE_IN_USE');
       await tx.vehicleModel.deleteMany({ where: { vehicleId: id } });
       await tx.vehicle.delete({ where: { id } });
       await this.audit.record(tx, { action: 'vehicle.deleted', entityType: 'vehicle', entityId: id, before: { name: before.name, slug: before.slug, models: before.models.map((m) => m.name) } });
@@ -326,6 +336,35 @@ export class VehiclesService {
     });
   }
 
+  private async setFinderGroups(tx: Tx, vehicleId: string, input: string[], visible: boolean) {
+    const ids = [...new Set(input)];
+    if (visible && !ids.length) throw badRequest('FINDER_GROUP_REQUIRED');
+    if (ids.length && await tx.vehicleBrand.count({ where: { id: { in: ids } } }) !== ids.length) throw badRequest('FINDER_GROUP_REQUIRED');
+    await tx.vehicleFinderGroup.deleteMany({ where: { vehicleId, vehicleBrandId: { notIn: ids } } });
+    await tx.vehicleFinderGroup.createMany({ data: ids.map(vehicleBrandId => ({ vehicleId, vehicleBrandId })), skipDuplicates: true });
+  }
+
+  private modelMetadata(body: Partial<ModelInput>, before?: { yearFrom: number | null; yearTo: number | null; yearCalendar: string | null }) {
+    const yearFrom = body.yearFrom !== undefined ? body.yearFrom : before?.yearFrom ?? null;
+    const yearTo = body.yearTo !== undefined ? body.yearTo : before?.yearTo ?? null;
+    const yearCalendar = body.yearCalendar !== undefined ? body.yearCalendar : before?.yearCalendar ?? null;
+    if (yearFrom !== null || yearTo !== null) {
+      if (yearFrom === null || yearTo === null || !yearCalendar || yearTo < yearFrom || (yearCalendar === 'jalali' ? yearFrom < 1300 || yearTo > 1500 : yearFrom < 1950 || yearTo > 2100)) throw badRequest('VEHICLE_YEARS_INVALID');
+      const changed = !before || yearFrom !== before.yearFrom || yearTo !== before.yearTo || yearCalendar !== before.yearCalendar;
+      if (changed && !body.sourceUrl) throw badRequest('VEHICLE_YEAR_SOURCE_REQUIRED');
+    }
+    return {
+      yearFrom, yearTo, yearCalendar: yearFrom === null && yearTo === null ? null : yearCalendar,
+      ...(body.supply !== undefined ? { supply: body.supply } : {}),
+      ...(body.supplierFa !== undefined ? { supplierFa: body.supplierFa || null } : {}), ...(body.supplierEn !== undefined ? { supplierEn: body.supplierEn || null } : {}),
+    };
+  }
+
+  private async recordModelSource(tx: Tx, vehicleId: string, modelId: string, body: Partial<ModelInput>) {
+    if (!body.sourceUrl) return;
+    await tx.vehicleSource.upsert({ where: { sourceKey: `admin-model:${modelId}` }, create: { vehicleId, modelId, sourceKey: `admin-model:${modelId}`, url: body.sourceUrl, title: 'Staff-provided model reference', market: 'IR', checkedOn: new Date(), status: 'secondary', claim: 'Model details and years entered by staff; not automatically verified' }, update: { url: body.sourceUrl, checkedOn: new Date() } });
+  }
+
   async insertModel(tx: Tx, vehicleId: string, body: Pick<ModelInput, 'name'> & Partial<ModelInput>) {
     const nameKey = vehicleKey(body.name);
     if (!nameKey) throw badRequest('VEHICLE_NAME_REQUIRED');
@@ -333,8 +372,9 @@ export class VehiclesService {
     if (same) throw conflict('MODEL_EXISTS', 'This vehicle already has a model with this name', { id: same.id, name: same.name });
     const slug = await this.freeModelSlug(tx, vehicleId, body.slug || vehicleSlug(body.nameEn ?? (/^[\x20-\x7e]+$/.test(body.name) ? body.name : null), vehicleSlug(nameKey.replace(/[^\x20-\x7e]/g, ''), `model-${Date.now().toString(36)}`)), null);
     const row = await tx.vehicleModel.create({
-      data: { vehicleId, name: body.name, nameEn: body.nameEn || null, nameKey, slug, active: body.active ?? true, sortOrder: body.sortOrder ?? (await tx.vehicleModel.count({ where: { vehicleId } })) + 1 },
+      data: { vehicleId, name: body.name, nameEn: body.nameEn || null, nameKey, slug, active: body.active ?? true, sortOrder: body.sortOrder ?? (await tx.vehicleModel.count({ where: { vehicleId } })) + 1, ...this.modelMetadata(body) },
     });
+    await this.recordModelSource(tx, vehicleId, row.id, body);
     await this.audit.record(tx, { action: 'vehicle_model.created', entityType: 'vehicle', entityId: vehicleId, after: { model: row.name, slug } });
     return row;
   }
@@ -352,8 +392,10 @@ export class VehiclesService {
         data: {
           ...(body.name !== undefined ? { name: body.name, nameKey } : {}), ...(body.nameEn !== undefined ? { nameEn: body.nameEn || null } : {}),
           ...(slug ? { slug } : {}), ...(body.sortOrder !== undefined ? { sortOrder: body.sortOrder } : {}), ...(body.active !== undefined ? { active: body.active } : {}),
+          ...this.modelMetadata(body, before),
         },
       });
+      await this.recordModelSource(tx, vehicleId, modelId, body);
       await this.audit.record(tx, { action: 'vehicle_model.updated', entityType: 'vehicle', entityId: vehicleId, before: { model: before.name, active: before.active }, after: { model: row.name, active: row.active } });
       const renamed = row.name !== before.name || row.nameEn !== before.nameEn;
       return renamed ? (await tx.productVehicle.findMany({ where: { modelId }, select: { productId: true } })).map((r) => r.productId) : [];
@@ -365,9 +407,9 @@ export class VehiclesService {
 
   async deleteModel(vehicleId: string, modelId: string) {
     return this.prisma.tx(async (tx) => {
-      const before = await tx.vehicleModel.findFirst({ where: { id: modelId, vehicleId }, include: { _count: { select: { products: true } } } });
+      const before = await tx.vehicleModel.findFirst({ where: { id: modelId, vehicleId }, include: { _count: { select: { products: true, catalogEntries: true, equivalences: true, legacyTargets: true } } } });
       if (!before) throw notFound();
-      if (before._count.products > 0) throw conflict('MODEL_IN_USE', 'Products use this model; deactivate it instead', { products: before._count.products });
+      if (Object.values(before._count).some(Boolean)) throw conflict('MODEL_IN_USE', 'Parts or references use this model; deactivate it instead');
       await tx.vehicleModel.delete({ where: { id: modelId } });
       await this.audit.record(tx, { action: 'vehicle_model.deleted', entityType: 'vehicle', entityId: vehicleId, before: { model: before.name } });
       this.publicCache.invalidate();

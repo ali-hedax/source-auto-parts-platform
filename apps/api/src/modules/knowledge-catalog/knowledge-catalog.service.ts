@@ -36,10 +36,11 @@ export class KnowledgeCatalogService {
     };
   }
 
-  async list(): Promise<CatalogDocumentView[]> {
+  async list(query: { q?: string; page: number } = { page: 1 }): Promise<CatalogDocumentView[]> {
     const rows = await this.prisma.catalogDocument.findMany({
+      where: query.q ? { OR: [{ title: { contains: query.q, mode: 'insensitive' } }, { attachment: { originalFilename: { contains: query.q, mode: 'insensitive' } } }] } : {},
       include: { attachment: true, uploader: { select: { id: true, fullName: true, email: true } } },
-      orderBy: { createdAt: 'desc' }, take: 200,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: (query.page - 1) * 50, take: 50,
     });
     return rows.map((row) => this.view(row));
   }
@@ -58,12 +59,45 @@ export class KnowledgeCatalogService {
     return this.view(row);
   }
 
+  async edit(id: string, input: { title: string; version: string; expectedUpdatedAt: string }): Promise<CatalogDocumentView> {
+    const row = await this.prisma.tx(async (tx) => {
+      const before = await tx.catalogDocument.findUnique({ where: { id } });
+      if (!before) throw notFound();
+      const changed = await tx.catalogDocument.updateMany({
+        where: { id, updatedAt: new Date(input.expectedUpdatedAt) },
+        data: { title: input.title, version: input.version },
+      });
+      if (changed.count !== 1) throw conflict('VERSION_CONFLICT');
+      await this.audit.record(tx, { action: 'catalog_document.updated', entityType: 'catalog_document', entityId: id, before: { title: before.title, version: before.version }, after: { title: input.title, version: input.version } });
+      return tx.catalogDocument.findUniqueOrThrow({ where: { id }, include: { attachment: true, uploader: { select: { id: true, fullName: true, email: true } } } });
+    });
+    return this.view(row);
+  }
+
+  /** Remove unused reference metadata and quarantine its attachment; never delete products or storage bytes. */
+  async remove(id: string, expectedUpdatedAt: string): Promise<{ id: string; deleted: true }> {
+    return this.prisma.tx(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM catalog_document WHERE id = ${id}::uuid FOR UPDATE`;
+      const before = await tx.catalogDocument.findUnique({ where: { id }, include: { _count: { select: { entries: true } } } });
+      if (!before) throw notFound();
+      if (before.status === 'PENDING_PROCESSING') throw conflict('CATALOG_PROCESSING');
+      if (before._count.entries) throw conflict('CATALOG_IN_USE');
+      const removed = await tx.catalogDocument.deleteMany({ where: { id, updatedAt: new Date(expectedUpdatedAt), status: { not: 'PENDING_PROCESSING' } } });
+      if (removed.count !== 1) throw conflict('VERSION_CONFLICT');
+      await tx.attachment.update({ where: { id: before.attachmentId }, data: { deletedAt: new Date() } });
+      await this.audit.record(tx, { action: 'catalog_document.deleted', entityType: 'catalog_document', entityId: id, before: { title: before.title, version: before.version, status: before.status } });
+      return { id, deleted: true as const };
+    }, { isolationLevel: 'Serializable' });
+  }
+
   /** Queue extraction only for safe, registered files. Repeated clicks cannot enqueue while pending. */
   async requestExtraction(id: string): Promise<{ status: string }> {
     return this.prisma.tx(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM catalog_document WHERE id = ${id}::uuid FOR UPDATE`;
       const row = await tx.catalogDocument.findUnique({ where: { id }, include: { attachment: true } });
       if (!row) throw notFound();
       if (row.attachment.status !== 'READY' || row.attachment.deletedAt) throw conflict('FILE_NOT_READY');
+      if (!['xlsx', 'csv'].includes(row.attachment.extension)) throw badRequest('CATALOG_EXTRACTION_UNSUPPORTED');
       if (row.status === 'APPROVED' || row.status === 'REJECTED') throw conflict('CATALOG_LOCKED');
       if (row.status === 'PENDING_PROCESSING') return { status: row.status };
       await tx.catalogDocument.update({ where: { id }, data: { status: 'PENDING_PROCESSING', processingError: null } });
@@ -86,6 +120,7 @@ export class KnowledgeCatalogService {
       if (bytes.length > 20 * 1024 * 1024) throw new Error('CATALOG_TOO_LARGE');
       const result = await extractCatalogRows(bytes, row.attachment.extension);
       await this.prisma.tx(async (tx) => {
+        await tx.$queryRaw`SELECT id FROM catalog_document WHERE id = ${id}::uuid FOR UPDATE`;
         const current = await tx.catalogDocument.findUnique({ where: { id } });
         if (current?.status !== 'PENDING_PROCESSING') return;
         await tx.catalogDocumentChunk.deleteMany({ where: { documentId: id } });
@@ -138,19 +173,22 @@ export class KnowledgeCatalogService {
     return { partNumber, nameFa: (meta.candidatePartName ?? '').trim().slice(0, 200), vehicles, unmatchedVehicles, existingProductId: existing?.id ?? null };
   }
 
-  async preview(id: string): Promise<Array<{ ordinal: number; contentText: string; rowStart: number | null; metadata: Prisma.JsonValue }>> {
+  async preview(id: string, after = -1): Promise<Array<{ ordinal: number; contentText: string; rowStart: number | null; metadata: Prisma.JsonValue }>> {
     const row = await this.prisma.catalogDocument.findUnique({ where: { id }, select: { id: true } });
     if (!row) throw notFound();
     return this.prisma.catalogDocumentChunk.findMany({
-      where: { documentId: id }, orderBy: { ordinal: 'asc' }, take: 100,
+      where: { documentId: id, ordinal: { gt: after } }, orderBy: { ordinal: 'asc' }, take: 100,
       select: { ordinal: true, contentText: true, rowStart: true, metadata: true },
     });
   }
 
   async updateStatus(id: string, status: CatalogDocumentStatus, note?: string): Promise<CatalogDocumentView> {
+    if (status === 'PENDING_PROCESSING') throw badRequest('CATALOG_USE_EXTRACTION');
     const row = await this.prisma.tx(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM catalog_document WHERE id = ${id}::uuid FOR UPDATE`;
       const before = await tx.catalogDocument.findUnique({ where: { id } });
       if (!before) throw notFound();
+      if (before.status === 'PENDING_PROCESSING') throw conflict('CATALOG_PROCESSING');
       const updated = await tx.catalogDocument.update({
         where: { id },
         data: {

@@ -564,6 +564,11 @@
     "social": "ما را دنبال کنید"
   },
   "admin": {
+    "auditAction_catalog_document_updated": "ویرایش منبع کاتالوگ",
+    "auditAction_catalog_document_deleted": "حذف منبع کاتالوگ",
+    "auditAction_manufacturer_brand_updated": "ویرایش سازندهٔ قطعه",
+    "auditAction_product_restored": "بازگرداندن قطعه از بایگانی",
+    "auditAction_taxonomy_deleted": "حذف اطلاعات پایهٔ بدون استفاده",
     "title": "پنل مدیریت",
     "dashboard": "داشبورد",
     "myAccount": "حساب من",
@@ -978,6 +983,14 @@
     "itemsOrFiles": "حداقل یک قلم وارد کنید یا فایل فهرست قطعات را پیوست کنید."
   },
   "errors": {
+    "FINDER_GROUP_REQUIRED": "برای نمایش خودرو در انتخاب‌گر، حداقل یک گروه معتبر خودرو انتخاب کنید.",
+    "VEHICLE_YEARS_INVALID": "بازهٔ سال معتبر نیست؛ هر دو سال و تقویم را مشخص کنید. سال‌ها نباید از دو تقویم متفاوت باشند.",
+    "VEHICLE_YEAR_SOURCE_REQUIRED": "برای ثبت یا تغییر سال تولید، پیوند HTTPS منبع را وارد کنید.",
+    "CATALOG_PROCESSING": "فایل در حال پردازش است؛ پس از پایان، وضعیت را تازه‌سازی کنید.",
+    "CATALOG_IN_USE": "این منبع به رکورد کاتالوگ متصل است؛ ابتدا ارتباط را بررسی کنید. هیچ قطعه‌ای حذف نشد.",
+    "CATALOG_EXTRACTION_UNSUPPORTED": "خواندن خودکار فقط برای Excel و CSV فعال است؛ PDF و عکس فعلاً فایل مرجع هستند.",
+    "CATALOG_USE_EXTRACTION": "برای پردازش فایل از دکمهٔ خواندن ردیف‌ها استفاده کنید.",
+    "TAXONOMY_IN_USE": "این مورد در حال استفاده است و حذف نمی‌شود. برای حفظ ارتباط‌ها، آن را از ویرایش غیرفعال کنید.",
     "UNAUTHENTICATED": "لطفاً وارد حساب شوید.",
     "FORBIDDEN": "اجازهٔ این کار را ندارید.",
     "MISSING_PERMISSION": "اجازهٔ این کار را ندارید.",
