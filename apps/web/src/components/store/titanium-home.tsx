@@ -44,7 +44,7 @@ export function TitaniumHome({ document, data, locale }: { document: BuilderDocu
   const hubAfter = brandsIndex >= 0 ? brandsIndex + 1 : faqIndex >= 0 ? faqIndex : collections?.sections.length ?? 0;
   const finder = document?.sections.find(b => b.kind === 'vehicle-finder');
   const categories = data.categories.filter(c => !c.parentSlug);
-  return <div className="titanium-home" style={{ '--ti-opening-height': `${config?.style.desktop?.height ?? 360}px`, '--ti-opening-mobile-height': `${config?.style.mobile?.height ?? 170}px` } as CSSProperties}>
+  return <div className="titanium-home" style={{ '--ti-opening-height': `${config?.style.desktop?.height ?? 420}px`, '--ti-opening-mobile-height': `${config?.style.mobile?.height ?? 240}px` } as CSSProperties}>
     {opening?.film ? <section className="titanium-opening-film" aria-label={fa ? 'فیلم معرفی سورس' : 'Source opening film'} data-assistant-avoid>
       <CinematicFilm film={{ ...opening.film, playback: opening.film.playback === 'static' ? 'static' : 'loop', discovery: false }} still={opening.imageUrl} mobileStill={opening.mobileImageUrl} alt={localize(opening.alt, locale)} logoUrl="" logoAlt="" locale={locale} />
     </section> : null}

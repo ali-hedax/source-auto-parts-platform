@@ -1,16 +1,16 @@
-/* Owner-approved 2026-10-26: continuous titanium, transparent raised sapphire frames.
+/* Owner-approved 2026-10-27: midnight navy, transparent raised titanium frames.
    This scope deliberately excludes admin and portalled dialogs. */
 .titanium-store {
-  --ti-blue: #0060f5;
-  --ti-edge: #299bff;
-  --ti-ink: #101e2d;
-  --ti-muted: #293e51;
-  --ti-float: 0 0 0 1px #9ee0ff inset, 0 0 0 1px #005cff, 0 0 9px #087dff9c, 0 12px 24px -15px #071526ab;
+  --ti-blue: #c5d1df;
+  --ti-edge: #a8b9cc;
+  --ti-ink: #edf2f8;
+  --ti-muted: #b5c3d4;
+  --ti-float: inset 0 1px 1px #f4f8ff70, 0 0 0 1px #a8b9cc, 0 0 9px #d3e2f440, 0 14px 28px -16px #000b;
   --ti-dark-stop: 470px;
   --ti-silver-stop: 830px;
   display: flow-root;
   min-height: 100dvh;
-  background: linear-gradient(180deg, var(--ti-top, #29313a) 0, #4d5a66 var(--ti-dark-stop), #99a7b4 var(--ti-silver-stop), #cbd3db 95%, var(--ti-bottom, #d2d9df) 100%);
+  background: linear-gradient(180deg, var(--ti-top, #071221), var(--ti-bottom, #0b192b));
   color: var(--ti-ink);
   --radius-control: 12px;
   --radius-card: 18px;
@@ -19,12 +19,12 @@
   --color-commerce-hover: #0044b5;
   --color-action: #064fa8;
   --color-action-hover: #003d86;
-  --color-steel: #293e51;
+  --color-steel: #b5c3d4;
   --color-mist: #dce6f0;
 }
 .titanium-store > main { background: transparent; padding-bottom: 0; }
 .titanium-store .container-page { max-width: 1240px; }
-.titanium-header { position: relative; z-index: 40; color: #f4f7fb; background: transparent; }
+.titanium-header { position: relative; z-index: 40; color: #f4f7fb; background: #29313a; }
 .titanium-header-inner { min-height: 110px; display: flex; align-items: center; gap: 20px; }
 .titanium-logo { display: block; flex: 0 0 var(--ti-logo-width, 242px); min-width: 0; }
 .titanium-logo img { width: 100%; height: auto; display: block; }
@@ -240,8 +240,8 @@
 
 /* Owner revision: full-width film strip, repeating typed headline, six illustrated groups. */
 .titanium-opening-film { width: 100%; position: relative; }
-.titanium-store .titanium-opening-film .cine-film { width: 100%; height: clamp(170px, 25vw, var(--ti-opening-height, 360px)); aspect-ratio: auto; margin: 0; background: #05080d; mask-image: none; -webkit-mask-image: none; }
-.titanium-store .titanium-opening-film :is(.cine-still img, .cine-video) { object-fit: cover; object-position: center 60%; }
+.titanium-store .titanium-opening-film .cine-film { width: 100%; height: clamp(240px, 32vw, var(--ti-opening-height, 420px)); aspect-ratio: auto; margin: 0; background: #05080d; mask-image: none; -webkit-mask-image: none; }
+.titanium-store .titanium-opening-film :is(.cine-still img, .cine-video) { object-fit: contain; object-position: center; }
 .titanium-opening-film .cine-controls { bottom: 16px; inset-inline-end: max(20px, calc((100vw - 1200px)/2)); }
 .titanium-slogan-only { display: block; text-align: center; padding-block: 30px 40px; }
 .titanium-slogan-only .titanium-tagline { margin-top: 10px; text-align: center; font-size: 18px; }
@@ -282,7 +282,7 @@
  .titanium-slogan h1 { font-size: clamp(24px, 7vw, 32px); }
  .titanium-slogan-only .titanium-tagline { font-size: 14px; }
  .titanium-type-toggle { inset-inline-end: 0; bottom: -24px; }
- .titanium-store .titanium-opening-film .cine-film { height: var(--ti-opening-mobile-height, 170px); }
+ .titanium-store .titanium-opening-film .cine-film { height: max(220px, var(--ti-opening-mobile-height, 240px)); }
 }
 
 .titanium-opening-film { --cine-ink: #f6f8fc; --cine-ground: #05080d; --cine-signal: #39a0ff; --cine-ink-mid: #d4e1ed; }
@@ -321,11 +321,11 @@
 .titanium-store .titanium-closing-film .cine-film { background: #05080d; }
 
 /* White studio backdrops on real product photos blend into the titanium canvas. */
-.titanium-store .part-card-media img { mix-blend-mode: multiply; }
+.titanium-store .part-card-media img { mix-blend-mode: normal; }
 
 /* Stable storefront geometry: small text sections need no large offscreen placeholders. */
 .titanium-home .render-lazy, .titanium-footer { content-visibility: visible; contain-intrinsic-size: none; }
-.titanium-home :is(.hedax-brand-card, .store-card) img { mix-blend-mode: multiply; }
+.titanium-home :is(.hedax-brand-card, .store-card) img { mix-blend-mode: normal; }
 .titanium-hub { padding-block: 42px 18px; }
 .titanium-hub-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 22px; }
 .titanium-hub-card { display: flex; flex-direction: column; padding: 20px 24px 24px; min-width: 0; }
@@ -375,3 +375,64 @@
 @media(max-width:639px) { .titanium-contact-list { grid-template-columns: 1fr 1fr; gap: 18px 20px; } .titanium-contact-row:has(a[href^="mailto:"]), .titanium-contact-row:last-child { grid-column: 1/-1; } }
 
 .titanium-store .titanium-float { border-color: var(--ti-blue); box-shadow: inset 0 0 0 1px #e3f7ff77, 0 0 0 1px var(--ti-blue), 0 0 8px color-mix(in srgb, var(--ti-blue) 40%, transparent), 0 12px 24px -15px #071526ab; }
+
+/* Midnight revision: silver light on continuous navy; keep admin/dialog surfaces isolated. */
+.titanium-store {
+  --color-action: #d2deec;
+  --color-action-hover: #ffffff;
+  --color-commerce: #c0cede;
+  --color-commerce-hover: #e2eaf4;
+  --color-ink: #edf2f8;
+  --color-line: #879bb5;
+  --color-line-soft: #667c9755;
+}
+.titanium-store :focus-visible { outline-color: #e1ecfa; }
+.titanium-store main .text-carbon { color: var(--ti-ink); }
+.titanium-store .titanium-float { box-shadow: var(--ti-float); }
+.titanium-store :is(.titanium-button, .part-card-cart, .part-card-source) {
+  border-color: var(--ti-edge); color: var(--ti-ink); background: transparent;
+  box-shadow: inset 0 1px 1px #eef5ff55, 0 0 8px #c5d9f035;
+}
+.titanium-store :is(.titanium-button, .part-card-cart, .part-card-source):hover {
+  border-color: #f0f6ff; background: #dae7f012; color: #fff; box-shadow: 0 0 12px #d5e7ff55;
+}
+.titanium-store :is(.titanium-path-arrow, .titanium-hub-play) { border-color: var(--ti-edge); }
+.titanium-store :is(.titanium-category-links a, .titanium-hub-article summary, .store-eyebrow) { color: #d3dfed; text-decoration-color: #b8cce477; }
+.titanium-store .part-card { --part-card-link: #d0deee; }
+.titanium-store .part-card-price bdi, .titanium-store .part-placeholder-mark { color: var(--ti-ink); }
+.titanium-store .builder-button { background: #d0dbe8; color: #0a1728; }
+.titanium-finder-section { color: var(--ti-ink); }
+.titanium-finder-panel {
+  --vf-ink: #edf2f8; --vf-steel: #b5c3d4; --vf-line: #a8b9cc; --vf-line-soft: #b8cce455;
+  --vf-blue: #c7d4e4; --vf-blue-hover: #e7eff9; --vf-orange: #c7d4e4;
+}
+.titanium-finder-panel .vf-field, .titanium-finder-panel .vf-help { color: #e6edf7; }
+.titanium-finder-panel .vf-field:disabled { color: #aebed0; }
+.titanium-finder-panel .vf-query input { background: transparent; color: #edf2f8; }
+.titanium-finder-panel .vf-query input::placeholder { color: #b5c3d4; opacity: 1; }
+.titanium-finder-panel .vf-query { background: transparent; border-color: var(--ti-edge); color: #b5c3d4; }
+.titanium-finder-panel .vf-number { color: #d8e4f2; background: #e0ebf31a; }
+.titanium-finder-panel .vf-step:is([data-active=true],[data-filled=true]) .vf-number { color: #0b192b; background: #c7d4e4; }
+.titanium-finder-panel .vf-submit { color: #0b192b; background: linear-gradient(135deg,#eef4fb,#a5b7cc); border-color: #e4edf8; box-shadow: 0 0 9px #c7ddfa44; }
+.titanium-finder-panel .vf-submit:disabled { background: #25374c; color: #9aadc3; border-color: #52667d; box-shadow: none; }
+/* The searchable dropdown remains a light, self-contained surface. */
+.titanium-finder-panel .vf-pop { --vf-ink: #14293e; --vf-steel: #344c63; --vf-blue: #314c6b; --vf-blue-hover: #213c58; }
+.titanium-store .titanium-finder-panel .vf-pop input { color: #14293e; background: #edf3f8; }
+.titanium-store main :is(input:not([type='checkbox']):not([type='radio']),textarea,select) { border-color: var(--ti-edge); }
+.titanium-store main select { color: var(--ti-ink); }
+.titanium-store main select option { color: #eaf1fa; background: #102139; }
+.titanium-store .titanium-home section:has(> div [id^='faq-title-']) details { border-color: var(--ti-edge); box-shadow: 0 0 6px #cedff430; }
+.titanium-footer, .titanium-footer a,
+.titanium-footer :is(.text-white,.text-white\/85,.text-white\/90,.text-silver\/80,.text-silver\/70,.text-signal) { color: var(--ti-ink); }
+.titanium-footer a:hover { color: #fff; }
+.titanium-footer-logo { filter: none; }
+.titanium-contact-label { color: var(--ti-muted); }
+.titanium-contact-row > svg { color: #c4d3e6; }
+.titanium-footer .titanium-social-row > :is(a,span) { color: #dce7f5; border-color: #a0b3cb; box-shadow: inset 0 1px 1px #f4f8ff55, 0 0 8px #c5daf525; }
+.titanium-footer .titanium-social-row a:hover { border-color: #edf5ff; box-shadow: 0 0 12px #d5e7ff55; }
+.titanium-footer .titanium-social-row .titanium-social-pending { color: #9baec5; }
+.titanium-hero .titanium-type-visual { background-image: linear-gradient(105deg,#c5d1df 20%,#8fa4be 40%,#fff 48%,#afc0d5 56%,#c5d1df 76%); }
+.titanium-slogan .titanium-english-visual { border-right-color: #d6e3f3; }
+@media(prefers-reduced-motion:no-preference) {
+  .titanium-path:hover { box-shadow: var(--ti-float), 0 0 16px #d6e7ff33; }
+}
