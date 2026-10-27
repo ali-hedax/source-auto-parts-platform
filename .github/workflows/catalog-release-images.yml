@@ -1,0 +1,57 @@
+name: Catalog release images
+
+on:
+  push:
+    branches: ['fix/admin-catalog-workflows']
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: Reviewed commit or ref to package (does not deploy)
+        required: true
+        default: main
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: catalog-images-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  images:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          ref: ${{ inputs.revision || github.sha }}
+          persist-credentials: false
+      - name: Build matching images away from the production host
+        run: |
+          set -euo pipefail
+          REVISION=$(git rev-parse HEAD)
+          for target in api worker web tools; do
+            docker build --target "$target" --label "org.opencontainers.image.revision=$REVISION" \
+              --build-arg PUBLIC_BASE_URL=https://sourcebyhedax.ir \
+              --build-arg API_INTERNAL_URL=http://api:4000/api/v1 \
+              --build-arg NEXT_PUBLIC_WS_URL=same-origin \
+              -t "hedax-catalog-$target:$REVISION" -f infra/docker/Dockerfile .
+            test "$(docker image inspect --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}' "hedax-catalog-$target:$REVISION")" = "$REVISION"
+          done
+          mkdir release-images
+          docker save "hedax-catalog-api:$REVISION" "hedax-catalog-worker:$REVISION" \
+            "hedax-catalog-web:$REVISION" "hedax-catalog-tools:$REVISION" | gzip -1 > release-images/images.tar.gz
+          printf '%s\n' "$REVISION" > release-images/revision.txt
+          printf 'services:\n' > release-images/images.yml
+          for target in api worker web tools; do
+            printf '  %s:\n    image: hedax-catalog-%s:%s\n    pull_policy: never\n' "$target" "$target" "$REVISION" >> release-images/images.yml
+          done
+          cd release-images
+          sha256sum images.tar.gz images.yml revision.txt > SHA256SUMS
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: catalog-release-images-${{ github.run_id }}
+          path: release-images/
+          retention-days: 3
+          compression-level: 0

@@ -49,7 +49,7 @@ jobs:
       - name: Domain, contracts and API unit tests
         run: pnpm test:unit
       - name: Catalog and import integrity (disposable PostgreSQL)
-        run: pnpm --filter @hedax/api exec vitest run --config vitest.integration.config.ts test/integration/85-vehicles.test.ts test/integration/91-unified-parts.test.ts test/integration/93-brand-import-integrity.test.ts test/integration/94-brand-workbooks.test.ts test/integration/95-brand-import-recovery.test.ts
+        run: pnpm --filter @hedax/api exec vitest run --config vitest.integration.config.ts test/integration/85-vehicles.test.ts test/integration/89-knowledge-catalog.test.ts test/integration/91-unified-parts.test.ts test/integration/93-brand-import-integrity.test.ts test/integration/94-brand-workbooks.test.ts test/integration/95-brand-import-recovery.test.ts test/integration/99-admin-catalog-workspace.test.ts
       - name: Visual builder and existing CMS integration tests
         run: pnpm --filter @hedax/api exec vitest run --config vitest.integration.config.ts test/integration/81-site-content.test.ts test/integration/82-visual-builder.test.ts
       - name: Backup and restore drill (disposable PostgreSQL)
