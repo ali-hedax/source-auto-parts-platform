@@ -1,0 +1,85 @@
+name: Release images
+
+# Builds the api / worker / tools / web images on GitHub and publishes them to GHCR, so the server only
+# pulls finished images (building on the shared server stalled its disk and the live site on 2026-10-26).
+# Manual, or a pushed tag `images-preview-*` / `images-production-*` (a manual run needs this file on
+# the default branch; a tag works from any commit). Images carry no secrets (configuration and keys
+# come from the server at runtime); the web image bakes in the public site address, so it is built per
+# environment.
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target site (bakes its public address into the web image)'
+        type: choice
+        options: [preview, production]
+        default: preview
+  push:
+    tags: ['images-preview-*', 'images-production-*']
+
+permissions:
+  contents: read
+
+env:
+  TARGET_ENV: ${{ inputs.environment || (startsWith(github.ref_name, 'images-production-') && 'production' || 'preview') }}
+
+concurrency:
+  group: images-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build and publish ${{ matrix.target }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: true
+      matrix:
+        target: [api, worker, tools, web]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - name: Image names
+        id: meta
+        run: |
+          owner="$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
+          sha="$(git rev-parse --short=12 HEAD)"
+          if [ "$TARGET_ENV" = production ]; then base=https://sourcebyhedax.ir; else base=https://preview.sourcebyhedax.ir; fi
+          echo "image=ghcr.io/${owner}/source-${{ matrix.target }}" >> "$GITHUB_OUTPUT"
+          echo "tag=${sha}-${TARGET_ENV}" >> "$GITHUB_OUTPUT"
+          echo "revision=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "base=${base}" >> "$GITHUB_OUTPUT"
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - name: Log in to GHCR
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          file: infra/docker/Dockerfile
+          target: ${{ matrix.target }}
+          push: true
+          provenance: false
+          tags: ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.tag }}
+          build-args: |
+            PUBLIC_BASE_URL=${{ steps.meta.outputs.base }}
+            NEXT_PUBLIC_WS_URL=same-origin
+            API_INTERNAL_URL=http://api:4000/api/v1
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ steps.meta.outputs.revision }}
+            org.opencontainers.image.description=SOURCE by HEDAX ${{ matrix.target }} (${{ env.TARGET_ENV }})
+          cache-from: type=gha,scope=${{ matrix.target }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.target }}
+      - name: Summary
+        run: echo "${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.tag }}" >> "$GITHUB_STEP_SUMMARY"
