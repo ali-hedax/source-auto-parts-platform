@@ -4,6 +4,8 @@ export interface BuilderData {
   now: number;
   /** Vehicle-brand emblems (slug → public path), resolved on the server. */
   logos: Record<string, string>;
+  /** Optional owner-editable home artwork, separate from official catalogue emblems. */
+  brandArtwork?: Record<string, string>;
   vehicles: VehiclePublicView[];
   content: SiteContentView | null; featured: SearchResult | null; brands: VehicleBrandView[]; categories: CategoryView[];
   makers: ManufacturerView[]; products: Record<string, ProductCard[]>;

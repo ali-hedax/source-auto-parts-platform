@@ -21,8 +21,8 @@ function ContentButtonLink({ button, locale, variant = 'primary', size = 'md', c
   return <a href={button.href} className={buttonClass(variant, size, className)} {...(/^https?:/i.test(button.href) ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>{label}</a>;
 }
 
-export function LegacyHomeView({ content, featured, brands, categories, locale, mobileImageUrl, imageAlt, logos = {} }: {
-  logos?: Record<string, string>; content: SiteContentView; featured: SearchResult | null; brands: VehicleBrandView[]; categories: CategoryView[]; locale: string; mobileImageUrl?: string; imageAlt?: string;
+export function LegacyHomeView({ content, featured, brands, categories, locale, mobileImageUrl, imageAlt, logos = {}, brandArtwork = {} }: {
+  logos?: Record<string, string>; brandArtwork?: Record<string, string>; content: SiteContentView; featured: SearchResult | null; brands: VehicleBrandView[]; categories: CategoryView[]; locale: string; mobileImageUrl?: string; imageAlt?: string;
 }) {
   const t = useTranslations();
   const L = (text: Parameters<typeof localize>[0]) => localize(text, locale);
@@ -122,7 +122,7 @@ export function LegacyHomeView({ content, featured, brands, categories, locale, 
             <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
               {brands.filter((b) => b.isFeatured).map((b) => (
                 <li key={b.slug}>
-                  <BrandCard href={`/brands/${b.slug}`} logo={b.logoUrl ?? logos[b.slug] ?? null} nameEn={b.name.en} nameFa={b.name.fa} showNameFa={s.showNameFa !== false} meta={t('common.partCount', { count: b.productCount })} locale={locale} />
+                  <BrandCard href={`/brands/${b.slug}`} logo={brandArtwork[b.slug] || b.logoUrl || logos[b.slug] || null} artwork={Boolean(brandArtwork[b.slug])} nameEn={b.name.en} nameFa={b.name.fa} showNameFa={s.showNameFa !== false} meta={t('common.partCount', { count: b.productCount })} locale={locale} />
                 </li>
               ))}
               {L(s.otherTitle) && s.otherHref ? (

@@ -12,7 +12,7 @@ import { VehicleFinderSteps } from '@/components/catalog/vehicle-finder-steps';
 import { CinematicFilm } from '@/components/builder/cinematic-film';
 import { AutomotiveHub } from './automotive-hub';
 import { RepeatingSlogan } from './repeating-slogan';
-import { titaniumConfig, TITANIUM_CONFIG_ID } from './titanium-config';
+import { titaniumConfig, TITANIUM_CONFIG_ID, ATELIER_ASSETS, ATELIER_BRANDS } from './titanium-config';
 import type { CSSProperties } from 'react';
 import { CinematicBanner } from '@/components/builder/cinematic-banner';
 import { QuickSearch } from './quick-search';
@@ -22,6 +22,8 @@ export function TitaniumHome({ document, data, locale }: { document: BuilderDocu
   const fa = locale === 'fa';
   const config = titaniumConfig(document);
   const sourcing = config?.items[9];
+  const artwork = Object.fromEntries(ATELIER_BRANDS.map((slug, i) => [slug, config?.items[10 + i]?.imageUrl || `${ATELIER_ASSETS}/brand-${slug}.webp`]));
+  const viewData = { ...data, brandArtwork: artwork };
   const Arrow = fa ? ArrowLeft : ArrowRight;
   const groups = [
     { code: 'FILTER', slug: 'filters', fa: 'لوازم مصرفی', en: 'Service & consumables', query: 'فیلتر', queryEn: 'filter', sheet: 'path-parts.webp', position: 0 },
@@ -34,7 +36,7 @@ export function TitaniumHome({ document, data, locale }: { document: BuilderDocu
   const paths = groups.map((g, i) => {
     const item = config?.items[i];
     const category = data.categories.find(c => c.code === g.code || c.slug === g.slug);
-    return { ...g, image: item?.imageUrl, alt: localize(item?.alt, locale), text: localize(item?.text, locale), visible: item?.visible !== false, href: item?.href || (category ? `/parts?category=${encodeURIComponent(category.slug)}` : `/parts?q=${encodeURIComponent(fa ? g.query : g.queryEn)}`), title: localize(item?.title, locale) || (fa ? g.fa : g.en) };
+    return { ...g, image: item?.imageUrl || `${ATELIER_ASSETS}/category-${i}.webp`, alt: localize(item?.alt, locale), text: localize(item?.text, locale), visible: item?.visible !== false, href: item?.href || (category ? `/parts?category=${encodeURIComponent(category.slug)}` : `/parts?q=${encodeURIComponent(fa ? g.query : g.queryEn)}`), title: localize(item?.title, locale) || (fa ? g.fa : g.en) };
   });
   const opening = document?.sections.find(b => b.kind === 'cinematic-hero' && b.style.template !== 'compact' && b.visible && (!b.startsAt || Date.parse(b.startsAt) <= data.now) && (!b.endsAt || Date.parse(b.endsAt) > data.now));
   const hasNewProducts = document?.sections.some(b => b.kind === 'new-products' && b.visible && (!b.startsAt || Date.parse(b.startsAt) <= data.now) && (!b.endsAt || Date.parse(b.endsAt) > data.now));
@@ -46,13 +48,14 @@ export function TitaniumHome({ document, data, locale }: { document: BuilderDocu
   const finder = document?.sections.find(b => b.kind === 'vehicle-finder');
   const categories = data.categories.filter(c => !c.parentSlug);
   return <div className="titanium-home" style={{ '--ti-opening-height': `${config?.style.desktop?.height ?? 420}px`, '--ti-opening-mobile-height': `${config?.style.mobile?.height ?? 240}px` } as CSSProperties}>
+    <section className="atelier-banner" aria-labelledby="titanium-hero-title">
+      <div className="atelier-banner-media"><Image src={config?.imageUrl || `${ATELIER_ASSETS}/hero.webp`} alt={localize(config?.alt, locale) || (fa ? 'خودرو و قطعات در فضای سنگی روشن' : 'A car and precision parts in a sunlit stone gallery')} fill priority sizes="100vw" /></div>
+      <div className="titanium-hero"><RepeatingSlogan locale={locale} {...(config ? { title: localize(config.title, locale), subtitle: localize(config.body, locale), tagline: config.button.en } : {})} /></div>
+    </section>
     {opening?.film ? <section className="titanium-opening-film" aria-label={fa ? 'فیلم معرفی سورس' : 'Source opening film'} data-assistant-avoid>
       <CinematicFilm film={{ ...opening.film, playback: opening.film.playback === 'static' ? 'static' : 'loop', discovery: false }} still={opening.imageUrl} mobileStill={opening.mobileImageUrl} alt={localize(opening.alt, locale)} logoUrl="" logoAlt="" locale={locale} />
     </section> : null}
     <QuickSearch locale={fa ? 'fa' : 'en'} />
-    <section className="container-page titanium-hero titanium-slogan-only" aria-labelledby="titanium-hero-title">
-      <RepeatingSlogan locale={locale} {...(config ? { title: localize(config.title, locale), subtitle: localize(config.body, locale), tagline: config.button.en } : {})} />
-    </section>
 
     {finder?.visible !== false ? <section id="vehicle-finder" className="container-page titanium-finder-section" aria-labelledby="titanium-finder-title">
       <div className="titanium-float titanium-finder-panel">
@@ -65,7 +68,7 @@ export function TitaniumHome({ document, data, locale }: { document: BuilderDocu
     <section id="shopping-paths" className="container-page titanium-paths" aria-labelledby="titanium-paths-title">
       <div className="titanium-section-heading"><div><h2 id="titanium-paths-title">{fa ? 'مسیرهای خرید' : 'Find your way to the right part'}</h2><p>{fa ? 'از شناخت خودرو تا پیدا کردن قطعه؛ مسیر خودتان را انتخاب کنید.' : 'From knowing your vehicle to finding your part: choose your route.'}</p></div></div>
       <div className="titanium-path-grid">{paths.filter(p => p.visible).map(p => <Link key={p.code} href={p.href} className="titanium-float titanium-path">
-        <span role="img" aria-label={p.alt || p.title} className="titanium-path-art titanium-path-illustration" style={{ backgroundImage: `url(${p.image || `/brand/source/titanium/${p.sheet}`})`, backgroundPosition: p.image ? 'center' : `${p.position}% 50%`, ...(p.image ? { backgroundSize: 'contain', backgroundRepeat: 'no-repeat' } : {}) }} />
+        <span className="titanium-path-art"><Image src={p.image} alt={p.alt || p.title} fill sizes="(max-width: 800px) 46vw, 30vw" /></span>
         <div className="titanium-path-copy"><h3>{p.title}</h3><p>{p.text || (fa ? 'مشاهده قطعات این گروه' : 'Explore parts in this category')}</p><span className="titanium-path-arrow"><Arrow aria-hidden size={19} /></span></div>
       </Link>)}</div>
       {categories.length ? <nav className="titanium-category-links" aria-label={fa ? 'دسته‌بندی قطعات' : 'Part categories'}>{categories.map(c => <Link href={`/parts?category=${encodeURIComponent(c.slug)}`} key={c.slug}>{(fa ? c.name.fa : c.name.en || c.name.fa)}</Link>)}</nav> : null}
@@ -73,14 +76,14 @@ export function TitaniumHome({ document, data, locale }: { document: BuilderDocu
 
     <div className="titanium-collections">
       {collections ? <>
-        <BuilderView document={{ ...collections, sections: collections.sections.slice(0, hubAfter) }} data={data} locale={locale} />
+        <BuilderView document={{ ...collections, sections: collections.sections.slice(0, hubAfter) }} data={viewData} locale={locale} />
         <AutomotiveHub locale={locale} {...(config ? { items: config.items.slice(6, 9) } : {})} />
-        <BuilderView document={{ ...collections, sections: collections.sections.slice(hubAfter) }} data={data} locale={locale} />
+        <BuilderView document={{ ...collections, sections: collections.sections.slice(hubAfter) }} data={viewData} locale={locale} />
       </> : <>
-        <LegacyHomeView {...data} content={{ ...data.content!, home: { sections: data.content!.home.sections.filter(s => s.type !== 'hero' && s.type !== 'faq') } }} locale={locale} />
+        <LegacyHomeView {...viewData} content={{ ...data.content!, home: { sections: data.content!.home.sections.filter(s => s.type !== 'hero' && s.type !== 'faq') } }} locale={locale} />
         <MakersHomeSection makers={data.makers} />
         <AutomotiveHub locale={locale} {...(config ? { items: config.items.slice(6, 9) } : {})} />
-        <LegacyHomeView {...data} content={{ ...data.content!, home: { sections: data.content!.home.sections.filter(s => s.type === 'faq') } }} locale={locale} />
+        <LegacyHomeView {...viewData} content={{ ...data.content!, home: { sections: data.content!.home.sections.filter(s => s.type === 'faq') } }} locale={locale} />
       </>}
     </div>
 

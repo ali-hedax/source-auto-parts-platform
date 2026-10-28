@@ -1,6 +1,8 @@
+import Image from 'next/image';
 import type { BuilderBlock } from '@hedax/contracts';
 import { localize } from '@hedax/contracts/constants';
 import { Play, Clock3 } from 'lucide-react';
+import { ATELIER_ASSETS } from './titanium-config';
 
 /** Static editorial shells only. Live prices, feeds and video APIs are a later owner-approved phase. */
 export function AutomotiveHub({ locale, items }: { locale: string; items?: BuilderBlock['items'] }) {
@@ -9,7 +11,7 @@ export function AutomotiveHub({ locale, items }: { locale: string; items?: Build
     <div className="titanium-section-heading"><div><h2 id="automotive-hub-title">{fa ? 'مجله و بازار خودرو' : 'The automotive journal'}</h2><p>{fa ? 'بازار، دانستنی‌های فنی و دنیای ویدیوهای خودرو' : 'The market, practical know-how and automotive videos'}</p></div></div>
     <div className="titanium-hub-grid">
       {items?.[0]?.visible !== false ? <article className="titanium-float titanium-hub-card" aria-labelledby="hub-prices-title">
-        <div role="img" aria-label={localize(items?.[0]?.alt, locale) || 'قیمت خودرو'} className="titanium-hub-cover" style={{ backgroundPosition: '100% 50%', ...(items?.[0]?.imageUrl ? { backgroundImage: `url(${items[0]!.imageUrl})`, backgroundPosition: 'center', backgroundSize: 'contain', backgroundRepeat: 'no-repeat' } : {}) }} />
+        <div className="titanium-hub-cover"><Image src={items?.[0]?.imageUrl || `${ATELIER_ASSETS}/hub-0.webp`} alt={localize(items?.[0]?.alt, locale) || (fa ? 'خودرو؛ کاور مجله' : 'Automotive editorial cover')} fill sizes="(max-width: 800px) 90vw, 30vw" /></div>
         <h3 id="hub-prices-title">{localize(items?.[0]?.title, locale) || (fa ? 'قیمت روز خودرو' : 'Daily car prices')}</h3>
         <p>{localize(items?.[0]?.text, locale) || (fa ? 'نگاهی به قیمت خودرو، با تفکیک مدل، تیپ و سال ساخت.' : 'A view of car prices, by model, trim and year.')}</p>
         <p className="titanium-hub-status"><Clock3 size={15} aria-hidden />{fa ? 'در انتظار اتصال به منبع قیمت' : 'Awaiting a price-data source'}</p>
@@ -20,7 +22,7 @@ export function AutomotiveHub({ locale, items }: { locale: string; items?: Build
       </article> : null}
 
       {items?.[1]?.visible !== false ? <article className="titanium-float titanium-hub-card" aria-labelledby="hub-guide-title">
-        <div role="img" aria-label={localize(items?.[1]?.alt, locale) || 'راهنمای فنی'} className="titanium-hub-cover" style={{ backgroundPosition: '50% 50%', ...(items?.[1]?.imageUrl ? { backgroundImage: `url(${items[1]!.imageUrl})`, backgroundPosition: 'center', backgroundSize: 'contain', backgroundRepeat: 'no-repeat' } : {}) }} />
+        <div className="titanium-hub-cover"><Image src={items?.[1]?.imageUrl || `${ATELIER_ASSETS}/hub-1.webp`} alt={localize(items?.[1]?.alt, locale) || (fa ? 'کتاب و ابزار فنی' : 'Technical book and precision tools')} fill sizes="(max-width: 800px) 90vw, 30vw" /></div>
         <h3 id="hub-guide-title">{localize(items?.[1]?.title, locale) || (fa ? 'مجله و راهنمای فنی' : 'Journal & technical guides')}</h3>
         <p>{localize(items?.[1]?.text, locale) || (fa ? 'شماره فنی؛ نقطه شروع انتخاب قطعه مناسب' : 'Part numbers: a starting point for the right fit')}</p>
         <p className="titanium-hub-status">{fa ? 'راهنمای پایه · محتوای ثابت' : 'A basic guide · static content'}</p>
@@ -32,7 +34,7 @@ export function AutomotiveHub({ locale, items }: { locale: string; items?: Build
       </article> : null}
 
       {items?.[2]?.visible !== false ? <article className="titanium-float titanium-hub-card" aria-labelledby="hub-video-title">
-        <div className="titanium-hub-cover" style={{ backgroundPosition: '0% 50%', ...(items?.[2]?.imageUrl ? { backgroundImage: `url(${items[2]!.imageUrl})`, backgroundPosition: 'center', backgroundSize: 'contain', backgroundRepeat: 'no-repeat' } : {}) }} aria-hidden><span className="titanium-hub-play"><Play size={22} /></span></div>
+        <div className="titanium-hub-cover"><Image src={items?.[2]?.imageUrl || `${ATELIER_ASSETS}/hub-2.webp`} alt={localize(items?.[2]?.alt, locale) || (fa ? 'دوربین و خودرو' : 'Camera and car')} fill sizes="(max-width: 800px) 90vw, 30vw" /><span className="titanium-hub-play"><Play size={22} /></span></div>
         <h3 id="hub-video-title">{localize(items?.[2]?.title, locale) || (fa ? 'ویدیوهای پربازدید خودرو' : 'Popular automotive videos')}</h3>
         <p>{localize(items?.[2]?.text, locale) || (fa ? 'آموزش، بررسی و تجربه‌های دنیای خودرو' : 'Learning, reviews and experiences from the automotive world')}</p>
         <p className="titanium-hub-status"><Clock3 size={15} aria-hidden />{fa ? 'در انتظار اتصال به آپارات' : 'Awaiting an Aparat connection'}</p>

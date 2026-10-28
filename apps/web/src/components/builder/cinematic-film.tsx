@@ -41,6 +41,7 @@ export function CinematicFilm({ film, still, mobileStill, alt, logoUrl, logoAlt,
   const fa = locale === 'fa';
   const clips = film.clips.filter(c => c.active && (c.desktop || c.mobile));
   const first = clips[0];
+  const [naturalRatio, setNaturalRatio] = useState<string>();
   const video = useRef<HTMLVideoElement>(null);
   const frame = useRef<HTMLDivElement>(null);
   const userPaused = useRef(false);
@@ -125,7 +126,7 @@ export function CinematicFilm({ film, still, mobileStill, alt, logoUrl, logoAlt,
   const label = state === 'playing' ? (fa ? 'توقف فیلم' : 'Pause film') : state === 'ended' ? (fa ? 'پخش دوباره' : 'Replay film') : (fa ? 'پخش فیلم' : 'Play film');
   const Icon = state === 'playing' ? Pause : state === 'ended' ? RotateCcw : Play;
 
-  return <div ref={frame} className="cine-film" data-state={state} data-shown={shown} data-resolved={resolved || undefined} style={{ '--cine-progress': progress, '--cine-logo-width': `${film.logoWidth}%` } as React.CSSProperties}>
+  return <div ref={frame} className="cine-film" data-state={state} data-shown={shown} data-resolved={resolved || undefined} style={{ '--cine-natural-ratio': naturalRatio, '--cine-progress': progress, '--cine-logo-width': `${film.logoWidth}%` } as React.CSSProperties}>
     <picture className="cine-still">
       {isStill || !poster ? picture(still, mobileStill) : <>
         {/* Reduced motion never shows the opening poster: it would promise a film that will not play. */}
@@ -135,7 +136,7 @@ export function CinematicFilm({ film, still, mobileStill, alt, logoUrl, logoAlt,
       </>}
     </picture>
     {sources[index] && !isStill ? <video ref={video} key={index} className="cine-video" src={sources[index]} muted playsInline preload="auto" loop={film.playback === 'loop' && sources.length === 1} aria-hidden tabIndex={-1}
-      onPlaying={() => setState('playing')} onPause={() => setState(s => (s === 'ended' ? s : 'paused'))} onTimeUpdate={onTime} onEnded={onEnded}
+      onLoadedMetadata={e => { const v = e.currentTarget; if (v.videoWidth && v.videoHeight) setNaturalRatio(`${v.videoWidth}/${v.videoHeight}`); }} onPlaying={() => setState('playing')} onPause={() => setState(s => (s === 'ended' ? s : 'paused'))} onTimeUpdate={onTime} onEnded={onEnded}
       onError={() => { if (!last) setIndex(i => i + 1); else { setSources([]); setState('still'); setResolved(true); } }} /> : null}
     {film.logoAt !== null && logoUrl ? <img className="cine-logo" src={logoUrl} alt={logoAlt} width={600} height={191} decoding="async" /> : null}
     {(sources.length && !isStill) || state === 'ondemand' ? <div className="cine-controls">
