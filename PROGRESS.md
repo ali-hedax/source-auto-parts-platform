@@ -1,8 +1,8 @@
 # Source by HEDAX — وضعیت و نقطهٔ ادامه
 
-آخرین به‌روزرسانی: 2026-10-28 12:55، Asia/Tehran؛ کرنل 7.0.0-42 با full-upgrade نصب و سرور یک بار ریبوت شد؛ Production روی 5d18d21 سالم است، Preview خاموش است. مرحلهٔ پنل هکسی منتظر مالک است.
+آخرین به‌روزرسانی: 2026-10-28 18:20، Asia/Tehran؛ انتشار edc508d (پیام اپراتور هکسی + جست‌وجوی سریع) روی Production انجام و تأیید شد؛ هنگام pull دو بار VM فریز شد (≈۲۹ و ≈۵۲ دقیقه)؛ پاسخ اپراتور در پنل و ماسک تلفن در گیت‌وی Arvan منتظر مالک است. Preview خاموش است.
 
-> مرجع فعلی انتشار: 5d18d21، پوشهٔ candidate `/opt/hedax-release-candidates/hexi-5d18d21-20261028`.
+> مرجع فعلی انتشار: edc508d، پوشهٔ candidate `/opt/hedax-release-candidates/operator-edc508d-20261028` (قبلی: 5d18d21، `hexi-5d18d21-20261028`).
 > گزارش‌های عملیات امروز: `/srv/hedax-data/ops/20261028/`، `/srv/hedax-data/ops/tidy-20261028/` و `/srv/hedax-data/ops/kernel-20261028/` (خصوصی، روی سرور). یادداشت‌های
 > worktreeهای قدیمی تاریخی‌اند؛ تغییرات محلی کاربر در آن‌ها حفظ شده‌اند و نباید بازنویسی شوند.
 
@@ -12,7 +12,27 @@
 
 ## نقطهٔ فعلی
 
-### Implemented Pending Verification — Hexi operator messages + home quick search — 2026-10-28 Asia/Tehran
+### Completed & Tested (owner steps pending) — Production release edc508d (Hexi operator messages + home quick search) — 2026-10-28 18:20 Asia/Tehran
+
+- **Owner authorization (2026-10-28, this chat):** deploy `edc508db2d5a2fc7e2e0fa691833be9eaf946b3b` (api/worker/web) + additive migration `20261028120000_operator_requests`, same procedure as 5d18d21; no code changes, no .env/DNS/data/CMS/Arvan changes; Preview stays stopped. After the first VM freeze the owner chose «همین الان ادامه بده» (continue now, accepting outages).
+- Images from Actions run 40668065972 (Release images, success, head edc508d): api `sha256:a6c95e64…5cdf`, worker `sha256:81f353d2…dd03`, tools `sha256:c05eab63…548b`, web `sha256:36ed3ed9…d307`; each pulled by digest with `org.opencontainers.image.revision` = full SHA (checked on the host). Migration SQL reviewed: two new tables + indexes/FKs/CHECKs only.
+- Candidate dir `/opt/hedax-release-candidates/operator-edc508d-20261028/` (script `deploy.sh` sha256 49cde965…, log `deploy.log`, checkpoints `state.txt`).
+- **1 backup 12:55 UTC:** `database-before-edc508d.dump` (543,435 B, TABLE DATA 104, sha256 d8e0e218…), copy on `/srv/hedax-data/release-backups/operator-edc508d-20261028/` verified; off-host age copy `pre-edc508d.tar.age`, local = remote sha256 (81af9f1c…).
+- **2 rollback copies:** `compose.before` (= previous wrapper, sha256 68de32ea…), `containers.before.json`, tags `hedax-operator-rollback-{api,worker,web,tools}:pre-edc508d-20261028` on the 5d18d21 images.
+- **3 pulls — two VM freezes (Blocked External, provider):** ~20 s after the api pull started the whole VM froze **12:56–13:25 UTC (~29 min; journal empty, kernel soft lockups up to 908 s, systemd watchdogs fired)**; site and SSH unreachable while still on 5d18d21. On recovery systemd stopped the old SSH `session-24.scope` and SIGTERMed the detached script (setsid/nohup does not leave the session cgroup) — no switch had happened. Resumed 13:30 UTC as transient unit `systemd-run --unit=hedax-deploy-edc508d` (from checkpoint 3). api 13:31, worker 13:37 OK; during the tools pull a **second freeze ~13:38–14:30 UTC (~52 min)**, one pull retry (connection reset), tools 14:36, web 14:37 OK. Total public outage today from pulls ≈ 81 min, all while Production stayed on 5d18d21. Docker now runs from /srv/hedax-data, so the freezes are not tied to the old root disk.
+- **5 migration 14:38 UTC:** via `compose-operator --profile tools run --rm tools`: «Applying migration `20261028120000_operator_requests`… All migrations have been successfully applied»; `_prisma_migrations` row finished, not rolled back.
+- **6 switch 14:38:06 UTC:** `up -d --no-deps --no-build api worker web`; check 1 api not ready / FA 500 (startup, ECONNREFUSED to api in web log), check 2 (14:38:35) api ready 200, FA 200, EN 200; container images = new digests; admin `/api/v1/admin/operator-requests` without login 401. Wrapper `/opt/hedax-compose-current` replaced atomically (sha256 1e3e30f1…, = 5d18d21 wrapper + `-f …/operator-edc508d-20261028/images.yml`); `rollout-verified.json` written. No rollback triggered.
+- **After release 14:44 UTC:** all 7 Production containers up/healthy, api/worker/web restarts 0, readiness database/redis/storage/scanner up; api/worker 0 and web 2 (startup ECONNREFUSED) error-like lines in 10 min; Preview 0 running; load 0.5; /srv/hedax-data 22 %. Host clock was ~26 s behind after the freeze (NTP synchronized, slewing).
+- **Live checks (Chrome headless from this PC):**
+  - Home: «جست‌وجوی سریع قطعه» is the next section after `section.titanium-opening-film`, panel 1192 px at 1366 px and 358 px at 390 px; horizontal overflow 0 px on desktop and mobile (with suggestions open). «لنت» → **no suggestions, because the live catalog has no product matching «لنت»/«ترمز»** (API `catalog/products?q=` returns 0); «آینه» → 2 suggestions in ≈0.9 s on desktop and mobile. Chips: «انتخاب خودرو» → `#vehicle-finder`, «آینه جانبی» → `/fa/parts?category=side-mirrors`, «درخواست تأمین» → `/fa/request-part` (desktop + mobile).
+  - Operator: «ارتباط با اپراتور» opens the form; test message (تست مالک / 09120000000 / «پیام آزمایشی انتشار») → HTTP 201, «پیام شما ثبت شد ✅»; row `operator_request` 01a182f6-… OPEN, unread. **Admin tab «اپراتور», reply «تست جواب» and closing the test conversation NOT done — no owner session for the agent (Requires Owner Decision / owner action).**
+  - Hexi identity: «شما ChatGPT هستید؟» → «نه، من هکسی‌ام؛ راهنمای هوشمند سورس، ساختهٔ تیم هداکس…» (9.7 s; repeat 10.9 s). Passed.
+  - Hexi phone: «شماره تلفن فروشگاه چیه؟» → 1st: number "not fully shown in my info", WhatsApp +971501441797 only (5.2 s); 2nd: «شماره تلفن سورس: ***********، داخلی ۱۱۹» + WhatsApp (5.5 s). Footer has phone 02536668006 ext. 119, mobile 00989121531797, WhatsApp +971 50 144 1797. The app sends these in SITE_FACTS and has no output masking; the 11 asterisks are stored as received from the gateway → **the Arvan AI gateway guardrail masks Iranian phone numbers (Blocked External / owner: remove phone masking or the guardrail `hedax` in the Arvan console). Not passed.**
+- **Rollback:** `/opt/hedax-release-candidates/operator-edc508d-20261028/compose.before up -d --no-deps --no-build api worker web` (images `hedax-operator-rollback-*:pre-edc508d-20261028`); the two new tables are additive and ignored by 5d18d21.
+- **Lesson:** start long server scripts with `systemd-run --unit=… --collect`, not `setsid nohup` inside an SSH session.
+- **Open (owner):** Admin → دستیار هوشمند → «اپراتور»: open «تست مالک», reply «تست جواب», close it (agent can then confirm the reply in Hexi with the saved test key); Arvan guardrail phone masking; earlier Hexi panel prompt step; provider VM freezes during image pulls (ask Arvan; consider pulling off-hours).
+
+### History — Hexi operator messages + home quick search (implementation; deployed as edc508d above) — 2026-10-28 Asia/Tehran
 
 - Branch `feat/hexi-operator-and-quick-search` from `main` @ `3105fcf` (includes merged PR #54 Hexi identity fix, not yet deployed). Not deployed.
 - Owner requests: in Hexi, «ارتباط با پشتیبانی» → «ارتباط با اپراتور»: visitor leaves name/phone/message, owner gets it in the panel and replies later; replies visible in Hexi and in the customer account. A full-width quick search under the opening film (name / part number / SKU, live suggestions, one-tap category shortcuts).
