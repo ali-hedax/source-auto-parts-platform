@@ -14,6 +14,8 @@ import { useApi } from '@/lib/use-api';
 import { useL } from './shell';
 import { ImageField } from './content/kit';
 import { AssistantMessages } from './assistant-messages';
+import { AssistantOperator } from './assistant-operator';
+import { useSearchParams } from 'next/navigation';
 import { DEFAULT_ASSISTANT_AI, HEXI_SYSTEM_PROMPT } from '@hedax/contracts/assistant-prompt';
 
 const PROMPT_MAX = 8000;
@@ -36,11 +38,12 @@ function AssistantForm({ settings, reload }: { settings: AssistantSettingsView; 
   const l = useL();
   const t = useTranslations();
   const [value, setValue] = useState(settings);
-  const [tab, setTab] = useState('overview');
+  const initialTab = useSearchParams().get('tab');
+  const [tab, setTab] = useState(initialTab === 'operator' || initialTab === 'messages' ? initialTab : 'overview');
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
-  const tabs = [ ['overview', l('نمای کلی', 'Overview')], ['personality', l('شخصیت و متن‌ها', 'Personality & copy')], ['appearance', l('ظاهر و انیمیشن', 'Appearance & motion')], ['general', l('تنظیمات عمومی', 'General settings')], ['messages', l('پیام‌ها', 'Messages')] ];
+  const tabs = [ ['overview', l('نمای کلی', 'Overview')], ['personality', l('شخصیت و متن‌ها', 'Personality & copy')], ['appearance', l('ظاهر و انیمیشن', 'Appearance & motion')], ['general', l('تنظیمات عمومی', 'General settings')], ['messages', l('پیام‌ها', 'Messages')], ['operator', l('اپراتور', 'Operator')] ];
   const save = async () => {
     setError(''); setSaved(false);
     setBusy(true);
@@ -50,6 +53,7 @@ function AssistantForm({ settings, reload }: { settings: AssistantSettingsView; 
   const nav = <nav aria-label={l('بخش‌های دستیار', 'Assistant sections')} className="flex flex-wrap gap-2">{tabs.map(([id, label]) => <Button key={id} variant={tab === id ? 'primary' : 'secondary'} aria-current={tab === id ? 'page' : undefined} onClick={() => setTab(id!)}>{label}</Button>)}</nav>;
   // The message log is a read-only review, outside the settings form and its save buttons.
   if (tab === 'messages') return <div className="space-y-6">{nav}<AssistantMessages /></div>;
+  if (tab === 'operator') return <div className="space-y-6">{nav}<AssistantOperator /></div>;
   return <form onSubmit={(e) => { e.preventDefault(); void save(); }} className="space-y-6">
     {nav}
     {tab === 'overview' ? <Section id="assistant-overview" title={l('وضعیت دستیار', 'Assistant status')}><Badge tone={settings.enabled ? 'success' : 'neutral'}>{settings.enabled ? l('فعال در تنظیمات ذخیره‌شده', 'Enabled in saved settings') : l('غیرفعال در تنظیمات ذخیره‌شده', 'Disabled in saved settings')}</Badge><p className="mt-4 leading-8">{l('پرسش آزاد از موتور متنی می‌گذرد و قیمت، موجودی و کاربرد خودرو فقط از کاتالوگ جاری نمایش داده می‌شود. قابلیت صوت در این نسخه نمایش داده نمی‌شود.', 'Free-form questions use the text engine; price, stock and fitment come only from the current catalog. Voice is not exposed in this release.')}</p></Section> : null}

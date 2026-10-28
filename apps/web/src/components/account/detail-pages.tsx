@@ -126,3 +126,28 @@ export function ConversationPage({ staff = false }: { staff?: boolean }) {
     </Async>
   );
 }
+
+/** Messages the customer left for an operator in the site guide, with the operator's replies. */
+export function OperatorRequestsList() {
+  const locale = useLocale() as 'fa' | 'en';
+  const state = useApi<import('@hedax/contracts').OperatorThreadView[]>('/account/operator-requests');
+  const fa = locale === 'fa';
+  if (!state.data?.length) return null;
+  return (
+    <section className="mt-8" aria-labelledby="operator-requests-title">
+      <h2 id="operator-requests-title" className="mb-3 text-lg font-bold">{fa ? 'گفتگو با اپراتور' : 'Operator conversations'}</h2>
+      <ul className="flex flex-col gap-3">
+        {state.data.map((r) => (
+          <li key={r.id} className="card space-y-2 p-4 text-sm leading-7">
+            <p className="flex items-center justify-between gap-2 text-xs text-steel"><DateTime iso={r.createdAt} /><span>{r.status === 'CLOSED' ? (fa ? 'بسته شده' : 'Closed') : r.status === 'ANSWERED' ? (fa ? 'جواب داده شد' : 'Answered') : (fa ? 'منتظر جواب اپراتور' : 'Waiting for the operator')}</span></p>
+            {r.messages.map((m) => (
+              <p key={m.id} className={`whitespace-pre-line break-words rounded-xl p-3 ${m.sender === 'STAFF' ? 'border border-line-soft bg-white' : 'bg-action/10'}`} dir="auto">
+                <span className="mb-1 block text-xs font-semibold text-steel">{m.sender === 'STAFF' ? (fa ? 'اپراتور سورس' : 'Source operator') : (fa ? 'شما' : 'You')}</span>{m.body}
+              </p>
+            ))}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
