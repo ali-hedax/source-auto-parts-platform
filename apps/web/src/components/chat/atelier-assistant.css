@@ -3,6 +3,7 @@
  --hexi-paper:#fbf8f3; --hexi-sand:#e8dcca; --hexi-ink:#2a1c16; --hexi-muted:#6c5c4e; --hexi-edge:#aa9275;
  --color-action:var(--hexi-ink); --color-action-hover:#493629; --color-ink:var(--hexi-ink); --color-steel:var(--hexi-muted);
  --color-surface:var(--hexi-paper); --color-stage:var(--hexi-ink); --color-stage-2:var(--hexi-sand); --color-silver:var(--hexi-paper); --color-signal:var(--hexi-paper); --color-line-soft:var(--hexi-sand); --color-line-strong:var(--hexi-edge);
+ --color-canvas:var(--hexi-paper);
  --radius-control:10px; --radius-panel:20px;
 }
 .atelier-assistant.assistant-panel { background:var(--hexi-paper); color:var(--hexi-ink); border-color:var(--hexi-edge); }

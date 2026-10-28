@@ -38,8 +38,8 @@ test('disabled by default; enabled guide is local, keyboard accessible and bilin
   await expect(page.getByRole('dialog').getByRole('log')).toHaveText('');
   await page.getByRole('button', { name: 'Order or request a part', exact: true }).click();
   await expect(page.getByRole('dialog').getByRole('link')).toHaveAttribute('href', '/en/request-part');
-  await page.getByRole('button', { name: 'Contact support', exact: true }).click();
-  await expect(page.getByRole('dialog').getByRole('link', { name: /Contact support/ })).toHaveAttribute('href', '/en/contact');
+  await page.getByRole('button', { name: 'Talk to an operator', exact: true }).click();
+  await expect(page.getByRole('dialog').getByLabel('Your name', { exact: true })).toBeVisible();
 });
 
 for (const width of [390, 768, 1440]) {
@@ -51,7 +51,7 @@ for (const width of [390, 768, 1440]) {
     // The dev server's corner indicator (absent in production builds) sits over the compact launcher.
     await page.addStyleTag({ content: 'nextjs-portal { display: none !important; }' });
     await expect(page.getByRole('button', { name: 'باز کردن هکسی، راهنمای سورس' })).toBeVisible();
-    await expect(page.locator('.assistant-character img')).toHaveAttribute('src', /hedax-mechanic-idle-v1-\d+\.webp/);
+    await expect(page.locator('.assistant-character img')).toHaveAttribute('src', /brand\/source\/atelier\/hexi\.webp/);
     await expect(page.locator('.assistant-character')).not.toHaveCSS('background-color', 'rgb(255, 255, 255)');
     expect(await page.locator('.assistant-avatar').evaluate((el) => getComputedStyle(el).animationName)).toBe('none');
     await page.screenshot({ path: testInfo.outputPath(`assistant-launcher-${width}.png`), fullPage: false });

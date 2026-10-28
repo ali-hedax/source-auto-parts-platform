@@ -28,7 +28,8 @@ html[lang=en] .titanium-store { font-family: var(--font-en); }
 .titanium-store .titanium-header-inner > button { grid-column: 1; grid-row: 1; justify-self: start; }
 .titanium-store .titanium-desktop-nav { grid-column: 1/-1; grid-row: 2; width: 100%; border-top: 1px solid var(--color-line-soft); padding-top: 14px; }
 .titanium-store .titanium-desktop-nav nav { justify-content: space-around; }
-.titanium-store .titanium-desktop-nav nav ul { justify-content: space-evenly; width: 100%; }
+.titanium-store .titanium-desktop-nav nav ul { justify-content: space-evenly; width:auto; flex:1; }
+.titanium-store .titanium-desktop-nav nav.container-page { flex-wrap:nowrap; }
 .titanium-store .titanium-desktop-nav nav a { color: var(--ti-ink); min-height:44px; }
 .titanium-store .titanium-preferences { color: var(--ti-ink); }
 .titanium-store .home-header { background:var(--ti-paper); color:var(--ti-ink); border-color:var(--color-line-soft); --hh-bg:var(--ti-paper); }

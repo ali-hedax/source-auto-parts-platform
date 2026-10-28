@@ -1,0 +1,14 @@
+[
+  {
+    "route": "/fa",
+    "violations": []
+  },
+  {
+    "route": "/en",
+    "violations": []
+  },
+  {
+    "route": "/fa/admin",
+    "violations": []
+  }
+]
