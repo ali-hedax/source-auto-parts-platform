@@ -1,9 +1,9 @@
 # Source by HEDAX — وضعیت و نقطهٔ ادامه
 
-آخرین به‌روزرسانی: 2026-10-28 12:10، Asia/Tehran؛ مرتب‌سازی کامل سرور انجام شد: Preview خاموش، پوشه‌های قدیمی Docker حذف، به‌روزرسانی‌ها نصب و یک ریبوت موفق. Production روی 5d18d21 سالم است؛ دیسک روت 7٪. کرنل جدید و مرحلهٔ پنل هکسی منتظر مالک‌اند.
+آخرین به‌روزرسانی: 2026-10-28 12:55، Asia/Tehran؛ کرنل 7.0.0-42 با full-upgrade نصب و سرور یک بار ریبوت شد؛ Production روی 5d18d21 سالم است، Preview خاموش است. مرحلهٔ پنل هکسی منتظر مالک است.
 
 > مرجع فعلی انتشار: 5d18d21، پوشهٔ candidate `/opt/hedax-release-candidates/hexi-5d18d21-20261028`.
-> گزارش‌های عملیات امروز: `/srv/hedax-data/ops/20261028/` و `/srv/hedax-data/ops/tidy-20261028/` (خصوصی، روی سرور). یادداشت‌های
+> گزارش‌های عملیات امروز: `/srv/hedax-data/ops/20261028/`، `/srv/hedax-data/ops/tidy-20261028/` و `/srv/hedax-data/ops/kernel-20261028/` (خصوصی، روی سرور). یادداشت‌های
 > worktreeهای قدیمی تاریخی‌اند؛ تغییرات محلی کاربر در آن‌ها حفظ شده‌اند و نباید بازنویسی شوند.
 
 این فایل مرجع ادامهٔ کار است. ابتدای هر جلسه، ابتدا این فایل و وضعیت واقعی Git
@@ -11,6 +11,17 @@
 هیچ رمز، توکن، دادهٔ مشتری یا محتوای محرمانهٔ فایل تأمین‌کننده در این فایل ثبت نشود.
 
 ## نقطهٔ فعلی
+
+### Completed & Tested — kernel 7.0.0-42 via full-upgrade and one reboot — 2026-10-28 12:55 Asia/Tehran
+
+- **Owner authorization (2026-10-28, this chat):** install the pending kernel with `apt-get full-upgrade` and ONE reboot; nothing else (no deploy, assistant, data/CMS/.env/DNS, Docker cleanup; Preview stays stopped). The owner wrote "7.0.0-43"; the only pending kernel in the Ubuntu archive was **7.0.0-42.42**, which was installed (no 7.0.0-43 exists in `apt`).
+- Scripts `/srv/hedax-data/ops/kernel-20261028/kernel.sh` (sha256 3509fa7f…, log `kernel.log`, checkpoints `state.txt`) and `kpost.sh` (log `post.log`).
+- **1 Completed & Tested — pre-checks 09:07 UTC:** Production healthy on the 5d18d21 digests, readiness 200; Docker root /srv/hedax-data/docker; both drop-ins with `RequiresMountsFor=/srv/hedax-data`; `findmnt --verify` "Success, no errors or warnings"; Preview 0 running. Backup `/srv/hedax-data/backups/20261028/database-20261028T090756Z.dump` (542,011 B, TABLE DATA 104, sha256 5cf2e3d7…); off-host `prekernel-20261028T090756Z.tar.age`, local = remote sha256 (dd42b020…).
+- **2 Completed & Tested — full-upgrade:** simulation and run changed only `linux-image-virtual` 7.0.0-38 → 7.0.0-42 plus new `linux-image/modules/main-modules-{zfs,v4l2loopback}-7.0.0-42-generic`; no removals; docker.io 29.1.3 and containerd 2.2.2-0ubuntu1.2 unchanged (no hold needed). rc 0. Kept kernels 7.0.0-38 and 7.0.0-30 (GRUB entries present; `/boot/vmlinuz.old` → 38). No autoremove.
+- **3 Completed & Tested — reboot:** issued 09:10:22 UTC; kernel started 09:10:53; mount 09:11:09, containerd 09:11:36, docker 09:11:57; all Production containers healthy by 09:13:22. Downtime ≈ 2–3 minutes (not sampled from outside during the window). SSH back on the first 2-minute retry.
+- **4 Completed & Tested — after boot:** `uname -r` 7.0.0-42-generic; /srv/hedax-data mounted (UUID 9e4594c9…); Docker root /srv/hedax-data/docker; api/worker/web on the 5d18d21 digests; all 7 Production containers running/healthy, restarts 0; readiness database/redis/storage/scanner up; /fa, /en, /fa/staff/login 200 locally and from this PC; Preview 0 running.
+- **5 Completed & Tested — 10-minute watch 09:13–09:22 UTC:** 5 samples /fa 200 in 0.24–0.27 s; load 2.4 (boot) → 0.2; CPU steal 0.05–0.15 % (final 0.08 %); `journalctl -k -b | grep -i lockup` 0, RCU stall/starved 0; 0 error-like lines in Production logs. RAM used 2.2 GiB (5.5 GiB available); `/` 7 %, /srv/hedax-data 18 %.
+- **Open:** Hexi panel prompt + «پیام‌ها» check (owner); Preview remains off (`/root/preview-on.sh`); keep watching for host soft-lockups over longer periods (none since the moves/reboots today).
 
 ### Completed & Tested — server tidy, updates and one reboot — 2026-10-28 12:10 Asia/Tehran
 
