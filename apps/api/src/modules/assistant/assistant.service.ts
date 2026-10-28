@@ -23,6 +23,38 @@ export function basePrompt(name: { fa: string; en: string }) {
   ].join('\n');
 }
 
+/**
+ * The AI gateway masks phone-like numbers in replies ("***********"). Put back the site's own
+ * public contact numbers (footer): a masked run is matched to the number with the same digit
+ * count, otherwise to the next unused number. These numbers are published on every page.
+ */
+export function restoreMaskedNumbers(text: string, numbers: string[], locale: 'fa' | 'en'): string {
+  if (!/\*{5,}/.test(text)) return text;
+  const digits = (v: string) => v.replace(/[^0-9۰-۹]/g, '').length;
+  const used = new Set<number>();
+  return text.replace(/\*{5,}/g, (run) => {
+    let i = numbers.findIndex((n, j) => !used.has(j) && digits(n) === run.length);
+    if (i < 0) i = numbers.findIndex((_, j) => !used.has(j));
+    if (i < 0) i = numbers.length ? 0 : -1;
+    if (i < 0) return locale === 'fa' ? '(شماره در پایین صفحهٔ سایت)' : '(see the site footer)';
+    used.add(i);
+    // Plain digits only: the reply comes back as chat history, which rejects bidi control characters.
+    return numbers[i]!;
+  });
+}
+
+/** Footer phone numbers in the forms a reply may use: local (0…), as written for Persian, and international. */
+export function contactNumbers(phones: Array<{ number: string; numberFa?: string }>, locale: 'fa' | 'en'): string[] {
+  const out: string[] = [];
+  for (const p of phones) {
+    const intl = p.number.trim();
+    const d = intl.replace(/[^0-9+]/g, '');
+    const local = d.startsWith('+98') ? `0${d.slice(3)}` : d.startsWith('0098') ? `0${d.slice(4)}` : d.replace(/^\+/, '');
+    out.push(locale === 'fa' && p.numberFa ? p.numberFa : local || intl);
+  }
+  return out;
+}
+
 /** A reply in which the model presents itself as ChatGPT / another assistant (not a denial). */
 export function claimsOtherIdentity(text: string): boolean {
   const t = text.replace(/\s+/g, ' ');
@@ -108,7 +140,8 @@ export class AssistantService {
       }
       const choices = Array.isArray(response.choices) ? response.choices as Array<{ message?: { content?: unknown } }> : [];
       const raw = typeof choices[0]?.message?.content === 'string' ? choices[0].message.content.trim() : '';
-      const text = raw && claimsOtherIdentity(raw) ? identityReply(settings.name, input.locale) : raw;
+      const named = raw && claimsOtherIdentity(raw) ? identityReply(settings.name, input.locale) : raw;
+      const text = named ? restoreMaskedNumbers(named, await this.phoneNumbers(input.locale), input.locale) : named;
       if (!text) throw new ServiceUnavailableException('Assistant provider returned no text');
       await this.log.record({ ...log, answer: text, status: 'ANSWERED', productSkus: products.map((p) => p.sku), provider: 'arvan', model: this.env.ASSISTANT_TEXT_MODEL, usage: response.usage, latencyMs: Date.now() - started });
       return { text, products, provider: 'arvan', model: this.env.ASSISTANT_TEXT_MODEL };
@@ -123,6 +156,10 @@ export class AssistantService {
    * What the guide may say about contacting the business: the footer's contact details and
    * social links, the footer "about" text and the visible FAQ. Cached briefly; never secret.
    */
+  private async phoneNumbers(locale: 'fa' | 'en'): Promise<string[]> {
+    try { return contactNumbers((await this.content.publicBundle()).contact.phones, locale); } catch { return []; }
+  }
+
   private async siteFacts(locale: 'fa' | 'en'): Promise<string> {
     const cached = this.factsCache.get(locale);
     if (cached && cached.expires > Date.now()) return cached.value;

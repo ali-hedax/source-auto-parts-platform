@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Env } from '../../src/config/env.js';
-import { AssistantService, claimsOtherIdentity, cleanHistory } from '../../src/modules/assistant/assistant.service.js';
+import { AssistantService, claimsOtherIdentity, cleanHistory, contactNumbers, restoreMaskedNumbers } from '../../src/modules/assistant/assistant.service.js';
 import type { CatalogService } from '../../src/modules/catalog/catalog.service.js';
 
 const env = { ASSISTANT_AI_PROVIDER: 'mock', ASSISTANT_LIVE_CALLS_ENABLED: false, ASSISTANT_TEXT_MODEL: 'test-model', ASSISTANT_TIMEOUT_MS: 5000, ASSISTANT_MAX_OUTPUT_TOKENS: 200, ASSISTANT_DAILY_REQUEST_LIMIT: 5 } as Env;
@@ -94,5 +94,16 @@ describe('AssistantService isolated provider', () => {
       { role: 'user', content: 'اسمت چیه؟' }, { role: 'assistant', content: 'من ChatGPT هستم.' },
       { role: 'user', content: 'لنت دارید؟' }, { role: 'assistant', content: 'بله، لنت جلو موجود است.' },
     ])).toEqual([{ role: 'user', content: 'لنت دارید؟' }, { role: 'assistant', content: 'بله، لنت جلو موجود است.' }]);
+  });
+  it('puts the footer phone numbers back where the gateway masked them', () => {
+    const numbers = contactNumbers([{ number: '+98 25 3666 8006', numberFa: '' }, { number: '+971 50 144 1797', numberFa: '' }], 'fa');
+    expect(numbers).toEqual(['02536668006', '971501441797']);
+    const out = restoreMaskedNumbers('شماره تلفن فروشگاه: *********** داخلی ۱۱۹\n\nواتس‌اپ: ************', numbers, 'fa');
+    expect(out).toContain('02536668006');
+    expect(out).toContain('971501441797');
+    expect(out).not.toMatch(/\*{5,}/);
+    expect(restoreMaskedNumbers('لنت موجود است.', numbers, 'fa')).toBe('لنت موجود است.');
+    expect(restoreMaskedNumbers('تلفن: *******', [], 'fa')).toContain('پایین صفحهٔ سایت');
+    expect(contactNumbers([{ number: '+98 25 3666 8006', numberFa: '۰۲۵-۳۶۶۶۸۰۰۶' }], 'fa')).toEqual(['۰۲۵-۳۶۶۶۸۰۰۶']);
   });
 });
