@@ -455,16 +455,10 @@
 .titanium-quick-search-name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .titanium-quick-search-code { flex: none; font-size: 13px; color: #3d5670; }
 .titanium-quick-search-all { justify-content: center; font-weight: 700; color: #213c58; }
-.titanium-quick-search-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
-.titanium-quick-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding-inline: 14px; border: 1px solid #a8b9cc88; border-radius: 999px; color: #dce7f5; font-size: 14px; text-decoration: none; background: #e0ebf30a; }
-.titanium-quick-chip:hover { border-color: #f0f6ff; color: #fff; box-shadow: 0 0 10px #d5e7ff40; }
-.titanium-quick-chip.is-request { border-style: dashed; }
 @media (max-width: 639px) {
   .titanium-quick-search { padding-top: 14px; }
   .titanium-quick-search-panel { padding: 16px 12px 14px; }
   .titanium-quick-search-form { min-height: 54px; padding-inline: 12px 6px; }
   .titanium-store .titanium-quick-search-form input { height: 50px; font-size: 16px; }
   .titanium-quick-search-submit { padding-inline: 16px; min-height: 42px; }
-  .titanium-quick-search-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
-  .titanium-quick-chip { flex: none; }
 }
