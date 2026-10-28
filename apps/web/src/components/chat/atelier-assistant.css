@@ -1,0 +1,20 @@
+/* The Radix panel is portalled: its explicit scope owns its own tokens. */
+.atelier-assistant {
+ --hexi-paper:#fbf8f3; --hexi-sand:#e8dcca; --hexi-ink:#2a1c16; --hexi-muted:#6c5c4e; --hexi-edge:#aa9275;
+ --color-action:var(--hexi-ink); --color-action-hover:#493629; --color-ink:var(--hexi-ink); --color-steel:var(--hexi-muted);
+ --color-surface:var(--hexi-paper); --color-stage:var(--hexi-ink); --color-stage-2:var(--hexi-sand); --color-silver:var(--hexi-paper); --color-signal:var(--hexi-paper); --color-line-soft:var(--hexi-sand); --color-line-strong:var(--hexi-edge);
+ --radius-control:10px; --radius-panel:20px;
+}
+.atelier-assistant.assistant-panel { background:var(--hexi-paper); color:var(--hexi-ink); border-color:var(--hexi-edge); }
+.atelier-assistant.assistant-panel > header { background:var(--hexi-sand); color:var(--hexi-ink); }
+.atelier-assistant.assistant-panel > header :is(p,button) { color:var(--hexi-ink); }
+.atelier-assistant :is(button,input,textarea) { min-height:44px; }
+.atelier-assistant .assistant-avatar { width:var(--assistant-avatar-mobile); height:calc(var(--assistant-avatar-mobile) * 1.5); border:0; border-radius:0; background:transparent; box-shadow:none; }
+.atelier-assistant .assistant-avatar img { object-fit:contain; transform:none; }
+.atelier-assistant.assistant-dock[data-moving=true] .assistant-avatar { animation:hexi-entrance .9s ease-out both; }
+.atelier-assistant .assistant-character-actions { opacity:1; background:var(--hexi-paper); border-color:var(--hexi-edge); }
+.atelier-assistant .assistant-character-actions button { width:44px; height:44px; }
+.atelier-assistant .assistant-greeting { max-width:190px; background:var(--hexi-paper); color:var(--hexi-ink); border:1px solid var(--hexi-edge); border-radius:16px; padding:12px 16px; font-size:12px; line-height:1.8; margin-bottom:10px; box-shadow:0 10px 30px rgb(57 40 28 / .1); }
+@media(min-width:640px) { .atelier-assistant .assistant-avatar { width:var(--assistant-avatar-desktop); height:calc(var(--assistant-avatar-desktop) * 1.5); } }
+@keyframes hexi-entrance { from { opacity:0; transform:translateY(35px) rotate(-5deg); } to { opacity:1; transform:none; } }
+@media(prefers-reduced-motion:reduce) { .atelier-assistant *, .atelier-assistant *::before { animation:none!important; transition:none!important; } }

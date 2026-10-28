@@ -1,0 +1,38 @@
+/* Admin scope also opt-in on the navigation portal; storefront values never enter here. */
+.admin-atelier {
+ --admin-paper:#f5f0e8; --admin-sheet:#fbf8f3; --admin-ink:#2a1c16; --admin-muted:#6c5c4e;
+ --admin-sand:#e8dcca; --admin-edge:#aa9275; --admin-line:#ded3c4;
+ --admin-shadow:0 12px 35px rgb(57 40 28 / .08); --admin-space:clamp(20px,3vw,40px);
+ --color-canvas:var(--admin-paper); --color-surface:var(--admin-sheet); --color-ink:var(--admin-ink);
+ --color-steel:var(--admin-muted); --color-line-soft:var(--admin-line); --color-line:var(--admin-line); --color-line-strong:var(--admin-edge);
+ --color-action:var(--admin-ink); --color-action-hover:#493629; --color-action-soft:var(--admin-sand);
+ --color-tech:#705439; --color-tech-light:var(--admin-sand); --color-carbon:var(--admin-ink);
+ --color-silver:var(--admin-sand); --radius-control:8px; --radius-card:12px; --radius-panel:18px;
+ color:var(--admin-ink); background:var(--admin-paper);
+}
+.admin-atelier :is(input,select,textarea,button,a):focus-visible { outline:2px solid var(--color-tech); outline-offset:3px; }
+.admin-atelier > header { background:var(--admin-ink); color:var(--admin-sheet); }
+.admin-atelier .admin-sidebar { background:var(--admin-ink); border:0; }
+.admin-atelier .admin-sidebar :is(a,p,svg) { color:var(--admin-sand); }
+.admin-atelier .admin-sidebar a { border-radius:var(--radius-control); min-height:44px; }
+.admin-atelier .admin-sidebar a[aria-current=page] { background:var(--admin-sand); color:var(--admin-ink); border-color:var(--admin-sand); }
+.admin-atelier .admin-sidebar a[aria-current=page] svg { color:var(--admin-ink); }
+.admin-atelier .admin-sidebar a:hover { background:color-mix(in srgb,var(--admin-sand) 14%,var(--admin-ink)); color:var(--admin-sheet); }
+.admin-atelier .admin-sidebar a[aria-current=page]:hover { background:var(--admin-sand); color:var(--admin-ink); }
+.admin-atelier main { background:linear-gradient(145deg,var(--admin-paper),var(--admin-sand)); min-height:calc(100dvh - 56px); padding:var(--admin-space); }
+.admin-atelier main :is(.bg-white,section,fieldset) { background-color:var(--admin-sheet); }
+.admin-atelier main :is(section,fieldset,.table-scroll) { border-radius:var(--radius-card); border-color:var(--admin-line); }
+.admin-atelier main section { box-shadow:var(--admin-shadow); }
+.admin-atelier :is(button,a[role=tab]) { min-height:44px; }
+.admin-atelier tbody tr:hover { background:var(--admin-sand); }
+.admin-atelier th { color:var(--admin-muted); font-weight:500; }
+.admin-atelier .atelier-welcome { display:grid; grid-template-columns:1.4fr 1fr; gap:24px; overflow:hidden; border-radius:var(--radius-panel); margin-bottom:32px; background:var(--admin-sand); }
+.admin-atelier .atelier-welcome-copy { padding:32px; align-self:center; }
+.admin-atelier .atelier-welcome h2 { font-size:clamp(22px,2vw,30px); font-weight:500; line-height:1.7; }
+.admin-atelier .atelier-welcome p { color:var(--admin-muted); line-height:1.9; margin-block:12px 24px; }
+.admin-atelier .atelier-welcome-links { display:flex; gap:12px; flex-wrap:wrap; }
+.admin-atelier .atelier-welcome-links a { display:flex; align-items:center; padding:12px 20px; border-radius:999px; background:var(--admin-ink); color:var(--admin-sheet); }
+.admin-atelier .atelier-welcome-image { position:relative; min-height:250px; }
+.admin-atelier .atelier-welcome-image img { object-fit:cover; }
+@media(max-width:767px) { .admin-atelier .atelier-welcome { grid-template-columns:1fr; gap:0; } .admin-atelier .atelier-welcome-image { min-height:170px; } .admin-atelier .atelier-welcome-copy { padding:24px; } }
+@media(prefers-reduced-motion:reduce) { .admin-atelier *, .admin-atelier *::before { animation:none!important; transition:none!important; scroll-behavior:auto!important; } }
