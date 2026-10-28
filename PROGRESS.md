@@ -1,9 +1,9 @@
 # Source by HEDAX — وضعیت و نقطهٔ ادامه
 
-آخرین به‌روزرسانی: 2026-10-28 11:30، Asia/Tehran؛ ذخیره‌ساز Docker و containerd به دیسک داده `/srv/hedax-data` منتقل شد (قطعی 411 ثانیه)، پاک‌سازی سرور انجام شد. Production روی 5d18d21 سالم است. حذف `/var/lib/*.old` و مرحلهٔ پنل هکسی منتظر مالک‌اند.
+آخرین به‌روزرسانی: 2026-10-28 12:10، Asia/Tehran؛ مرتب‌سازی کامل سرور انجام شد: Preview خاموش، پوشه‌های قدیمی Docker حذف، به‌روزرسانی‌ها نصب و یک ریبوت موفق. Production روی 5d18d21 سالم است؛ دیسک روت 7٪. کرنل جدید و مرحلهٔ پنل هکسی منتظر مالک‌اند.
 
 > مرجع فعلی انتشار: 5d18d21، پوشهٔ candidate `/opt/hedax-release-candidates/hexi-5d18d21-20261028`.
-> گزارش‌های عملیات امروز: `/srv/hedax-data/ops/20261028/` (خصوصی، روی سرور). یادداشت‌های
+> گزارش‌های عملیات امروز: `/srv/hedax-data/ops/20261028/` و `/srv/hedax-data/ops/tidy-20261028/` (خصوصی، روی سرور). یادداشت‌های
 > worktreeهای قدیمی تاریخی‌اند؛ تغییرات محلی کاربر در آن‌ها حفظ شده‌اند و نباید بازنویسی شوند.
 
 این فایل مرجع ادامهٔ کار است. ابتدای هر جلسه، ابتدا این فایل و وضعیت واقعی Git
@@ -11,6 +11,21 @@
 هیچ رمز، توکن، دادهٔ مشتری یا محتوای محرمانهٔ فایل تأمین‌کننده در این فایل ثبت نشود.
 
 ## نقطهٔ فعلی
+
+### Completed & Tested — server tidy, updates and one reboot — 2026-10-28 12:10 Asia/Tehran
+
+- **Owner authorization (2026-10-28, this chat):** stop Preview, delete docker.old/containerd.old, remove named leftovers and superseded unused images, install Ubuntu updates, ONE reboot. Not touched: assistant/Hexi code, PR #54, DNS, .env/secrets, DB content, CMS.
+- Script `/srv/hedax-data/ops/tidy-20261028/tidy.sh` (sha256 e7f2bebb…, log `tidy.log`, checkpoints `state.txt` steps 1–8), post-boot script `post.sh` (log `post.log`).
+- **1 Completed & Tested:** snapshot 08:09 UTC (all Production healthy, readiness up, steal 0.15 %); backup `/srv/hedax-data/backups/20261028/database-20261028T080923Z.dump` (541,867 B, TABLE DATA 104, sha256 73e79bc0…); off-host age copy `pretidy-20261028T080923Z.tar.age` in `arvan:sourcebyhedax-backups/source/`, local = remote sha256 (696ec0c5…).
+- **2 Completed & Tested:** Preview stopped with its wrapper `stop` (no down/-v; images, volumes, config kept); `/root/preview-on.sh` and `/root/preview-off.sh` (mode 700) start/stop only Preview. Preview stayed stopped after the reboot.
+- **3 Completed & Tested:** with Docker/containerd roots confirmed on /srv/hedax-data, Production healthy, no mounts/open files inside, verified backup: deleted `/var/lib/containerd.old` and `/var/lib/docker.old` → `/` 35 G → 5.1 G used.
+- **4 Completed & Tested:** deleted `/opt/hedax-release-candidates/titanium-5b3d2ff9292e/images.tar.gz` (680,194,048 B; not open/referenced); no other 2026-10-26/27 partial files > 20 MB found. `docker rmi` (no -f, container check) removed `df1650c9f3af` (unpublished navy web), `hedax-pr29-api`, `hedax-pr29-worker`, `hedax-smoke-polish-web`. Kept: 05b1060 rollback (`hedax-final-rollback-*`/pr31), 5d18d21 rollback (`hedax-hexi-rollback-*`), current images incl. tools, Preview overlay images, hedax-backup, base images (22 images now). Build cache prune 82 MB; apt clean.
+- **5 Completed & Tested:** `/etc/systemd/journald.conf.d/hedax-size.conf` `SystemMaxUse=500M` (journald restarted, 496 MB); daemon.json validated (data-root + log-opts 20m×5); compose containers use json-file 10m×5.
+- **6 Completed & Tested:** `apt-get update && apt-get upgrade` rc 0 (confold): 24 packages incl. containerd 2.2.2-0ubuntu1.2, systemd 259.9, snapd, cloud-init, qemu-guest-agent. docker.io unchanged (29.1.3, no candidate); no major change → no hold. **Kept back:** `linux-image-virtual` 7.0.0-42 (needs `full-upgrade` + another reboot; not done — owner allowed one reboot). `/etc/containerd/config.toml` kept (our root). Production healthy after the upgrade.
+- **7 Completed & Tested:** one reboot 08:20 UTC (kernel still 7.0.0-38). After boot: /srv/hedax-data mounted from UUID 9e4594c9…, containerd 08:21:28 and docker 08:21:40 started automatically after the mount; Docker root /srv/hedax-data/docker, containerd root /srv/hedax-data/containerd; api/worker/web on the 5d18d21 digests, restarts 0, all healthy; readiness database/redis/storage/scanner up; /fa, /en, /fa/staff/login 200 (local and from this PC). No manual start was needed.
+- **8 Completed & Tested:** 15-minute watch 08:22–08:35 UTC: 5 samples /fa 200 in 0.23–0.35 s; load 0.2–3.3 (boot); CPU steal 0.05–0.15 % (final 0.07 %); 0 kernel soft-lockup/RCU lines since boot; 0 error-like log lines in Production containers.
+- **Before → after:** `/` 50 % (35 G used) → 7 % (4.5 G used, 67 G free); /srv/hedax-data 20 % → 18 % (28 G used, 129 G free); RAM used 4.0 GiB → 2.2 GiB (available 3.8 → 5.5 GiB; Preview off frees ≈1.5 GiB).
+- **Requires Owner Decision:** new kernel 7.0.0-42 (`apt full-upgrade` + reboot); Preview stays off until `/root/preview-on.sh`; Hexi panel prompt + «پیام‌ها» check; Arvan host CPU steal/soft-lockups (none since this boot, but recurring earlier).
 
 ### Completed & Tested — Docker/containerd storage moved to the 160 GB data disk; server tidy — 2026-10-28 11:30 Asia/Tehran
 
