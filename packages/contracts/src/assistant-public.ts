@@ -8,7 +8,7 @@ export const DEFAULT_ASSISTANT_SETTINGS: AssistantSettings = {
   name: { fa: 'هکسی', en: 'Hexi' },
   introduction: { fa: 'قطعه پیدا می‌کنم، قیمت و موجودی سایت را می‌گویم و به سؤال‌های مکانیکی‌تان جواب می‌دهم.', en: 'I find parts, tell you what the site lists for price and stock, and answer your mechanical questions.' },
   greeting: { fa: 'سلام! من هکسی‌ام، روبات راهنمای سورس. دنبال چه قطعه‌ای هستید؟', en: 'Hi! I am Hexi, Source’s robot guide. Which part are you looking for?' },
-  animationEnabled: true, mobileSize: 64, desktopSize: 104, placement: 'end', avatarUrl: '',
+  animationEnabled: true, mobileSize: 64, desktopSize: 104, placement: 'start', avatarUrl: '',
   topics: {
     search: { label: { fa: 'پیدا کردن قطعه', en: 'Find a part' }, answer: { fa: 'نام یا شماره فنی را در کاتالوگ جست‌وجو کنید. سازگاری را پیش از خرید با تیم فروش تأیید کنید.', en: 'Search the catalog by name or part number. Confirm vehicle compatibility with the team before buying.' } },
     stock: { label: { fa: 'قیمت و موجودی', en: 'Price & availability' }, answer: { fa: 'قیمت و موجودی ثبت‌شده را در صفحهٔ قطعه ببینید. این راهنما موجودی یا قیمت تازه‌ای محاسبه نمی‌کند.', en: 'See recorded price and availability on the part page. This guide does not calculate prices or check live stock.' } },

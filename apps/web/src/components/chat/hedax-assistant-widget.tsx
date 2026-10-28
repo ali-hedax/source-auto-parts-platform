@@ -1,5 +1,7 @@
 'use client';
 
+import './atelier-assistant.css';
+
 import * as RDialog from '@radix-ui/react-dialog';
 import type { AssistantMessageResult, AssistantPublicSettings, AssistantReply } from '@hedax/contracts';
 import { ASSISTANT_TOPICS, assistantReply } from '@hedax/contracts/constants';
@@ -19,12 +21,12 @@ import { OperatorPanel } from './operator-panel';
 const topicLabel = (label: string, topic: string, locale: 'fa' | 'en') => topic !== 'support' ? label : /پشتیبان|contact support/i.test(label) ? (locale === 'fa' ? 'ارتباط با اپراتور' : 'Talk to an operator') : label;
 
 /** Right-sized transparent WebP renders of the character (the 1024×1536 PNG source weighs 1.6 MB). */
-const MASCOT = '/assistant/hedax-mechanic-idle-v1';
+const MASCOT = '/brand/source/atelier/hexi';
 
 
 /** The launcher's diameter: a compact circle derived from the configured guide sizes. */
 function avatarSize(desktop: boolean, settings: Pick<AssistantPublicSettings, 'desktopSize' | 'mobileSize'>) {
-  return Math.round(desktop ? Math.min(72, settings.desktopSize * 0.6) : Math.min(60, settings.mobileSize * 0.85));
+  return Math.round(desktop ? settings.desktopSize : settings.mobileSize);
 }
 
 /** Wide screens (≥1024 px) get the non-modal side panel. */
@@ -77,7 +79,7 @@ export function HedaxAssistantWidget({ locale, settings }: { locale: 'fa' | 'en'
         if (!dock.current) return;
         const diameter = avatarSize(window.innerWidth >= 640, { desktopSize: settings.desktopSize, mobileSize: settings.mobileSize });
         const width = diameter + 16;
-        const height = diameter + 52;
+        const height = diameter * 1.5 + 62;
         const margin = window.innerWidth >= 640 ? 24 : 12;
         const baseBottom = dock.current.getBoundingClientRect().bottom + lift;
         const atLeft = (settings.placement === 'start') === (locale === 'en');
@@ -99,7 +101,7 @@ export function HedaxAssistantWidget({ locale, settings }: { locale: 'fa' | 'en'
         const leftX = margin;
         const rightX = window.innerWidth - margin - diameter;
         const choices = [0, 96, 192, 288].flatMap((offset) => [false, true].map((flip) => ({ offset, flip, left: flip ? !atLeft : atLeft, bottom: baseBottom - offset })));
-        const choice = choices.find((c) => c.bottom - diameter >= 160 && !intersects(c.left ? leftX : rightX, c.bottom - diameter - 8, diameter, diameter + 8));
+        const choice = choices.find((c) => c.bottom - diameter * 1.5 >= 160 && !intersects(c.left ? leftX : rightX, c.bottom - diameter * 1.5 - 8, diameter, diameter * 1.5 + 8));
         const flip = choice?.flip ?? false;
         const bottom = choice?.bottom ?? baseBottom;
         setFlipped(flip);
@@ -193,19 +195,20 @@ export function HedaxAssistantWidget({ locale, settings }: { locale: 'fa' | 'en'
   };
   const moving = settings.animationEnabled && !paused && !hidden;
   const size = { '--assistant-avatar-mobile': `${avatarSize(false, settings)}px`, '--assistant-avatar-desktop': `${avatarSize(true, settings)}px`, '--assistant-lift': `${lift}px` } as CSSProperties;
-  const avatar = settings.avatarUrl || `${MASCOT}-320.webp`;
+  const avatar = settings.avatarUrl || `${MASCOT}.webp`;
   // The default character is cropped to head and shoulders inside the circle; an uploaded avatar is shown whole.
-  const avatarFit = settings.avatarUrl ? 'object-cover' : 'object-cover object-[50%_6%] scale-[1.35] origin-top';
+  const avatarFit = 'object-contain';
   const placement = flipped ? (settings.placement === 'start' ? 'end' : 'start') : settings.placement;
   const panelSide = placement === 'start' ? 'start-3 sm:start-6' : 'end-3 sm:end-6';
   const side = position ? '' : panelSide;
   const dockStyle = { ...size, ...(position ? { left: position.x, top: position.y, bottom: 'auto' } : {}) };
   if (dismissed) return null;
   return (
-    <aside ref={dock} aria-label={settings.name[locale]} className={`assistant-dock fixed ${side} z-40 ${obstructed && !open && !position ? 'invisible' : ''}`} style={dockStyle} data-moving={moving} data-compact={compact} data-crowded={crowded}>
+    <aside ref={dock} aria-label={settings.name[locale]} className={`atelier-assistant assistant-dock fixed ${side} z-40 ${obstructed && !open && !position ? 'invisible' : ''}`} style={dockStyle} data-moving={moving} data-compact={compact} data-crowded={crowded}>
       {/* Desktop: a side panel over the page (no dimming, the page stays usable); phones: a modal that follows the visible viewport and keyboard. */}
       <RDialog.Root open={open} onOpenChange={setOpen} modal={!desktop}>
         {/* The small actions row sits inside the dock (below the avatar), so it never falls off the screen edge. */}
+        {open || compact || crowded ? null : <p className="assistant-greeting">{settings.greeting[locale]}</p>}
         <div className="assistant-character-controls relative flex flex-col items-center gap-1 pb-[3.25rem]">
           <RDialog.Trigger asChild>
             <button type="button" aria-label={t('open')} className="assistant-character grid min-h-12 min-w-12 touch-none cursor-grab place-items-center rounded-full text-action outline-offset-4 active:cursor-grabbing" onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={() => { drag.current = null; }} onClick={(event) => { if (suppressOpen.current) event.preventDefault(); }}>
@@ -226,11 +229,11 @@ export function HedaxAssistantWidget({ locale, settings }: { locale: 'fa' | 'en'
         <RDialog.Portal>
           {desktop ? null : <RDialog.Overlay className="fixed inset-0 z-50 bg-stage/50" />}
           <RDialog.Content dir={locale === 'fa' ? 'rtl' : 'ltr'} onInteractOutside={(e) => { if (desktop) e.preventDefault(); }}
-            className={`assistant-panel fixed z-50 flex flex-col overflow-hidden rounded-[var(--radius-panel)] border border-line-soft bg-white shadow-[var(--shadow-overlay)] ${desktop ? `bottom-6 w-[26rem] max-h-[min(38rem,calc(100dvh-8rem))] ${panelSide}` : 'inset-x-3 mx-auto w-auto max-w-md'}`}
+            className={`atelier-assistant assistant-panel fixed z-50 flex flex-col overflow-hidden rounded-[var(--radius-panel)] border border-line-soft bg-white shadow-[var(--shadow-overlay)] ${desktop ? `bottom-6 w-[26rem] max-h-[min(38rem,calc(100dvh-8rem))] ${panelSide}` : 'inset-x-3 mx-auto w-auto max-w-md'}`}
             style={!desktop && viewport ? { top: viewport.top, maxHeight: viewport.height } : undefined}>
             <header className="on-dark flex items-center gap-2 bg-stage p-3 text-silver">
               <span className="block size-11 shrink-0 overflow-hidden rounded-full border border-white/20 bg-stage-2">
-                <Image src={settings.avatarUrl || `${MASCOT}-160.webp`} alt="" width={44} height={44} unoptimized className={`size-full ${avatarFit}`} />
+                <Image src={settings.avatarUrl || `${MASCOT}.webp`} alt="" width={44} height={44} unoptimized className={`size-full ${avatarFit}`} />
               </span>
               <div className="min-w-0 flex-1"><RDialog.Title className="font-bold">{settings.name[locale]}</RDialog.Title><p className="text-xs text-signal">{t('phase')}</p></div>
               <button type="button" className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-lg hover:bg-white/10" onClick={toggleMotion} aria-label={paused ? t('resume') : t('pause')} aria-pressed={paused}>{paused ? <Play aria-hidden className="size-4" /> : <Pause aria-hidden className="size-4" />}</button>
