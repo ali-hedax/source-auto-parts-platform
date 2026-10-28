@@ -108,5 +108,36 @@ export const assistantConversationQuerySchema = z.object({
   status: z.enum(['all', 'failed']).default('all'),
 });
 
+// ---- Contact an operator (from the guide) ----
+
+/** Persian/Arabic digits → Latin, so «۰۹۱۲…» is accepted and stored uniformly. */
+const latinDigits = (v: string) => v.replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0)).replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660));
+const operatorPhone = z.string().trim().transform(latinDigits).pipe(z.string().regex(/^\+?[0-9][0-9 ()-]{6,24}$/, 'INVALID_PHONE'));
+export const operatorRequestSchema = z.strictObject({
+  locale: z.enum(['fa', 'en']),
+  name: text(80),
+  phone: operatorPhone,
+  message: text(1000),
+});
+export const operatorVisitorMessageSchema = z.strictObject({ key: z.string().min(20).max(100), message: text(1000) });
+export const operatorReplySchema = z.strictObject({ message: text(2000) });
+export const operatorStatusSchema = z.strictObject({ status: z.enum(['OPEN', 'CLOSED']) });
+export const operatorListQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).max(10000).default(1),
+  status: z.enum(['open', 'all', 'closed']).default('open'),
+  q: z.string().trim().max(120).optional(),
+});
+export type OperatorRequestStatus = 'OPEN' | 'ANSWERED' | 'CLOSED';
+export interface OperatorMessageView { id: string; sender: 'VISITOR' | 'STAFF'; body: string; createdAt: string }
+/** What the visitor sees (no staff names, no phone echo beyond their own). */
+export interface OperatorThreadView { id: string; status: OperatorRequestStatus; createdAt: string; messages: OperatorMessageView[] }
+export interface OperatorRequestCreated { id: string; key: string }
+export interface OperatorRequestSummary {
+  id: string; name: string; phone: string; locale: 'fa' | 'en'; status: OperatorRequestStatus; unreadByStaff: boolean;
+  signedIn: boolean; messageCount: number; firstMessage: string; lastMessage: string; lastMessageAt: string; createdAt: string;
+}
+export interface OperatorRequestList { items: OperatorRequestSummary[]; total: number; page: number; pageSize: number; openCount: number; unreadCount: number }
+export interface OperatorRequestDetail extends OperatorRequestSummary { messages: Array<OperatorMessageView & { staffName: string | null }> }
+
 export * from './assistant-public.js';
 export * from './assistant-prompt.js';

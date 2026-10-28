@@ -12,6 +12,15 @@
 
 ## نقطهٔ فعلی
 
+### Implemented Pending Verification — Hexi operator messages + home quick search — 2026-10-28 Asia/Tehran
+
+- Branch `feat/hexi-operator-and-quick-search` from `main` @ `3105fcf` (includes merged PR #54 Hexi identity fix, not yet deployed). Not deployed.
+- Owner requests: in Hexi, «ارتباط با پشتیبانی» → «ارتباط با اپراتور»: visitor leaves name/phone/message, owner gets it in the panel and replies later; replies visible in Hexi and in the customer account. A full-width quick search under the opening film (name / part number / SKU, live suggestions, one-tap category shortcuts).
+- Implemented: additive migration `20261028120000_operator_requests` (`operator_request`, `operator_message`); `OperatorService` + endpoints `POST/GET /assistant/operator[/:id[/messages]]` (guest key, only its SHA-256 stored), `GET /account/operator-requests`, admin `GET/POST /admin/operator-requests[/:id[/reply|/status]]` (`conversations.write`); owner in-app notification `operator.request`, customer `operator.reply`; audit on reply/status. Widget: support topic opens `OperatorPanel` (old saved label shown as «ارتباط با اپراتور»); admin tab «اپراتور» (also `?tab=operator`); account messages page lists operator conversations. Quick search `components/store/quick-search.tsx` inserted in `titanium-home.tsx` right after the opening film (one line) + CSS at the end of `titanium.css`.
+- Evidence (local): API/web typecheck, eslint 0 errors, web `next build` OK; unit 7/7 assistant; integration on PostgreSQL 18: new `98b-operator-requests` 5/5, `96`,`98` assistant, `00`,`30`,`81`,`97` all green; fixture screenshots desktop/mobile, no overflow.
+- Hexi live status: Arvan gateway still had a guardrail attached (empty knowledge base was disconnected by owner today); live answers took >30 s → 503. Owner to disconnect guardrail `hedax`; PR #54 (instructions in user turn + identity guard) ships with this release.
+- Next: CI → merge → production images → rollout api/worker/web + migration (same procedure as 5d18d21). A new storefront design is planned the same day: rebase it on this main to avoid conflicts in `titanium-home.tsx`/`titanium.css`.
+
 ### Completed & Tested — kernel 7.0.0-42 via full-upgrade and one reboot — 2026-10-28 12:55 Asia/Tehran
 
 - **Owner authorization (2026-10-28, this chat):** install the pending kernel with `apt-get full-upgrade` and ONE reboot; nothing else (no deploy, assistant, data/CMS/.env/DNS, Docker cleanup; Preview stays stopped). The owner wrote "7.0.0-43"; the only pending kernel in the Ubuntu archive was **7.0.0-42.42**, which was installed (no 7.0.0-43 exists in `apt`).

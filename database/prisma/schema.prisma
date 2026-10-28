@@ -493,6 +493,8 @@ model User {
   exchangeRates           ExchangeRate[]
   catalogDocuments        CatalogDocument[]   @relation("CatalogDocumentUploader")
   assistantConversations  AssistantConversation[]
+  operatorRequests        OperatorRequest[]       @relation("OperatorRequestCustomer")
+  operatorReplies         OperatorMessage[]       @relation("OperatorMessageStaff")
 
   @@index([kind, status])
   @@map("user")
@@ -2721,4 +2723,47 @@ model AssistantMessage {
   @@index([conversationId, createdAt])
   @@index([createdAt])
   @@map("assistant_message")
+}
+
+/// "Contact an operator" from the site guide (Hexi): a visitor (guest or signed-in customer) leaves
+/// a message with name and phone; staff answer later in Admin → AI Chatbot → Operator. A guest reads
+/// the replies in the guide with a secret key kept in their browser (only its hash is stored).
+model OperatorRequest {
+  id            String    @id @default(uuid(7)) @db.Uuid
+  accessKeyHash String    @map("access_key_hash") @db.VarChar(128)
+  locale        String    @db.VarChar(2)
+  name          String    @db.VarChar(80)
+  phone         String    @db.VarChar(30)
+  userId        String?   @map("user_id") @db.Uuid
+  ipHash        String?   @map("ip_hash") @db.VarChar(128)
+  /// OPEN (waiting for staff), ANSWERED (staff replied last) or CLOSED.
+  status        String    @default("OPEN") @db.VarChar(10)
+  /// Staff have not opened the latest visitor message yet.
+  unreadByStaff Boolean   @default(true) @map("unread_by_staff")
+  lastMessageAt DateTime  @default(now()) @map("last_message_at") @db.Timestamptz(3)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  closedAt      DateTime? @map("closed_at") @db.Timestamptz(3)
+
+  user     User?             @relation("OperatorRequestCustomer", fields: [userId], references: [id], onDelete: SetNull)
+  messages OperatorMessage[]
+
+  @@index([status, lastMessageAt])
+  @@index([userId, lastMessageAt])
+  @@map("operator_request")
+}
+
+model OperatorMessage {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  requestId String   @map("request_id") @db.Uuid
+  /// VISITOR or STAFF.
+  sender    String   @db.VarChar(10)
+  staffId   String?  @map("staff_id") @db.Uuid
+  body      String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  request OperatorRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  staff   User?           @relation("OperatorMessageStaff", fields: [staffId], references: [id], onDelete: SetNull)
+
+  @@index([requestId, createdAt])
+  @@map("operator_message")
 }

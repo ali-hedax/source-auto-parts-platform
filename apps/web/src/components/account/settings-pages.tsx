@@ -19,6 +19,8 @@ import { AddressForm, type AddressRow } from './address-form';
 interface NotificationRow { id: string; type: string; params: Record<string, unknown>; linkPath: string | null; readAt: string | null; createdAt: string }
 
 const NOTIFICATION_TEXT: Record<string, { fa: string; en: string }> = {
+  'operator.reply': { fa: 'اپراتور به پیام شما جواب داد', en: 'An operator replied to your message' },
+  'operator.request': { fa: 'پیام تازه برای اپراتور', en: 'New message for an operator' },
   'quote.sent': { fa: 'پیش‌فاکتور جدید صادر شد', en: 'A new quote was issued' },
   'quote.expiring': { fa: 'پیش‌فاکتور به‌زودی منقضی می‌شود', en: 'A quote expires soon' },
   'quote.expired': { fa: 'پیش‌فاکتور منقضی شد', en: 'A quote expired' },
