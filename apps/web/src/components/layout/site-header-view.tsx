@@ -4,7 +4,7 @@ import { Search } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import type { BuilderDocument, SiteContentView, Currency } from '@hedax/contracts';
 import { Link } from '@/i18n/navigation';
-const DEFAULT_LOGO = '/brand/source/titanium/logo.webp';
+const DEFAULT_LOGO = '/brand/source/atelier/logo.webp';
 import { AccountLink, CartLink } from './header-client';
 import { HeaderNav } from './header-nav';
 import { Suspense, type CSSProperties } from 'react';
@@ -26,10 +26,10 @@ export function SiteHeaderView({ content, chrome, currency }: { content: SiteCon
   // Logo, its alt text and the site title come from site content → general.
   const alt = localize(brand?.logoAlt, locale) || localize(brand?.siteName, locale);
   const logo = chrome?.logo?.headerUrl || (brand?.logoUrl && brand.logoUrl !== '/brand/source/logo-dark.png' ? brand.logoUrl : DEFAULT_LOGO);
-  return <header className="titanium-header on-dark">
+  return <header className="titanium-header">
     <div className="container-page titanium-header-inner">
       <MobileNav items={nav.map(n => ({ href: n.href, label: n.label }))} currency={currency} />
-      <Link href="/" className="titanium-logo" style={{ '--ti-logo-width': `${({ md: 180, lg: 242, xl: 280 })[chrome?.logo?.size ?? 'lg']}px` } as CSSProperties} aria-label={localize(brand?.siteTitle, locale) || alt}>
+      <Link href="/" className="titanium-logo" style={{ '--ti-logo-width': `${({ md: 240, lg: 300, xl: 340 })[chrome?.logo?.size ?? 'lg']}px` } as CSSProperties} aria-label={localize(brand?.siteTitle, locale) || alt}>
         <picture>{chrome?.logo?.mobileUrl ? <source media="(max-width: 639px)" srcSet={chrome.logo.mobileUrl} /> : null}<Image src={logo} width={2169} height={725} unoptimized priority alt={alt || 'Source by HEDAX'} /></picture>
       </Link>
       <div className="titanium-desktop-nav"><HeaderNav items={nav.map(n => ({ href: n.href, label: n.label }))} label={t('common.menu')} /></div>

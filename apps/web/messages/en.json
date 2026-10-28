@@ -60,7 +60,9 @@
     "cart": "Cart",
     "cartCount": "{count, plural, =0 {Cart is empty} one {# item in cart} other {# items in cart}}",
     "admin": "Admin panel",
-    "help": "Help"
+    "help": "Help",
+    "customerEntry": "Customer sign in",
+    "staffEntry": "Staff sign in"
   },
   "search": {
     "label": "Search parts",
@@ -1259,5 +1261,12 @@
       "NAME_MATCH": "Suggestion: the vehicle is named in the part title; fitment not checked",
       "TEXT": "Matches the search text only; no fitment information"
     }
+  },
+  "atelier": {
+    "applyPalette": "Apply atelier colours to draft",
+    "welcomeTitle": "Welcome to your Source workspace.",
+    "welcomeBody": "A clear path through today’s work.",
+    "openCatalog": "Manage parts",
+    "openWebsite": "Content & appearance"
   }
 }

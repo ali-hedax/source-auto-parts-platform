@@ -10,7 +10,7 @@ import { MobileNav } from './mobile-nav';
 import { CurrencySwitcher, LocaleSwitcher } from './switchers';
 import './home-header.css';
 
-const DEFAULT_LOGO = '/brand/source/logo-dark.png';
+const DEFAULT_LOGO = '/brand/source/atelier/logo.webp';
 
 /**
  * Home page header: a large centred SOURCE by HEDAX logo on the film's dark ground, minimal links, and
@@ -33,10 +33,11 @@ export function HomeHeaderView({ content, chrome, currency, searchHref }: {
     { href: '/request-part', label: t('nav.requestPart') },
   ];
   const alt = localize(brand?.logoAlt, locale) || localize(brand?.siteName, locale) || 'SOURCE by HEDAX';
-  const desktopLogo = logo.headerUrl || brand?.logoUrl || DEFAULT_LOGO;
+  const brandLogo = brand?.logoUrl && !brand.logoUrl.startsWith('/brand/source/logo-') ? brand.logoUrl : DEFAULT_LOGO;
+  const desktopLogo = logo.headerUrl || brandLogo;
   const mobileLogo = logo.mobileUrl || desktopLogo;
   return (
-    <HomeHeaderShell className="home-header on-dark" data-size={logo.size} data-align={logo.align}>
+    <HomeHeaderShell className="home-header" data-size={logo.size} data-align={logo.align}>
       <div className="hh-inner">
         <div className="hh-start">
           <MobileNav items={nav} alwaysVisible extra={<><Suspense fallback={null}><LocaleSwitcher /></Suspense><CurrencySwitcher initial={currency} /><AccountLink /></>} />

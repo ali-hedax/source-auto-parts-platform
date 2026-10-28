@@ -1,4 +1,5 @@
 import '@/components/store/titanium.css';
+import '@/components/store/atelier.css';
 import { localize } from '@hedax/contracts/constants';
 import type { ReactNode } from 'react';
 import { AnnouncementBarView } from '@/components/layout/announcement-bar-view';
