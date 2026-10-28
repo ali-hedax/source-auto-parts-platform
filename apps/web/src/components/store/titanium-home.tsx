@@ -49,7 +49,7 @@ export function TitaniumHome({ document, data, locale }: { document: BuilderDocu
     {opening?.film ? <section className="titanium-opening-film" aria-label={fa ? 'فیلم معرفی سورس' : 'Source opening film'} data-assistant-avoid>
       <CinematicFilm film={{ ...opening.film, playback: opening.film.playback === 'static' ? 'static' : 'loop', discovery: false }} still={opening.imageUrl} mobileStill={opening.mobileImageUrl} alt={localize(opening.alt, locale)} logoUrl="" logoAlt="" locale={locale} />
     </section> : null}
-    <QuickSearch locale={fa ? 'fa' : 'en'} categories={data.categories.filter(c => !c.parentSlug).map(c => ({ href: `/parts?category=${encodeURIComponent(c.slug)}`, label: fa ? c.name.fa : c.name.en || c.name.fa }))} />
+    <QuickSearch locale={fa ? 'fa' : 'en'} />
     <section className="container-page titanium-hero titanium-slogan-only" aria-labelledby="titanium-hero-title">
       <RepeatingSlogan locale={locale} {...(config ? { title: localize(config.title, locale), subtitle: localize(config.body, locale), tagline: config.button.en } : {})} />
     </section>
