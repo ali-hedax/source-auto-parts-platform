@@ -15,8 +15,8 @@ export function AdminDashboard() {
   const state = useApi<DashboardView>('/admin/dashboard');
   return (
     <>
-      <PageHeader title={t('dashboard')} />
-      <section className="atelier-welcome" aria-labelledby="workspace-title"><div className="atelier-welcome-copy"><h2 id="workspace-title">{ta('welcomeTitle')}</h2><p>{ta('welcomeBody')}</p><div className="atelier-welcome-links"><Link href="/admin/catalog">{ta('openCatalog')}</Link><Link href="/admin/content">{ta('openWebsite')}</Link></div></div><div className="atelier-welcome-image"><Image src="/brand/source/atelier/category-2.webp" alt="" fill sizes="(max-width: 767px) 90vw, 35vw" /></div></section>
+      <PageHeader title={ta('workspaceTitle')} />
+      <section className="atelier-welcome" aria-labelledby="workspace-title"><div className="atelier-welcome-copy"><p className="atelier-workspace-motto" lang="en" dir="ltr">{ta('workspaceMotto')}</p><h2 id="workspace-title">{ta('welcomeTitle')}</h2><p>{ta('welcomeBody')}</p><div className="atelier-welcome-links"><Link href="/admin/catalog">{ta('openCatalog')}</Link><Link href="/admin/content">{ta('openWebsite')}</Link></div></div><div className="atelier-welcome-image"><Image src="/brand/source/atelier/category-2.webp" alt="" fill sizes="(max-width: 767px) 90vw, 35vw" /></div></section>
       <Async state={state}>
         {(d) => {
           const tiles = [

@@ -1267,6 +1267,9 @@
     "welcomeTitle": "Welcome to your Source workspace.",
     "welcomeBody": "A clear path through today’s work.",
     "openCatalog": "Manage parts",
-    "openWebsite": "Content & appearance"
+    "openWebsite": "Content & appearance",
+    "workspaceMotto": "A good day starts here.",
+    "workspaceMottoTwo": "Precision in every detail.",
+    "workspaceTitle": "Source workspace"
   }
 }

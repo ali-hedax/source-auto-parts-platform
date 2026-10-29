@@ -1,6 +1,7 @@
 'use client';
 
 import './atelier-admin.css';
+import '@/components/store/atelier-refinements.css';
 
 import * as RDialog from '@radix-ui/react-dialog';
 import Image from 'next/image';
@@ -54,6 +55,7 @@ const navPermissions = (me: { permissions: string[]; isOwner: boolean }) => (me.
 interface NavGroup { title: string; items: NavItem[] }
 
 export function AdminShell({ children }: { children: ReactNode }) {
+  const ta = useTranslations('atelier');
   const t = useTranslations('admin');
   const tn = useTranslations('nav');
   const locale = useLocale();
@@ -161,7 +163,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-[16rem_minmax(0,1fr)]">
               <nav aria-label={t('title')} className="admin-sidebar hidden border-e border-line-soft bg-white lg:sticky lg:top-14 lg:block lg:h-[calc(100vh-3.5rem)] lg:overflow-y-auto">
-                <AdminNavList groups={groups} permissions={navPermissions(user)} pathname={pathname} />
+                <AdminNavList groups={groups} permissions={navPermissions(user)} pathname={pathname} /><p className="atelier-sidebar-motto" lang="en" dir="ltr">{ta('workspaceMottoTwo')}</p>
               </nav>
               <main id="main" tabIndex={-1} className="min-w-0 px-4 py-5 focus:outline-none md:px-6 md:py-6 lg:px-8 lg:py-8">{isCatalogPath(pathname) ? <CatalogWorkspace user={user} pathname={pathname} /> : null}{children}</main>
             </div>

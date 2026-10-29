@@ -1,3 +1,5 @@
+import Image from 'next/image';
+import type { BuilderData } from './data';
 import type { CategoryView, ContentButton, HomeSection, SearchResult, VehicleBrandView } from '@hedax/contracts';
 import { localize } from '@hedax/contracts/constants';
 import { ArrowLeft, ArrowRight, CarFront, ChevronLeft, ChevronRight, PackageSearch, Plus, ShieldCheck } from 'lucide-react';
@@ -21,8 +23,8 @@ function ContentButtonLink({ button, locale, variant = 'primary', size = 'md', c
   return <a href={button.href} className={buttonClass(variant, size, className)} {...(/^https?:/i.test(button.href) ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>{label}</a>;
 }
 
-export function LegacyHomeView({ content, featured, brands, categories, locale, mobileImageUrl, imageAlt, logos = {}, brandArtwork = {} }: {
-  logos?: Record<string, string>; brandArtwork?: Record<string, string>; content: SiteContentView; featured: SearchResult | null; brands: VehicleBrandView[]; categories: CategoryView[]; locale: string; mobileImageUrl?: string; imageAlt?: string;
+export function LegacyHomeView({ content, featured, brands, categories, locale, mobileImageUrl, imageAlt, logos = {}, brandArtwork = {}, otherBrand, homeCopy }: {
+  otherBrand?: BuilderData['otherBrand']; homeCopy?: BuilderData['homeCopy']; logos?: Record<string, string>; brandArtwork?: Record<string, string>; content: SiteContentView; featured: SearchResult | null; brands: VehicleBrandView[]; categories: CategoryView[]; locale: string; mobileImageUrl?: string; imageAlt?: string;
 }) {
   const t = useTranslations();
   const L = (text: Parameters<typeof localize>[0]) => localize(text, locale);
@@ -114,7 +116,7 @@ export function LegacyHomeView({ content, featured, brands, categories, locale, 
         return (
           <section key={s.id} aria-labelledby={`brands-title-${s.id}`} className="container-page hedax-home-brands render-lazy pt-9 sm:pt-14">
             <div className="mb-4 flex items-end justify-between gap-4">
-              <div><p className="mb-1 text-xs font-bold tracking-wide text-action">{t('home.vehicleBrandsLabel')}</p><h2 id={`brands-title-${s.id}`} className="text-xl font-bold">{L(s.title)}</h2></div>
+              <div><h2 id={`brands-title-${s.id}`} className="text-xl font-bold">{homeCopy?.brands?.title || L(s.title)}</h2></div>
               <Link href="/brands" className="inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-action hover:underline">
                 {t('nav.brands')} <Arrow aria-hidden className="size-4" />
               </Link>
@@ -125,14 +127,7 @@ export function LegacyHomeView({ content, featured, brands, categories, locale, 
                   <BrandCard href={`/brands/${b.slug}`} logo={brandArtwork[b.slug] || b.logoUrl || logos[b.slug] || null} artwork={Boolean(brandArtwork[b.slug])} nameEn={b.name.en} nameFa={b.name.fa} showNameFa={s.showNameFa !== false} meta={t('common.partCount', { count: b.productCount })} locale={locale} />
                 </li>
               ))}
-              {L(s.otherTitle) && s.otherHref ? (
-                <li>
-                  <Link href={s.otherHref} className="flex h-full min-h-[8.5rem] flex-col justify-center gap-0.5 rounded-[var(--radius-card)] border border-dashed border-line-strong px-4 py-3 transition-colors hover:border-action hover:bg-action-soft">
-                    <span className="font-bold leading-7 text-action">{L(s.otherTitle)}</span>
-                    {L(s.otherText) ? <span className="text-xs leading-5 text-steel">{L(s.otherText)}</span> : null}
-                  </Link>
-                </li>
-              ) : null}
+              {otherBrand?.visible !== false && L(s.otherTitle) && s.otherHref ? <li><Link href={otherBrand?.href || s.otherHref} className="atelier-other-brand atelier-brand-card"><span className="atelier-brand-frame"><Image src={otherBrand?.imageUrl || '/brand/source/atelier/brand-source.webp'} alt={L(otherBrand?.alt) || 'Source by HEDAX'} fill sizes="(max-width: 600px) 44vw, 18vw" /></span><h3>{L(otherBrand?.title) || L(s.otherTitle)}</h3><p>{L(otherBrand?.text) || L(s.otherText)}</p></Link></li> : null}
             </ul>
           </section>
         );
@@ -142,7 +137,7 @@ export function LegacyHomeView({ content, featured, brands, categories, locale, 
         return (
           <section key={s.id} aria-labelledby={`featured-title-${s.id}`} className="container-page hedax-home-featured render-lazy pt-9 sm:pt-14">
             <div className="mb-4 flex items-end justify-between gap-4">
-              <h2 id={`featured-title-${s.id}`} className="text-xl font-bold">{L(s.title)}</h2>
+              <div><h2 id={`featured-title-${s.id}`} className="text-xl font-bold">{homeCopy?.products?.title || L(s.title)}</h2>{homeCopy?.products?.subtitle ? <p className="atelier-section-subtitle" dir="ltr" lang="en">{homeCopy.products.subtitle}</p> : null}</div>
               <Link href="/parts" className="inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-action hover:underline">
                 {t('nav.parts')} <Arrow aria-hidden className="size-4" />
               </Link>
@@ -150,7 +145,7 @@ export function LegacyHomeView({ content, featured, brands, categories, locale, 
             {featured && featured.items.length ? (
               <ul className="hedax-featured-grid builder-products grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
                 {featured.items.map((p, i) => (
-                  <li key={p.id}><PartCard product={p} priority={i < 2} /></li>
+                  <li key={p.id}><PartCard concise={Boolean(homeCopy)} product={p} priority={i < 2} /></li>
                 ))}
               </ul>
             ) : (

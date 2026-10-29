@@ -5,10 +5,10 @@ import { Play, Clock3 } from 'lucide-react';
 import { ATELIER_ASSETS } from './titanium-config';
 
 /** Static editorial shells only. Live prices, feeds and video APIs are a later owner-approved phase. */
-export function AutomotiveHub({ locale, items }: { locale: string; items?: BuilderBlock['items'] }) {
+export function AutomotiveHub({ locale, items, heading, subtitle }: { locale: string; items?: BuilderBlock['items']; heading?: string; subtitle?: string }) {
   const fa = locale === 'fa';
   return <section className="container-page titanium-hub" aria-labelledby="automotive-hub-title">
-    <div className="titanium-section-heading"><div><h2 id="automotive-hub-title">{fa ? 'مجله و بازار خودرو' : 'The automotive journal'}</h2><p>{fa ? 'بازار، دانستنی‌های فنی و دنیای ویدیوهای خودرو' : 'The market, practical know-how and automotive videos'}</p></div></div>
+    <div className="titanium-section-heading"><div><h2 id="automotive-hub-title">{heading || (fa ? 'مجله و بازار خودرو' : 'The automotive journal')}</h2><p className="atelier-section-subtitle" dir="ltr" lang="en">{subtitle || 'The automotive journal'}</p></div></div>
     <div className="titanium-hub-grid">
       {items?.[0]?.visible !== false ? <article className="titanium-float titanium-hub-card" aria-labelledby="hub-prices-title">
         <div className="titanium-hub-cover"><Image src={items?.[0]?.imageUrl || `${ATELIER_ASSETS}/hub-0.webp`} alt={localize(items?.[0]?.alt, locale) || (fa ? 'خودرو؛ کاور مجله' : 'Automotive editorial cover')} fill sizes="(max-width: 800px) 90vw, 30vw" /></div>

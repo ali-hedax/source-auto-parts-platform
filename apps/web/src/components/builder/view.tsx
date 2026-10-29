@@ -32,14 +32,14 @@ export function BuilderBlockView({ block: b, data, locale, hasShoppingPaths = fa
   if (b.kind === 'vehicle-finder') return <VehicleFinderSection block={b} groups={data.finderGroups ?? []} locale={locale} />;
   if (b.kind === 'shopping-paths') return <div className="cine-discover-host"><ShoppingPaths categories={data.categories} locale={locale} title={L(b.title)} /></div>;
   if (b.kind === 'makers') return <MakersHomeSection makers={data.makers} title={localize(b.title, locale)} />;
-  const title = L(b.title);
-  const heading = title ? <h2 className="builder-heading">{title}</h2> : null;
+  const title = b.kind === 'new-products' && data.homeCopy?.products ? data.homeCopy.products.title : L(b.title);
+  const heading = title ? <><h2 className="builder-heading">{title}</h2>{b.kind === 'new-products' && data.homeCopy?.products?.subtitle ? <p className="atelier-section-subtitle" dir="ltr" lang="en">{data.homeCopy.products.subtitle}</p> : null}</> : null;
   const button = b.href && L(b.button) ? <Link className="builder-button" href={b.href}>{L(b.button)}</Link> : null;
   if (b.kind === 'slider') return <>{heading}<BannerSlider items={b.items} interval={b.interval} locale={locale} /></>;
   if (b.kind === 'vehicle-brands' || b.kind === 'vehicle-models') return <>{heading}<VehicleFinder vehicles={data.vehicles} brands={data.brands} byBrand={b.kind === 'vehicle-brands'} locale={locale} /></>;
   if (['new-products', 'bestsellers', 'discounts', 'offers', 'selected-products', 'vehicle-products'].includes(b.kind)) {
     const products = data.products[b.id] ?? [];
-    return <>{heading}<ul className="builder-grid builder-products">{products.map(p => <li key={p.id}><PartCard product={p} hideCountUnit={b.kind === 'new-products'} /></li>)}</ul>{!products.length ? <p className="py-6 text-steel">{locale === 'fa' ? 'در حال حاضر کالایی در این مجموعه وجود ندارد.' : 'No products in this collection yet.'}</p> : null}{button}</>;
+    return <>{heading}<ul className="builder-grid builder-products">{products.map(p => <li key={p.id}><PartCard concise={Boolean(data.homeCopy)} product={p} hideCountUnit={b.kind === 'new-products'} /></li>)}</ul>{!products.length ? <p className="py-6 text-steel">{locale === 'fa' ? 'در حال حاضر کالایی در این مجموعه وجود ندارد.' : 'No products in this collection yet.'}</p> : null}{button}</>;
   }
   if (['categories', 'image-categories', 'brands'].includes(b.kind)) {
     const rows = b.kind.includes('categor') ? data.categories.map(c => ({ id: c.slug, title: c.name, href: `/parts?category=${encodeURIComponent(c.slug)}` })) : data.brands.map(c => ({ id: c.slug, title: c.name, href: b.kind === 'brands' ? `/brands/${c.slug}` : `/cars?brand=${encodeURIComponent(c.slug)}` }));

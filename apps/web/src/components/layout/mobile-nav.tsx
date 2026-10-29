@@ -27,12 +27,12 @@ export function MobileNav({ items, alwaysVisible = false, extra, currency = 'IRR
       <RDialog.Portal>
         <RDialog.Overlay className="overlay-fade fixed inset-0 z-50 bg-stage/70" />
         <RDialog.Content
-          className="on-dark drawer-start fixed inset-y-0 start-0 z-50 flex w-[min(20rem,85vw)] flex-col bg-stage text-silver shadow-[var(--shadow-overlay)]"
+          className="atelier-store-menu drawer-start fixed inset-y-0 start-0 z-50 flex w-[min(20rem,85vw)] flex-col bg-stage text-silver shadow-[var(--shadow-overlay)]"
           dir={locale === 'fa' ? 'rtl' : 'ltr'}
         >
           <div className="flex h-16 items-center justify-between gap-3 border-b border-white/10 px-4">
             <span className="flex items-center gap-2.5">
-              <Image src="/brand/source/icon-64.png" width={64} height={64} unoptimized alt="" className="size-8" />
+              <Image src="/brand/source/atelier/logo.webp" width={288} height={76} unoptimized alt="Source by HEDAX" className="h-auto w-28" />
               <RDialog.Title className="text-base font-bold text-white">{t('menu')}</RDialog.Title>
             </span>
             <RDialog.Close className="-me-2 grid size-11 cursor-pointer place-items-center rounded-[var(--radius-control)] transition-colors hover:bg-white/10" aria-label={t('closeMenu')}>
