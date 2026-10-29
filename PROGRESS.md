@@ -1,8 +1,8 @@
 # Source by HEDAX — وضعیت و نقطهٔ ادامه
 
-آخرین به‌روزرسانی: 2026-10-29 10:50 +03:30؛ انتشار وب آتلیه f105dea انجام و سلامت و نمایش واقعی بررسی شد. یادداشت‌های قبل از این انتشار تاریخی‌اند.
+آخرین به‌روزرسانی: 2026-10-29 11:00 +03:30؛ api 5ffcf93 منتشر شد (web پس از آن با آتلیه f105dea جایگزین شد)؛ مشکل MTU شبکهٔ Arvan با مسیر و MSS موقت دور زده شد (پس از ریبوت برمی‌گردد)؛ تلفن ثابت در هکسی فقط ۱ از ۳ بار آمد. یادداشت‌های قبلی تاریخی‌اند.
 
-> مرجع فعلی انتشار: edc508d، پوشهٔ candidate `/opt/hedax-release-candidates/operator-edc508d-20261028` (قبلی: 5d18d21، `hexi-5d18d21-20261028`).
+> مرجع فعلی انتشار: api 5ffcf93 (`phonefix-5ffcf93-20261028`)، web f105dea (`atelier-f105dea-20261029`)، worker/tools edc508d (`operator-edc508d-20261028`).
 > گزارش‌های عملیات امروز: `/srv/hedax-data/ops/20261028/`، `/srv/hedax-data/ops/tidy-20261028/` و `/srv/hedax-data/ops/kernel-20261028/` (خصوصی، روی سرور). یادداشت‌های
 > worktreeهای قدیمی تاریخی‌اند؛ تغییرات محلی کاربر در آن‌ها حفظ شده‌اند و نباید بازنویسی شوند.
 
@@ -17,6 +17,26 @@
 - مجوز مالک: اصلاح و انتشار مستقیم همین چهار مورد با حداقل تکرار. شاخه fix/atelier-header-and-footer ازmain52b4f29، بدون تغییر قبلی محلی. لوگو در هر دو زبان سمت راست و کنترل‌ها سمت چپ؛ فیلم قدیمی زیر عکس دیگر render نمی‌شود. دعوت تأمین تمام‌عرض، سپس FAQ (جابه‌جایی دو بخش)، فیلم پایانی محفوظ. جعبهٔ جدید کرم/برنز157KB با alpha جای fallback آبی را می‌گیرد؛ override تصویری مدیر حفظ است. بدون تغییر API/DB/محتوای ذخیره‌شده/تنظیمات هکسی.
 - typecheck وب و lint موفق (دو هشدار موجود img)؛ چهارE2E موفق، شامل هشت ترکیب زبان/عرض، عدم هم‌پوشانی هدر، نبود فیلم بالایی، عرض کامل تأمین و FAQ بعد از آن، تایپ و فیلم پایانی و no-JS. قدم بعد: PR و CI، بسته‌سازی بیرون سرور، backup/rollback و انتشار فقط وب، smoke واقعی. عملیات قبلی انتشار f105dea تکرار نشود.
 
+
+
+### Completed & Tested (Hexi phone partially) — Production api/web release 5ffcf93 + temporary MTU/MSS workaround for the Arvan network — 2026-10-29 11:00 Asia/Tehran
+
+- **Owner authorization (this chat):** deploy `5ffcf937fec1279305024ce3e0b0fdf049ea1a20` api + web only (worker unchanged, no migration), same procedure as edc508d, no code changes. During the run the owner additionally approved (three separate answers): temporary low-MTU routes for GitHub, the same for Arvan S3, and a temporary MSS clamp for site traffic (80/443).
+- Images from Actions run 40717597251 (success): api `sha256:75559108…0a0b`, web `sha256:3f5e414d…933f`; both pulled by digest on the host with revision label = full SHA. Candidate `/opt/hedax-release-candidates/phonefix-5ffcf93-20261028/` (`deploy.sh` sha256 d7b144f1…, `deploy.log`, `state.txt`, `routes.log`), started via `systemd-run`.
+- **1 (2026-10-28 15:48 UTC):** preconditions OK (api/worker/web on edc508d, readiness 200, Preview 0); `database-before-5ffcf93.dump` TABLE DATA 106 + sha256; `compose.before` (sha256 1e3e30f1…), tags `hedax-phonefix-rollback-{api,web}:pre-5ffcf93-20261028`.
+- **Blocked External — Arvan path MTU (found 2026-10-28 ~15:47 UTC):** packets > ~1350 B are silently dropped on the VM's network path (ping DF 1300 OK, 1400/1472 lost; eth0 MTU 1500). Effects: SSH resets on ML-KEM key exchange and on large transfers (workaround: `-o KexAlgorithms=curve25519-sha256`, upload in base64 chunks); `docker pull` from ghcr.io → «TLS handshake timeout» ×3 → script stopped before any switch; Arvan S3 unreachable → readiness `storage: down` and site images `/media/...` timing out (both releases); **clients using ML-KEM TLS (current Chrome/Firefox/Safari) got ECONNRESET on sourcebyhedax.ir** while classic X25519 (Windows curl) worked.
+- **Temporary runtime workaround (owner-approved; not persistent, gone after reboot; log `routes.log`):**
+  - `ip route add {140.82.112.0/20,185.199.108.0/22,185.143.232.0/22} via 188.121.124.1 dev eth0 mtu lock 1300 advmss 1260` (GitHub/ghcr, GitHub blobs, Arvan S3 + AI gateway `api.arvancloudai.ir`).
+  - `iptables -t mangle -A FORWARD -d 185.143.232.0/22 -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1260` (comment `hedax-tmp-mss-s3`, container traffic to S3).
+  - `iptables -t mangle -A {FORWARD,OUTPUT} -o eth0 -p tcp --sport {80,443} --tcp-flags SYN,ACK SYN,ACK -j TCPMSS --set-mss 1260` (comment `hedax-tmp-mss-site`, 07:24 UTC).
+  - Remove when Arvan fixes the path: `ip route del <prefix>` for the three prefixes; `iptables -t mangle -D …` with the same rule specs (`iptables -t mangle -S | grep hedax-tmp`). **After any reboot the problem returns unless Arvan has fixed it.**
+- **2 pulls (2026-10-29 04:53 UTC, after GitHub routes):** api 04:53:56, web 04:54:20, revision OK (no VM freeze this time; most layers shared).
+- **First switch 04:54:42 → automatic rollback 05:07:15:** api never ready because `storage: down` (S3/MTU, not the new code); after 60 checks the script returned api/web to edc508d (wrapper unchanged). edc508d api was also `storage: down` → S3 route + MSS clamp added 05:26–05:28 → readiness 200, `/media/content/...` 200 (`/media/catalog/...` 403 is the known non-public prefix).
+- **Second run 05:28:54 → DEPLOY_OK 05:29:17 UTC:** check 1 api ready, FA/EN 200; api/web = new digests; worker unchanged (edc508d); readiness all up; home HTML has 0 `titanium-quick-chip`; wrapper replaced (sha256 8061c94b…, + `-f …/phonefix-5ffcf93-20261028/images.yml`); `rollout-verified.json` written.
+- **Note — later concurrent release:** another session deployed atelier web `f105dea` (contains 5ffcf93) at 07:15 UTC on top of this wrapper (see the atelier section below; wrapper now da949b3e…). Current Production: **api 5ffcf93, web f105dea, worker edc508d**.
+- **Live checks 07:25–07:28 UTC (Chrome headless, after the site MSS clamp; web = f105dea):** ML-KEM TLS and Chrome now load /fa with 200 in < 1 s. Home: «جست‌وجوی سریع قطعه» directly after `section.titanium-opening-film`, **0 shortcut chips**, «آینه» → 2 suggestions in ≈0.4 s, horizontal overflow 0 px at 1366 and 390 px. /fa, /en, /fa/staff/login 200. All 7 Production containers healthy, api/worker/web restarts 0, Preview 0, kernel soft lockups since 04:50 UTC 0.
+- **Hexi:** «اسمت چیه؟» → «من هکسی‌ام، راهنمای هوشمند سورس! 😎» (5.0 s; an earlier try 07:26 was 503 after the 30 s provider timeout). «شماره تماس فروشگاه رو بده» ×3: (1) 27.2 s «02536668006، داخلی ۱۱۹» + WhatsApp, **but mobile shown garbled «09121531797۷۹۷»**; (2) 12.3 s WhatsApp only; (3) 13.5 s "main number is stored incomplete", WhatsApp only. No `***********` appeared, but the landline came only 1 of 3 times. Cause: the gateway masks numbers in the request facts too, so the model often does not see them; the output-only restore (PR #60) cannot fix that and mis-restores a run followed by extra digits. **Requires Owner Decision:** remove phone masking/guardrail `hedax` in the Arvan AI console (root cause), or approve a follow-up code fix.
+- **Open:** Arvan support ticket for the MTU blackhole (since ~2026-10-28 15:47 UTC); test operator conversation reply/close in Admin (from edc508d); Hexi answer latency 5–27 s with occasional 30 s timeouts.
 
 ### Completed & Tested — انتشار آتلیه با مجوز مالک — 2026-10-29 10:55 +03:30
 
