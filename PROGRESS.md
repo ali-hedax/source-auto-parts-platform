@@ -1,6 +1,6 @@
 # Source by HEDAX — وضعیت و نقطهٔ ادامه
 
-آخرین به‌روزرسانی: 2026-10-28 18:20، Asia/Tehran؛ انتشار edc508d (پیام اپراتور هکسی + جست‌وجوی سریع) روی Production انجام و تأیید شد؛ هنگام pull دو بار VM فریز شد (≈۲۹ و ≈۵۲ دقیقه)؛ پاسخ اپراتور در پنل و ماسک تلفن در گیت‌وی Arvan منتظر مالک است. Preview خاموش است.
+آخرین به‌روزرسانی: 2026-10-29، Asia/Tehran؛ بازطراحی آتلیه روی شاخه feat/redesign-atelier آمادهٔ PR است. این کار هیچ تغییر Production نداشته است؛ وضعیت سرور در یادداشت‌های 2026-10-28 تاریخی است.
 
 > مرجع فعلی انتشار: edc508d، پوشهٔ candidate `/opt/hedax-release-candidates/operator-edc508d-20261028` (قبلی: 5d18d21، `hexi-5d18d21-20261028`).
 > گزارش‌های عملیات امروز: `/srv/hedax-data/ops/20261028/`، `/srv/hedax-data/ops/tidy-20261028/` و `/srv/hedax-data/ops/kernel-20261028/` (خصوصی، روی سرور). یادداشت‌های
@@ -12,15 +12,17 @@
 
 ## نقطهٔ فعلی
 
-### Implemented Pending Verification — طراحی آتلیه، فقط PR — 2026-10-28 Asia/Tehran
+### Completed & Tested محلی / CI شاخه — طراحی آتلیه، فقط PR — 2026-10-29 Asia/Tehran
 
 - شاخه `feat/redesign-atelier` از آخرین main بررسی‌شده `edc508d` (PR58)؛ تغییرهای محلی worktree قبلی حفظ شدند. هیچ merge/deploy/تغییر داده یا سرور مجاز یا اجرا نشده است.
 - موجودی رابط بررسی شد: TitaniumHome/CSS، UI مشترک، header/footer، admin shell و هر شش تب assistant، ویجت Hexi و operator، quick search، Builder/Appearance. راهنمای CSS و Image نسخهٔ نصب‌شده Next16.4.2 خوانده شد.
 - پیاده‌سازی در جریان: توکن‌های عاجی/برنز با scope جدا، hero با شعار روی تصویر، حفظ opening/closing فیلم و جستجوی زنده و finder؛ کاورهای WebP، تنظیمات تصاویر در Builder، منوی ورود مشتری/کارکنان، پوستهٔ گرم پنل و Hexi شفاف.
-- همهٔ آزمون‌های درخواستی و بررسی تصویری هنوز باید اجرا شوند. داده‌های قیمت روز و آپارات همچنان placeholder صریح‌اند؛ هیچ اتصال تازه‌ای ادعا نشده است. فونت‌ها طبق درخواست Vazirmatn/Montserrat هستند.
-- قدم بعدی: typecheck و اصلاح، اجرای fixture بدون فایل env، ثبت screenshots دو زبان و چهار عرض، lint/unit/build، commitهای منطقی، push/PR و CI. ادغام و انتشار ممنوع است.
+- همهٔ آزمون‌های درخواستی محلی اجرا و موفق شدند. داده‌های قیمت روز و آپارات همچنان placeholder صریح‌اند؛ هیچ اتصال تازه‌ای ادعا نشده است. فونت‌ها طبق درخواست Vazirmatn/Montserrat هستند.
+- قدم بعدی: ثبت نهایی گزارش، ساخت PR علیه main و انتظار CI همان head. ادغام و انتشار ممنوع است.
 - Completed & Tested: `pnpm typecheck` بعد از build بسته‌های مشترک/API موفق؛ `pnpm test:unit` موفق (API: 16 فایل/117 آزمون؛ domain/contracts نیز موفق). اجرای اول به‌علت نبود dist در checkout تازه شکست خورد و با اجرای ترتیب آماده‌سازی CI حل شد. lint بدون خطا (دو هشدار قدیمی img در CinematicFilm). آزمون atelier مرورگر: 2/2 موفق، دو زبان و عرض‌های390/768/1366/1920، بدون سرریز، heading داخل بنر، مسیر کارکنان/مشتری و GET جستجو بدون JS.
-- کد در چهار commit منطقی محلی ثبت شد: `fde89c8` توکن‌ها، `bf4d901` هدر/ورود، `1a89518` بخش‌های قابل ویرایش/تصاویر/فیلم، `4fd99c9` پنل/هکسی. هنوز push/PR/CI/build نهایی انجام نشده است. screenshots و E2E کامل دستیار/کاتالوگ در جریان‌اند؛ چند locator/mock اسکرین‌شات اصلاح شدند، نه API واقعی.
+- کد در چهار commit منطقی ثبت شد: `fde89c8` توکن‌ها، `bf4d901` هدر/ورود، `1a89518` بخش‌های قابل ویرایش/تصاویر/فیلم، `4fd99c9` پنل/هکسی. به‌همراه ba10936 شواهد/آزمون‌ها push شدند. CI شاخه run40701840578 روی ba10936 موفق شد (شامل integration و build Linux). ساخت نهایی وب محلی exit0؛ 271 آزمون واحد، 2 آزمون طراحی و مؤثر17/17 دستیار/کاتالوگ با تکرار دو شکست ثبت‌شده، 28 بررسی responsive موفق.
+
+- تصاویر نهایی و مقایسه در docs/review/atelier؛ Axe برای /fa، /en و /fa/admin بدون violation. فایل next-env تولیدی نباید وارد commit شود. اسناد gaps و rollout، تفاوت فیلم مستقل و حفظ تنظیمات قبلی را روشن می‌کنند.
 
 ### Completed & Tested (owner steps pending) — Production release edc508d (Hexi operator messages + home quick search) — 2026-10-28 18:20 Asia/Tehran
 

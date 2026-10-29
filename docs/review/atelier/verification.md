@@ -7,13 +7,17 @@
 | `pnpm lint` | موفق؛ دو هشدار از imgهای موجود CinematicFilm، صفر خطا |
 | `pnpm typecheck` | موفق در تمام workspace؛ 1202 کلید دوزبانه همسان |
 | `pnpm test:unit` | موفق؛ domain:132، contracts:22، API:117، در مجموع271 آزمون |
-| `pnpm --filter @hedax/web build` | در حال اجرا؛ نتیجهٔ نهایی پیش از تحویل ثبت می‌شود |
+| `pnpm --filter @hedax/web build` | موفق؛ ساخت Production کامل شد (exit 0) |
 | Playwright طراحی | 2/2 موفق؛ FA/EN، چهار عرض، قرارگیری عنوان داخل تصویر و جستجوی GET بدون JS |
 | Playwright دستیار و کاتالوگ | 15/17 در اجرای اول؛ دو مورد در تکرار هدفمند 2/2 موفق شدند |
 | responsive صفحات واقعی | 28 ترکیب مسیر/عرض موفق؛ گزارش `responsive-checks.json` |
 | Axe WCAG A/AA | خانهٔ FA، خانهٔ EN و داشبورد: صفر violation؛ گزارش `accessibility.json` |
 
 آزمون اول type/unit در checkout تازه به distهای ساخته‌نشده وابسته بود؛ ترتیب آماده‌سازی workflow شامل ساخت domain/contracts/API و تولید Prisma اجرا شد و تکرار کامل موفق شد. یک آزمون حذف مرجع هنگام HMR از صفحه جدا شد؛ بدون تغییر هم‌زمان در تکرار موفق شد. یک انتظار دستیار هنوز label قبل از PR58 را می‌خواست؛ به «Talk to an operator» و فرم واقعی اپراتور به‌روز شد. آزمون حذف یا assertion محافظتی سست نشده است.
+
+## نتیجهٔ GitHub
+
+CI شاخه روی `ba10936`، run `40701840578` موفق شد؛ شامل lint، typecheck، unit، integration کاتالوگ/CMS، آزمون backup/restore و build وب روی Linux. نتیجهٔ CI نهایی PR در شرح PR ثبت می‌شود.
 
 ## تصاویر
 
