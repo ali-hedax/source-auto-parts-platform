@@ -1,8 +1,8 @@
 # Source by HEDAX — وضعیت و نقطهٔ ادامه
 
-آخرین به‌روزرسانی: 2026-10-29 11:00 +03:30؛ api 5ffcf93 منتشر شد (web پس از آن با آتلیه f105dea جایگزین شد)؛ مشکل MTU شبکهٔ Arvan با مسیر و MSS موقت دور زده شد (پس از ریبوت برمی‌گردد)؛ تلفن ثابت در هکسی فقط ۱ از ۳ بار آمد. یادداشت‌های قبلی تاریخی‌اند.
+آخرین به‌روزرسانی: 2026-10-29 11:25 +03:30؛ وب 1058177 (هدر، حذف فیلم قدیمی، بخش تأمین) منتشر و روی سایت اصلی بررسی شد؛ api 5ffcf93 و worker edc508d بدون تغییر. راهکار موقت MTU همچنان فعال است (پس از ریبوت برمی‌گردد). یادداشت‌های قبلی تاریخی‌اند.
 
-> مرجع فعلی انتشار: api 5ffcf93 (`phonefix-5ffcf93-20261028`)، web f105dea (`atelier-f105dea-20261029`)، worker/tools edc508d (`operator-edc508d-20261028`).
+> مرجع فعلی انتشار: web 1058177 (`atelier-header-1058177-20261029`)، api 5ffcf93 (`phonefix-5ffcf93-20261028`)، worker/tools edc508d (`operator-edc508d-20261028`).
 > گزارش‌های عملیات امروز: `/srv/hedax-data/ops/20261028/`، `/srv/hedax-data/ops/tidy-20261028/` و `/srv/hedax-data/ops/kernel-20261028/` (خصوصی، روی سرور). یادداشت‌های
 > worktreeهای قدیمی تاریخی‌اند؛ تغییرات محلی کاربر در آن‌ها حفظ شده‌اند و نباید بازنویسی شوند.
 
@@ -12,7 +12,17 @@
 
 ## نقطهٔ فعلی
 
-### Implemented Pending Verification — اصلاح فوری هدر و پایین صفحه — 2026-10-29
+### Completed & Tested — Production web release 1058177 (header, old film removed, sourcing section) — 2026-10-29 11:25 Asia/Tehran
+
+- **Owner authorization (this chat, after the VS Code handoff):** merge PR65 after green CI and deploy only web with backup and rollback; keep the AI settings, API and site data unchanged.
+- **PR65:** head f923758 (diff from the built code commit 1058177 is PROGRESS.md only), CI 40836894099 and 40836897767 pass; merged with `--match-head-commit` → main `31f2d11`. Image from Release run 40836516498: `ghcr.io/ali-hedax/source-web@sha256:8fac5fd0…1d1f`, revision label = 1058177044dd26b3c28631ed8f47656aedca8f2d (checked on the host and in the run log).
+- **Backup/rollback (prepared by the previous session, re-checked):** candidate `/opt/hedax-release-candidates/atelier-header-1058177-20261029/`: `database.dump` (TABLE DATA 106) + copy on /srv/hedax-data/release-backups, off-host age copy (private, not in Git); `compose.before` == live wrapper; `containers.before.json` IDs == live web/api/worker before the run.
+- **Deploy (Completed & Tested):** `atelier-header-deploy.sh` (sha256 eb3cb6fa…, identical local/server, `bash -n` OK) via `systemd-run --unit=hedax-deploy-atelier-header`; `deploy.exit` 0, `rollout-verified.json` written, no rollback (rollback.log empty). One 502 while web was starting, then the asset and FA/EN 200. Rollback tag `hedax-atelier-rollback-web:pre-1058177` = f105dea web; wrapper replaced atomically (sha256 fc4d3c11…, = compose-atelier). After: web healthy on 8fac5fd0, restarts 0; api (5ffcf93) and worker (edc508d) same container IDs, restarts 0; API readiness 200 (database/redis/storage/scanner up); Preview 0; temporary MTU routes (3) and MSS rules (5) still present; web 0 error-like lines.
+- **Live smoke (`work/atelier-header-live.cjs`, Production responses via Windows curl, read-only):** FA/EN × 1366/390 all 200, no horizontal overflow, logo right of the controls with no overlap, `.titanium-opening-film` absent, sourcing section full width with `/brand/source/atelier/sourcing-box.webp`, FAQ right after it, 6 paths, 4 vehicle fields, new Hexi avatar; `/api/v1/site/assistant` avatar `atelier/hexi.webp`, placement `start`. Direct Chrome (no relay) also loads /fa 4/4 with 200 in 0.5–0.6 s. Close-up: the box image loaded (1200×900).
+- **Observation (not changed):** at 1366 px the Hexi greeting bubble covers part of the «درخواست تأمین قطعه» button in the sourcing section until it is dismissed.
+- Current Production: **web 1058177, api 5ffcf93, worker/tools edc508d.**
+
+### History — اصلاح فوری هدر و پایین صفحه (پیاده‌سازی؛ منتشرشده در بخش بالا) — 2026-10-29
 
 - مجوز مالک: اصلاح و انتشار مستقیم همین چهار مورد با حداقل تکرار. شاخه fix/atelier-header-and-footer ازmain52b4f29، بدون تغییر قبلی محلی. لوگو در هر دو زبان سمت راست و کنترل‌ها سمت چپ؛ فیلم قدیمی زیر عکس دیگر render نمی‌شود. دعوت تأمین تمام‌عرض، سپس FAQ (جابه‌جایی دو بخش)، فیلم پایانی محفوظ. جعبهٔ جدید کرم/برنز157KB با alpha جای fallback آبی را می‌گیرد؛ override تصویری مدیر حفظ است. بدون تغییر API/DB/محتوای ذخیره‌شده/تنظیمات هکسی.
 - typecheck وب و lint موفق (دو هشدار موجود img)؛ چهارE2E موفق، شامل هشت ترکیب زبان/عرض، عدم هم‌پوشانی هدر، نبود فیلم بالایی، عرض کامل تأمین و FAQ بعد از آن، تایپ و فیلم پایانی و no-JS. قدم بعد: PR و CI، بسته‌سازی بیرون سرور، backup/rollback و انتشار فقط وب، smoke واقعی. عملیات قبلی انتشار f105dea تکرار نشود.
