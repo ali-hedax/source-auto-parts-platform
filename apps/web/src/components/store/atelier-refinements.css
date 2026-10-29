@@ -60,3 +60,11 @@
 
 .titanium-store .atelier-brand-card{border:0;box-shadow:none;background:transparent;height:auto;align-self:start}
 .titanium-store .builder-products article.part-card{border:0;box-shadow:none;background:transparent}
+
+/* Owner's live revision: right-aligned identity, balanced controls and full-bleed sourcing. */
+.titanium-store .titanium-logo{grid-column:1;justify-self:start}
+.titanium-store .titanium-header-inner>button{grid-column:2;justify-self:center}
+.titanium-store:dir(ltr) .titanium-logo{grid-column:3;justify-self:end}
+.titanium-store:dir(ltr) .titanium-header-controls{grid-column:1;justify-self:start}
+.titanium-store .titanium-sourcing{width:100%;max-width:none!important;margin-inline:0}
+.titanium-store .titanium-sourcing-art{width:100%;max-height:350px;filter:drop-shadow(0 18px 18px rgb(57 40 28 / .1))}
