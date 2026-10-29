@@ -2,7 +2,7 @@
 
 import type { CartView, MeView } from '@hedax/contracts';
 import { toPersianDigits } from '@hedax/domain';
-import { ShoppingCart, UserRound } from 'lucide-react';
+import { ShoppingCart, UserRound, ShieldCheck } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { Link } from '@/i18n/navigation';
@@ -30,11 +30,13 @@ export function AccountLink() {
   const href = me?.kind === 'STAFF' ? '/admin' : me ? '/account' : '/login';
   const label = me?.kind === 'STAFF' ? t('admin') : me ? t('account') : t('login');
   return (
-    <Link href={href} className={control}>
-      <UserRound aria-hidden className="size-5" />
-      <span className="hidden lg:inline">{label}</span>
-      <span className="sr-only lg:hidden">{label}</span>
-    </Link>
+    <details className="atelier-account">
+      <summary aria-label={label}><UserRound aria-hidden className="size-5" /><span className="hidden xl:inline">{label}</span></summary>
+      <div className="atelier-account-menu">
+        <Link href={me?.kind === 'CUSTOMER' ? '/account' : '/login'}><UserRound aria-hidden className="size-4" />{t('customerEntry')}</Link>
+        <Link href={me?.kind === 'STAFF' ? href : '/staff/login'}><ShieldCheck aria-hidden className="size-4" />{t('staffEntry')}</Link>
+      </div>
+    </details>
   );
 }
 

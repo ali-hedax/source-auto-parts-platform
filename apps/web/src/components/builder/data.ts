@@ -1,9 +1,13 @@
-import type { BuilderDocument, CategoryView, FinderGroupView, ManufacturerView, ProductCard, SearchResult, SiteContentView, VehicleBrandView, VehiclePublicView } from '@hedax/contracts';
+import type { BuilderDocument, BuilderBlock, CategoryView, FinderGroupView, ManufacturerView, ProductCard, SearchResult, SiteContentView, VehicleBrandView, VehiclePublicView } from '@hedax/contracts';
 
 export interface BuilderData {
   now: number;
   /** Vehicle-brand emblems (slug → public path), resolved on the server. */
   logos: Record<string, string>;
+  /** Optional owner-editable home artwork, separate from official catalogue emblems. */
+  brandArtwork?: Record<string, string>;
+  otherBrand?: BuilderBlock['items'][number];
+  homeCopy?: Record<string, { title: string; subtitle: string }>;
   vehicles: VehiclePublicView[];
   content: SiteContentView | null; featured: SearchResult | null; brands: VehicleBrandView[]; categories: CategoryView[];
   makers: ManufacturerView[]; products: Record<string, ProductCard[]>;

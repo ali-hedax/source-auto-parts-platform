@@ -12,5 +12,5 @@ export async function HomeHeader({ locale }: { locale: string }) {
   // when Appearance chooses it) the classic bar with its search box is kept, so search is never lost.
   const hasFinder = document?.sections.some((b) => b.kind === 'vehicle-finder' && b.visible) ?? false;
   if (!document || !hasFinder || document.chrome.homeHeader === 'classic') return <SiteHeaderView content={content} chrome={document?.chrome} currency={currency} />;
-  return <HomeHeaderView content={content} chrome={document.chrome} currency={currency} searchHref={`/${locale}#part-search`} />;
+  return <HomeHeaderView content={content} chrome={document.chrome} currency={currency} searchHref={`/${locale}#quick-search-input`} />;
 }

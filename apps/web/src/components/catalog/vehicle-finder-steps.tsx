@@ -15,7 +15,7 @@ type Load<T> = { state: 'idle' } | { state: 'loading' } | { state: 'ready'; item
  * page never carries the whole vehicle list); changing a step clears the later ones. Years come from
  * the model (or the vehicle's models) and stay in their own calendar.
  */
-export function VehicleFinderSteps({ groups, locale, buttonLabel, requestHref }: { groups: FinderGroupView[]; locale: 'fa' | 'en'; buttonLabel: string; requestHref: string }) {
+export function VehicleFinderSteps({ groups, locale, buttonLabel, requestHref, compact = false }: { groups: FinderGroupView[]; locale: 'fa' | 'en'; buttonLabel: string; requestHref: string; compact?: boolean }) {
   const fa = locale === 'fa';
   const name = (n: { fa: string; en: string | null }) => (fa ? n.fa : n.en || n.fa);
   const digits = (n: number) => n.toLocaleString(fa ? 'fa-IR' : 'en-US', { useGrouping: false });
@@ -100,12 +100,12 @@ export function VehicleFinderSteps({ groups, locale, buttonLabel, requestHref }:
   const optional = fa ? '(اختیاری)' : '(optional)';
 
   return <form action={`/${locale}/parts`} method="get" className="vf-form" role="search" aria-label={fa ? 'جست‌وجوی قطعه و انتخاب خودرو' : 'Part search and vehicle finder'}>
-    <label className="vf-query">
+    {compact ? null : <label className="vf-query">
       <span className="sr-only">{fa ? 'نام قطعه، کد کالا یا شماره فنی' : 'Part name, SKU or part number'}</span>
       <Search aria-hidden size={20} className="vf-query-icon" />
       <input id="part-search" name={q.trim() ? 'q' : undefined} type="search" value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" enterKeyHint="search"
         placeholder={fa ? 'نام قطعه، کد کالا یا شماره فنی' : 'Part name, SKU or part number'} />
-    </label>
+    </label>}
     <div className="vf-steps">
       <FinderSelect {...common} step={1} label={`${fa ? 'برند / گروه خودرو' : 'Make / group'} ${optional}`} placeholder={fa ? 'همهٔ گروه‌ها' : 'All groups'} options={groupOptions} value={group}
         onChange={pickGroup} active={!group && !vehicle && !q.trim()} />
@@ -123,9 +123,9 @@ export function VehicleFinderSteps({ groups, locale, buttonLabel, requestHref }:
     {year ? <input type="hidden" name="year" value={year} /> : null}
     <div className="vf-actions">
       <button type="submit" className="vf-submit" disabled={!canSearch}><Search aria-hidden size={18} />{buttonLabel}</button>
-      <a className="vf-help" href={requestHref}>{fa ? 'قطعه یا خودروی خود را پیدا نکردید؟ درخواست تأمین ثبت کنید' : 'Can’t find your part or vehicle? Send a sourcing request'}</a>
+      {compact ? null : <a className="vf-help" href={requestHref}>{fa ? 'قطعه یا خودروی خود را پیدا نکردید؟ درخواست تأمین ثبت کنید' : 'Can’t find your part or vehicle? Send a sourcing request'}</a>}
     </div>
-    <p className="vf-hint">{vehicleInfo?.make && groupInfo
+    <p className={compact ? 'sr-only' : 'vf-hint'}>{vehicleInfo?.make && groupInfo
       ? (fa ? `برند اصلی: ${name(vehicleInfo.make)} · گروه: ${name(groupInfo.name)}` : `Make: ${name(vehicleInfo.make)} · group: ${name(groupInfo.name)}`)
       : (fa ? 'همهٔ گزینه‌ها اختیاری‌اند؛ قطعات با سازگاری تأییدشده اول نمایش داده می‌شوند.'
         : 'Every choice is optional; parts with verified fitment come first.')}</p>

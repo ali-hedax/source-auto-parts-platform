@@ -1,0 +1,74 @@
+[
+  {
+    "page": "home",
+    "lang": "fa",
+    "width": 390,
+    "overflow": false
+  },
+  {
+    "page": "home",
+    "lang": "fa",
+    "width": 768,
+    "overflow": false
+  },
+  {
+    "page": "home",
+    "lang": "fa",
+    "width": 1366,
+    "overflow": false
+  },
+  {
+    "page": "home",
+    "lang": "fa",
+    "width": 1920,
+    "overflow": false
+  },
+  {
+    "page": "home",
+    "lang": "en",
+    "width": 390,
+    "overflow": false
+  },
+  {
+    "page": "home",
+    "lang": "en",
+    "width": 768,
+    "overflow": false
+  },
+  {
+    "page": "home",
+    "lang": "en",
+    "width": 1366,
+    "overflow": false
+  },
+  {
+    "page": "home",
+    "lang": "en",
+    "width": 1920,
+    "overflow": false
+  },
+  {
+    "page": "parts",
+    "overflow": false
+  },
+  {
+    "page": "part",
+    "overflow": false
+  },
+  {
+    "page": "cart",
+    "overflow": false
+  },
+  {
+    "page": "admin-dashboard",
+    "overflow": false
+  },
+  {
+    "page": "admin-list",
+    "overflow": false
+  },
+  {
+    "page": "admin-form",
+    "overflow": false
+  }
+]

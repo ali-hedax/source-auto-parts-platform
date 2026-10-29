@@ -1,0 +1,62 @@
+@font-face{font-family:AtelierCode;src:url('/fonts/atelier/jetbrains-mono.woff2') format('woff2');font-style:normal;font-weight:400;font-display:swap}
+@font-face{font-family:AtelierPersianCode;src:url('/fonts/atelier/vazir-code.woff2') format('woff2');font-style:normal;font-weight:400;font-display:swap}
+@font-face{font-family:AtelierEditorial;src:url('/fonts/atelier/cormorant-italic.ttf') format('truetype');font-style:italic;font-weight:500;font-display:swap}
+.titanium-store .atelier-banner .titanium-hero{top:10%;left:4%;width:40%;max-width:650px}
+.titanium-store .atelier-banner .atelier-typewriter h1{font-family:AtelierPersianCode,var(--font-fa),monospace;font-weight:400;font-size:clamp(22px,2.65vw,46px);line-height:1.85;letter-spacing:0}
+.titanium-store:dir(ltr) .atelier-banner .atelier-typewriter h1{font-family:AtelierCode,monospace;font-size:clamp(20px,2.4vw,42px);line-height:1.7}
+.titanium-store .atelier-banner .atelier-typewriter h1 span{font-size:inherit;margin:0;color:var(--ti-ink);letter-spacing:0}
+.titanium-store .atelier-type-line{position:relative;display:block;min-height:1.7em}
+.titanium-store .atelier-type-render{position:absolute;inset:0;display:none;white-space:pre-wrap}
+.titanium-store .atelier-typewriter[data-typing=true] .atelier-type-source{opacity:0}
+.titanium-store .atelier-typewriter[data-typing=true] .atelier-type-render{display:block}
+.titanium-store .atelier-typewriter .is-typing .atelier-type-render:after{content:'▏';font-family:monospace;color:var(--ti-blue)}
+.titanium-store .atelier-banner .titanium-tagline{font-family:AtelierCode,monospace;font-size:clamp(13px,1.45vw,25px);line-height:1.7;margin-top:18px;color:var(--ti-muted)}
+.titanium-store .titanium-type-toggle{width:44px;height:44px;min-height:44px;position:relative;inset:auto;border:0;background:transparent;opacity:.7}
+.titanium-store .titanium-type-toggle:hover,.titanium-store .titanium-type-toggle:focus-visible{opacity:1}
+.titanium-store .titanium-quick-search-panel,.titanium-store .titanium-finder-panel,.titanium-store .vf-form{border:0!important;outline:0;box-shadow:none!important;background:transparent!important;border-radius:0}
+.titanium-store .titanium-quick-search-title{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.titanium-store .titanium-finder-panel{padding:0;display:grid;grid-template-columns:.8fr 1.5fr;gap:40px;align-items:center}
+.titanium-store .atelier-finder-copy h2{font-size:clamp(25px,2.3vw,34px);font-weight:400;line-height:1.8;margin-bottom:12px}
+.titanium-store .atelier-finder-copy p{color:var(--ti-muted);font-size:14px;line-height:1.9;max-width:350px}
+.titanium-store .vf-steps{gap:14px}
+.titanium-store .vf-step{background:transparent;box-shadow:none;border:0;padding:0}
+.titanium-store .vf-step .vf-number{display:none}
+.titanium-store .vf-label{font-weight:400;color:var(--ti-muted)}
+.titanium-store .vf-field{background:var(--ti-sheet);border-radius:6px;box-shadow:none;grid-template-columns:minmax(0,1fr) 18px;min-height:80px}
+.titanium-store .vf-divider{display:none}
+.titanium-store .vf-submit{border-radius:999px;padding-inline:26px}
+.titanium-store .vf-actions{justify-content:flex-end}
+.titanium-store .titanium-section-heading h2,.titanium-store .hedax-home-featured h2,.titanium-store .hedax-home-brands h2{font-weight:400;font-size:clamp(24px,2.3vw,34px);line-height:1.8}
+.titanium-store .atelier-section-subtitle{font-family:AtelierEditorial,Georgia,serif;font-style:italic;font-size:clamp(23px,2.1vw,32px);color:var(--ti-muted);font-weight:500;line-height:1.3;margin-top:5px}
+.titanium-store .hedax-home-brands{padding-block:60px;text-align:center}
+.titanium-store .hedax-home-brands>div:first-child{justify-content:center}
+.titanium-store .hedax-home-brands ul:has(.atelier-brand-card){grid-template-columns:repeat(5,minmax(0,1fr));gap:24px}
+.titanium-store .hedax-home-brands li:has(>.atelier-other-brand){grid-column:auto}
+.titanium-store .atelier-other-brand{display:flex;flex-direction:column;gap:12px;height:100%;border:0;box-shadow:none;padding:0;text-align:center}
+.titanium-store .atelier-other-brand .atelier-brand-frame{position:relative;display:block;width:100%;aspect-ratio:1;overflow:hidden;border-radius:var(--radius-card)}
+.titanium-store .atelier-other-brand h3{font-weight:400;font-size:16px;margin:0}
+.titanium-store .atelier-other-brand p{font-size:12px;line-height:1.9;color:var(--ti-muted);margin:0}
+.titanium-store .part-card{border:0;box-shadow:none;background:transparent}
+.titanium-store .part-card-media{border-radius:var(--radius-card);background:var(--ti-sheet)}
+.titanium-store .part-card h3{font-weight:500;font-size:17px}
+.titanium-store .part-card .part-card-price bdi{font-size:21px}
+.titanium-store .titanium-closing-film{margin:0;width:100%}
+.titanium-store .titanium-closing-film :is(.cine-video,.cine-still img){filter:sepia(.68) saturate(.55) brightness(1.08)}
+.titanium-store .titanium-home .builder-root{background:transparent!important}
+.admin-atelier{--admin-sheet:#eee4d5;--color-surface:var(--admin-sheet)}
+.admin-atelier main :is(.bg-white,section,fieldset){background-color:var(--admin-sheet)}
+.admin-atelier .atelier-welcome,.admin-atelier main .atelier-welcome{background:var(--admin-sand)}
+.admin-atelier .atelier-welcome-copy{background:transparent}
+.admin-atelier .atelier-welcome h2{font-weight:400;font-size:clamp(25px,2.4vw,34px)}
+.admin-atelier .atelier-workspace-motto{font-family:AtelierEditorial,Georgia,serif;font-style:italic;font-size:clamp(29px,2.8vw,42px);font-weight:500;line-height:1.25;color:var(--admin-muted);margin-bottom:17px}
+.admin-atelier .atelier-sidebar-motto{font-family:AtelierEditorial,Georgia,serif;font-style:italic;font-size:27px;line-height:1.3;padding:30px 24px;color:var(--admin-sand)}
+.atelier-store-menu{--menu-paper:#f5f0e8;--menu-ink:#2a1c16;--color-stage:var(--menu-paper);--color-silver:var(--menu-ink);--color-signal:#705439;--color-carbon:var(--menu-ink);--color-action:var(--menu-ink);color:var(--menu-ink);background:var(--menu-paper)}
+.atelier-store-menu :is(a,button,p,span,h2){color:var(--menu-ink)}
+.atelier-store-menu a[aria-current=page]{background:#e8dfd1;border-color:#aa9275}
+.atelier-store-menu .atelier-account-menu{display:grid;gap:8px;background:var(--menu-paper);padding:10px}
+@media(max-width:900px){.titanium-store .titanium-finder-panel{grid-template-columns:1fr;gap:26px}.titanium-store .atelier-finder-copy p{max-width:none}.titanium-store .hedax-home-brands ul:has(.atelier-brand-card){grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:600px){.titanium-store .atelier-banner .titanium-hero{top:7%;left:4%;width:43%}.titanium-store .atelier-banner .atelier-typewriter h1{font-size:clamp(12px,3.1vw,19px);line-height:1.7}.titanium-store:dir(ltr) .atelier-banner .atelier-typewriter h1{font-size:clamp(11px,2.7vw,18px)}.titanium-store .atelier-banner .titanium-tagline{font-size:clamp(10px,2vw,13px);line-height:1.5;margin-top:7px}.titanium-store .titanium-type-toggle{margin-top:0}.titanium-store .hedax-home-brands ul:has(.atelier-brand-card){grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.titanium-store .vf-steps{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(prefers-reduced-motion:reduce){.titanium-store .atelier-typewriter[data-typing=true] .atelier-type-source{opacity:1}.titanium-store .atelier-typewriter .atelier-type-render{display:none!important}}
+
+.titanium-store .atelier-brand-card{border:0;box-shadow:none;background:transparent;height:auto;align-self:start}
+.titanium-store .builder-products article.part-card{border:0;box-shadow:none;background:transparent}

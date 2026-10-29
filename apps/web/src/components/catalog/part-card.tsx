@@ -11,7 +11,7 @@ import { CardCartButton } from './card-cart-button';
 import './part-card.css';
 
 /** The same white product/purchase card on the home page and in the catalogue. */
-export function PartCard({ product, priority = false, hideCountUnit = false }: { product: ProductCard; priority?: boolean; hideCountUnit?: boolean }) {
+export function PartCard({ product, priority = false, hideCountUnit = false, concise = false }: { product: ProductCard; priority?: boolean; hideCountUnit?: boolean; concise?: boolean }) {
   const t = useTranslations();
   const locale = useLocale() as 'fa' | 'en';
   const name = locale === 'en' ? (product.name.en ?? product.name.fa) : product.name.fa;
@@ -36,12 +36,12 @@ export function PartCard({ product, priority = false, hideCountUnit = false }: {
       <div className="part-card-description">
         <h3>{name}{locale === 'en' && !product.name.en ? <span className="part-card-fallback">({t('common.englishFallback')})</span> : null}</h3>
         {product.partNumber ? <p className="part-card-meta">{t('parts.partNumber')}: <Code>{product.partNumber}</Code></p> : null}
-        <p className="part-card-meta">{t('parts.sku')}: <Code>{product.sku}</Code></p>
-        {brandNames ? <p className="part-card-meta">{t('parts.vehicleBrands')}: {brandNames}</p> : null}
+        {concise ? null : <p className="part-card-meta">{t('parts.sku')}: <Code>{product.sku}</Code></p>}
+        {!concise && brandNames ? <p className="part-card-meta">{t('parts.vehicleBrands')}: {brandNames}</p> : null}
         {usedIn ? <p className="part-card-fitment" title={usedIn} data-testid="card-fitment">{t('parts.usedIn')}: {usedIn}</p> : null}
         {/* Vehicle-finder search: verified fitment, or a suggestion that says it is not confirmed. */}
         {product.finderMatch ? <p className="part-card-match" data-tier={product.finderMatch.tier} data-testid="card-finder-match">{t(`finder.reason.${product.finderMatch.reason}`)}</p> : null}
-        <p className="part-card-kind">{kind}</p>
+        {concise ? null : <p className="part-card-kind">{kind}</p>}
         <span className="part-card-more"><Info aria-hidden size={19} />{t('common.details')}</span>
       </div>
     </Link>
@@ -51,7 +51,7 @@ export function PartCard({ product, priority = false, hideCountUnit = false }: {
         : <Price price={product.price} size="lg" unit={priceUnit} />}</div>
       {canBuy ? <CardCartButton productId={product.id} name={name} unit={product.unit} />
         : <Link href={`/request-part?part=${encodeURIComponent(product.partNumber || product.sku)}`} className="part-card-source"><PackageSearch aria-hidden size={21} />{t('parts.requestSupply')}</Link>}
-      {product.manufacturer ? <p className="part-card-maker">{locale === 'en' ? product.manufacturer.name.en || product.manufacturer.name.fa : product.manufacturer.name.fa}</p> : null}
+      {!concise && product.manufacturer ? <p className="part-card-maker">{locale === 'en' ? product.manufacturer.name.en || product.manufacturer.name.fa : product.manufacturer.name.fa}</p> : null}
     </div>
   </article>;
 }

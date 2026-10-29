@@ -60,7 +60,7 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   transpilePackages: ['@hedax/contracts', '@hedax/domain'],
   images: {
-    localPatterns: [{ pathname: '/media/**' }],
+    localPatterns: [{ pathname: '/media/**' }, { pathname: '/brand/source/atelier/**' }],
     formats: ['image/avif', 'image/webp'],
   },
   async headers() {

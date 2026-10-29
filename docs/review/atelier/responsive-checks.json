@@ -1,0 +1,142 @@
+[
+  {
+    "url": "/fa",
+    "width": 390,
+    "overflow": false
+  },
+  {
+    "url": "/en",
+    "width": 390,
+    "overflow": false
+  },
+  {
+    "url": "/fa/parts",
+    "width": 390,
+    "overflow": false
+  },
+  {
+    "url": "/fa/parts/demo-air-filter-corolla",
+    "width": 390,
+    "overflow": false
+  },
+  {
+    "url": "/fa/cart",
+    "width": 390,
+    "overflow": false
+  },
+  {
+    "url": "/fa/admin",
+    "width": 390,
+    "overflow": false
+  },
+  {
+    "url": "/fa/admin/products/new",
+    "width": 390,
+    "overflow": false
+  },
+  {
+    "url": "/fa",
+    "width": 768,
+    "overflow": false
+  },
+  {
+    "url": "/en",
+    "width": 768,
+    "overflow": false
+  },
+  {
+    "url": "/fa/parts",
+    "width": 768,
+    "overflow": false
+  },
+  {
+    "url": "/fa/parts/demo-air-filter-corolla",
+    "width": 768,
+    "overflow": false
+  },
+  {
+    "url": "/fa/cart",
+    "width": 768,
+    "overflow": false
+  },
+  {
+    "url": "/fa/admin",
+    "width": 768,
+    "overflow": false
+  },
+  {
+    "url": "/fa/admin/products/new",
+    "width": 768,
+    "overflow": false
+  },
+  {
+    "url": "/fa",
+    "width": 1366,
+    "overflow": false
+  },
+  {
+    "url": "/en",
+    "width": 1366,
+    "overflow": false
+  },
+  {
+    "url": "/fa/parts",
+    "width": 1366,
+    "overflow": false
+  },
+  {
+    "url": "/fa/parts/demo-air-filter-corolla",
+    "width": 1366,
+    "overflow": false
+  },
+  {
+    "url": "/fa/cart",
+    "width": 1366,
+    "overflow": false
+  },
+  {
+    "url": "/fa/admin",
+    "width": 1366,
+    "overflow": false
+  },
+  {
+    "url": "/fa/admin/products/new",
+    "width": 1366,
+    "overflow": false
+  },
+  {
+    "url": "/fa",
+    "width": 1920,
+    "overflow": false
+  },
+  {
+    "url": "/en",
+    "width": 1920,
+    "overflow": false
+  },
+  {
+    "url": "/fa/parts",
+    "width": 1920,
+    "overflow": false
+  },
+  {
+    "url": "/fa/parts/demo-air-filter-corolla",
+    "width": 1920,
+    "overflow": false
+  },
+  {
+    "url": "/fa/cart",
+    "width": 1920,
+    "overflow": false
+  },
+  {
+    "url": "/fa/admin",
+    "width": 1920,
+    "overflow": false
+  },
+  {
+    "url": "/fa/admin/products/new",
+    "width": 1920,
+    "overflow": false
+  }
+]

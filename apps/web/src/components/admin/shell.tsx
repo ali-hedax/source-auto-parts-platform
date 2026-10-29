@@ -1,5 +1,8 @@
 'use client';
 
+import './atelier-admin.css';
+import '@/components/store/atelier-refinements.css';
+
 import * as RDialog from '@radix-ui/react-dialog';
 import Image from 'next/image';
 import type { MeView } from '@hedax/contracts';
@@ -52,6 +55,7 @@ const navPermissions = (me: { permissions: string[]; isOwner: boolean }) => (me.
 interface NavGroup { title: string; items: NavItem[] }
 
 export function AdminShell({ children }: { children: ReactNode }) {
+  const ta = useTranslations('atelier');
   const t = useTranslations('admin');
   const tn = useTranslations('nav');
   const locale = useLocale();
@@ -119,7 +123,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
   };
   const alt = locale === 'fa' ? 'سورس — محصولی از هداکس' : 'Source by HEDAX';
   return (
-    <div className="min-h-screen bg-canvas">
+    <div className="admin-atelier min-h-screen bg-canvas">
       <header className="on-dark sticky top-0 z-40 bg-carbon text-silver">
         <div className="flex h-14 items-center gap-2 px-3 sm:gap-3 md:px-5">
           {me.data?.kind === 'STAFF' ? <AdminDrawer groups={groups} permissions={navPermissions(me.data)} pathname={pathname} title={t('title')} /> : null}
@@ -158,8 +162,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
             <p className="p-8">{t('noPermission')}</p>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-[16rem_minmax(0,1fr)]">
-              <nav aria-label={t('title')} className="hidden border-e border-line-soft bg-white lg:sticky lg:top-14 lg:block lg:h-[calc(100vh-3.5rem)] lg:overflow-y-auto">
-                <AdminNavList groups={groups} permissions={navPermissions(user)} pathname={pathname} />
+              <nav aria-label={t('title')} className="admin-sidebar hidden border-e border-line-soft bg-white lg:sticky lg:top-14 lg:block lg:h-[calc(100vh-3.5rem)] lg:overflow-y-auto">
+                <AdminNavList groups={groups} permissions={navPermissions(user)} pathname={pathname} /><p className="atelier-sidebar-motto" lang="en" dir="ltr">{ta('workspaceMottoTwo')}</p>
               </nav>
               <main id="main" tabIndex={-1} className="min-w-0 px-4 py-5 focus:outline-none md:px-6 md:py-6 lg:px-8 lg:py-8">{isCatalogPath(pathname) ? <CatalogWorkspace user={user} pathname={pathname} /> : null}{children}</main>
             </div>
@@ -219,7 +223,7 @@ function AdminDrawer({ groups, permissions, pathname, title }: { groups: NavGrou
       </RDialog.Trigger>
       <RDialog.Portal>
         <RDialog.Overlay className="overlay-fade fixed inset-0 z-50 bg-carbon/60" />
-        <RDialog.Content className="drawer-start fixed inset-y-0 start-0 z-50 flex w-[min(18rem,85vw)] flex-col bg-white shadow-[var(--shadow-overlay)]" dir={locale === 'fa' ? 'rtl' : 'ltr'}>
+        <RDialog.Content className="admin-atelier drawer-start fixed inset-y-0 start-0 z-50 flex w-[min(18rem,85vw)] flex-col bg-white shadow-[var(--shadow-overlay)]" dir={locale === 'fa' ? 'rtl' : 'ltr'}>
           <div className="on-dark flex h-14 shrink-0 items-center justify-between gap-3 bg-carbon px-4 text-silver">
             <RDialog.Title className="text-sm font-semibold text-tech-light">{title}</RDialog.Title>
             <RDialog.Close className="-me-2 grid size-11 cursor-pointer place-items-center rounded-[var(--radius-control)] transition-colors hover:bg-white/10" aria-label={tc('closeMenu')}>
