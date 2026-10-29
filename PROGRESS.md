@@ -1,6 +1,6 @@
 # Source by HEDAX — وضعیت و نقطهٔ ادامه
 
-آخرین به‌روزرسانی: 2026-10-29 11:50 +03:30؛ هدر فروشگاه تمام‌عرض شد (PR67) و وب b1cf76d روی Production منتشر و بررسی شد؛ api 5ffcf93 و worker edc508d بدون تغییر. راهکار موقت MTU همچنان فعال است (پس از ریبوت برمی‌گردد).
+آخرین checkpoint: 2026-10-29، Asia/Tehran؛ انتشار 38d74a8 مسدود به دسترسی Actions/SSH (شرح پایین). آخرین انتشار ثبت‌شده: 2026-10-29 11:50 +03:30؛ هدر فروشگاه تمام‌عرض شد (PR67) و وب b1cf76d روی Production منتشر و بررسی شد؛ api 5ffcf93 و worker edc508d بدون تغییر. راهکار موقت MTU همچنان فعال است (پس از ریبوت برمی‌گردد).
 
 > مرجع فعلی انتشار: web b1cf76d (`header-fullwidth-b1cf76d-20261029`)، api 5ffcf93 (`phonefix-5ffcf93-20261028`)، worker/tools edc508d (`operator-edc508d-20261028`).
 > گزارش‌های عملیات امروز: `/srv/hedax-data/ops/20261028/`، `/srv/hedax-data/ops/tidy-20261028/` و `/srv/hedax-data/ops/kernel-20261028/` (خصوصی، روی سرور). یادداشت‌های
@@ -11,6 +11,17 @@
 هیچ رمز، توکن، دادهٔ مشتری یا محتوای محرمانهٔ فایل تأمین‌کننده در این فایل ثبت نشود.
 
 ## نقطهٔ فعلی
+
+### Blocked External — انتشار main شامل PR69 و PR70 — 2026-10-29، Asia/Tehran
+
+- مجوز صریح مالک: انتشار فقط api و web از آخرین main، بدون migration یا بازنویسی کد؛ حفظ .env، DNS، داده، CMS، Preview و مسیرهای موقت MTU؛ docs PR با ادغام پس از CI سبز.
+- **Completed & Tested — Git:** AGENTS.md و PROGRESS.md خوانده شد. clone تازه و `git fetch origin main` موفق؛ main/HEAD برابر `38d74a89cb99a50c725228561dea77483cfc8960`، working tree اولیه تمیز. `git merge-base --is-ancestor` برای merge هر دو PR69 (`351a00c`) و PR70 (`38d74a8`) موفق؛ هیچ فایل کد تغییر نکرد.
+- **Blocked External — images:** Release images run `40845683696` روی SHA دقیق main لغو شده است. run موفق `40845781099` روی head شاخه PR70 یعنی `0f1a15e739abb5e6d0fa74d20931217fd900d04f` است و جایگزین SHA دقیق نیست. `POST /actions/workflows/images.yml/dispatches` با environment=production و ref=main → HTTP401 Requires authentication؛ هیچ workflow تازه آغاز نشد. ابزار متصل GitHub dispatch ندارد و مرورگر GitHub وارد حساب نیست.
+- **Completed & Tested — مشاهده زنده قبل از انتشار:** مرورگر https://www.sourcebyhedax.ir/fa را به https://sourcebyhedax.ir/fa هدایت کرد. فوتر هنوز قدیمی است: واتس‌اپ تکراری، ترتیب نادرست، آیکون‌های ثبت‌نشده لینکدین/تلگرام/بله و لینک تماس پایین ستون. این مشاهده SHA کانتینرها را ثابت نمی‌کند؛ نسخه فعلی Production در این جلسه از میزبان احراز نشده است.
+- **Blocked External — server access:** در executor فعلی کلید SSH اختصاصی یا SSH agent/runtime credential تنظیم‌شده وجود ندارد؛ مرورگر از ابتدا هیچ تب واردشده‌ای نداشت. اجرای دستور روی Production، بررسی revision/digest و استقرار ممکن نشد. مقادیر محرمانه خوانده یا چاپ نشده‌اند.
+- **انجام‌نشده:** build چهار ایمیج SHA دقیق؛ تشخیص SHA واقعی میزبان؛ rollback copy/overlay و rollout؛ آزمون desktop/mobile و overflow نسخه جدید؛ مشاهده راه‌های تماس prefilled در Admin؛ دو چت تازه هکسی <15s و ANSWERED در Admin. برای جلوگیری از ثبت نتیجه گمراه‌کننده، آزمون پس از انتشار روی نسخه قدیمی اجرا نشد.
+- **قدم بعدی دقیق:** دسترسی احرازشده Actions و همان میزبان Production با هویت SSH موجود را در محیط اجرای مجاز فراهم کنید (کلید/توکن در چت قرار نگیرد). مجوز انتشار موجود است و تأیید دوباره لازم نیست. main را fetch و SHA روز را دوباره تثبیت کنید؛ workflow production چهار ایمیج همان SHA؛ سپس روش candidate ثبت‌شده در بالا، بررسی full revision، digest-pinned overlay، rollback خودکار و health؛ بدون تغییر worker/tools یا تنظیمات. پس از آن همه معیارهای مالک را روی سایت و Admin بررسی کنید؛ فرم تماس ذخیره نشود.
+
 
 ### Completed & Tested — storefront header full width (PR67), Production web b1cf76d — 2026-10-29 11:50 Asia/Tehran
 
