@@ -1,6 +1,6 @@
 # Source by HEDAX — وضعیت و نقطهٔ ادامه
 
-آخرین به‌روزرسانی: 2026-10-29، Asia/Tehran؛ بازطراحی آتلیه روی شاخه feat/redesign-atelier آمادهٔ PR است. این کار هیچ تغییر Production نداشته است؛ وضعیت سرور در یادداشت‌های 2026-10-28 تاریخی است.
+آخرین به‌روزرسانی: 2026-10-29 10:50 +03:30؛ انتشار وب آتلیه f105dea انجام و سلامت و نمایش واقعی بررسی شد. یادداشت‌های قبل از این انتشار تاریخی‌اند.
 
 > مرجع فعلی انتشار: edc508d، پوشهٔ candidate `/opt/hedax-release-candidates/operator-edc508d-20261028` (قبلی: 5d18d21، `hexi-5d18d21-20261028`).
 > گزارش‌های عملیات امروز: `/srv/hedax-data/ops/20261028/`، `/srv/hedax-data/ops/tidy-20261028/` و `/srv/hedax-data/ops/kernel-20261028/` (خصوصی، روی سرور). یادداشت‌های
@@ -11,6 +11,16 @@
 هیچ رمز، توکن، دادهٔ مشتری یا محتوای محرمانهٔ فایل تأمین‌کننده در این فایل ثبت نشود.
 
 ## نقطهٔ فعلی
+
+### Completed & Tested — انتشار آتلیه با مجوز مالک — 2026-10-29 10:55 +03:30
+
+- مالک صریحاً انتشار کامل و اعمال طراحی جدید هکسی را بدون تأیید مجدد مجاز کرد. PR62 پس از CIسبز ادغام شد؛ main=f105dea03f1b3a0dde49296a6c9c2d28fc451b64. Release images run40832832051 موفق شد. فقط وب با digest eed0593f39ec12c621df75e5d357dfbd1497305e83717e273ea73bfb46043155 منتشر شد؛ API و worker همان ID قبلی‌اند و migration اجرا نشد.
+- candidate: /opt/hedax-release-candidates/atelier-f105dea-20261029؛ deploy.exit=0، rollout-verified.json موجود، compose-current اتمی عوض شد. wrapper قبلی و tag hedax-atelier-rollback-web:pre-f105dea نگه داشته شدند. یک502 کوتاه در آغاز آماده‌سازی وب دیده شد، سپس FA/EN200 و webhealthy؛ APIready200، DB/Redis/storage/scanner up، load0.23.
+- پشتیبان جدید pg_dump با106TABLE DATA بررسی شد؛ اصل روی candidate و کپی روی دیسک داده است. نسخه age خارج از میزبان در work/private-atelier-release، sha256 b6f8ca7a077d561c6c5939d4325f081ccd67f400b60cd8f3bbd0e926c7fd73ef، برابر سرور. هیچ dump، secret یا metadata خصوصی به Git اضافه نشود.
+- CMS home نسخه240→241؛ preset تأییدشده20item، رنگ‌ها و لوگوی گرم روی published/draft با version guard و snapshot قبلی اعمال شدند. assistant.phase1 نسخه23→24، فقط avatar جدید atelier/hexi.webp، placement=start و animationEnabled=true؛ ai/prompt/provider و سایر محتوا دقیقاً محفوظ، schema validation و audit/SYSTEM ثبت شدند. کش عمومی purge شد. تنظیمات قبلی داخل candidate خصوصی هستند؛ rollback اسکریپت با versionguard موجود است.
+- اتصال عادیSSH کند/قطع می‌شد؛ curve25519 و IPQoSnone اتصال فرمان‌های کوتاه را برقرار کرد. انتقال بزرگ reset شد؛ payload فشرده در قطعات512بایت رسید. اجرای اول قبل از تغییر وب به‌خاطر CR انتهای نام containers.before.json متوقف شد؛ فایل اصلاح و اجرای دوم موفق شد. علت قطعی انتقال به‌طور قطعی تشخیص داده نشده؛ reboot/DNS/network سرور تغییر نکرد.
+- مرورگر headless محلی در TLS خارجی reset می‌دهد، ولی Windowscurl و readiness داخلی سالم‌اند. کنترل تصویری با انتقال پاسخ واقعی Production از Windowscurl به Chromium موفق شد؛ fixture/mock داده به‌کار نرفته است. FA/EN در1366/390 هرکدام200، بدون سرریز؛ شش مسیر وچهارانتخاب، avatarجدید؛ چت و فرم اپراتور باز شدند، پیامی ارسال نشد. قطعات، سبد و مسیر ورود کارکنان200؛ پنل خصوصی با نشست مالک وارد نشده و آزمون خرید/AIزنده انجام نشده است. تصاویر کامل در outputs/atelier-production و نمونه‌ها در docs/review/atelier/production. قدم بعد فقط بازبینی مالک روی سایت اصلی؛ کد دوباره ساخته یا منتشر نشود.
+
 
 ### Completed & Tested — اصلاحات بازبینی مالک، 2026-10-29 Asia/Tehran
 
