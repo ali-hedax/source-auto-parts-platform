@@ -72,3 +72,16 @@
 .titanium-store .titanium-header-inner,.titanium-store .home-header .hh-inner{max-width:none;padding-inline:clamp(16px,3vw,48px)}
 .titanium-store .titanium-desktop-nav nav.container-page{max-width:none;padding-inline:0}
 .titanium-store .titanium-header-inner>.titanium-header-controls{margin-inline-start:0}
+
+/* Footer contact column: one ordered list (phone, mobile, WhatsApp, Telegram, Bale, Instagram, e-mail,
+   hours, address) with hand-drawn icons. Each row is a full 44px+ touch target. */
+.titanium-store .footer-contact-list{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+.titanium-store .footer-contact-row{display:grid;grid-template-columns:44px minmax(0,1fr);align-items:center;gap:12px;min-height:52px;padding:4px 8px 4px 4px;border-radius:12px;text-decoration:none;transition:background-color .15s ease}
+.titanium-store a.footer-contact-row:hover{background:rgb(245 240 232 / .07)}
+.titanium-store a.footer-contact-row:focus-visible{outline:2px solid var(--ti-sand);outline-offset:2px}
+.titanium-store .footer-contact-row .contact-icon{display:grid;place-items:center;width:44px;height:44px;color:var(--ti-footer);--ci-paint:var(--ti-sand)}
+.titanium-store .footer-contact-text{display:grid;gap:1px;min-width:0}
+.titanium-store .titanium-footer .footer-contact-label{font-size:12px;color:var(--ti-sand);opacity:.85}
+.titanium-store .titanium-footer .footer-contact-value{font-size:15px;font-weight:600;color:var(--ti-paper);overflow-wrap:anywhere;line-height:1.6}
+.titanium-store .titanium-footer .footer-contact-ext{margin-inline-start:8px;font-size:12px;font-weight:400;color:var(--ti-sand)}
+@media(min-width:640px) and (max-width:1023px){.titanium-store .footer-contact-list{grid-template-columns:1fr 1fr;column-gap:16px}}

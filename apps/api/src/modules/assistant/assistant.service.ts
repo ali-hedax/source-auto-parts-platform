@@ -1,6 +1,7 @@
 import { Inject, Injectable, ServiceUnavailableException } from '@nestjs/common';
 import type { AssistantMessageInput, AssistantMessageResult, ProductCard } from '@hedax/contracts';
 import { ENV, type Env } from '../../config/env.js';
+import { channelText, resolveContactChannels } from '@hedax/contracts/constants';
 import { currentContext, type Actor } from '../../common/request-context.js';
 import { ContentService } from '../content/content.service.js';
 import { AssistantLogService } from './assistant-log.service.js';
@@ -157,7 +158,13 @@ export class AssistantService {
    * social links, the footer "about" text and the visible FAQ. Cached briefly; never secret.
    */
   private async phoneNumbers(locale: 'fa' | 'en'): Promise<string[]> {
-    try { return contactNumbers((await this.content.publicBundle()).contact.phones, locale); } catch { return []; }
+    try {
+      const b = await this.content.publicBundle();
+      const ch = resolveContactChannels(b.contact, b.social.links);
+      // Footer channels first (as visitors see them), then any other saved numbers.
+      const nums = [ch.phone, ch.mobile, ch.whatsapp].filter(Boolean).map((n) => ({ number: n }));
+      return [...new Set(contactNumbers([...nums, ...b.contact.phones], locale))];
+    } catch { return []; }
   }
 
   private async siteFacts(locale: 'fa' | 'en'): Promise<string> {
@@ -170,6 +177,7 @@ export class AssistantService {
       const facts = {
         siteName: pick(b.brand.siteName) ?? 'Source by HEDAX',
         about: pick(b.brand.footerAbout),
+        channels: (() => { const ch = resolveContactChannels(b.contact, b.social.links); return { phone: ch.phone ? `${ch.phone}${ch.phoneExtension ? ` (ext ${ch.phoneExtension})` : ''}` : null, mobile: ch.mobile || null, whatsapp: ch.whatsapp || null, telegram: ch.telegram ? channelText('telegram', ch.telegram) : null, bale: ch.bale ? channelText('bale', ch.bale) : null, instagram: ch.instagram ? channelText('instagram', ch.instagram) : null }; })(),
         contact: {
           name: b.contact.displayName || null,
           phones: b.contact.phones.map((p) => ({ label: pick(p.label), number: locale === 'fa' && p.numberFa ? p.numberFa : p.number, extension: p.extension || null, whatsapp: p.whatsapp })),

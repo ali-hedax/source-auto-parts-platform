@@ -72,6 +72,25 @@ export const contactPhoneSchema = z.object({
 });
 export type ContactPhone = z.infer<typeof contactPhoneSchema>;
 
+/** Persian/Arabic digits → Latin, so «۰۹۱۲…» typed in the panel is stored uniformly. */
+const latinDigits = (v: string) => v.replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0)).replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660));
+const optionalPhone = z.string().trim().max(30).transform(latinDigits).pipe(z.string().regex(/^(|\+?[0-9][0-9 ()-]{5,24})$/, { message: 'INVALID_PHONE' }));
+/** A username (@name or name) or a profile link on that network. */
+const handle = (hosts: string) => z.string().trim().max(200).refine((v) => v === '' || /^@?[A-Za-z0-9_.]{3,64}$/.test(v) || new RegExp(`^https://(www\\.)?(${hosts})/[^\\s]+$`, 'i').test(v), { message: 'INVALID_HANDLE' });
+
+/** The footer's contact channels, each in its own field, shown in this fixed order. Empty = not shown. */
+export const contactChannelsSchema = z.object({
+  phone: optionalPhone,
+  phoneExtension: z.string().trim().transform(latinDigits).pipe(z.string().regex(/^[0-9]{0,6}$/, { message: 'INVALID_PHONE' })),
+  mobile: optionalPhone,
+  whatsapp: optionalPhone,
+  telegram: handle('t\\.me|telegram\\.me'),
+  bale: handle('ble\\.ir|bale\\.ai'),
+  instagram: handle('instagram\\.com'),
+});
+export type ContactChannels = z.infer<typeof contactChannelsSchema>;
+export const EMPTY_CONTACT_CHANNELS: ContactChannels = { phone: '', phoneExtension: '', mobile: '', whatsapp: '', telegram: '', bale: '', instagram: '' };
+
 export const contactContentSchema = z.object({
   /** Business name shown on the contact page. */
   displayName: z.string().trim().max(80),
@@ -85,6 +104,8 @@ export const contactContentSchema = z.object({
   hours: localizedSchema(200),
   /** The on-site support chat text and button on the contact page. */
   supportChat: z.boolean(),
+  /** Footer channels (phone, mobile, WhatsApp, Telegram, Bale, Instagram). Older saved content has none. */
+  channels: contactChannelsSchema.default(EMPTY_CONTACT_CHANNELS),
 });
 export type ContactContent = z.infer<typeof contactContentSchema>;
 

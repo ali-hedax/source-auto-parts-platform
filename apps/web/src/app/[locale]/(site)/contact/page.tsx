@@ -24,7 +24,8 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
   if (visual) return <BuilderView document={visual} data={await getBuilderData(visual)} locale={locale} />;
   const t = await getTranslations();
   const L = locale as 'fa' | 'en';
-  const contact = (await getSiteContent())?.contact;
+  const content = await getSiteContent();
+  const contact = content?.contact;
   const chat = contact?.supportChat ?? false;
   return (
     <div className="container-page max-w-3xl py-8">
@@ -32,7 +33,7 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
       {contact ? (
         <div className="card p-6">
           {contact.displayName ? <p className="mb-4 font-bold" dir="ltr" lang="en">{contact.displayName}</p> : null}
-          <ContactDetails contact={contact} locale={L} variant="page" linkClassName="text-action underline-offset-4 hover:underline" />
+          <ContactDetails contact={contact} social={content?.social.links ?? []} locale={L} variant="page" linkClassName="text-action underline-offset-4 hover:underline" />
         </div>
       ) : null}
       {chat ? (

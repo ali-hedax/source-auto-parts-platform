@@ -1,6 +1,8 @@
 'use client';
 
-import type { ContactPhone } from '@hedax/contracts';
+import type { ContactChannels, ContactContent, ContactPhone } from '@hedax/contracts';
+import { resolveContactChannels } from '@hedax/contracts/constants';
+import { useEffect } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { Async } from '@/components/ui/async';
 import { Button } from '@/components/ui/button';
@@ -8,6 +10,7 @@ import { Section } from '@/components/ui/misc';
 import { useL } from '../shell';
 import { ContentFrame, ContentHistory, LocalizedField, MoveButtons, SaveBar, TextField, ToggleField, moveItem, useContentSection } from './kit';
 
+const EMPTY_CONTACT_CHANNELS: ContactChannels = { phone: '', phoneExtension: '', mobile: '', whatsapp: '', telegram: '', bale: '', instagram: '' };
 const emptyPhone: ContactPhone = { label: { fa: '', en: '' }, number: '', numberFa: '', extension: '', whatsapp: false };
 
 /** Phones (any number, each optionally on WhatsApp), e-mail, address, map location and hours. */
@@ -25,6 +28,10 @@ export function ContentContactPage() {
           const num = (v: string) => (v.trim() === '' ? null : Number(v));
           return (
             <>
+              <ChannelsSection draft={d} social={s.state.data?.social.value.links ?? []} update={(channels) => s.update({ channels })} errors={s.errors} />
+              <details className="rounded-[var(--radius-card)] border border-line-soft p-4">
+                <summary className="cursor-pointer font-semibold">{l('شماره‌های دیگر (پیشرفته، اختیاری)', 'Other numbers (advanced, optional)')}</summary>
+                <p className="mt-2 text-sm text-steel">{l('فوتر و صفحهٔ تماس از بخش «راه‌های تماس» بالا استفاده می‌کنند. این فهرست فقط برای سازگاری با تنظیمات قدیمی است.', 'The footer and contact page use «Contact channels» above. This list is kept for older settings only.')}</p>
               <Section title={names.phones} actions={<Button size="sm" variant="secondary" disabled={d.phones.length >= 8} onClick={() => s.update({ phones: [...d.phones, emptyPhone] })}><Plus aria-hidden className="size-4" /> {l('افزودن شماره', 'Add number')}</Button>}>
                 {d.phones.length ? (
                   <ol className="flex flex-col gap-4">
@@ -51,6 +58,7 @@ export function ContentContactPage() {
                   </ol>
                 ) : <p className="text-sm text-steel">{l('هنوز شماره‌ای ثبت نشده است.', 'No number yet.')}</p>}
               </Section>
+              </details>
               <Section title={l('ایمیل، نشانی و ساعت کاری', 'E-mail, address and hours')}>
                 <div className="flex flex-col gap-5">
                   <TextField id="c-name" label={names.displayName} ltr maxLength={80} value={d.displayName} onChange={(v) => s.update({ displayName: v })} error={s.errors.displayName} hint={l('بالای اطلاعات در صفحهٔ «تماس با ما».', 'Above the details on the contact page.')} />
@@ -78,5 +86,41 @@ export function ContentContactPage() {
         }}
       </Async>
     </ContentFrame>
+  );
+}
+
+/**
+ * Footer contact channels, each in its own field and shown in this order. On first open, settings
+ * saved before these fields existed are filled in from the old phone list (save to keep them).
+ */
+function ChannelsSection({ draft, social, update, errors }: { draft: ContactContent; social: Array<{ network: string; url: string }>; update: (c: ContactChannels) => void; errors: Record<string, string> }) {
+  const l = useL();
+  // Settings saved before the channels existed may not carry them yet.
+  const c = draft.channels ?? EMPTY_CONTACT_CHANNELS;
+  const empty = Object.values(c).every((v) => v.trim() === '');
+  useEffect(() => {
+    if (!empty) return;
+    const derived = resolveContactChannels({ phones: draft.phones }, social);
+    if (Object.values(derived).some((v) => v)) update(derived);
+    // Only once, when the section first shows empty channels.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const set = (patch: Partial<ContactChannels>) => update({ ...c, ...patch });
+  const err = (k: keyof ContactChannels) => errors[`channels.${k}`];
+  return (
+    <Section title={l('راه‌های تماس (فوتر و صفحهٔ تماس)', 'Contact channels (footer and contact page)')}>
+      <p className="mb-4 text-sm text-steel">{l('به همین ترتیب در فوتر نمایش داده می‌شوند: تلفن، موبایل، واتس‌اپ، تلگرام، بله، اینستاگرام. هر موردی خالی بماند نمایش داده نمی‌شود. بعد از تغییر «ذخیره» را بزنید.', 'Shown in the footer in this order: phone, mobile, WhatsApp, Telegram, Bale, Instagram. Empty ones are hidden. Save after editing.')}</p>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-[minmax(0,1fr)_7rem] gap-3">
+          <TextField id="ch-phone" label={l('تلفن ثابت', 'Landline')} ltr inputMode="tel" placeholder="025 3666 8006" value={c.phone} onChange={(v) => set({ phone: v })} error={err('phone')} />
+          <TextField id="ch-ext" label={l('داخلی', 'Extension')} ltr inputMode="numeric" maxLength={6} value={c.phoneExtension} onChange={(v) => set({ phoneExtension: v })} error={err('phoneExtension')} />
+        </div>
+        <TextField id="ch-mobile" label={l('موبایل', 'Mobile')} ltr inputMode="tel" placeholder="0912 153 1797" value={c.mobile} onChange={(v) => set({ mobile: v })} error={err('mobile')} />
+        <TextField id="ch-whatsapp" label={l('واتس‌اپ (شماره)', 'WhatsApp (number)')} ltr inputMode="tel" placeholder="+971 50 144 1797" value={c.whatsapp} onChange={(v) => set({ whatsapp: v })} error={err('whatsapp')} hint={l('با کد کشور؛ لینک گفت‌وگو خودکار ساخته می‌شود.', 'With country code; the chat link is built automatically.')} />
+        <TextField id="ch-telegram" label={l('تلگرام', 'Telegram')} ltr placeholder="@sourcebyhedax" value={c.telegram} onChange={(v) => set({ telegram: v })} error={err('telegram')} hint={l('نام کاربری یا لینک t.me', 'Username or t.me link')} />
+        <TextField id="ch-bale" label={l('بله', 'Bale')} ltr placeholder="@sourcebyhedax" value={c.bale} onChange={(v) => set({ bale: v })} error={err('bale')} hint={l('نام کاربری یا لینک ble.ir', 'Username or ble.ir link')} />
+        <TextField id="ch-instagram" label={l('اینستاگرام', 'Instagram')} ltr placeholder="@hedax.73" value={c.instagram} onChange={(v) => set({ instagram: v })} error={err('instagram')} hint={l('نام کاربری یا لینک instagram.com', 'Username or instagram.com link')} />
+      </div>
+    </Section>
   );
 }

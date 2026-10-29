@@ -28,6 +28,7 @@ export function useFieldMessage() {
       case 'INVALID_URL': return l('نشانی معتبر نیست. با https:// شروع کنید.', 'Not a valid address. Start with https://.');
       case 'INVALID_IMAGE': return l('تصویر معتبر نیست. از دکمهٔ آپلود استفاده کنید.', 'Not a valid image. Use the upload button.');
       case 'INVALID_EMAIL': return l('ایمیل معتبر نیست؛ مثل info@example.com', 'Not a valid e-mail, e.g. info@example.com');
+      case 'INVALID_HANDLE': return l('نام کاربری (مثل @source یا source) یا لینک صفحه در همان شبکه را وارد کنید.', 'Enter a username (e.g. @source) or a profile link on that network.');
       case 'INVALID_PHONE': return l('شماره معتبر نیست؛ فقط رقم، +، فاصله و خط تیره. مثل +98 25 3666 6669', 'Not a valid number: digits, +, spaces and dashes, e.g. +98 25 3666 6669');
       case 'INVALID_SLUG': return l('نشانی صفحه فقط حروف کوچک انگلیسی، عدد و خط تیره، مثل shipping-terms', 'Lower-case letters, digits and dashes only, e.g. shipping-terms');
       case 'DUPLICATE_SECTION': return l('این بخش دو بار آمده است.', 'This section appears twice.');
