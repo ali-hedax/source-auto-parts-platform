@@ -1,8 +1,8 @@
 # Source by HEDAX — وضعیت و نقطهٔ ادامه
 
-آخرین به‌روزرسانی: 2026-10-29 11:25 +03:30؛ وب 1058177 (هدر، حذف فیلم قدیمی، بخش تأمین) منتشر و روی سایت اصلی بررسی شد؛ api 5ffcf93 و worker edc508d بدون تغییر. راهکار موقت MTU همچنان فعال است (پس از ریبوت برمی‌گردد). یادداشت‌های قبلی تاریخی‌اند.
+آخرین به‌روزرسانی: 2026-10-29 11:50 +03:30؛ هدر فروشگاه تمام‌عرض شد (PR67) و وب b1cf76d روی Production منتشر و بررسی شد؛ api 5ffcf93 و worker edc508d بدون تغییر. راهکار موقت MTU همچنان فعال است (پس از ریبوت برمی‌گردد).
 
-> مرجع فعلی انتشار: web 1058177 (`atelier-header-1058177-20261029`)، api 5ffcf93 (`phonefix-5ffcf93-20261028`)، worker/tools edc508d (`operator-edc508d-20261028`).
+> مرجع فعلی انتشار: web b1cf76d (`header-fullwidth-b1cf76d-20261029`)، api 5ffcf93 (`phonefix-5ffcf93-20261028`)، worker/tools edc508d (`operator-edc508d-20261028`).
 > گزارش‌های عملیات امروز: `/srv/hedax-data/ops/20261028/`، `/srv/hedax-data/ops/tidy-20261028/` و `/srv/hedax-data/ops/kernel-20261028/` (خصوصی، روی سرور). یادداشت‌های
 > worktreeهای قدیمی تاریخی‌اند؛ تغییرات محلی کاربر در آن‌ها حفظ شده‌اند و نباید بازنویسی شوند.
 
@@ -11,6 +11,21 @@
 هیچ رمز، توکن، دادهٔ مشتری یا محتوای محرمانهٔ فایل تأمین‌کننده در این فایل ثبت نشود.
 
 ## نقطهٔ فعلی
+
+### Completed & Tested — storefront header full width (PR67), Production web b1cf76d — 2026-10-29 11:50 Asia/Tehran
+
+- **Owner request + approval (this chat):** header spans the full screen width; logo at the right gutter and other controls at the left gutter in fa and en; desktop navigation across the full width; gutter `clamp(16px,3vw,48px)`; merge and deploy web only after CI.
+- **Change (CSS only, `apps/web/src/components/store/atelier-refinements.css`, scoped to `.titanium-store`):** `.titanium-header-inner` and the minimal home header `.hh-inner` → `max-width:none; padding-inline:clamp(16px,3vw,48px)`; header `nav.container-page` → `max-width:none; padding-inline:0`; `.titanium-header-inner>.titanium-header-controls{margin-inline-start:0}`. An older `margin-inline-start:auto` kept the English controls at the end of their grid column, i.e. near the middle; this was also true on the live site before. `.container-page`, logo size, colours, menus and the mobile menu are unchanged. The mobile menu button stays centred. English mobile controls now also sit at the left gutter (16 px; before 89 px).
+- **Local evidence (branch `fix/header-full-width` from main bbde179, deps from the shared pnpm store offline):** web typecheck OK after building the workspace packages; eslint 0 errors (2 existing img warnings); `next build` OK; `e2e/atelier.spec.ts` 4/4 passed (fixture dev server). Fixture measurements fa/en: logo → right edge and controls → left edge = 48/41/23/16 px at 1920/1366/768/390; nav 48…1872 at 1920; horizontal overflow 0 everywhere. Screenshots in `docs/review/header-full-width/` (incl. live "before": 304 px from both edges at 1920).
+- **PR67:** CI 40840241516 and 40840274292 pass; merged at head 9ad2950 → main `b1cf76d`. Release images run 40840665502 (production) success; web `sha256:f345ee55…5285`, revision label b1cf76d494eb0e772a20ad3e98651a6e9afc3779.
+- **Deploy (Completed & Tested):** candidate `/opt/hedax-release-candidates/header-fullwidth-b1cf76d-20261029/` (`deploy.sh` sha256 d1104017…, identical local/server; `systemd-run --unit=hedax-deploy-header-full`; `deploy.exit` 0).
+  - Preconditions: web 1058177, api 5ffcf93, worker edc508d, all healthy, readiness 200, Preview 0, MTU routes 3 and MSS rules 5 present and kept.
+  - Backup: `database-before.dump` (TABLE DATA 106, sha256 0342297d…).
+  - Rollback copies: `compose.before` (= live wrapper fc4d3c11…), `web.before.json`, tag `hedax-header-rollback-web:pre-b1cf76d`.
+  - Pull and switch: pulled by digest, revision OK; switch 08:18:20 UTC; check 1 gave FA/EN 200 and web healthy; api/worker images unchanged; API ready 200 (storage up); new header CSS served.
+  - Wrapper replaced atomically (sha256 8d8a2fcd…); `rollout-verified.json` written; no rollback.
+- **Live check (Chrome direct, 08:20 UTC):** fa and en at 1920/1366: logo 48/41 px from the right edge, controls 48/41 px from the left edge, nav full width, overflow 0; 390 px: logo 16 px right, controls 16 px left, menu button centred, overflow 0.
+- Current Production: **web b1cf76d, api 5ffcf93, worker/tools edc508d.**
 
 ### Completed & Tested — Production web release 1058177 (header, old film removed, sourcing section) — 2026-10-29 11:25 Asia/Tehran
 
