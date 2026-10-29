@@ -71,7 +71,7 @@ export function TitaniumHome({ document, data, locale }: { document: BuilderDocu
         <span className="titanium-path-art"><Image src={p.image} alt={p.alt || p.title} fill sizes="(max-width: 800px) 46vw, 30vw" /></span>
         <div className="titanium-path-copy"><h3>{p.title}</h3><p>{p.text || (fa ? 'مشاهده قطعات این گروه' : 'Explore parts in this category')}</p><span className="titanium-path-arrow"><Arrow aria-hidden size={19} /></span></div>
       </Link>)}</div>
-      {categories.length ? <nav className="titanium-category-links" aria-label={fa ? 'دسته‌بندی قطعات' : 'Part categories'}>{categories.map(c => <Link href={`/parts?category=${encodeURIComponent(c.slug)}`} key={c.slug}>{(fa ? c.name.fa : c.name.en || c.name.fa)}</Link>)}</nav> : null}
+      {categories.length ? <nav className="titanium-category-links" aria-label={fa ? 'دسته‌بندی قطعات' : 'Part categories'}><a href="#vehicle-finder">{fa ? 'انتخاب خودرو' : 'Choose vehicle'}</a>{categories.map(c => <Link href={`/parts?category=${encodeURIComponent(c.slug)}`} key={c.slug}>{(fa ? c.name.fa : c.name.en || c.name.fa)}</Link>)}<Link href="/request-part">{fa ? 'درخواست تأمین قطعه' : 'Request a part'}</Link></nav> : null}
     </section>
 
     <div className="titanium-collections">

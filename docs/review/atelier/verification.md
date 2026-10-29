@@ -1,12 +1,12 @@
-# شواهد بررسی محلی — 2026-10-28، Asia/Tehran
+# شواهد بررسی محلی — 2026-10-29، Asia/Tehran
 
-محیط: checkout جداگانه از `edc508d`، `HEDAX_DATA_SOURCE=fixtures` روی localhost:3320؛ بدون فایل env مخزن، پایگاه داده، پرداخت، ارسال پیام واقعی یا تماس با مدل زنده.
+محیط: checkout جداگانه از `edc508d` و بازپایه‌گذاری نهایی روی `5ffcf93`، `HEDAX_DATA_SOURCE=fixtures` روی localhost:3320؛ بدون فایل env مخزن، پایگاه داده، پرداخت، ارسال پیام واقعی یا تماس با مدل زنده.
 
 | بررسی | نتیجه |
 | --- | --- |
 | `pnpm lint` | موفق؛ دو هشدار از imgهای موجود CinematicFilm، صفر خطا |
 | `pnpm typecheck` | موفق در تمام workspace؛ 1202 کلید دوزبانه همسان |
-| `pnpm test:unit` | موفق؛ domain:132، contracts:22، API:117، در مجموع271 آزمون |
+| `pnpm test:unit` | موفق؛ domain:132، contracts:22، API:118، در مجموع272 آزمون |
 | `pnpm --filter @hedax/web build` | موفق؛ ساخت Production کامل شد (exit 0) |
 | Playwright طراحی | 2/2 موفق؛ FA/EN، چهار عرض، قرارگیری عنوان داخل تصویر و جستجوی GET بدون JS |
 | Playwright دستیار و کاتالوگ | 15/17 در اجرای اول؛ دو مورد در تکرار هدفمند 2/2 موفق شدند |
@@ -14,6 +14,8 @@
 | Axe WCAG A/AA | خانهٔ FA، خانهٔ EN و داشبورد: صفر violation؛ گزارش `accessibility.json` |
 
 آزمون اول type/unit در checkout تازه به distهای ساخته‌نشده وابسته بود؛ ترتیب آماده‌سازی workflow شامل ساخت domain/contracts/API و تولید Prisma اجرا شد و تکرار کامل موفق شد. یک آزمون حذف مرجع هنگام HMR از صفحه جدا شد؛ بدون تغییر هم‌زمان در تکرار موفق شد. یک انتظار دستیار هنوز label قبل از PR58 را می‌خواست؛ به «Talk to an operator» و فرم واقعی اپراتور به‌روز شد. آزمون حذف یا assertion محافظتی سست نشده است.
+
+پس ازrebase رویmain جدید، lint/typecheck/unit/build و دو E2E طراحی و28بررسی responsive دوباره موفق شدند. اصلاح شماره‌های تلفنPR60 حفظ و نوار جستجوی سادهٔPR61 نگه داشته شد؛ میان‌برها به بخش مسیرهای خرید منتقل شدند. بررسی hydration نیز بدون خطا بود.
 
 ## نتیجهٔ GitHub
 
