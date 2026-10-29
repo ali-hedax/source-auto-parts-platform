@@ -68,3 +68,7 @@
 .titanium-store:dir(ltr) .titanium-header-controls{grid-column:1;justify-self:start}
 .titanium-store .titanium-sourcing{width:100%;max-width:none!important;margin-inline:0}
 .titanium-store .titanium-sourcing-art{width:100%;max-height:350px;filter:drop-shadow(0 18px 18px rgb(57 40 28 / .1))}
+/* Full-width storefront header: logo at the right gutter, controls at the left, navigation across the whole row. */
+.titanium-store .titanium-header-inner,.titanium-store .home-header .hh-inner{max-width:none;padding-inline:clamp(16px,3vw,48px)}
+.titanium-store .titanium-desktop-nav nav.container-page{max-width:none;padding-inline:0}
+.titanium-store .titanium-header-inner>.titanium-header-controls{margin-inline-start:0}
