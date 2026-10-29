@@ -73,3 +73,42 @@ describe('API contracts', () => {
     expect(catalogDocumentStatusSchema.safeParse({ status: 'EMBEDDED' }).success).toBe(false);
   });
 });
+
+import { contactContentSchema } from '../src/content.js';
+import { channelHref, channelText, resolveContactChannels, whatsappNumber } from '../src/constants.js';
+
+describe('footer contact channels', () => {
+  const live = {
+    phones: [
+      { label: { fa: 'تلفن', en: 'Phone' }, number: '02536668006', numberFa: '', extension: '119', whatsapp: false },
+      { label: { fa: 'واتس‌اپ', en: 'WhatsApp' }, number: '+971 50 144 1797', numberFa: '', extension: '', whatsapp: false },
+      { label: { fa: 'موبایل', en: 'Mobile' }, number: '00989121531797', numberFa: '', extension: '', whatsapp: true },
+    ],
+  };
+  it('reads older content without duplicating WhatsApp', () => {
+    expect(resolveContactChannels(live, [{ network: 'instagram', url: 'https://instagram.com/hedax.73' }])).toEqual({ phone: '02536668006', phoneExtension: '119', mobile: '00989121531797', whatsapp: '+971 50 144 1797', telegram: '', bale: '', instagram: 'https://instagram.com/hedax.73' });
+  });
+  it('saved channels win', () => {
+    const channels = { phone: '025', phoneExtension: '', mobile: '', whatsapp: '', telegram: '@src', bale: '', instagram: '' };
+    expect(resolveContactChannels({ ...live, channels }).telegram).toBe('@src');
+  });
+  it('builds links and labels', () => {
+    expect(whatsappNumber('00989121531797')).toBe('989121531797');
+    expect(whatsappNumber('09121531797')).toBe('989121531797');
+    expect(whatsappNumber('+971 50 144 1797')).toBe('971501441797');
+    expect(channelHref('bale', '@sourcebyhedax')).toBe('https://ble.ir/sourcebyhedax');
+    expect(channelHref('telegram', 'https://t.me/abc')).toBe('https://t.me/abc');
+    expect(channelHref('phone', '025 3666 8006', '119')).toBe('tel:02536668006,119');
+    expect(channelHref('instagram', '')).toBeNull();
+    expect(channelText('instagram', 'https://instagram.com/hedax.73')).toBe('@hedax.73');
+  });
+  it('validates channel fields and accepts Persian digits', () => {
+    const base = { displayName: '', phones: [], email: '', address: { fa: '', en: '' }, mapUrl: '', mapLat: null, mapLng: null, hours: { fa: '', en: '' }, supportChat: false };
+    const ok = contactContentSchema.parse({ ...base, channels: { phone: '۰۲۵۳۶۶۶۸۰۰۶', phoneExtension: '۱۱۹', mobile: '', whatsapp: '', telegram: '@source_hedax', bale: 'https://ble.ir/source', instagram: 'hedax.73' } });
+    expect(ok.channels.phone).toBe('02536668006');
+    expect(ok.channels.phoneExtension).toBe('119');
+    expect(contactContentSchema.parse(base).channels.phone).toBe('');
+    expect(contactContentSchema.safeParse({ ...base, channels: { ...ok.channels, bale: 'https://evil.example/ble.ir/x' } }).success).toBe(false);
+    expect(contactContentSchema.safeParse({ ...base, channels: { ...ok.channels, mobile: 'abc' } }).success).toBe(false);
+  });
+});

@@ -12,6 +12,7 @@ import {
   type FaqItemView,
   type PublicContentPage,
   type SiteContentView,
+  EMPTY_CONTACT_CHANNELS,
 } from '@hedax/contracts';
 import { IMAGE_KINDS, inspectFile, inspectVideo } from '@hedax/domain';
 import { AuditService } from '../../common/audit.service.js';
@@ -29,7 +30,7 @@ const empty = { fa: '', en: '' };
  */
 const EMPTY_SECTIONS: ContentSections = {
   brand: { siteName: { fa: 'Source', en: 'Source' }, siteTitle: { fa: 'Source', en: 'Source' }, tagline: empty, footerAbout: empty, copyright: empty, logoUrl: '', logoAlt: empty, faviconUrl: '' },
-  contact: { displayName: '', phones: [], email: '', address: empty, mapUrl: '', mapLat: null, mapLng: null, hours: empty, supportChat: false },
+  contact: { displayName: '', phones: [], email: '', address: empty, mapUrl: '', mapLat: null, mapLng: null, hours: empty, supportChat: false, channels: EMPTY_CONTACT_CHANNELS },
   social: { links: [] },
   home: { sections: [] },
   announcement: { enabled: false, text: empty, linkLabel: empty, href: '', tone: 'brand' },

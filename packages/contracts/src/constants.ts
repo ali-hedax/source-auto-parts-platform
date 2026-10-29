@@ -121,3 +121,67 @@ export function newBuilderBlock(kind: BuilderBlock['kind'], id: string): Builder
     href: '/cars', button: { fa: 'انتخاب خودروی من', en: 'Choose my vehicle' },
   };
 }
+
+// ---- Footer contact channels (shared by the footer, the contact page and the site guide) ----
+
+export type ContactChannelKey = 'phone' | 'mobile' | 'whatsapp' | 'telegram' | 'bale' | 'instagram';
+export interface ChannelSource {
+  phones: Array<{ label: { fa: string; en: string }; number: string; extension: string; whatsapp: boolean }>;
+  channels?: { phone: string; phoneExtension: string; mobile: string; whatsapp: string; telegram: string; bale: string; instagram: string } | undefined;
+}
+export interface ResolvedChannels { phone: string; phoneExtension: string; mobile: string; whatsapp: string; telegram: string; bale: string; instagram: string }
+
+/**
+ * The footer channels. Saved channels win; content saved before the channels existed is read from
+ * the old phone list (by label: «واتس‌اپ»/WhatsApp, «موبایل»/Mobile, otherwise the landline) and the
+ * social links, so each channel appears once and nothing is duplicated.
+ */
+export function resolveContactChannels(contact: ChannelSource, social: Array<{ network: string; url: string }> = []): ResolvedChannels {
+  const saved = contact.channels;
+  if (saved && Object.values(saved).some((v) => v.trim() !== '')) return { ...saved };
+  const out: ResolvedChannels = { phone: '', phoneExtension: '', mobile: '', whatsapp: '', telegram: '', bale: '', instagram: '' };
+  const label = (p: ChannelSource['phones'][number]) => `${p.label.fa} ${p.label.en}`;
+  for (const p of contact.phones) {
+    if (/واتس|whatsapp/i.test(label(p))) { if (!out.whatsapp) out.whatsapp = p.number; continue; }
+    if (/موبایل|همراه|mobile|cell/i.test(label(p))) { if (!out.mobile) out.mobile = p.number; continue; }
+    if (!out.phone) { out.phone = p.number; out.phoneExtension = p.extension; } else if (!out.mobile) out.mobile = p.number;
+  }
+  if (!out.whatsapp) out.whatsapp = contact.phones.find((p) => p.whatsapp)?.number ?? '';
+  const url = (re: RegExp) => social.find((s) => re.test(s.url))?.url ?? '';
+  out.instagram = social.find((s) => s.network === 'instagram')?.url || url(/instagram\.com/i);
+  out.telegram = social.find((s) => s.network === 'telegram')?.url || url(/t\.me|telegram\.me/i);
+  out.bale = url(/ble\.ir|bale\.ai/i);
+  return out;
+}
+
+/** wa.me wants the international number without + or 00; an Iranian 09… number becomes 989…. */
+export function whatsappNumber(number: string): string {
+  let d = number.replace(/[^\d+]/g, '');
+  if (d.startsWith('+')) d = d.slice(1); else if (d.startsWith('00')) d = d.slice(2); else if (d.startsWith('0')) d = `98${d.slice(1)}`;
+  return d;
+}
+
+/** The link for one channel, or null when it is empty. */
+export function channelHref(key: ContactChannelKey, value: string, extension = ''): string | null {
+  const v = value.trim();
+  if (!v) return null;
+  const user = (host: string) => (/^https:\/\//i.test(v) ? v : `https://${host}/${v.replace(/^@/, '')}`);
+  switch (key) {
+    case 'phone': return `tel:${v.replace(/[^\d+]/g, '')}${extension ? `,${extension}` : ''}`;
+    case 'mobile': return `tel:${v.replace(/[^\d+]/g, '')}`;
+    case 'whatsapp': return `https://wa.me/${whatsappNumber(v)}`;
+    case 'telegram': return user('t.me');
+    case 'bale': return user('ble.ir');
+    case 'instagram': return user('instagram.com');
+  }
+}
+
+/** What to show for a channel: the number as written, or @username for profile links. */
+export function channelText(key: ContactChannelKey, value: string): string {
+  const v = value.trim();
+  if (key === 'phone' || key === 'mobile' || key === 'whatsapp') return v;
+  const m = /^https:\/\/[^/]+\/([^/?#]+)/i.exec(v);
+  return `@${(m ? m[1]! : v).replace(/^@/, '')}`;
+}
+
+export const CONTACT_CHANNEL_ORDER: readonly ContactChannelKey[] = ['phone', 'mobile', 'whatsapp', 'telegram', 'bale', 'instagram'];
