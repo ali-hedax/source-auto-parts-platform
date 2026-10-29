@@ -19,7 +19,7 @@
 
 ## نتیجهٔ GitHub
 
-CI شاخه روی `ba10936`، run `40701840578` موفق شد؛ شامل lint، typecheck، unit، integration کاتالوگ/CMS، آزمون backup/restore و build وب روی Linux. نتیجهٔ CI نهایی PR در شرح PR ثبت می‌شود.
+CI شاخه روی `ba10936`، run `40701840578` موفق شد؛ شامل lint، typecheck، unit، integration کاتالوگ/CMS، آزمون backup/restore و build وب روی Linux. CI کد نهایی پس ازrebase روی `aa91af5`، [run40821814293](https://github.com/ali-hedax/source-auto-parts-platform/actions/runs/40821814293) نیز موفق شد. تغییر نهایی اسناد است؛ Checks خود PR62 نتیجهٔ همان head جاری را نشان می‌دهد.
 
 ## تصاویر
 

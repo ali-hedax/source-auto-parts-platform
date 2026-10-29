@@ -12,14 +12,14 @@
 
 ## نقطهٔ فعلی
 
-### Completed & Tested محلی / انتظار CI نهایی — PR62 پس از تطبیق main — 2026-10-29 Asia/Tehran
+### Completed & Tested — PR62 آمادهٔ بازبینی، بدون انتشار — 2026-10-29 Asia/Tehran
 
 - PR: https://github.com/ali-hedax/source-auto-parts-platform/pull/62 ، باز و بدون merge/deploy. پایهٔ شروع edc508d؛ پس از رسیدن PR59/60/61، rebase روی5ffcf93 انجام شد. تعارض TitaniumHome با حفظ یک شعار روی عکس و API جدید QuickSearch حل شد؛ گزارش عملیات Production جدید main هم حفظ شد.
 - PR60 ترمیم شماره تلفن دستیار محفوظ است؛ هیچ API/migration تازه‌ای در diff طراحی نیست. مطابق PR61 نوار جستجو فقط باکس دارد؛ میان‌برهای خودرو/دسته/تأمین برای حفظ الزام مالک در مسیرهای خرید باقی‌اند.
 - CI قبل از rebase رویba10936 موفق بود؛ پس از rebase، lint و typecheck و272آزمون واحد وbuildوب exit0، دو E2Eطراحی و28responsive موفق شدند؛ تصاویر home/مقایسه تازه شدند. نتیجهٔ قبلی به head بازپایه‌گذاری‌شده نسبت داده نمی‌شود. فایلnext-env تولیدی stage نشود.
-- قدم بعدی: push نسخهٔ هماهنگ‌شده باforce-with-lease فقط روی شاخهٔ همین PR، انتظار بررسی CI همانhead و ثبت نتیجه در شرح PR؛ هیچ merge/deploy انجام نشود.
+- نسخهٔ هماهنگ‌شده push شد. CI روی کد نهایی aa91af59d1b56ef8e63ca83b0fd286f190e1082a، run40821814293 موفق شد؛ همهٔ مراحل Linux شامل integration، backup/restore وbuild گذشتند. تغییر بعدی این checkpoint فقط سند است؛ وضعیت دقیق آخرین head از Checks خودPR62 خوانده شود. قدم بعدی فقط بازبینی مالک و دستور جداگانهٔ merge/deploy است؛ کار اجراشده تکرار نشود.
 
-### Completed & Tested محلی / CI شاخه — طراحی آتلیه، فقط PR — 2026-10-29 Asia/Tehran
+### تاریخچهٔ پیش از rebase — طراحی آتلیه، فقط PR — 2026-10-29 Asia/Tehran
 
 - شاخه `feat/redesign-atelier` از آخرین main بررسی‌شده `edc508d` (PR58)؛ تغییرهای محلی worktree قبلی حفظ شدند. هیچ merge/deploy/تغییر داده یا سرور مجاز یا اجرا نشده است.
 - موجودی رابط بررسی شد: TitaniumHome/CSS، UI مشترک، header/footer، admin shell و هر شش تب assistant، ویجت Hexi و operator، quick search، Builder/Appearance. راهنمای CSS و Image نسخهٔ نصب‌شده Next16.4.2 خوانده شد.
