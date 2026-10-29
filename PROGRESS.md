@@ -12,6 +12,13 @@
 
 ## نقطهٔ فعلی
 
+### Implemented Pending Verification — اصلاح فوری هدر و پایین صفحه — 2026-10-29
+
+- مجوز مالک: اصلاح و انتشار مستقیم همین چهار مورد با حداقل تکرار. شاخه fix/atelier-header-and-footer ازmain52b4f29، بدون تغییر قبلی محلی. لوگو در هر دو زبان سمت راست و کنترل‌ها سمت چپ؛ فیلم قدیمی زیر عکس دیگر render نمی‌شود. دعوت تأمین تمام‌عرض، سپس FAQ (جابه‌جایی دو بخش)، فیلم پایانی محفوظ. جعبهٔ جدید کرم/برنز157KB با alpha جای fallback آبی را می‌گیرد؛ override تصویری مدیر حفظ است. بدون تغییر API/DB/محتوای ذخیره‌شده/تنظیمات هکسی.
+- typecheck وب و lint موفق (دو هشدار موجود img)؛ چهارE2E موفق، شامل هشت ترکیب زبان/عرض، عدم هم‌پوشانی هدر، نبود فیلم بالایی، عرض کامل تأمین و FAQ بعد از آن، تایپ و فیلم پایانی و no-JS. قدم بعد: PR و CI، بسته‌سازی بیرون سرور، backup/rollback و انتشار فقط وب، smoke واقعی. عملیات قبلی انتشار f105dea تکرار نشود.
+
+
+
 ### Completed & Tested (Hexi phone partially) — Production api/web release 5ffcf93 + temporary MTU/MSS workaround for the Arvan network — 2026-10-29 11:00 Asia/Tehran
 
 - **Owner authorization (this chat):** deploy `5ffcf937fec1279305024ce3e0b0fdf049ea1a20` api + web only (worker unchanged, no migration), same procedure as edc508d, no code changes. During the run the owner additionally approved (three separate answers): temporary low-MTU routes for GitHub, the same for Arvan S3, and a temporary MSS clamp for site traffic (80/443).

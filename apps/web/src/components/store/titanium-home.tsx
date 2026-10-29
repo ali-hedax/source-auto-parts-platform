@@ -8,7 +8,6 @@ import type { BuilderData } from '@/components/builder/data';
 import { LegacyHomeView } from '@/components/builder/legacy-home';
 import '@/components/builder/vehicle-finder.css';
 import { VehicleFinderSteps } from '@/components/catalog/vehicle-finder-steps';
-import { CinematicFilm } from '@/components/builder/cinematic-film';
 import { AutomotiveHub } from './automotive-hub';
 import { RepeatingSlogan } from './repeating-slogan';
 import { titaniumConfig, TITANIUM_CONFIG_ID, ATELIER_ASSETS, ATELIER_BRANDS, newTitaniumConfig, defaultAtelierClosing } from './titanium-config';
@@ -40,13 +39,13 @@ export function TitaniumHome({ document, data, locale }: { document: BuilderDocu
     const category = data.categories.find(c => c.code === g.code || c.slug === g.slug);
     return { ...g, image: item?.imageUrl || `${ATELIER_ASSETS}/category-${i}.webp`, alt: localize(item?.alt, locale), text: localize(item?.text, locale), visible: item?.visible !== false, href: item?.href || (category ? `/parts?category=${encodeURIComponent(category.slug)}` : `/parts?q=${encodeURIComponent(fa ? g.query : g.queryEn)}`), title: localize(item?.title, locale) || (fa ? g.fa : g.en) };
   });
-  const opening = document?.sections.find(b => b.kind === 'cinematic-hero' && b.style.template !== 'compact' && b.visible && (!b.startsAt || Date.parse(b.startsAt) <= data.now) && (!b.endsAt || Date.parse(b.endsAt) > data.now));
   const hasNewProducts = document?.sections.some(b => b.kind === 'new-products' && b.visible && (!b.startsAt || Date.parse(b.startsAt) <= data.now) && (!b.endsAt || Date.parse(b.endsAt) > data.now));
   // The new collection replaces the older duplicate in-stock list; no CMS data is mutated.
-  const collections = document ? { ...document, sections: document.sections.filter(b => b.id !== TITANIUM_CONFIG_ID && b.kind !== 'makers' && !['hero', 'cinematic-hero', 'vehicle-finder', 'shopping-paths'].includes(b.kind) && !(b.kind === 'legacy' && (b.legacy?.type === 'hero' || (hasNewProducts && b.legacy?.type === 'featured')))) } : null;
+  const collections = document ? { ...document, sections: document.sections.filter(b => b.id !== TITANIUM_CONFIG_ID && b.kind !== 'makers' && !(b.kind === 'legacy' && b.legacy?.type === 'faq') && !['hero', 'cinematic-hero', 'vehicle-finder', 'shopping-paths'].includes(b.kind) && !(b.kind === 'legacy' && (b.legacy?.type === 'hero' || (hasNewProducts && b.legacy?.type === 'featured')))) } : null;
   const brandsIndex = collections?.sections.findIndex(b => b.visible && (b.kind === 'brands' || (b.kind === 'legacy' && b.legacy?.type === 'brands'))) ?? -1;
   const faqIndex = collections?.sections.findIndex(b => b.kind === 'legacy' && b.legacy?.type === 'faq') ?? -1;
   const hubAfter = brandsIndex >= 0 ? brandsIndex + 1 : faqIndex >= 0 ? faqIndex : collections?.sections.length ?? 0;
+  const faqBlocks = document?.sections.filter(b => b.kind === 'legacy' && b.legacy?.type === 'faq') ?? [];
   const finder = document?.sections.find(b => b.kind === 'vehicle-finder');
   const savedClosing = document?.sections.filter(b => b.kind === 'cinematic-hero' && b.style.template === 'compact') ?? [];
   const closing = savedClosing.length ? savedClosing : [defaultAtelierClosing()];
@@ -55,9 +54,6 @@ export function TitaniumHome({ document, data, locale }: { document: BuilderDocu
       <div className="atelier-banner-media"><Image src={config?.imageUrl || `${ATELIER_ASSETS}/hero.webp`} alt={localize(config?.alt, locale) || (fa ? 'خودرو و قطعات در فضای سنگی روشن' : 'A car and precision parts in a sunlit stone gallery')} fill priority sizes="100vw" /></div>
       <div className="titanium-hero"><RepeatingSlogan locale={locale} {...(config ? { title: localize(config.title, locale), subtitle: localize(config.body, locale), tagline: config.button.en } : {})} /></div>
     </section>
-    {opening?.film ? <section className="titanium-opening-film" aria-label={fa ? 'فیلم معرفی سورس' : 'Source opening film'} data-assistant-avoid>
-      <CinematicFilm film={{ ...opening.film, playback: opening.film.playback === 'static' ? 'static' : 'loop', discovery: false }} still={opening.imageUrl} mobileStill={opening.mobileImageUrl} alt={localize(opening.alt, locale)} logoUrl="" logoAlt="" locale={locale} />
-    </section> : null}
     <QuickSearch locale={fa ? 'fa' : 'en'} />
 
     {finder?.visible !== false ? <section id="vehicle-finder" className="container-page titanium-finder-section" aria-labelledby="titanium-finder-title">
@@ -84,14 +80,15 @@ export function TitaniumHome({ document, data, locale }: { document: BuilderDocu
       </> : <>
         <LegacyHomeView {...viewData} content={{ ...data.content!, home: { sections: data.content!.home.sections.filter(s => s.type !== 'hero' && s.type !== 'faq') } }} locale={locale} />
         <AutomotiveHub heading={viewData.homeCopy.hub!.title} subtitle={viewData.homeCopy.hub!.subtitle} locale={locale} {...(config ? { items: config.items.slice(6, 9) } : {})} />
-        <LegacyHomeView {...viewData} content={{ ...data.content!, home: { sections: data.content!.home.sections.filter(s => s.type === 'faq') } }} locale={locale} />
       </>}
     </div>
 
-    {sourcing?.visible !== false ? <section className="container-page titanium-sourcing titanium-sourcing-compact" aria-labelledby="titanium-sourcing-title">
+    {sourcing?.visible !== false ? <section className="titanium-sourcing" aria-labelledby="titanium-sourcing-title">
       <div className="titanium-sourcing-copy"><h2 id="titanium-sourcing-title">{localize(sourcing?.title, locale) || (fa ? 'قطعه‌تان را پیدا نکردید؟' : 'Can’t find your part?')}</h2><p>{localize(sourcing?.text, locale) || (fa ? 'پیدا کردنش را به سورس بسپارید.' : 'Let Source help you find it.')}</p><Link className="titanium-button" href={sourcing?.href || '/request-part'}><ClipboardList aria-hidden size={18} />{fa ? 'درخواست تأمین قطعه' : 'Request a part'}</Link></div>
-      <Image className="titanium-sourcing-art" src={sourcing?.imageUrl || '/brand/source/titanium/sourcing-box.webp'} width={1448} height={1086} unoptimized alt={localize(sourcing?.alt, locale) || (fa ? 'جعبه سورس با قطعات خودرو' : 'Source box with automotive parts')} />
+      <Image className="titanium-sourcing-art" src={sourcing?.imageUrl || '/brand/source/atelier/sourcing-box.webp'} width={1448} height={1086} unoptimized alt={localize(sourcing?.alt, locale) || (fa ? 'جعبه سورس با قطعات خودرو' : 'Source box with automotive parts')} />
     </section> : null}
+
+    {document ? <BuilderView document={{ ...document, sections: faqBlocks }} data={viewData} locale={locale} /> : <LegacyHomeView {...viewData} content={{ ...data.content!, home: { sections: data.content!.home.sections.filter(s => s.type === 'faq') } }} locale={locale} />}
 
     {closing.filter(b => b.visible && (!b.startsAt || Date.parse(b.startsAt) <= data.now) && (!b.endsAt || Date.parse(b.endsAt) > data.now)).map(b => <div key={b.id} className="titanium-closing-film" data-assistant-avoid>
       <CinematicBanner block={b} locale={locale} />

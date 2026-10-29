@@ -7,6 +7,11 @@ test('atelier remains readable and contained in both directions and four viewpor
     await page.goto(`/${locale}`);
     const banner = page.locator('.atelier-banner');
     await expect(banner).toBeVisible();
+    await expect(page.locator('.titanium-opening-film')).toHaveCount(0);
+    const positions = await page.evaluate(() => ({logo:document.querySelector('.titanium-logo')!.getBoundingClientRect().left, controls:document.querySelector('.titanium-header-controls')!.getBoundingClientRect().right, source:document.querySelector('.titanium-sourcing')!.getBoundingClientRect().width}));
+    expect(positions.logo).toBeGreaterThanOrEqual(positions.controls);
+    expect(Math.round(positions.source)).toBe(width);
+    expect(await page.locator('.titanium-sourcing').evaluate(el => Boolean(el.nextElementSibling?.querySelector('details')))).toBe(true);
     await expect(banner.getByRole('heading', { level: 1 })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
     const geometry = await banner.evaluate(el => {
