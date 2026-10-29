@@ -59,7 +59,8 @@ export interface AssistantProductCard {
 export interface AssistantMessageResult {
   text: string;
   products: AssistantProductCard[];
-  provider: 'mock' | 'arvan';
+  /** 'fallback': the AI provider failed; the text is the guide's fixed "temporarily slow" reply. */
+  provider: 'mock' | 'arvan' | 'fallback';
   model: string;
 }
 

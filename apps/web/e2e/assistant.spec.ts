@@ -159,3 +159,26 @@ test('admin messages tab lists conversations and opens a question with the guide
   await page.getByLabel('نمایش').selectOption('failed');
   await expect.poll(() => listQuery).toContain('status=failed');
 });
+
+test('a failed smart answer is a friendly reply with the operator form, part search and sourcing request', async ({ page }) => {
+  await page.route('**/api/v1/site/assistant?**', (route) => route.fulfill({ json: { ...DEFAULT_ASSISTANT_SETTINGS, enabled: true } }));
+  let call = 0;
+  await page.route('**/api/v1/assistant/messages', (route) => (++call === 1
+    ? route.fulfill({ status: 201, json: { text: 'پاسخ هوشمند من همین حالا کمی کُند شده؛ ببخشید! 🙏', products: [], provider: 'fallback', model: 'test' } })
+    : route.abort('connectionreset')));
+  await page.goto('/fa');
+  await page.addStyleTag({ content: 'nextjs-portal { display: none !important; }' });
+  await page.getByRole('button', { name: 'باز کردن هکسی، راهنمای سورس' }).click();
+  const dialog = page.getByRole('dialog');
+  const ask = async (text: string) => { await dialog.getByLabel('نام قطعه، شماره فنی یا پرسش').fill(text); await dialog.getByRole('button', { name: 'ارسال', exact: true }).click(); };
+  await ask('سلام');
+  await expect(dialog.getByText('پاسخ هوشمند من همین حالا کمی کُند شده')).toBeVisible();
+  await expect(dialog.getByRole('link', { name: 'جست‌وجوی قطعات' })).toHaveAttribute('href', '/fa/parts');
+  await expect(dialog.getByRole('link', { name: 'درخواست تأمین قطعه' }).first()).toHaveAttribute('href', '/fa/request-part');
+  // The server unreachable: the same friendly reply, never "connection lost".
+  await ask('لنت دارید؟');
+  await expect(dialog.getByText('پاسخ هوشمند من همین حالا کمی کُند شده')).toHaveCount(2);
+  await expect(dialog.getByText(/در دسترس نیست/)).toHaveCount(0);
+  await dialog.getByRole('log').getByRole('button', { name: 'ارتباط با اپراتور' }).first().click();
+  await expect(dialog.locator('#operator-name')).toBeVisible();
+});

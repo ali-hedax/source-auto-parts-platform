@@ -18,6 +18,16 @@ describe('AssistantBudgetService', () => {
     await service.settle(reservation, 45);
     await expect(service.reserve(6, 100, 'test')).rejects.toThrow('budget is exhausted');
   });
+  it('gives the whole reservation back when it is settled at 0 (no response, nothing billed)', async () => {
+    service = new AssistantBudgetService({ APP_ENV: 'test', REDIS_URL: 'redis://127.0.0.1:1', ASSISTANT_TEST_BUDGET_IRR: 50, ASSISTANT_DAILY_REQUEST_LIMIT: 100, ASSISTANT_MAX_CONCURRENT: 3 } as Env);
+    await service.settle(await service.reserve(40, 100, 'test'), 0);
+    await expect(service.reserve(40, 100, 'test')).resolves.toMatchObject({ reservedIrr: 40 });
+  });
+  it('keeps the whole reservation when the provider answered but its cost is unknown', async () => {
+    service = new AssistantBudgetService({ APP_ENV: 'test', REDIS_URL: 'redis://127.0.0.1:1', ASSISTANT_TEST_BUDGET_IRR: 50, ASSISTANT_DAILY_REQUEST_LIMIT: 100, ASSISTANT_MAX_CONCURRENT: 3 } as Env);
+    await service.settle(await service.reserve(40, 100, 'test'), undefined);
+    await expect(service.reserve(40, 100, 'test')).rejects.toThrow('budget is exhausted');
+  });
   it('reserves before use and hard-rejects a request that exceeds the approved cap', async () => {
     service = new AssistantBudgetService({ APP_ENV: 'test', REDIS_URL: 'redis://127.0.0.1:1', ASSISTANT_TEST_BUDGET_IRR: 50, ASSISTANT_DAILY_BUDGET_IRR: 300, ASSISTANT_DAILY_REQUEST_LIMIT: 100, ASSISTANT_MAX_CONCURRENT: 3, ASSISTANT_INPUT_PRICE_IRR_PER_MILLION: 624000, ASSISTANT_OUTPUT_PRICE_IRR_PER_MILLION: 3744000 } as Env);
     await expect(service.reserve(40, 100, 'test')).resolves.toMatchObject({ reservedIrr: 40 });

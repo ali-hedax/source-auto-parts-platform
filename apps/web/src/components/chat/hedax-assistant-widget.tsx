@@ -17,6 +17,18 @@ import { api } from '@/lib/api/client';
 import { useAfterLoad } from '@/lib/after-load';
 import { OperatorPanel } from './operator-panel';
 
+/** Reply action that opens the operator form inside the guide instead of navigating. */
+const OPERATOR_LINK = '#operator';
+/** Shown when the guide cannot reach the server; the same tone as the server's "temporarily slow" reply. */
+const fallbackText = (locale: 'fa' | 'en') => locale === 'fa'
+  ? 'پاسخ هوشمند من همین حالا کمی کُند شده؛ ببخشید! 🙏 برای جواب دقیق، دکمهٔ «ارتباط با اپراتور» را بزنید تا همکاران ما به شما پاسخ بدهند، یا در صفحهٔ جست‌وجوی قطعات بگردید.'
+  : 'My smart answers are a little slow right now, sorry! 🙏 For a precise answer, tap “Talk to an operator” and our team will reply, or search on the parts page.';
+const fallbackLinks = (locale: 'fa' | 'en') => [
+  { href: OPERATOR_LINK, label: locale === 'fa' ? 'ارتباط با اپراتور' : 'Talk to an operator' },
+  { href: '/parts', label: locale === 'fa' ? 'جست‌وجوی قطعات' : 'Search parts' },
+  { href: '/request-part', label: locale === 'fa' ? 'درخواست تأمین قطعه' : 'Request a part' },
+];
+
 /** Older saved settings still say «ارتباط با پشتیبانی»; the support topic now opens the operator form. */
 const topicLabel = (label: string, topic: string, locale: 'fa' | 'en') => topic !== 'support' ? label : /پشتیبان|contact support/i.test(label) ? (locale === 'fa' ? 'ارتباط با اپراتور' : 'Talk to an operator') : label;
 
@@ -187,10 +199,11 @@ export function HedaxAssistantWidget({ locale, settings }: { locale: 'fa' | 'en'
     if (!question.trim() || busy) return;
     setBusy(true);
     try {
-      const history = messages.slice(-4).flatMap((m) => [{ role: 'user' as const, content: m.question }, { role: 'assistant' as const, content: m.reply.text }]);
+      // The fixed "temporarily slow" replies carry no conversation, so they are left out of the history.
+      const history = messages.filter((m) => !m.reply.links.some((l) => l.href === OPERATOR_LINK)).slice(-4).flatMap((m) => [{ role: 'user' as const, content: m.question }, { role: 'assistant' as const, content: m.reply.text }]);
       const result = await api<AssistantMessageResult>('/assistant/messages', { method: 'POST', body: { locale, message: question.trim(), history, ...(chatSessionId() ? { conversationId: chatSessionId() } : {}) } });
-      append(question.trim(), { text: result.text, links: [] }, result.products); setDraft('');
-    } catch { append(question.trim(), { text: locale === 'fa' ? 'اتصال دستیار اکنون در دسترس نیست. برای پیگیری با ما تماس بگیرید.' : 'The assistant is currently unavailable. Contact us for help.', links: [{ href: '/contact', label: locale === 'fa' ? 'تماس با ما' : 'Contact us' }] }); }
+      append(question.trim(), { text: result.text, links: result.provider === 'fallback' ? fallbackLinks(locale) : [] }, result.products); setDraft('');
+    } catch { append(question.trim(), { text: fallbackText(locale), links: fallbackLinks(locale) }); }
     finally { setBusy(false); }
   };
   const moving = settings.animationEnabled && !paused && !hidden;
@@ -245,7 +258,7 @@ export function HedaxAssistantWidget({ locale, settings }: { locale: 'fa' | 'en'
               <div className="rounded-xl border border-line-soft bg-white p-4 text-sm leading-7"><p className="font-semibold">{settings.greeting[locale]}</p><p>{settings.introduction[locale]}</p></div>
               <div className="my-3 grid grid-cols-2 gap-2">{ASSISTANT_TOPICS.map((topic) => <button key={topic} type="button" className="min-h-12 cursor-pointer rounded-xl border border-line-strong bg-white px-3 py-2 text-start text-sm font-semibold text-action hover:bg-surface" onClick={() => topic === 'support' ? setOperator(true) : append(settings.topics[topic].label[locale], assistantReply(settings, locale, topic))}>{topicLabel(settings.topics[topic].label[locale], topic, locale)}</button>)}</div>
               <div role="log" aria-live="polite" aria-relevant="additions" className="space-y-3">
-                {messages.map((message, i) => <div key={i} className="space-y-2 text-sm leading-7"><p className="ms-6 rounded-xl bg-action p-3 text-white"><PlainText text={message.question} /></p><div className="me-3 rounded-xl border border-line-soft bg-white p-3"><p><PlainText text={message.reply.text} /></p>{message.reply.links.map((link) => <Link key={link.href} href={link.href} onClick={() => setOpen(false)} className="mt-2 inline-flex min-h-11 items-center font-bold text-action underline underline-offset-4">{link.label}</Link>)}</div>{message.products?.map((p) => <Link key={p.slug} href={`/parts/${p.slug}`} onClick={() => setOpen(false)} className="block rounded-xl border border-line-soft bg-white p-3"><strong>{p.name[locale] || p.name.fa}</strong><div dir="ltr" className="text-xs text-steel">{p.partNumber || p.sku}</div><div className="mt-1 flex flex-wrap items-end justify-between gap-2"><span className="text-xs font-semibold text-steel">{tSite(`availability.${p.availability}`)}</span><Price price={p.price} unit={p.unit} /></div></Link>)}</div>)}
+                {messages.map((message, i) => <div key={i} className="space-y-2 text-sm leading-7"><p className="ms-6 rounded-xl bg-action p-3 text-white"><PlainText text={message.question} /></p><div className="me-3 rounded-xl border border-line-soft bg-white p-3"><p><PlainText text={message.reply.text} /></p>{message.reply.links.length ? <div className="mt-2 flex flex-wrap gap-x-4">{message.reply.links.map((link) => link.href === OPERATOR_LINK ? <button key={link.href} type="button" onClick={() => setOperator(true)} className="inline-flex min-h-11 cursor-pointer items-center font-bold text-action underline underline-offset-4">{link.label}</button> : <Link key={link.href} href={link.href} onClick={() => setOpen(false)} className="inline-flex min-h-11 items-center font-bold text-action underline underline-offset-4">{link.label}</Link>)}</div> : null}</div>{message.products?.map((p) => <Link key={p.slug} href={`/parts/${p.slug}`} onClick={() => setOpen(false)} className="block rounded-xl border border-line-soft bg-white p-3"><strong>{p.name[locale] || p.name.fa}</strong><div dir="ltr" className="text-xs text-steel">{p.partNumber || p.sku}</div><div className="mt-1 flex flex-wrap items-end justify-between gap-2"><span className="text-xs font-semibold text-steel">{tSite(`availability.${p.availability}`)}</span><Price price={p.price} unit={p.unit} /></div></Link>)}</div>)}
               </div></>}<div ref={end} />
             </div>
             {operator ? null : <form className="flex shrink-0 gap-2 border-t border-line-soft bg-white p-3" onSubmit={(e) => { e.preventDefault(); void ask(draft); }}>
