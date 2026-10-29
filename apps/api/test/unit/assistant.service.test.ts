@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Env } from '../../src/config/env.js';
-import { AssistantService, claimsOtherIdentity, cleanHistory, contactNumbers, restoreMaskedNumbers } from '../../src/modules/assistant/assistant.service.js';
+import { ServiceUnavailableException } from '@nestjs/common';
+import { AssistantService, basePrompt, claimsOtherIdentity, cleanHistory, contactNumbers, fallbackReply, restoreMaskedNumbers } from '../../src/modules/assistant/assistant.service.js';
 import type { CatalogService } from '../../src/modules/catalog/catalog.service.js';
 
 const env = { ASSISTANT_AI_PROVIDER: 'mock', ASSISTANT_LIVE_CALLS_ENABLED: false, ASSISTANT_TEXT_MODEL: 'test-model', ASSISTANT_TIMEOUT_MS: 5000, ASSISTANT_MAX_OUTPUT_TOKENS: 200, ASSISTANT_DAILY_REQUEST_LIMIT: 5 } as Env;
@@ -65,16 +66,76 @@ describe('AssistantService isolated provider', () => {
       expect(recorder.record).toHaveBeenCalledWith(expect.objectContaining({ clientKey: conversationId, question: 'شماره تماس؟', answer: 'سلام! من هکسی‌ام', status: 'ANSWERED', productSkus: ['SYN-1'], usage: { prompt_tokens: 900, completion_tokens: 40 } }));
     } finally { fetchMock.mockRestore(); }
   });
-  it('logs a failed answer and still reports the failure to the visitor', async () => {
-    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('down', { status: 503 }));
-    const arvan = { ...env, ASSISTANT_AI_PROVIDER: 'arvan', ASSISTANT_LIVE_CALLS_ENABLED: true, ARVAN_AI_ENDPOINT: 'https://example.test/v1', ARVAN_AI_API_KEY: 'k', ASSISTANT_TEXT_MODEL: 'm', ASSISTANT_MAX_CONCURRENT: 3 } as Env;
-    const budget = { estimate: vi.fn().mockReturnValue(100), reserve: vi.fn().mockResolvedValue({ budgetKey: 'b', concurrencyKey: 'c', reservedIrr: 100 }), actual: vi.fn(), settle: vi.fn().mockResolvedValue(undefined) };
-    const recorder = log();
-    const service = new AssistantService(arvan, { list: vi.fn().mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 4, query: '' }) } as unknown as CatalogService, { assistant: vi.fn().mockResolvedValue({ enabled: true, name: { fa: 'هکسی', en: 'Hexi' }, ai: { systemPrompt: { fa: 'p', en: 'p' }, maxOutputTokens: 200, dailyRequestLimit: 5 } }) } as never, budget as never, content() as never, recorder as never);
-    try {
-      await expect(service.message({ locale: 'fa', message: 'سلام', history: [] }, null)).rejects.toThrow('Assistant provider unavailable');
-      expect(recorder.record).toHaveBeenCalledWith(expect.objectContaining({ question: 'سلام', answer: null, status: 'FAILED', errorReason: 'Assistant provider unavailable' }));
-    } finally { fetchMock.mockRestore(); }
+  describe('when the smart answer fails', () => {
+    const arvan = { ...env, ASSISTANT_AI_PROVIDER: 'arvan', ASSISTANT_LIVE_CALLS_ENABLED: true, ARVAN_AI_ENDPOINT: 'https://example.test/v1', ARVAN_AI_API_KEY: 'k', ASSISTANT_TEXT_MODEL: 'm', ASSISTANT_MAX_CONCURRENT: 3, ASSISTANT_TIMEOUT_MS: 30 } as Env;
+    const reservation = { budgetKey: 'b', concurrencyKey: 'c', reservedIrr: 100 };
+    const setup = (items: unknown[] = [], reserve = vi.fn().mockResolvedValue(reservation)) => {
+      const budget = { estimate: vi.fn().mockReturnValue(100), reserve, actual: vi.fn().mockReturnValue(10), settle: vi.fn().mockResolvedValue(undefined) };
+      const recorder = log();
+      const service = new AssistantService(arvan, { list: vi.fn().mockResolvedValue({ items, total: items.length, page: 1, pageSize: 4, query: '' }) } as unknown as CatalogService, { assistant: vi.fn().mockResolvedValue({ enabled: true, name: { fa: 'هکسی', en: 'Hexi' }, ai: { systemPrompt: { fa: 'p', en: 'p' }, maxOutputTokens: 200, dailyRequestLimit: 5 } }) } as never, budget as never, content() as never, recorder as never);
+      return { service, budget, recorder };
+    };
+    it('answers with the friendly reply on a provider 5xx, logs FAILED and keeps the conservative reservation', async () => {
+      const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('down', { status: 503 }));
+      const { service, budget, recorder } = setup();
+      try {
+        const result = await service.message({ locale: 'fa', message: 'سلام', history: [] }, null);
+        expect(result).toEqual({ text: fallbackReply('fa', 0), products: [], provider: 'fallback', model: 'm' });
+        expect(result.text).toContain('ارتباط با اپراتور');
+        expect(recorder.record).toHaveBeenCalledWith(expect.objectContaining({ question: 'سلام', answer: null, status: 'FAILED', errorReason: 'Assistant provider status 503' }));
+        expect(budget.settle).toHaveBeenCalledWith(reservation, undefined);
+      } finally { fetchMock.mockRestore(); }
+    });
+    it('answers with the friendly reply on a timeout and releases the reservation', async () => {
+      const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation((_url, init) => new Promise((_resolve, reject) => {
+        (init as RequestInit).signal!.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+      }));
+      const { service, budget, recorder } = setup();
+      try {
+        const result = await service.message({ locale: 'fa', message: 'سلام', history: [] }, null);
+        expect(result.provider).toBe('fallback');
+        expect(recorder.record).toHaveBeenCalledWith(expect.objectContaining({ status: 'FAILED', errorReason: 'Assistant provider timeout' }));
+        expect(budget.settle).toHaveBeenCalledWith(reservation, 0);
+      } finally { fetchMock.mockRestore(); }
+    });
+    it('releases the reservation when the connection fails before any response', async () => {
+      const fetchMock = vi.spyOn(globalThis, 'fetch').mockRejectedValue(Object.assign(new TypeError('fetch failed'), { cause: { code: 'ECONNRESET' } }));
+      const { service, budget, recorder } = setup();
+      try {
+        const result = await service.message({ locale: 'en', message: 'Hi', history: [] }, null);
+        expect(result).toMatchObject({ provider: 'fallback', text: fallbackReply('en', 0) });
+        expect(recorder.record).toHaveBeenCalledWith(expect.objectContaining({ status: 'FAILED', errorReason: 'Assistant provider unreachable (ECONNRESET)' }));
+        expect(budget.settle).toHaveBeenCalledWith(reservation, 0);
+      } finally { fetchMock.mockRestore(); }
+    });
+    it('shows the catalog cards already found when the budget is exhausted, without calling the provider', async () => {
+      const fetchMock = vi.spyOn(globalThis, 'fetch');
+      const { service, budget, recorder } = setup([product], vi.fn().mockRejectedValue(new ServiceUnavailableException('Assistant cost budget is exhausted')));
+      try {
+        const result = await service.message({ locale: 'fa', message: 'لنت', history: [] }, null);
+        expect(result.provider).toBe('fallback');
+        expect(result.products).toEqual([expect.objectContaining({ sku: 'SYN-1', partNumber: '58101-TEST' })]);
+        expect(result.text).toBe(fallbackReply('fa', 1));
+        expect(result.text).toContain('کاتالوگ سورس');
+        expect(fetchMock).not.toHaveBeenCalled(); expect(budget.settle).not.toHaveBeenCalled();
+        expect(recorder.record).toHaveBeenCalledWith(expect.objectContaining({ status: 'FAILED', errorReason: 'Assistant cost budget is exhausted', productSkus: ['SYN-1'] }));
+      } finally { fetchMock.mockRestore(); }
+    });
+    it('keeps the success path: the provider text, the real usage settled and ANSWERED logged', async () => {
+      const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ choices: [{ message: { content: 'سلام! من هکسی‌ام' } }], usage: { prompt_tokens: 900, completion_tokens: 40 } }), { status: 200, headers: { 'content-type': 'application/json' } }));
+      const { service, budget, recorder } = setup();
+      try {
+        expect(await service.message({ locale: 'fa', message: 'سلام', history: [] }, null)).toEqual({ text: 'سلام! من هکسی‌ام', products: [], provider: 'arvan', model: 'm' });
+        expect(budget.settle).toHaveBeenCalledWith(reservation, 10);
+        expect(recorder.record).toHaveBeenCalledWith(expect.objectContaining({ status: 'ANSWERED', answer: 'سلام! من هکسی‌ام' }));
+      } finally { fetchMock.mockRestore(); }
+    });
+  });
+  it('asks for every footer number with WhatsApp marked, and a safety note on safety-critical parts', () => {
+    const p = basePrompt({ fa: 'هکسی', en: 'Hexi' });
+    expect(p).toContain('give every phone number in SITE_FACTS.contact.phones');
+    expect(p).toContain('WhatsApp');
+    expect(p).toContain('add one short safety note');
   });
   it('replaces a reply in which the model claims to be ChatGPT with Hexi\'s introduction', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ choices: [{ message: { content: 'بله، من ChatGPT هستم؛ یک دستیار هوش مصنوعی از OpenAI.' } }] }), { status: 200, headers: { 'content-type': 'application/json' } }));
