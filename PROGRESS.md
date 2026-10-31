@@ -1,8 +1,8 @@
 # Source by HEDAX — وضعیت و نقطهٔ ادامه
 
-آخرین checkpoint: 2026-10-31 10:55 Asia/Tehran؛ چهار ایمیج Production نسخهٔ 2f303b9 ساخته و revision/digest تأیید شد (run 41180213393). انتشار روی میزبان همچنان فقط به‌علت نبود اتصال SSH/خرابی کنسول آروان انجام نشده؛ آخرین Production ثبت‌شده api/web 38d74a8 است.
+آخرین checkpoint: 2026-10-31 13:00 Asia/Tehran؛ web نسخهٔ 2f303b9 (هدر وسط‌چین + بنر کامل) روی Production منتشر و زنده تأیید شد. api روی 38d74a8 و worker/tools روی edc508d بدون تغییر ماندند.
 
-> مرجع فعلی انتشار: api/web 38d74a8 (`footer-38d74a8-20261031`)، worker/tools edc508d (`operator-edc508d-20261028`). مدل هکسی GPT-4o-mini، timeout 25000.
+> مرجع فعلی انتشار: web 2f303b9 (`header-hero-2f303b9-20261031`)، api 38d74a8 (`footer-38d74a8-20261031`)، worker/tools edc508d (`operator-edc508d-20261028`). مدل هکسی GPT-4o-mini، timeout 25000.
 > گزارش‌های عملیات امروز: `/srv/hedax-data/ops/20261028/`، `/srv/hedax-data/ops/tidy-20261028/` و `/srv/hedax-data/ops/kernel-20261028/` (خصوصی، روی سرور). یادداشت‌های
 > worktreeهای قدیمی تاریخی‌اند؛ تغییرات محلی کاربر در آن‌ها حفظ شده‌اند و نباید بازنویسی شوند.
 
@@ -12,7 +12,21 @@
 
 ## نقطهٔ فعلی
 
-### Completed & Tested / Blocked External — ایمیج‌های Production آماده؛ اتصال سرور باقی است — 2026-10-31 10:55 Asia/Tehran
+### Completed & Tested — Production web 2f303b9 (centred header wordmark + complete first-screen banner) — 2026-10-31 13:00 Asia/Tehran
+
+- **مجوز مالک (همین گفتگو، 2026-10-31):** فقط web با digest ثبت‌شده، rollback و health checks؛ تنظیمات، داده و مسیرهای MTU تغییر نکنند. بخش «Blocked External — اتصال سرور» پایین با این انتشار حل شد (اتصال SSH از محیط VS Code اپراتور برقرار بود).
+- **Diff:** 38d74a8..2f303b9 فقط `apps/web/*` (header-wordmark، site-header-view، first-screen-banner، titanium-home، atelier-refinements.css، e2e) و PROGRESS.md است؛ api/worker/contracts/migration تغییری ندارند. ایمیج دوباره ساخته نشد.
+- **وضعیت میزبان پیش از انتشار (09:18 UTC):** api/web 38d74a8، worker edc508d، همه healthy؛ wrapper f70448c1… (همان رکورد قبلی)؛ MTU routes 3، MSS rules 5، Preview 0.
+- **انتشار (Completed & Tested):** candidate `/opt/hedax-release-candidates/header-hero-2f303b9-20261031/`، `deploy.sh` sha256 53a7c9c4…، آپلود تکه‌ای، اجرا با `systemd-run`، `deploy.exit` 0.
+  - Backup و rollback: dump TABLE DATA 106 (sha256 96393c65…)، `compose.before` (f70448c1…)، تگ `hedax-header-rollback-web:pre-2f303b9`.
+  - web با digest `sha256:6324d93347d30523f2e8fe71c4e98d71bc6342156c881d98238d8ad5e6daeb54` و revision برابر SHA کامل 2f303b9c3c616fa570785fe5a8ecf008d36f29e2 تأیید شد (ایمیج از قبل روی میزبان بود).
+  - Overlay فقط web؛ سوییچ `up -d --no-deps --no-build web` ساعت 09:19:56 UTC؛ check 1: api ready، /fa، /en و /fa/contact هر سه 200، web healthy. api و worker بدون تغییر؛ MTU 3 / MSS 5 پس از انتشار.
+  - Wrapper جدید 081c297c…؛ `rollout-verified.json` نوشته شد؛ rollback لازم نشد. `DEPLOY_OK` 09:20:05 UTC.
+- **بررسی زنده (Chrome مستقیم، 2026-10-31 ~12:55 Tehran):** /fa و /en در 320×568، 390×844، 768×1024، 1024×600، 1280×720، 1366×768 و 1920×1080، یعنی ۱۴ ترکیب، همه PASS: status 200؛ «by HEDAX» حاضر؛ مرکز لوگو و امضا در فاصلهٔ کمتر از 1px از وسط صفحه؛ اندازهٔ امضا ≥ 14px؛ کنترل‌ها کنار لوگو بدون هم‌پوشانی؛ پایین بنر داخل صفحهٔ اول؛ نسبت 1.778 (16:9)؛ object-fit contain؛ تصویر بارگذاری‌شده؛ overflow 0. اسکرین‌شات‌های fa/en در 390، 1366 و 1920 دیده شدند.
+- **ملاحظه (پیشین، این انتشار عوضش نکرد):** در موبایل ماسکات هکسی روی عنوان «از خودروی شما شروع کنیم» قرار می‌گیرد.
+- **Production فعلی: web 2f303b9، api 38d74a8، worker/tools edc508d.** Rollback: `/opt/hedax-release-candidates/header-hero-2f303b9-20261031/compose.before up -d --no-deps --no-build web`.
+
+### Completed & Tested / Blocked External (resolved 2026-10-31 13:00 — see above) — ایمیج‌های Production آماده؛ اتصال سرور باقی است — 2026-10-31 10:55 Asia/Tehran
 
 - ورود GitHub با تأیید مالک تکمیل شد. Release images #17، run **41180213393**، روی main دقیق **2f303b9c3c616fa570785fe5a8ecf008d36f29e2** با environment=production اجرا شد؛ هر چهار job api/worker/tools/web موفق‌اند.
 - برچسب org.opencontainers.image.revision هر چهار ایمیج در لاگ ساخت و مستقل از آن با خواندن manifest/config در GHCR با SHA کامل بالا برابر بود. تگ هر چهار ایمیج: 2f303b9c3c61-production.
