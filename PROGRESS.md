@@ -1,8 +1,8 @@
 # Source by HEDAX — وضعیت و نقطهٔ ادامه
 
-آخرین checkpoint: 2026-10-31 08:50 +03:30؛ Production: api/web 0f1a15e (هکسی با GPT-4o-mini، fallback و آزادسازی بودجه، PR70) از 2026-10-29 12:31 فعال و سالم است؛ main 38d74a8 (PR69 فوتر) ساخته شده ولی منتشر نشده است. راهکار موقت MTU همچنان فعال است (پس از ریبوت برمی‌گردد).
+آخرین checkpoint: 2026-10-31 09:05 +03:30؛ Production: api/web 38d74a8 (PR69 فوتر + PR70 هکسی) منتشر و روی سایت بررسی شد؛ worker/tools edc508d. مدل هکسی GPT-4o-mini. راهکار موقت MTU همچنان فعال است (پس از ریبوت برمی‌گردد).
 
-> مرجع فعلی انتشار: api/web 0f1a15e (`hexi-fallback-0f1a15e-20261029`)، worker/tools edc508d (`operator-edc508d-20261028`). مدل هکسی GPT-4o-mini، timeout 25000.
+> مرجع فعلی انتشار: api/web 38d74a8 (`footer-38d74a8-20261031`)، worker/tools edc508d (`operator-edc508d-20261028`). مدل هکسی GPT-4o-mini، timeout 25000.
 > گزارش‌های عملیات امروز: `/srv/hedax-data/ops/20261028/`، `/srv/hedax-data/ops/tidy-20261028/` و `/srv/hedax-data/ops/kernel-20261028/` (خصوصی، روی سرور). یادداشت‌های
 > worktreeهای قدیمی تاریخی‌اند؛ تغییرات محلی کاربر در آن‌ها حفظ شده‌اند و نباید بازنویسی شوند.
 
@@ -11,6 +11,23 @@
 هیچ رمز، توکن، دادهٔ مشتری یا محتوای محرمانهٔ فایل تأمین‌کننده در این فایل ثبت نشود.
 
 ## نقطهٔ فعلی
+
+### Completed & Tested — Production api/web 38d74a8 (PR69 footer contact channels + PR70) — 2026-10-31 09:05 Asia/Tehran
+
+- **Owner approval (this chat, 2026-10-31):** «آره منتشر کن خودت» — deploy main 38d74a8 api/web. This resolves the "Blocked External — server access" section below. Worker/tools, .env, DNS, data, CMS, Preview and the MTU routes were not changed.
+- **Diff:** main 28eb7f4 differs from 38d74a8 only in PROGRESS.md. This release adds only PR69 on top of the live 0f1a15e (12 files in api content/assistant, web footer/contact/admin, contracts). There is no migration. `contact.channels` has a schema default, so existing CMS content parses unchanged.
+- **Images:** Release images run 40845683696 (attempt 2, success); revision label 38d74a89cb99a50c725228561dea77483cfc8960 in the run log and on the host. api `sha256:3c06ad54…4fc4`, web `sha256:245d860b…cb91`; the same digests as recorded by the other session.
+- **Deploy (Completed & Tested):** candidate `/opt/hedax-release-candidates/footer-38d74a8-20261031/`; `deploy.sh` sha256 505afc1e…, uploaded in chunks with per-chunk SSH retries (one reset), started via `systemd-run`, `deploy.exit` 0.
+  - Preconditions: api/web 0f1a15e, worker edc508d, model GPT-4o-mini/25000, Preview 0, MTU routes 3, MSS rules 5.
+  - Backup and rollback: dump TABLE DATA 106 (sha256 47d1126e…); `compose.before` (bbff1676…); tags `hedax-footer-rollback-{api,web}:pre-38d74a8`.
+  - Pulled by digest with revision check. Switch at 05:31:23 UTC; check 1: api ready, FA and EN 200, web healthy. Worker unchanged.
+  - Wrapper replaced (f70448c1…); `rollout-verified.json` written; no rollback.
+- **Live check (Chrome direct, 2026-10-31 09:03 Tehran):**
+  - /fa and /fa/contact at 1366 and 390 px, and /en at 1366 px: all 200, horizontal overflow 0, header logo 41/16 px from the right edge.
+  - Footer contacts in order: phone 02536668006 ext. 119, mobile 00989121531797, WhatsApp +971 50 144 1797 (one link), Instagram @hedax.73, email, hours. No duplicate WhatsApp and no empty LinkedIn/Telegram/Bale icons.
+  - Hexi in fresh chats: «سلام، اسمت چیه؟» 7.7 s, introduced itself as هکسی and addressed the visitor as «شما». «شماره تماس فروشگاه رو بده» 5.4 s gave the landline (ext. 119), mobile (WhatsApp) and WhatsApp +971 50 144 1797, with no stars. Both ANSWERED with GPT-4o-mini.
+  - The admin contact form was not opened (no owner session); nothing was saved.
+- **Current Production: api/web 38d74a8, worker/tools edc508d.** Rollback: `/opt/hedax-release-candidates/footer-38d74a8-20261031/compose.before up -d --no-deps --no-build api web`.
 
 ### Completed & Tested — Hexi reliable and fast: GPT-4o-mini, fallback + fair budget (PR70), Production api/web 0f1a15e — 2026-10-29 12:35 Asia/Tehran (re-checked 2026-10-31)
 
@@ -75,7 +92,7 @@
   - MTU routes (3) and MSS rules (5) are present. DF ping to S3 still drops packets > 1300 B, so the provider path is unchanged.
 - **Current Production: api/web 0f1a15e (PR70 without PR69), worker/tools edc508d.** main 38d74a8, which adds the PR69 footer channels, is built but not deployed. That deploy belongs to the separate owner approval recorded in the section below.
 
-### Blocked External — انتشار main شامل PR69 و PR70 — 2026-10-29، Asia/Tehran
+### Resolved 2026-10-31 (see the 38d74a8 release above) — previously Blocked External: انتشار main شامل PR69 و PR70 — 2026-10-29، Asia/Tehran
 
 - مجوز صریح مالک: انتشار فقط api و web از آخرین main، بدون migration یا بازنویسی کد؛ حفظ .env، DNS، داده، CMS، Preview و مسیرهای موقت MTU؛ docs PR با ادغام پس از CI سبز.
 - **Completed & Tested — Git:** AGENTS.md و PROGRESS.md خوانده شد. clone تازه و `git fetch origin main` موفق؛ main/HEAD برابر `38d74a89cb99a50c725228561dea77483cfc8960`، working tree اولیه تمیز. `git merge-base --is-ancestor` برای merge هر دو PR69 (`351a00c`) و PR70 (`38d74a8`) موفق؛ هیچ فایل کد تغییر نکرد.
