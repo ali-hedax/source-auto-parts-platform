@@ -1,6 +1,6 @@
 # Source by HEDAX — وضعیت و نقطهٔ ادامه
 
-آخرین checkpoint: 2026-10-31 13:24 Asia/Tehran؛ web نسخهٔ 190588c (بنر قطعات تمام‌عرض و شعار پیوسته، PR78) روی Production منتشر و زنده تأیید شد. مشکل TLS ایمیل با اصلاح محدود MSS مسیر SMTP رفع و احراز هویت واقعی API/worker تأیید شد؛ پیام تازه ارسال نشده است. api روی 38d74a8 و worker/tools روی edc508d بدون تغییر ماندند.
+آخرین checkpoint: 2026-10-31 16:25 Asia/Tehran؛ **حادثهٔ split-brain آروان:** نسخهٔ دوم همان instance (همان IP/MAC/دیسک) هم‌زمان روشن شد؛ با تأیید مالک نسخهٔ تکراری خاموش شد و سرور اصلی سالم سرویس می‌دهد. انتشار web 2e6784b (منوی درشت‌تر، PR79) **متوقف** است تا آروان وضعیت را روشن کند. Production بدون تغییر: web 190588c، api 38d74a8، worker/tools edc508d.
 
 > مرجع فعلی انتشار: web 190588c (`parts-mail-20261031`، merge dc436b1)، api 38d74a8 (`footer-38d74a8-20261031`)، worker/tools edc508d (`operator-edc508d-20261028`). مدل هکسی GPT-4o-mini، timeout 25000.
 > گزارش‌های عملیات امروز: `/srv/hedax-data/ops/20261028/`، `/srv/hedax-data/ops/tidy-20261028/` و `/srv/hedax-data/ops/kernel-20261028/` (خصوصی، روی سرور). یادداشت‌های
@@ -11,6 +11,21 @@
 هیچ رمز، توکن، دادهٔ مشتری یا محتوای محرمانهٔ فایل تأمین‌کننده در این فایل ثبت نشود.
 
 ## نقطهٔ فعلی
+
+### Blocked External / Requires Owner Decision — Arvan split-brain: duplicate hedax instance on the same disk — 2026-10-31 16:25 Asia/Tehran
+
+- **Discovery (while preparing the web-only 2e6784b deploy):** SSH to 188.121.125.173 alternately reached two machines with the same hostname, SSH host key, MAC `fa:16:3e:b2:c3:65`, root volume serial `1adbb0f5-b136-422e-b…` and root FS UUID `7ebaf03c…`:
+  - **original**: boot_id `21c05ea9…`, up since 2026-10-28 09:10 UTC, all containers from earlier deploys, MTU routes 3 + MSS rules 7, **no** access to the metadata service; about 9/10 SSH sessions reached it.
+  - **duplicate**: boot_id `73c0f6b7…`, booted about 10:27 UTC (host clock), Docker started 12:27 UTC, its own PostgreSQL/API/web running on the **same** disk, MTU/MSS temporary rules missing (only the persisted mail MSS service); metadata reachable, instance uuid `ee650196-8a8a-4e5a-94f1-d53f6efac782`, name hedax.
+  - No reboot/power command came from this session or a visible SSH login; cause unknown, most likely an Arvan HA/evacuation restart while the original kept running.
+- **Action (owner-approved in this chat, 12:50:29 UTC):** immediate poweroff (sysrq `o`, no sync, to avoid extra writes to the shared disk) executed only after checking boot_id = 73c0f6b7. Afterwards 15/15 and 12/12 SSH samples reached only 21c05ea9.
+- **Original after the action (read-only checks):** dmesg 0 EXT4/I/O errors; PostgreSQL log 0 PANIC/corruption lines (the only ERROR lines were this session's own probe with a wrong table name); fresh dump `/srv/hedax-data/ops/split-20261031/after-split.dump` 565081 bytes, 106 TABLE DATA; api ready 200 (database/redis/storage/scanner up); /fa, /en, /fa/contact 200; Chrome from the operator PC 200.
+- **Risks still open:** the duplicate wrote to the shared volume for about 2 h 20 min (10:27–12:50 UTC); latent filesystem/database damage cannot be ruled out by these checks. Any visitor writes that landed on the duplicate are lost. The Arvan panel controls the **duplicate's** identity: pressing Start/Restart there may boot it again on the same disk.
+- **Owner/Arvan next steps:** urgent Arvan ticket with the evidence above (two hypervisors running instance ee650196… on one volume); ask Arvan to fence correctly without restarting the duplicate; do not press Start/Restart in the panel; after Arvan confirms, run a fresh fsck/database consistency check in a maintenance window and keep the dumps.
+- **Deploy on hold:** PR79 (desktop menu 13px → 15px, 14px at 900–1199px) merged as `2e6784b02deecfd6d684ff9f0eebf0bde0c07d72` after CI 41201861202/41201855352. Release images 41202104035 succeeded for all four images; web `sha256:03e07976cccdac073f582695183e7d0902a2cf2c8f67e32a982e35e14625461b`, revision label = full SHA. Script prepared locally (web only, same rollback procedure, old web cdfdee3a… / wrapper d4f28373…) but **not run**; the owner's earlier deploy approval came before the incident, so get fresh approval once the host is stable.
+- **Test note:** `atelier.spec.ts` "hero types Persian then English, pauses…" fails on main without PR79 (2/2): PR78's continuous slogan makes the old one-shot assertion catch the text mid-erase. That test needs updating; CI does not run E2E.
+- **Concurrency note:** another session's uncommitted PR78 edits were found in `Desktop/source-hexi-release` (branch name `fix/full-width-banner-nav-size`, created by this session's branch switch). They were left in place; PR78 itself is merged.
+
 
 ### Completed & Tested — full-width parts hero, continuous slogan and SMTP path repair — 2026-10-31 13:24 Asia/Tehran
 
