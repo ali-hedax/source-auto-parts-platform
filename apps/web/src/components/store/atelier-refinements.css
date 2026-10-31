@@ -61,14 +61,39 @@
 .titanium-store .atelier-brand-card{border:0;box-shadow:none;background:transparent;height:auto;align-self:start}
 .titanium-store .builder-products article.part-card{border:0;box-shadow:none;background:transparent}
 
-/* Owner's live revision: right-aligned identity, balanced controls and full-bleed sourcing. */
-.titanium-store .titanium-logo{grid-column:1;justify-self:start}
-.titanium-store .titanium-header-inner>button{grid-column:2;justify-self:center}
-.titanium-store:dir(ltr) .titanium-logo{grid-column:3;justify-self:end}
+/* Equal side tracks keep the brand at the page centre in either reading direction. */
+.titanium-store .titanium-logo{grid-column:2;justify-self:center}
+.titanium-store .titanium-header-inner>button{grid-column:1;justify-self:start}
+.titanium-store:dir(ltr) .titanium-header-inner>button{grid-column:3;justify-self:end}
 .titanium-store:dir(ltr) .titanium-header-controls{grid-column:1;justify-self:start}
+.titanium-store .header-wordmark{display:flex;flex-direction:column;align-items:center;gap:10px;width:100%}
+/* Crop only the old, tiny signature inside the existing artwork; the SOURCE lettering stays intact. */
+.titanium-store .header-wordmark-art{display:block;position:relative;width:100%;aspect-ratio:4.35;overflow:hidden}
+.titanium-store .header-wordmark-art img{position:absolute;width:104.4%;max-width:none;height:auto;left:-2.1%;top:-16%}
+.titanium-store .header-wordmark-signature{display:flex;align-items:baseline;gap:.45em;font-family:var(--font-en),sans-serif;font-size:clamp(16px,1.5vw,21px);font-weight:600;line-height:1.25;letter-spacing:.22em;color:var(--ti-ink)}
+.titanium-store .header-wordmark-signature>span{font-size:.8em;font-weight:400;letter-spacing:.04em}
+/* Preserve the entire 16:9 artwork and reserve the space above it before hydration too. */
+.titanium-store .atelier-banner{container-type:inline-size;aspect-ratio:16/9;width:min(100%,calc((100svh - var(--banner-top,220px) - 16px)*16/9));margin-inline:auto}
+.titanium-store .atelier-banner-media img{object-fit:contain}
+.titanium-store .atelier-banner .atelier-typewriter h1{font-size:clamp(16px,2.65cqw,46px)}
+.titanium-store:dir(ltr) .atelier-banner .atelier-typewriter h1{font-size:clamp(15px,2.4cqw,42px)}
+.titanium-store .atelier-banner .titanium-tagline{font-size:clamp(10px,1.45cqw,25px);margin-top:clamp(7px,1.1cqw,18px)}
+@media(max-width:800px){
+ .titanium-store .titanium-logo{width:clamp(104px,32vw,220px)}
+ .titanium-store .header-wordmark{gap:7px}
+ .titanium-store .header-wordmark-signature{font-size:14px}
+ .titanium-store .titanium-header-controls{flex-wrap:nowrap}
+ .titanium-store .titanium-search-link{display:none}
+ .titanium-store .atelier-banner{width:100%}
+}
+@media(max-width:600px){
+ .titanium-store .atelier-banner .atelier-typewriter h1{font-size:clamp(11px,3.1cqw,19px)}
+ .titanium-store:dir(ltr) .atelier-banner .atelier-typewriter h1{font-size:clamp(10px,2.7cqw,18px)}
+ .titanium-store .atelier-banner .titanium-tagline{font-size:clamp(9px,2cqw,13px)}
+}
 .titanium-store .titanium-sourcing{width:100%;max-width:none!important;margin-inline:0}
 .titanium-store .titanium-sourcing-art{width:100%;max-height:350px;filter:drop-shadow(0 18px 18px rgb(57 40 28 / .1))}
-/* Full-width storefront header: logo at the right gutter, controls at the left, navigation across the whole row. */
+/* Full-width storefront header with centred identity and navigation across the whole row. */
 .titanium-store .titanium-header-inner,.titanium-store .home-header .hh-inner{max-width:none;padding-inline:clamp(16px,3vw,48px)}
 .titanium-store .titanium-desktop-nav nav.container-page{max-width:none;padding-inline:0}
 .titanium-store .titanium-header-inner>.titanium-header-controls{margin-inline-start:0}

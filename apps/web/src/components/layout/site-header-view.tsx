@@ -1,5 +1,5 @@
 import { localize } from '@hedax/contracts/constants';
-import Image from 'next/image';
+import { HeaderWordmark } from './header-wordmark';
 import { Search } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import type { BuilderDocument, SiteContentView, Currency } from '@hedax/contracts';
@@ -30,7 +30,7 @@ export function SiteHeaderView({ content, chrome, currency }: { content: SiteCon
     <div className="container-page titanium-header-inner">
       <MobileNav items={nav.map(n => ({ href: n.href, label: n.label }))} currency={currency} />
       <Link href="/" className="titanium-logo" style={{ '--ti-logo-width': `${({ md: 240, lg: 300, xl: 340 })[chrome?.logo?.size ?? 'lg']}px` } as CSSProperties} aria-label={localize(brand?.siteTitle, locale) || alt}>
-        <picture>{chrome?.logo?.mobileUrl ? <source media="(max-width: 639px)" srcSet={chrome.logo.mobileUrl} /> : null}<Image src={logo} width={2169} height={725} unoptimized priority alt={alt || 'Source by HEDAX'} /></picture>
+        <HeaderWordmark src={logo} {...(chrome?.logo?.mobileUrl ? { mobileSrc: chrome.logo.mobileUrl } : {})} alt={alt || 'Source by HEDAX'} />
       </Link>
       <div className="titanium-desktop-nav"><HeaderNav items={nav.map(n => ({ href: n.href, label: n.label }))} label={t('common.menu')} /></div>
       <div className="titanium-header-controls">

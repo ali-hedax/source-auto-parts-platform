@@ -14,6 +14,7 @@ import { titaniumConfig, TITANIUM_CONFIG_ID, ATELIER_ASSETS, ATELIER_BRANDS, new
 import type { CSSProperties } from 'react';
 import { CinematicBanner } from '@/components/builder/cinematic-banner';
 import { QuickSearch } from './quick-search';
+import { FirstScreenBanner } from './first-screen-banner';
 
 /** Approved titanium composition; catalogue and published CMS collections remain authoritative. */
 export function TitaniumHome({ document, data, locale }: { document: BuilderDocument | null; data: BuilderData; locale: string }) {
@@ -50,10 +51,10 @@ export function TitaniumHome({ document, data, locale }: { document: BuilderDocu
   const savedClosing = document?.sections.filter(b => b.kind === 'cinematic-hero' && b.style.template === 'compact') ?? [];
   const closing = savedClosing.length ? savedClosing : [defaultAtelierClosing()];
   return <div className="titanium-home" style={{ '--ti-opening-height': `${config?.style.desktop?.height ?? 420}px`, '--ti-opening-mobile-height': `${config?.style.mobile?.height ?? 240}px` } as CSSProperties}>
-    <section className="atelier-banner" aria-labelledby="titanium-hero-title">
-      <div className="atelier-banner-media"><Image src={config?.imageUrl || `${ATELIER_ASSETS}/hero.webp`} alt={localize(config?.alt, locale) || (fa ? 'خودرو و قطعات در فضای سنگی روشن' : 'A car and precision parts in a sunlit stone gallery')} fill priority sizes="100vw" /></div>
+    <FirstScreenBanner>
+      <div className="atelier-banner-media"><Image src={config?.imageUrl || `${ATELIER_ASSETS}/hero.webp`} alt={localize(config?.alt, locale) || (fa ? 'خودرو و قطعات در فضای سنگی روشن' : 'A car and precision parts in a sunlit stone gallery')} fill preload sizes="(max-width: 800px) 100vw, min(100vw, calc((100svh - 220px) * 16 / 9))" /></div>
       <div className="titanium-hero"><RepeatingSlogan locale={locale} {...(config ? { title: localize(config.title, locale), subtitle: localize(config.body, locale), tagline: config.button.en } : {})} /></div>
-    </section>
+    </FirstScreenBanner>
     <QuickSearch locale={fa ? 'fa' : 'en'} />
 
     {finder?.visible !== false ? <section id="vehicle-finder" className="container-page titanium-finder-section" aria-labelledby="titanium-finder-title">
