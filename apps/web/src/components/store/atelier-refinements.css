@@ -72,8 +72,8 @@
 .titanium-store .header-wordmark-art img{position:absolute;width:104.4%;max-width:none;height:auto;left:-2.1%;top:-16%}
 .titanium-store .header-wordmark-signature{display:flex;align-items:baseline;gap:.45em;font-family:var(--font-en),sans-serif;font-size:clamp(16px,1.5vw,21px);font-weight:600;line-height:1.25;letter-spacing:.22em;color:var(--ti-ink)}
 .titanium-store .header-wordmark-signature>span{font-size:.8em;font-weight:400;letter-spacing:.04em}
-/* Preserve the entire 16:9 artwork and reserve the space above it before hydration too. */
-.titanium-store .atelier-banner{container-type:inline-size;aspect-ratio:16/9;width:min(100%,calc((100svh - var(--banner-top,220px) - 16px)*16/9));margin-inline:auto}
+/* Full bleed, complete 16:9 artwork: viewport height must never shrink the banner width. */
+.titanium-store .atelier-banner{container-type:inline-size;aspect-ratio:16/9;width:100%;max-width:none;margin-inline:0}
 .titanium-store .atelier-banner-media img{object-fit:contain}
 .titanium-store .atelier-banner .atelier-typewriter h1{font-size:clamp(16px,2.65cqw,46px)}
 .titanium-store:dir(ltr) .atelier-banner .atelier-typewriter h1{font-size:clamp(15px,2.4cqw,42px)}

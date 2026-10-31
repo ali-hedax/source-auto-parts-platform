@@ -29,7 +29,7 @@ test('atelier remains readable and contained in both directions and four viewpor
   }
 });
 
-test('centred wordmark and complete hero fit laptop and mobile first screens', async ({ page }) => {
+test('centred wordmark and complete full-width hero on laptop and mobile', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   for (const locale of ['fa', 'en']) for (const [width, height] of [[320, 568], [390, 844], [768, 1024], [1024, 600], [1280, 720], [1366, 768], [1920, 1080]]) {
     await page.setViewportSize({ width: width!, height: height! });
@@ -37,7 +37,6 @@ test('centred wordmark and complete hero fit laptop and mobile first screens', a
     await page.evaluate(() => document.fonts.ready);
     const logo = page.locator('.titanium-logo');
     await expect(logo.locator('.header-wordmark-signature')).toHaveText('by HEDAX');
-    await expect.poll(() => page.locator('.atelier-banner').evaluate(el => el.getBoundingClientRect().bottom)).toBeLessThanOrEqual(height!);
     const geometry = await page.evaluate(() => {
       const box = (selector: string) => document.querySelector(selector)!.getBoundingClientRect();
       const logo = box('.titanium-logo');
@@ -50,7 +49,8 @@ test('centred wordmark and complete hero fit laptop and mobile first screens', a
         signatureCentre: (signature.left + signature.right) / 2,
         controlsRight: controls.right, logoLeft: logo.left,
         signatureSize: parseFloat(getComputedStyle(document.querySelector('.header-wordmark-signature')!).fontSize),
-        bannerBottom: banner.bottom, ratio: banner.width / banner.height,
+        bannerWidth: banner.width, bannerLeft: banner.left, ratio: banner.width / banner.height,
+        imageReady: image.complete && image.naturalWidth > 0, imageAlt: image.alt,
         fit: getComputedStyle(image).objectFit, overflow: document.documentElement.scrollWidth - innerWidth,
       };
     });
@@ -58,7 +58,11 @@ test('centred wordmark and complete hero fit laptop and mobile first screens', a
     expect(Math.abs(geometry.signatureCentre - geometry.centre)).toBeLessThan(1);
     expect(geometry.signatureSize).toBeGreaterThanOrEqual(14);
     expect(geometry.controlsRight).toBeLessThanOrEqual(geometry.logoLeft);
-    expect(geometry.bannerBottom).toBeLessThanOrEqual(height!);
+    expect(geometry.bannerWidth).toBeCloseTo(width!, 0);
+    expect(geometry.bannerLeft).toBeCloseTo(0, 0);
+    await expect(page.locator('.atelier-banner-media img')).toHaveAttribute('src', /hero-parts/);
+    await expect.poll(() => page.locator('.atelier-banner-media img').evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
+    expect(geometry.imageAlt).not.toMatch(/A car and|خودرو و قطعات/);
     expect(geometry.ratio).toBeCloseTo(16 / 9, 2);
     expect(geometry.fit).toBe('contain');
     expect(geometry.overflow).toBe(0);
@@ -106,6 +110,46 @@ test('hero types Persian then English, pauses and supports reduced motion', asyn
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await expect(typewriter).toHaveAttribute('data-typing', 'false');
   await expect(typewriter.locator('.atelier-type-source').first()).toBeVisible();
+});
+
+test('hero keeps typing and erasing across multiple cycles without holds or a blank reset', async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.clock.install();
+  await page.goto('/fa');
+  const root = page.locator('.atelier-typewriter');
+  await expect(root).toHaveAttribute('data-typing', 'true');
+  await page.clock.pauseAt(new Date(Date.now() + 1000));
+  const lines = root.locator('.atelier-type-render');
+  const total = await root.locator('.atelier-type-source').evaluateAll(els => {
+    const s = new Intl.Segmenter('fa', { granularity: 'grapheme' });
+    return els.reduce((n, el) => n + [...s.segment(el.textContent ?? '')].length, 0);
+  });
+  const readCount = () => lines.evaluateAll(els => {
+    const s = new Intl.Segmenter('fa', { granularity: 'grapheme' });
+    return els.reduce((n, el) => n + [...s.segment(el.textContent ?? '')].length, 0);
+  });
+  let previous = await readCount();
+  let completions = 0;
+  for (let tick = 0; tick < total * 4; tick++) {
+    await page.clock.runFor(72);
+    const current = await readCount();
+    expect(Math.abs(current - previous)).toBe(1);
+    expect(current).toBeGreaterThan(0);
+    if (current === total) completions++;
+    previous = current;
+  }
+  expect(completions).toBeGreaterThanOrEqual(2);
+  await root.getByRole('button', { name: 'توقف جلوه‌ها', exact: true }).click();
+  const paused = await lines.allTextContents();
+  await page.clock.runFor(1000);
+  expect(await lines.allTextContents()).toEqual(paused);
+  await root.getByRole('button', { name: 'ادامهٔ جلوه‌ها', exact: true }).click();
+  await page.clock.runFor(72);
+  expect(await lines.allTextContents()).not.toEqual(paused);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect(root).toHaveAttribute('data-typing', 'false');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('دنیای قطعات خودرو');
 });
 
 test('account exposes customer and staff routes and quick search keeps its no-JS GET fallback', async ({ page, browser, baseURL }) => {

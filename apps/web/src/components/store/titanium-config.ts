@@ -21,7 +21,7 @@ export function newTitaniumConfig(): BuilderBlock {
     ['آموزش، بررسی و تجربه‌های دنیای خودرو', 'How-to guides, reviews and automotive experiences'],
     ['پیدا کردنش را به سورس بسپارید.', 'Let Source help you find it.'],
   ];
-  return { ...block, imageUrl: `${ATELIER_ASSETS}/hero.webp`, alt: { fa: 'خودرو و قطعات در فضای سنگی روشن', en: 'A car and precision parts in a sunlit stone gallery' }, title: { fa: 'دنیای قطعات خودرو', en: 'The world of auto parts' }, body: { fa: 'هوشمندتر از همیشه', en: 'Smarter than ever' }, button: { fa: '', en: 'Smarter Parts. Better Driving.' },
+  return { ...block, imageUrl: `${ATELIER_ASSETS}/hero-parts.webp`, alt: { fa: 'توربوشارژر، قطعات ترمز، کمک‌فنر، دینام، پیستون، شمع و فیلتر در گالری سنگی روشن', en: 'Turbocharger, brake parts, shock absorber, alternator, piston, spark plugs and filter in a sunlit stone gallery' }, title: { fa: 'دنیای قطعات خودرو', en: 'The world of auto parts' }, body: { fa: 'هوشمندتر از همیشه', en: 'Smarter than ever' }, button: { fa: '', en: 'Smarter Parts. Better Driving.' },
     items: titles.map(([fa, en], i) => ({ title: { fa: fa!, en: en! }, text: { fa: i === 14 ? 'برای هر برند دیگر، درخواست تأمین قطعه ثبت کنید.' : descriptions[i - 6]?.[0] ?? '', en: i === 14 ? 'Request a part for any other marque.' : descriptions[i - 6]?.[1] ?? '' }, imageUrl: i < 6 ? `${ATELIER_ASSETS}/category-${i}.webp` : i < 9 ? `${ATELIER_ASSETS}/hub-${i - 6}.webp` : i > 9 && i < 14 ? `${ATELIER_ASSETS}/brand-${ATELIER_BRANDS[i - 10]}.webp` : i === 14 ? `${ATELIER_ASSETS}/brand-source.webp` : '', mobileImageUrl: '', alt: { fa: fa!, en: en! }, href: i === 9 || i === 14 ? '/request-part' : '', button: { fa: '', en: '' }, visible: true })),
   };
 }

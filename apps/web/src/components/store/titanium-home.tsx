@@ -21,6 +21,10 @@ export function TitaniumHome({ document, data, locale }: { document: BuilderDocu
   const fa = locale === 'fa';
   const config = titaniumConfig(document);
   const defaults = newTitaniumConfig();
+  // Upgrade the built-in car artwork without overriding owner-uploaded CMS artwork.
+  const useDefaultHero = !config?.imageUrl || config.imageUrl === `${ATELIER_ASSETS}/hero.webp`;
+  const heroImage = useDefaultHero ? defaults.imageUrl : config.imageUrl;
+  const heroAlt = localize(useDefaultHero ? defaults.alt : config.alt, locale) || localize(defaults.alt, locale);
   const copy = (i: number) => config?.items[i] ?? defaults.items[i]!;
   const sourcing = config?.items[9];
   const artwork = Object.fromEntries(ATELIER_BRANDS.map((slug, i) => [slug, config?.items[10 + i]?.imageUrl || `${ATELIER_ASSETS}/brand-${slug}.webp`]));
@@ -52,7 +56,7 @@ export function TitaniumHome({ document, data, locale }: { document: BuilderDocu
   const closing = savedClosing.length ? savedClosing : [defaultAtelierClosing()];
   return <div className="titanium-home" style={{ '--ti-opening-height': `${config?.style.desktop?.height ?? 420}px`, '--ti-opening-mobile-height': `${config?.style.mobile?.height ?? 240}px` } as CSSProperties}>
     <FirstScreenBanner>
-      <div className="atelier-banner-media"><Image src={config?.imageUrl || `${ATELIER_ASSETS}/hero.webp`} alt={localize(config?.alt, locale) || (fa ? 'خودرو و قطعات در فضای سنگی روشن' : 'A car and precision parts in a sunlit stone gallery')} fill preload sizes="(max-width: 800px) 100vw, min(100vw, calc((100svh - 220px) * 16 / 9))" /></div>
+      <div className="atelier-banner-media"><Image src={heroImage} alt={heroAlt} fill preload sizes="100vw" /></div>
       <div className="titanium-hero"><RepeatingSlogan locale={locale} {...(config ? { title: localize(config.title, locale), subtitle: localize(config.body, locale), tagline: config.button.en } : {})} /></div>
     </FirstScreenBanner>
     <QuickSearch locale={fa ? 'fa' : 'en'} />

@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pause, Play } from 'lucide-react';
 
-/** One entry sequence, whole graphemes, stable accessible copy and a no-JS fallback. */
+/** Continuous typing/erasing, whole graphemes, stable accessible copy and a no-JS fallback. */
 export function RepeatingSlogan({ locale, title, subtitle, tagline = 'Smarter Parts. Better Driving.' }: { locale: string; title?: string; subtitle?: string; tagline?: string }) {
   const fa = locale === 'fa';
   const lines = useMemo(() => [title ?? (fa ? 'دنیای قطعات خودرو' : 'The world of auto parts'), subtitle ?? (fa ? 'هوشمندتر از همیشه' : 'Smarter than ever'), tagline], [fa, title, subtitle, tagline]);
@@ -11,7 +11,7 @@ export function RepeatingSlogan({ locale, title, subtitle, tagline = 'Smarter Pa
     return lines.map(line => [...segmenter.segment(line)].map(s => s.segment));
   }, [lines, locale]);
   const key = lines.join('\u0001');
-  const progress = useRef({ key, position: 0 });
+  const progress = useRef({ key, position: 1, direction: 1 });
   const [count, setCount] = useState<number | null>(null);
   const [paused, setPaused] = useState(false);
   useEffect(() => {
@@ -24,18 +24,19 @@ export function RepeatingSlogan({ locale, title, subtitle, tagline = 'Smarter Pa
       void document.fonts.ready.then(() => {
         if (!alive) return;
         if (media.matches) { setCount(null); return; }
-        if (progress.current.key !== key) progress.current = { key, position: 0 };
+        if (progress.current.key !== key) progress.current = { key, position: 1, direction: 1 };
         setCount(progress.current.position);
         if (paused) return;
         const tick = () => {
-          if (!alive || progress.current.position >= total) return;
-          progress.current.position++;
+          if (!alive || total < 2) return;
+          // Reverse on the next normal tick: no end hold, inter-line delay or empty reset.
+          if (progress.current.position >= total) progress.current.direction = -1;
+          else if (progress.current.position <= 1) progress.current.direction = 1;
+          progress.current.position += progress.current.direction;
           setCount(progress.current.position);
-          const boundaries = [segments[0]!.length, segments[0]!.length + segments[1]!.length];
-          const delay = boundaries.includes(progress.current.position) ? 380 : progress.current.position > boundaries[1]! ? 48 : 72;
-          timer = setTimeout(tick, delay);
+          timer = setTimeout(tick, 72);
         };
-        timer = setTimeout(tick, progress.current.position ? 80 : 350);
+        timer = setTimeout(tick, 72);
       });
     };
     run(); media.addEventListener('change', run);
