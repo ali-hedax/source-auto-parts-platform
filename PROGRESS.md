@@ -1,6 +1,6 @@
 # Source by HEDAX — وضعیت و نقطهٔ ادامه
 
-آخرین checkpoint: 2026-10-31 09:05 +03:30؛ Production: api/web 38d74a8 (PR69 فوتر + PR70 هکسی) منتشر و روی سایت بررسی شد؛ worker/tools edc508d. مدل هکسی GPT-4o-mini. راهکار موقت MTU همچنان فعال است (پس از ریبوت برمی‌گردد).
+آخرین checkpoint: 2026-10-31 06:54 UTC؛ PR74 هدر/بنر در main ادغام و CI موفق؛ انتشار جدید به‌علت نبود دسترسی اجرای workflow/کنسول متوقف است. آخرین Production ثبت‌شده: Production: api/web 38d74a8 (PR69 فوتر + PR70 هکسی) منتشر و روی سایت بررسی شد؛ worker/tools edc508d. مدل هکسی GPT-4o-mini. راهکار موقت MTU همچنان فعال است (پس از ریبوت برمی‌گردد).
 
 > مرجع فعلی انتشار: api/web 38d74a8 (`footer-38d74a8-20261031`)، worker/tools edc508d (`operator-edc508d-20261028`). مدل هکسی GPT-4o-mini، timeout 25000.
 > گزارش‌های عملیات امروز: `/srv/hedax-data/ops/20261028/`، `/srv/hedax-data/ops/tidy-20261028/` و `/srv/hedax-data/ops/kernel-20261028/` (خصوصی، روی سرور). یادداشت‌های
@@ -12,6 +12,16 @@
 
 ## نقطهٔ فعلی
 
+### Completed & Tested / Blocked External — header and first-screen hero release checkpoint — 2026-10-31 06:54 UTC
+
+- **Completed & Tested:** PR #74 merged after CI run 41177996164 passed every stage (lint, types, unit/integration tests, backup/restore drill and production web build). Implementation commit `93cd09ebddcc0533757e7d778f38c928601e3819`; merge/main code SHA `072c8f333e696f67a1e6d8310b32700daefc86b3`.
+- The approved UI changes are in main: centred original SOURCE artwork and readable by HEDAX; complete 16:9 opening image fitted below the real header/notice with responsive copy. FA/EN geometry acceptance passed in 14 viewport/locale combinations; desktop/mobile captures visually inspected. Local build passed 171 pages. The pre-existing film metadata assertion failed in Chromium headless shell (videoWidth 0); film files/code were unchanged.
+- **Blocked External — image build/deployment:** the connected GitHub tools can merge but cannot dispatch Release images; direct git push has no HTTPS credential; the cloud GitHub browser shows Sign in. No new production image workflow was launched.
+- Arvan account **is authenticated** after the dashboard finishes loading (initial guest state was transient). Instance hedax is Running. Console opens a malformed route ending `/false&lang=en`, with the panel shell and no terminal; this reproduces the earlier console failure. No SSH private key is configured in this Linux environment. No server command or Production change was performed.
+- Last recorded Production remains api/web 38d74a8 and worker/tools edc508d; this is prior-release evidence, not a new host inspection. No .env, DNS, CMS, data, API/worker or MTU route was changed.
+- **Precise next step for the authenticated operator/VS Code:** fetch latest main (including the following docs-only checkpoint), dispatch **Release images / environment=production** on that exact full SHA, wait for all four images, verify web OCI revision label equals full SHA, then roll out **web only** using the existing digest-pinned overlay, rollback copy, health checks and automatic rollback procedure. Keep existing MTU routes/MSS rules. Verify live FA/EN header centre and complete hero at desktop/mobile sizes, then record image digest, deployed SHA and live evidence in a docs PR. No further owner permission is needed for this already-authorized UI release.
+
+
 ### Implemented Pending Verification — centred header + complete first-screen hero — 2026-10-31 UTC
 
 - Owner explicitly authorized these two UI changes through Production without another approval. Worktree `fix/center-logo-full-hero-20261031`, base main `5fdd682a0463fe2b7769e5ac1cab7f33a2352468` (PR73). Previous 38d74a8 release is retained as the recorded live baseline.
@@ -19,7 +29,7 @@
 - Hero: original image contained at 16:9, desktop width bounded by remaining viewport after measuring actual header/notice height; typography scales with the banner. Mobile keeps the complete 16:9 frame.
 - Local: shared packages build, web typecheck, scoped ESLint and optimized production web build (171 pages) passed. Geometry acceptance passed at 320×568, 390×844, 768×1024, 1024×600, 1280×720, 1366×768 and 1920×1080 in FA/EN (14 combinations); centred logo/signature, no overlap/overflow, 16:9 complete frame inside viewport. Screenshots at 1366×768, 390×844 and 1024×600 visually inspected. An initial font/fixture-banner height shift was fixed by observing body size as well as header/notice. Existing layout, typing/pause/reduced-motion and no-JS search checks passed; closing-film video metadata check failed (videoWidth 0 in the local headless browser), outside this change and left recorded. Playwright CDN initial download failed; stable Chromium 141 downloaded through the installer's Microsoft fallback. Pinned pnpm 10.34.6 used; incidental pnpm 11 workspace edits reverted.
 - Changed: site-header-view, new header-wordmark, titanium-home, new first-screen-banner, atelier-refinements CSS and atelier e2e acceptance checks. Temporary local Playwright config/capture test removed; next-env generated edits reverted.
-- Next: open PR with verified implementation, wait for CI, merge, build production images, deploy web via existing digest-pinned/rollback procedure if authenticated server access is available. No server credential is configured in this Linux environment; fresh Arvan browser displays guest Login/Register, and direct Git push fails for missing HTTPS username; do not claim deployment without host verification. CMS/data/.env/DNS/worker/api are outside this UI change.
+- Next: open PR with verified implementation, wait for CI, merge, build production images, deploy web via existing digest-pinned/rollback procedure if authenticated server access is available. No server credential is configured in this Linux environment; Arvan dashboard eventually authenticates; Console reproduces malformed /false&lang=en with no terminal, and direct Git push fails for missing HTTPS username; do not claim deployment without host verification. CMS/data/.env/DNS/worker/api are outside this UI change.
 
 
 ### Completed & Tested — Production api/web 38d74a8 (PR69 footer contact channels + PR70) — 2026-10-31 09:05 Asia/Tehran
