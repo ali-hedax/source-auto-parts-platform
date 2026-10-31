@@ -110,3 +110,6 @@
 .titanium-store .titanium-footer .footer-contact-value{font-size:15px;font-weight:600;color:var(--ti-paper);overflow-wrap:anywhere;line-height:1.6}
 .titanium-store .titanium-footer .footer-contact-ext{margin-inline-start:8px;font-size:12px;font-weight:400;color:var(--ti-sand)}
 @media(min-width:640px) and (max-width:1023px){.titanium-store .footer-contact-list{grid-template-columns:1fr 1fr;column-gap:16px}}
+/* Slightly larger, easier-to-read main menu. */
+.titanium-store .titanium-desktop-nav nav a{font-size:15px}
+@media(max-width:1199px){.titanium-store .titanium-desktop-nav nav a{font-size:14px}}

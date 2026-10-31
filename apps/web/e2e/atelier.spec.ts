@@ -51,6 +51,7 @@ test('centred wordmark and complete full-width hero on laptop and mobile', async
         signatureSize: parseFloat(getComputedStyle(document.querySelector('.header-wordmark-signature')!).fontSize),
         bannerWidth: banner.width, bannerLeft: banner.left, ratio: banner.width / banner.height,
         imageReady: image.complete && image.naturalWidth > 0, imageAlt: image.alt,
+        navSize: parseFloat(getComputedStyle(document.querySelector('.titanium-desktop-nav nav a') ?? document.body).fontSize),
         fit: getComputedStyle(image).objectFit, overflow: document.documentElement.scrollWidth - innerWidth,
       };
     });
@@ -66,6 +67,7 @@ test('centred wordmark and complete full-width hero on laptop and mobile', async
     expect(geometry.ratio).toBeCloseTo(16 / 9, 2);
     expect(geometry.fit).toBe('contain');
     expect(geometry.overflow).toBe(0);
+    if (width! >= 900) expect(geometry.navSize).toBeGreaterThanOrEqual(width! >= 1200 ? 15 : 14);
   }
 });
 
