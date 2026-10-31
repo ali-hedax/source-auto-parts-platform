@@ -29,6 +29,42 @@ test('atelier remains readable and contained in both directions and four viewpor
   }
 });
 
+test('centred wordmark and complete hero fit laptop and mobile first screens', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  for (const locale of ['fa', 'en']) for (const [width, height] of [[320, 568], [390, 844], [768, 1024], [1024, 600], [1280, 720], [1366, 768], [1920, 1080]]) {
+    await page.setViewportSize({ width: width!, height: height! });
+    await page.goto(`/${locale}`);
+    await page.evaluate(() => document.fonts.ready);
+    const logo = page.locator('.titanium-logo');
+    await expect(logo.locator('.header-wordmark-signature')).toHaveText('by HEDAX');
+    await expect.poll(() => page.locator('.atelier-banner').evaluate(el => el.getBoundingClientRect().bottom)).toBeLessThanOrEqual(height!);
+    const geometry = await page.evaluate(() => {
+      const box = (selector: string) => document.querySelector(selector)!.getBoundingClientRect();
+      const logo = box('.titanium-logo');
+      const signature = box('.header-wordmark-signature');
+      const controls = box('.titanium-header-controls');
+      const banner = box('.atelier-banner');
+      const image = document.querySelector<HTMLImageElement>('.atelier-banner-media img')!;
+      return {
+        centre: (logo.left + logo.right) / 2,
+        signatureCentre: (signature.left + signature.right) / 2,
+        controlsRight: controls.right, logoLeft: logo.left,
+        signatureSize: parseFloat(getComputedStyle(document.querySelector('.header-wordmark-signature')!).fontSize),
+        bannerBottom: banner.bottom, ratio: banner.width / banner.height,
+        fit: getComputedStyle(image).objectFit, overflow: document.documentElement.scrollWidth - innerWidth,
+      };
+    });
+    expect(Math.abs(geometry.centre - width! / 2)).toBeLessThan(1);
+    expect(Math.abs(geometry.signatureCentre - geometry.centre)).toBeLessThan(1);
+    expect(geometry.signatureSize).toBeGreaterThanOrEqual(14);
+    expect(geometry.controlsRight).toBeLessThanOrEqual(geometry.logoLeft);
+    expect(geometry.bannerBottom).toBeLessThanOrEqual(height!);
+    expect(geometry.ratio).toBeCloseTo(16 / 9, 2);
+    expect(geometry.fit).toBe('contain');
+    expect(geometry.overflow).toBe(0);
+  }
+});
+
 test('review corrections keep one search, four finder steps, five brand artworks and the closing film', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/fa');

@@ -12,6 +12,16 @@
 
 ## نقطهٔ فعلی
 
+### Implemented Pending Verification — centred header + complete first-screen hero — 2026-10-31 UTC
+
+- Owner explicitly authorized these two UI changes through Production without another approval. Worktree `fix/center-logo-full-hero-20261031`, base main `5fdd682a0463fe2b7769e5ac1cab7f33a2352468` (PR73). Previous 38d74a8 release is retained as the recorded live baseline.
+- Header: equal grid side tracks centre SOURCE; original artwork retained with a separate readable, centred by HEDAX line. Uploaded custom logos retain their complete artwork. Mobile controls kept clear of the brand.
+- Hero: original image contained at 16:9, desktop width bounded by remaining viewport after measuring actual header/notice height; typography scales with the banner. Mobile keeps the complete 16:9 frame.
+- Local: shared packages build, web typecheck, scoped ESLint and optimized production web build (171 pages) passed. Geometry acceptance passed at 320×568, 390×844, 768×1024, 1024×600, 1280×720, 1366×768 and 1920×1080 in FA/EN (14 combinations); centred logo/signature, no overlap/overflow, 16:9 complete frame inside viewport. Screenshots at 1366×768, 390×844 and 1024×600 visually inspected. An initial font/fixture-banner height shift was fixed by observing body size as well as header/notice. Existing layout, typing/pause/reduced-motion and no-JS search checks passed; closing-film video metadata check failed (videoWidth 0 in the local headless browser), outside this change and left recorded. Playwright CDN initial download failed; stable Chromium 141 downloaded through the installer's Microsoft fallback. Pinned pnpm 10.34.6 used; incidental pnpm 11 workspace edits reverted.
+- Changed: site-header-view, new header-wordmark, titanium-home, new first-screen-banner, atelier-refinements CSS and atelier e2e acceptance checks. Temporary local Playwright config/capture test removed; next-env generated edits reverted.
+- Next: open PR with verified implementation, wait for CI, merge, build production images, deploy web via existing digest-pinned/rollback procedure if authenticated server access is available. No server credential is configured in this Linux environment; fresh Arvan browser displays guest Login/Register, and direct Git push fails for missing HTTPS username; do not claim deployment without host verification. CMS/data/.env/DNS/worker/api are outside this UI change.
+
+
 ### Completed & Tested — Production api/web 38d74a8 (PR69 footer contact channels + PR70) — 2026-10-31 09:05 Asia/Tehran
 
 - **Owner approval (this chat, 2026-10-31):** «آره منتشر کن خودت» — deploy main 38d74a8 api/web. This resolves the "Blocked External — server access" section below. Worker/tools, .env, DNS, data, CMS, Preview and the MTU routes were not changed.
