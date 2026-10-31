@@ -1,6 +1,6 @@
 # Source by HEDAX — وضعیت و نقطهٔ ادامه
 
-آخرین checkpoint: 2026-10-31 06:54 UTC؛ PR74 هدر/بنر در main ادغام و CI موفق؛ انتشار جدید به‌علت نبود دسترسی اجرای workflow/کنسول متوقف است. آخرین Production ثبت‌شده: Production: api/web 38d74a8 (PR69 فوتر + PR70 هکسی) منتشر و روی سایت بررسی شد؛ worker/tools edc508d. مدل هکسی GPT-4o-mini. راهکار موقت MTU همچنان فعال است (پس از ریبوت برمی‌گردد).
+آخرین checkpoint: 2026-10-31 10:55 Asia/Tehran؛ چهار ایمیج Production نسخهٔ 2f303b9 ساخته و revision/digest تأیید شد (run 41180213393). انتشار روی میزبان همچنان فقط به‌علت نبود اتصال SSH/خرابی کنسول آروان انجام نشده؛ آخرین Production ثبت‌شده api/web 38d74a8 است.
 
 > مرجع فعلی انتشار: api/web 38d74a8 (`footer-38d74a8-20261031`)، worker/tools edc508d (`operator-edc508d-20261028`). مدل هکسی GPT-4o-mini، timeout 25000.
 > گزارش‌های عملیات امروز: `/srv/hedax-data/ops/20261028/`، `/srv/hedax-data/ops/tidy-20261028/` و `/srv/hedax-data/ops/kernel-20261028/` (خصوصی، روی سرور). یادداشت‌های
@@ -11,6 +11,19 @@
 هیچ رمز، توکن، دادهٔ مشتری یا محتوای محرمانهٔ فایل تأمین‌کننده در این فایل ثبت نشود.
 
 ## نقطهٔ فعلی
+
+### Completed & Tested / Blocked External — ایمیج‌های Production آماده؛ اتصال سرور باقی است — 2026-10-31 10:55 Asia/Tehran
+
+- ورود GitHub با تأیید مالک تکمیل شد. Release images #17، run **41180213393**، روی main دقیق **2f303b9c3c616fa570785fe5a8ecf008d36f29e2** با environment=production اجرا شد؛ هر چهار job api/worker/tools/web موفق‌اند.
+- برچسب org.opencontainers.image.revision هر چهار ایمیج در لاگ ساخت و مستقل از آن با خواندن manifest/config در GHCR با SHA کامل بالا برابر بود. تگ هر چهار ایمیج: 2f303b9c3c61-production.
+  - api: sha256:d77818f9a6b8775026a5478145ade8b7aec7817bb1b5ac27a59cf6d063df7c43
+  - worker: sha256:0ac5fa9d397a38ea98b66eaf3504a94aa2927ec363b1b9e55fef866ab8d08e1b
+  - tools: sha256:f1635025e49565662b961f760d68285ea05515b962034c149608bab056eb5015
+  - **web:** ghcr.io/ali-hedax/source-web@sha256:6324d93347d30523f2e8fe71c4e98d71bc6342156c881d98238d8ad5e6daeb54
+- مانع GitHub/build برطرف شد. **Blocked External:** هیچ کلید SSH در محیط Linux این جلسه پیکربندی نشده؛ GitHub نیز secret استقرار از پیش تنظیم‌شده در repository/environment ندارد. پنل آروان وارد حساب است و سرور hedax روشن است، اما Console پس از reload و نیز Open Console در تب Access همان مسیر خراب /false&lang=en را باز می‌کند؛ ترمینال در دسترس نیست. هیچ رمز یا دسترسی جدیدی ساخته/تغییر داده نشد و ریبوت انجام نشد.
+- هنوز هیچ دستور سروری، pull روی میزبان، rollout یا تغییر Production انجام نشده است. آخرین وضعیت ثبت‌شده api/web 38d74a8 و worker/tools edc508d است؛ .env، DNS، CMS، داده و مسیرهای MTU/MSS دست‌نخورده‌اند.
+- قدم بعدی دقیق: از محیط اپراتور دارای اتصال SSH موجود (VS Code با کلید قبلی) وضعیت واقعی میزبان و /opt/hedax-compose-current را بخوان؛ فقط web را با digest بالا و برچسب revision کامل تأیید کن؛ overlay سنجاق‌شده، کپی wrapper قبلی و تگ rollback، health checks و بازگشت خودکار مثل rolloutهای قبلی. API/worker/tools و MTU/MSS تغییر نکنند. سپس هدر وسط‌چین و بنر کامل را روی FA/EN و موبایل/دسکتاپ زنده تأیید و گزارش کن. این docs-only checkpoint محتوای اجرایی 2f303b9 را عوض نمی‌کند؛ در صورت نبود تغییر کد، ایمیج تأییدشده دوباره ساخته نشود. مجوز انتشار مالک برقرار است.
+
 
 ### Completed & Tested / Blocked External — header and first-screen hero release checkpoint — 2026-10-31 06:54 UTC
 
