@@ -49,7 +49,9 @@ test('centred wordmark and complete full-width hero on laptop and mobile', async
         signatureCentre: (signature.left + signature.right) / 2,
         controlsRight: controls.right, logoLeft: logo.left,
         signatureSize: parseFloat(getComputedStyle(document.querySelector('.header-wordmark-signature')!).fontSize),
-        bannerWidth: banner.width, bannerLeft: banner.left, ratio: banner.width / banner.height,
+        bannerWidth: banner.width, bannerLeft: banner.left, bannerBottom: banner.bottom,
+        imageRatio: box('.atelier-banner-media').width / box('.atelier-banner-media').height,
+        copyInside: box('.titanium-hero').bottom <= banner.bottom,
         imageReady: image.complete && image.naturalWidth > 0, imageAlt: image.alt,
         navSize: parseFloat(getComputedStyle(document.querySelector('.titanium-desktop-nav nav a') ?? document.body).fontSize),
         fit: getComputedStyle(image).objectFit, overflow: document.documentElement.scrollWidth - innerWidth,
@@ -64,10 +66,14 @@ test('centred wordmark and complete full-width hero on laptop and mobile', async
     await expect(page.locator('.atelier-banner-media img')).toHaveAttribute('src', /hero-parts/);
     await expect.poll(() => page.locator('.atelier-banner-media img').evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
     expect(geometry.imageAlt).not.toMatch(/A car and|خودرو و قطعات/);
-    expect(geometry.ratio).toBeCloseTo(16 / 9, 2);
+    expect(geometry.imageRatio).toBeCloseTo(16 / 9, 2);
     expect(geometry.fit).toBe('contain');
     expect(geometry.overflow).toBe(0);
-    if (width! >= 900) expect(geometry.navSize).toBeGreaterThanOrEqual(width! >= 1200 ? 15 : 14);
+    if (width! >= 900) {
+      expect(geometry.bannerBottom).toBeLessThanOrEqual(height! - 8);
+      expect(geometry.copyInside).toBe(true);
+      expect(geometry.navSize).toBeGreaterThanOrEqual(width! >= 1200 ? 17 : 16);
+    }
   }
 });
 
@@ -106,9 +112,9 @@ test('hero types Persian then English, pauses and supports reduced motion', asyn
   await page.waitForTimeout(250);
   expect(await lines.allTextContents()).toEqual(paused);
   await typewriter.getByRole('button', { name: 'ادامهٔ جلوه‌ها', exact: true }).click();
-  await expect(lines.nth(2)).toHaveText('Smarter Parts. Better Driving.', { timeout: 15000 });
-  await expect(lines.first()).toHaveText('دنیای قطعات خودرو');
-  await expect(lines.nth(1)).toHaveText('هوشمندتر از همیشه');
+  // Whole copy is always accessible; visual text continuously erases after completion.
+  // Capture all three lines in the same sample so a normal erase tick cannot race assertions.
+  await expect.poll(() => lines.allTextContents(), { timeout: 15000, intervals: [25] }).toEqual(['دنیای قطعات خودرو', 'هوشمندتر از همیشه', 'Smarter Parts. Better Driving.']);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await expect(typewriter).toHaveAttribute('data-typing', 'false');
   await expect(typewriter.locator('.atelier-type-source').first()).toBeVisible();
