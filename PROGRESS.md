@@ -1,8 +1,8 @@
 # Source by HEDAX — وضعیت و نقطهٔ ادامه
 
-آخرین checkpoint: 2026-10-31 13:00 Asia/Tehran؛ web نسخهٔ 2f303b9 (هدر وسط‌چین + بنر کامل) روی Production منتشر و زنده تأیید شد. api روی 38d74a8 و worker/tools روی edc508d بدون تغییر ماندند.
+آخرین checkpoint: 2026-10-31 13:24 Asia/Tehran؛ web نسخهٔ 190588c (بنر قطعات تمام‌عرض و شعار پیوسته، PR78) روی Production منتشر و زنده تأیید شد. مشکل TLS ایمیل با اصلاح محدود MSS مسیر SMTP رفع و احراز هویت واقعی API/worker تأیید شد؛ پیام تازه ارسال نشده است. api روی 38d74a8 و worker/tools روی edc508d بدون تغییر ماندند.
 
-> مرجع فعلی انتشار: web 2f303b9 (`header-hero-2f303b9-20261031`)، api 38d74a8 (`footer-38d74a8-20261031`)، worker/tools edc508d (`operator-edc508d-20261028`). مدل هکسی GPT-4o-mini، timeout 25000.
+> مرجع فعلی انتشار: web 190588c (`parts-mail-20261031`، merge dc436b1)، api 38d74a8 (`footer-38d74a8-20261031`)، worker/tools edc508d (`operator-edc508d-20261028`). مدل هکسی GPT-4o-mini، timeout 25000.
 > گزارش‌های عملیات امروز: `/srv/hedax-data/ops/20261028/`، `/srv/hedax-data/ops/tidy-20261028/` و `/srv/hedax-data/ops/kernel-20261028/` (خصوصی، روی سرور). یادداشت‌های
 > worktreeهای قدیمی تاریخی‌اند؛ تغییرات محلی کاربر در آن‌ها حفظ شده‌اند و نباید بازنویسی شوند.
 
@@ -11,6 +11,19 @@
 هیچ رمز، توکن، دادهٔ مشتری یا محتوای محرمانهٔ فایل تأمین‌کننده در این فایل ثبت نشود.
 
 ## نقطهٔ فعلی
+
+### Completed & Tested — full-width parts hero, continuous slogan and SMTP path repair — 2026-10-31 13:24 Asia/Tehran
+
+- Owner explicitly authorized these changes through Production in this chat. PR78 head `190588ce5164cc2e817cb5dc66c3cfe4b0189199` merged as `dc436b1c7a5b0a4287f627a65127a88f9862ce76`. Candidate CI runs 41190078374 / 41190127759 and merge CI 41190309570 succeeded. Release images 41190174083 succeeded for all four targets; only web was deployed. Candidate/merge application trees are equal.
+- Cream/travertine/bronze artwork features a varied parts collection with no car or oil jug; built-in CMS hero upgraded in rendering while custom artwork and original hero.webp remain. Full-width 16:9 contain; slogan types/erases continuously every 72ms without former line/end holds, with pause, reduced motion and static accessible/no-JS text.
+- Local evidence: web typecheck, API build, scoped ESLint, web production build (171 pages), browser 4/4 including 14 viewport/locale geometry combinations and multiple animation cycles; SMTP/template unit 4/4 and isolated mail integration 5/5 with successful teardown. Earlier stale shared contracts output was resolved by building contracts/domain in this isolated worktree. Initial unsupported node --check on TSX was not a verification result; TypeScript/build/lint are the valid checks.
+- Production release completed 09:53:45 UTC (13:23:45 Tehran). Web digest `sha256:cdfdee3aecbd6c52ddaf8db98cf3b4e12948644b53323c76748d0ca081de7e8e`; OCI revision equals full candidate SHA. API/worker container IDs unchanged, web healthy and API ready, FA/EN 200. Public hero 296258 bytes and SHA256 `db0dbda32b5975d1617f37bb492e3fe5f2e3d40871a3db8700fba67cfb8eec90`, matching the local asset.
+- Backup/rollback: fresh private 564850-byte pg_dump catalog-validated with 106 TABLE DATA entries (not restored in this checkpoint), original wrapper and container/image metadata retained under `/opt/hedax-release-candidates/parts-mail-20261031/`; wrapper persisted atomically, rollback image `hedax-parts-rollback-web:pre-190588c`. No migration/import/customer/order/CMS write. No secret/SMTP env change or API/worker restart.
+- Live browser: real Production FA/EN at 390×844 and 1366×1000 all 200, full-width ratio 16:9, image loaded, overflow 0, contain, reduced-motion fallback. Real 20s motion trace: 257 changes, 130 increases/126 decreases, minimum 1 grapheme, maximum normal interval 85.8ms; continuous repeat and no blank reset. Screenshots visually inspected. User-facing evidence in this chat's outputs/live-*; no fixture assertions presented as Production evidence.
+- SMTP root cause: TCP/greeting 220 on 587 succeeds, STARTTLS times out with `ETIMEDOUT` before authentication. API/worker SMTP/encryption configuration matches; worker/Redis/outbox healthy. Two messages exhausted five attempts with `SMTP_TEMPORARY ETIMEDOUT`, including the requested active invitation; final tokens were cleared by design. Before/after scoped SYN MSS 1260 to only the SMTP IPv4:587 restores certificate-validated TLS and authentication using unchanged credentials, verified independently from API and worker. Port465 failed and was not adopted. Persisted root-owned script plus enabled/active `hedax-mail-path-mss.service`; bash/systemd validation passed. Existing site/storage rules retained; no reboot tested. See `docs/SMTP_PATH_2026-10-31.md` for exact scope, rollback and test limits.
+- Implemented Pending Verification — message delivery: no SMTP DATA, new invitation or test email was sent. The failed invitation needs the existing resend flow for a fresh encrypted token; SMTP 250 acceptance and actual inbox delivery remain unverified. Do not equate successful authentication with sent/delivered email.
+- Continuity: current isolated worktree work/source-parts; this receipt branch starts at dc436b1. Concurrent PR79 (`fix/full-width-hero-nav-20261031`) is outside this task and was left untouched. Former source-hexi-release checkout was changed by another process; no foreign changes reverted. The earlier SSH access blocker was resolved; native browser fallback was rejected on uncertain URL, then public site testing used a separate headless browser and host diagnosis used existing SSH.
+- Next: if fresh sending is requested, use authenticated existing invitation resend, confirm new message's sanitized status/SMTP response and actual inbox without exposing token. Preserve current network service and release wrapper; do not repeat the completed deployment or old CI/build steps.
 
 ### Completed & Tested — Production web 2f303b9 (centred header wordmark + complete first-screen banner) — 2026-10-31 13:00 Asia/Tehran
 
