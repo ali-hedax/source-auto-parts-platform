@@ -1,8 +1,8 @@
 # Source by HEDAX — وضعیت و نقطهٔ ادامه
 
-آخرین checkpoint: 2026-10-29، Asia/Tehran؛ چهار ایمیج production برای 38d74a8 موفق، استقرار مسدود به دسترسی SSH (شرح پایین). آخرین انتشار ثبت‌شده: 2026-10-29 11:50 +03:30؛ هدر فروشگاه تمام‌عرض شد (PR67) و وب b1cf76d روی Production منتشر و بررسی شد؛ api 5ffcf93 و worker edc508d بدون تغییر. راهکار موقت MTU همچنان فعال است (پس از ریبوت برمی‌گردد).
+آخرین checkpoint: 2026-10-31 08:50 +03:30؛ Production: api/web 0f1a15e (هکسی با GPT-4o-mini، fallback و آزادسازی بودجه، PR70) از 2026-10-29 12:31 فعال و سالم است؛ main 38d74a8 (PR69 فوتر) ساخته شده ولی منتشر نشده است. راهکار موقت MTU همچنان فعال است (پس از ریبوت برمی‌گردد).
 
-> مرجع فعلی انتشار: web b1cf76d (`header-fullwidth-b1cf76d-20261029`)، api 5ffcf93 (`phonefix-5ffcf93-20261028`)، worker/tools edc508d (`operator-edc508d-20261028`).
+> مرجع فعلی انتشار: api/web 0f1a15e (`hexi-fallback-0f1a15e-20261029`)، worker/tools edc508d (`operator-edc508d-20261028`). مدل هکسی GPT-4o-mini، timeout 25000.
 > گزارش‌های عملیات امروز: `/srv/hedax-data/ops/20261028/`، `/srv/hedax-data/ops/tidy-20261028/` و `/srv/hedax-data/ops/kernel-20261028/` (خصوصی، روی سرور). یادداشت‌های
 > worktreeهای قدیمی تاریخی‌اند؛ تغییرات محلی کاربر در آن‌ها حفظ شده‌اند و نباید بازنویسی شوند.
 
@@ -11,6 +11,69 @@
 هیچ رمز، توکن، دادهٔ مشتری یا محتوای محرمانهٔ فایل تأمین‌کننده در این فایل ثبت نشود.
 
 ## نقطهٔ فعلی
+
+### Completed & Tested — Hexi reliable and fast: GPT-4o-mini, fallback + fair budget (PR70), Production api/web 0f1a15e — 2026-10-29 12:35 Asia/Tehran (re-checked 2026-10-31)
+
+- **Owner authorization (this chat, 2026-10-29):** temporary network routes; one reset of today's assistant budget counters in Redis; only `ASSISTANT_TEXT_MODEL` and `ASSISTANT_TIMEOUT_MS` in the server .env (backup first); code in `apps/api/src/modules/assistant/*` and the Hexi widget with tests; merge after green CI; build images and deploy api (+ web). Not allowed: other .env keys, Arvan panel, DNS, data deletion, CMS.
+- **Step 1 — network (measured 2026-10-29 11:56 Tehran; log `/srv/hedax-data/ops/hexi-20261029/probe-before.log`):**
+  - `api.arvancloudai.ir` resolves to 185.143.233.133 and 185.143.234.133. Both are inside 185.143.232.0/22, which already had the temporary `mtu lock 1300 advmss 1260` route and the container MSS clamp from the S3 fix.
+  - Ping with DF, both IPs: 1472, 1400 and 1300 B payload were 100 % lost; 1272 B was 0 % lost (max packet ≈ 1300 B). tracepath ended with "pmtu 1424" and no replies after hop 8.
+  - TCP+TLS from the host to the gateway took 17 ms (38 ms total).
+  - Conclusion: with the existing route the network was no longer the bottleneck, so no new route was added.
+- **Gateway latency before (gpt-5.6-luna, from inside the api container):**
+  - Tiny «سلام», max_tokens 20: 13.5 / 10.5 / 24.3 s. Prompt usage was 4,435 tokens for one word, i.e. the gateway adds ≈ 4.4 K tokens per call to this model.
+  - 14 KB POST, max_tokens 20: 14.6 / 19.0 / 32.7 s.
+- **Gateway observations for the Arvan ticket (not changed; panel changes were not allowed):**
+  - With a synthetic 14 KB context, GPT-4o-mini and Gemini-2.5-Flash-lite answered «من نمی‌دانم» / "I don't know", as if an "answer only from context" instruction had been injected.
+  - Claude-Haiku-4.5 once introduced itself as "Kiro, an AI-powered development environment".
+  - gpt-5.6-luna saw part of the visitor's text masked as `ت***************` and masked the footer phone (`***********`).
+  - With the real Hexi prompt these effects did not appear for GPT-4o-mini.
+- **Step 2 — model benchmark with the real request** (basePrompt + saved Hexi prompt + SITE_FACTS + CATALOG_FACTS, ≈ 10.7 KB, max_tokens 600). Seconds for name / phone / brake / ghormeh-sabzi / 206 brake pads:
+  - GPT-5.6-Luna: 14.4 / 21.3 / timeout 40 / 19.8 / 13.7; phone masked.
+  - GPT-4.1: 12.2 / 17.6 / 19.3 / 18.2 / 15.3; good answers but slow.
+  - **GPT-4o-mini: 3.3 / 2.9 / 3.3 / 3.1 / 2.8**; good Persian, addresses the visitor as «شما», no stars.
+  - GPT-4.1-Nano: 6.5 / 3.4 / 3.6 / 3.2 / 3.0; invented a digit in the WhatsApp number and used informal «برات».
+  - Synthetic 3-run bench: 4o-mini 2.3–4.9 s, 4.1-Nano 3.9–4.7 s, Gemini-2.5-Flash-lite 2.0–6.2 s, Claude-Haiku-4.5 7.3–28.6 s, Luna 21.8 s to timeout.
+  - Chosen: **GPT-4o-mini**, the fastest model that follows the prompt (low-cost tier).
+- **.env (Completed & Tested):**
+  - Backup `/srv/hedax-data/ops/hexi-20261029/env.before-model-20261029` (sha256 dd71f1e8…, mode 600).
+  - `ASSISTANT_TEXT_MODEL` gpt-5.6-luna → GPT-4o-mini; `ASSISTANT_TIMEOUT_MS` 30000 → 25000. The diff of all other keys is empty.
+  - Only api was recreated; it came up healthy with readiness 200, and the first live answer took 6.6 s.
+  - Rollback: copy the backup back and recreate api.
+- **Step 3 — code (PR70, Completed & Tested):**
+  - `AssistantProviderError` carries the real reason (`timeout`, `unreachable (CODE)`, `status N`, `invalid JSON`) and whether the provider answered.
+  - No HTTP response → `settle(…, 0)` releases the reservation. HTTP error → the conservative reservation is kept.
+  - Any provider-path failure (including budget, request limit, busy and empty text) → 201 with a fixed friendly reply in the visitor's language, the catalog cards already found, and «ارتباط با اپراتور» / part search. It is still logged as FAILED with the real reason. `provider` is `'fallback'`; the response fields are unchanged.
+  - basePrompt: list every footer number and mark WhatsApp; add a short safety note for brakes, steering, tyres, suspension, fuel and airbags.
+  - Identity guard, masked-phone restore and instructions-in-user-turn are unchanged.
+  - Widget: fallback replies and an unreachable server show the same text with an operator-form button, part search and sourcing request, never "connection lost". Fallback turns are left out of the history.
+  - Local checks: unit 125/125 (new: fallback on 5xx, timeout, ECONNRESET and budget; unchanged success path; settle at 0 refunds, settle without a cost keeps); integration 96/98/98b 14/14 (embedded PostgreSQL 18); web E2E `assistant.spec.ts` 9/9 including the new fallback and unreachable case; api/web typecheck; eslint 0 errors.
+  - CI 40845303125 and 40845296813 passed; merged at head 0f1a15e → main 38d74a8.
+  - **The failure path was forced only in these tests, not on Production.**
+- **Release (Completed & Tested):**
+  - PR69 (footer channels, another session) had been merged into main 2 minutes earlier. To ship exactly the tested code, the production images were built from the PR70 commit `0f1a15e` (Release images run 40845781099, success).
+  - The run on main 38d74a8 started by this session was cancelled; another session later re-ran it (see the section below).
+  - Images: api `sha256:267ec421…1412`, web `sha256:350da2ca…1213`, revision 0f1a15e739abb5e6d0fa74d20931217fd900d04f.
+  - Candidate `/opt/hedax-release-candidates/hexi-fallback-0f1a15e-20261029/`: `deploy.sh` sha256 b5409469…, started with systemd-run, `deploy.exit` 0.
+  - Preconditions: api 5ffcf93, web b1cf76d, worker edc508d, model GPT-4o-mini, Preview 0, MTU routes 3, MSS rules 5.
+  - Backup and rollback: dump with TABLE DATA 106 (sha256 d44db369…), `compose.before` (8d8a2fcd…), tags `hedax-fallback-rollback-{api,web}:pre-0f1a15e`.
+  - Pulled by digest with revision check. Switch at 09:01:23 UTC; check 1 had api ready, FA and EN 200, web healthy. Worker unchanged.
+  - Wrapper replaced (bbff1676…), `rollout-verified.json` written, no rollback.
+- **Step 4 — budget:** before the reset (12:31:56 Tehran), `assistant:budget:public:2026-10-29` was 89,698 IRR with 10 requests. Both counters were set to 0 with KEEPTTL, once. By the end of that day: 37,105 IRR and 21 requests (cap 300,000 IRR / 100 requests).
+- **Step 5 — live check** (each question in a new chat, Chrome, 2026-10-29 12:32 Tehran; all ANSWERED in `assistant_message`, model GPT-4o-mini; server latency):
+  - «سلام، اسمت چیه؟», 4.4 s: «سلام! من هکسی‌ام، روبات اختصاصی سورس! … چطور می‌توانم به شما کمک کنم؟»
+  - «شماره تماس فروشگاه رو بده», 3.0 s: landline 02536668006 (داخلی 119) and mobile 00989121531797 marked as WhatsApp, no stars. The +971 WhatsApp number was not listed.
+  - Brake squeal, 3.8 s: worn pads, dust between pad and disc, damaged discs, plus a safety note («قبل از رانندگی بیشتر به تعمیرکار نشان دهید»).
+  - قورمه‌سبزی, 3.4 s: a joke, then back to car parts.
+  - «لنت جلو پژو ۲۰۶ دارید؟», 4.2 s: not in the current catalog; suggests searching by part number or a sourcing request.
+- **Before → after:**
+  - 2026-10-29 00:00–09:01 UTC: 5 FAILED at 30.0 s; 5 ANSWERED, average 12.8 s (max 27.1 s).
+  - After the release, until 2026-10-31 05:20 UTC: 21 ANSWERED, 0 FAILED, average 3.5 s, max 5.4 s.
+- **Re-check 2026-10-31 08:48 Tehran:**
+  - api/web still on 0f1a15e, restarts 0, model GPT-4o-mini with timeout 25000.
+  - One readiness sample returned 503; the next six returned 200 with database/redis/storage/scanner up, and the api log had 0 not-ready or error-like lines in 2 h.
+  - MTU routes (3) and MSS rules (5) are present. DF ping to S3 still drops packets > 1300 B, so the provider path is unchanged.
+- **Current Production: api/web 0f1a15e (PR70 without PR69), worker/tools edc508d.** main 38d74a8, which adds the PR69 footer channels, is built but not deployed. That deploy belongs to the separate owner approval recorded in the section below.
 
 ### Blocked External — انتشار main شامل PR69 و PR70 — 2026-10-29، Asia/Tehran
 
