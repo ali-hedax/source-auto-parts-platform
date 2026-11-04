@@ -16,10 +16,14 @@ const buyer = testMobile('09361', stamp);
 const requester = testMobile('09362', stamp);
 const retrier = testMobile('09366', stamp);
 const quick = testMobile('09367', stamp);
+const shopper = testMobile('09368', stamp);
+const failer = testMobile('09369', stamp);
 
 test('buy an in-stock part and pay through the test gateway', async ({ page }) => {
   await page.goto(`/fa/parts?q=${encodeURIComponent('فيلتر روغن')}`); // Arabic yeh on purpose
   await page.getByRole('link', { name: /فیلتر روغن سمند/ }).first().click();
+  // A part card on the list has an add button of the same name: wait for the part's own page.
+  await expect(page).toHaveURL(/\/fa\/parts\/demo-/);
   await page.getByRole('button', { name: 'افزودن به سبد' }).click();
   await expect(page.getByText('به سبد اضافه شد')).toBeVisible();
 
@@ -31,9 +35,108 @@ test('buy an in-stock part and pay through the test gateway', async ({ page }) =
   await expect(page.getByText(/HX-O-/).first()).toBeVisible();
 });
 
+test('the cart total stays right from the icon through sign-in to a verified payment, and back never re-enters the gateway', async ({ page }) => {
+  const badge = page.locator('[data-cart-badge]');
+  const addFrom = async (search: string, name: RegExp, amount: number) => {
+    await page.goto(`/fa/parts?q=${encodeURIComponent(search)}`);
+    await page.getByRole('link', { name }).first().click();
+    await page.locator('#qty').fill(String(amount));
+    await page.locator('#qty').blur();
+    await page.getByRole('button', { name: 'افزودن به سبد' }).click();
+    await expect(page.getByText(/به سبد اضافه شد/)).toBeVisible();
+  };
+  // Two lines, five units: a guest cart held by the real API.
+  await addFrom('فيلتر روغن', /فیلتر روغن سمند/, 2);
+  await expect(badge).toHaveText('۲');
+  await addFrom('لنت ترمز', /لنت ترمز جلو/, 3);
+  await expect(badge).toHaveText('۵');
+  await page.getByRole('link', { name: 'مشاهدهٔ سبد' }).click();
+  await expect(page).toHaveURL(/\/fa\/cart$/);
+  await page.reload();
+  await expect(badge).toHaveText('۵');
+
+  // Every change comes back from the server at once.
+  await page.getByRole('button', { name: /افزایش تعداد لنت ترمز جلو/ }).click();
+  await expect(badge).toHaveText('۶');
+  await page.getByRole('button', { name: /کاهش تعداد لنت ترمز جلو/ }).click();
+  await expect(badge).toHaveText('۵');
+
+  // A guest is asked to sign in and comes back to checkout with the same cart.
+  await page.getByRole('link', { name: 'ادامه و تکمیل خرید' }).click();
+  await expect(page).toHaveURL(/\/fa\/checkout$/);
+  await page.getByRole('main').getByRole('link', { name: 'ورود / ثبت‌نام' }).click();
+  await page.locator('#login-mobile').fill(shopper);
+  await page.getByRole('button', { name: 'دریافت کد' }).click();
+  await expect(page.getByText(/کد آزمایشی \(فقط محیط توسعه\)/)).toBeVisible();
+  const code = /(?:^|\D)(\d{6})(?:\D|$)/.exec(await page.locator('main').innerText())?.[1];
+  await page.locator('#login-code').fill(code as string);
+  await page.getByRole('button', { name: 'ورود', exact: true }).click();
+  await expect(page).toHaveURL(/\/fa\/checkout$/);
+  await expect(page.getByRole('heading', { name: 'نشانی تحویل' })).toBeVisible();
+  await expect(badge).toHaveText('۵');
+
+  // Back passes over the used sign-in form, and the cart is still whole there.
+  await page.getByRole('link', { name: 'بازگشت', exact: true }).click();
+  await expect(page).toHaveURL(/\/fa\/cart$/);
+  await expect(badge).toHaveText('۵');
+  await page.getByRole('link', { name: 'ادامه و تکمیل خرید' }).click();
+  await expect(page).toHaveURL(/\/fa\/checkout$/);
+
+  // A failed payment first, then a verified one; the amount is the server's.
+  await checkoutToGateway(page);
+  await payOnGateway(page, 'cancel');
+  await expect(page).toHaveURL(/\/fa\/payment\/result\?attempt=/);
+  await expect(page.getByText('پرداخت لغو شد.')).toBeVisible();
+  await page.getByRole('button', { name: 'تلاش دوباره برای پرداخت' }).click();
+  await payOnGateway(page);
+  await expect(page).toHaveURL(/\/fa\/payment\/result\?attempt=/);
+  await expect(page.getByText('پرداخت تأیید شد.')).toBeVisible();
+  // The order took the cart's lines; the icon says so, and back leads to the orders.
+  await expect(badge).toHaveCount(0);
+  await expect(page.locator('header a[href$="/cart"]')).toHaveAccessibleName('سبد خرید خالی است');
+  await page.getByRole('link', { name: 'بازگشت', exact: true }).click();
+  await expect(page).toHaveURL(/\/fa\/account\/orders$/);
+});
+
+test('a failed payment says so from the server, pays nothing, keeps the order and can be retried', async ({ page }) => {
+  test.skip(process.env.E2E_PAYMENT === 'zarinpal-sandbox', 'Zarinpal\'s sandbox page offers no failure outcome');
+  await page.goto(`/fa/parts?q=${encodeURIComponent('فیلتر هوا')}`);
+  await page.getByRole('link', { name: /فیلتر هوای کرولا/ }).first().click();
+  await expect(page).toHaveURL(/\/fa\/parts\/demo-/);
+  await page.getByRole('button', { name: 'افزودن به سبد' }).click();
+  await expect(page.getByText(/به سبد اضافه شد/)).toBeVisible();
+  await signIn(page, failer, '/fa/checkout');
+  await expect(page).toHaveURL(/\/fa\/checkout/);
+  await checkoutToGateway(page);
+  await payOnGateway(page, 'fail');
+  await expect(page).toHaveURL(/\/fa\/payment\/result\?attempt=/);
+  await expect(page.getByText('پرداخت ناموفق بود')).toBeVisible();
+  await expect(page.getByText('پرداخت تأیید شد.')).toHaveCount(0);
+  await page.getByRole('link', { name: 'مشاهدهٔ سفارش' }).click();
+  await expect(page).toHaveURL(/\/fa\/account\/orders\//);
+  await page.goBack();
+  await page.getByRole('button', { name: 'تلاش دوباره برای پرداخت' }).click();
+  await payOnGateway(page);
+  await expect(page.getByText('پرداخت تأیید شد.')).toBeVisible();
+});
+
+test('a forged result in the address changes nothing, and checkout refuses a request without a session', async ({ page }) => {
+  await page.goto('/fa/payment/result?attempt=00000000-0000-7000-8000-000000000000&status=OK&Authority=FORGED');
+  await expect(page.getByText('پرداخت تأیید شد.')).toHaveCount(0);
+  // Refused without a session: the server does the checking, not the page.
+  const refused = await page.evaluate(async () => {
+    const csrf = (document.cookie.split('; ').find((c) => c.startsWith('hedax_csrf=')) ?? '').split('=')[1] ?? '';
+    const res = await fetch('/api/v1/checkout?locale=fa', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrf, 'Idempotency-Key': 'forged-total-1' }, body: JSON.stringify({ addressId: '00000000-0000-7000-8000-000000000000', shippingMethodId: '00000000-0000-7000-8000-000000000000', acceptedPolicyVersionId: '00000000-0000-7000-8000-000000000000', expectedGrandTotalIrr: '1' }) });
+    return res.status;
+  });
+  expect(refused).toBeGreaterThanOrEqual(400);
+});
+
 test('cancel at the gateway, see it cancelled, then retry and pay (A14)', async ({ page }) => {
   await page.goto(`/fa/parts?q=${encodeURIComponent('لنت ترمز')}`);
   await page.getByRole('link', { name: /لنت ترمز جلو/ }).first().click();
+  // A part card on the list has an add button of the same name: wait for the part's own page.
+  await expect(page).toHaveURL(/\/fa\/parts\/demo-/);
   await page.getByRole('button', { name: 'افزودن به سبد' }).click();
   await expect(page.getByText('به سبد اضافه شد')).toBeVisible();
   await signIn(page, retrier, '/fa/checkout');
@@ -52,6 +155,7 @@ test('cancel at the gateway, see it cancelled, then retry and pay (A14)', async 
 test('a late checkout total never replaces the current address and shipping choice', async ({ page }) => {
   await page.goto(`/fa/parts?q=${encodeURIComponent('فیلتر روغن')}`);
   await page.getByRole('link', { name: /فیلتر روغن سمند/ }).first().click();
+  await expect(page).toHaveURL(/\/fa\/parts\/demo-/);
   await page.getByRole('button', { name: 'افزودن به سبد' }).click();
   await expect(page.getByText('به سبد اضافه شد')).toBeVisible();
   await signIn(page, quick, '/fa/checkout');

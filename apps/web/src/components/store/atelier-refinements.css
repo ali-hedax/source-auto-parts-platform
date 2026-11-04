@@ -115,9 +115,47 @@
 @media(min-width:900px) and (max-width:1199px){.titanium-store .titanium-desktop-nav nav a{font-size:16px}}
 /* Preserve the complete parts composition and a full-width canvas on short laptops. */
 @media(min-width:900px){
- .titanium-store .atelier-banner{--banner-height:min(56.25vw,max(160px,calc(100svh - var(--banner-top,300px) - 12px)));height:var(--banner-height);aspect-ratio:auto;background:#f0e6d6}
+ .titanium-store .atelier-banner{--banner-height:min(56.25vw,max(160px,calc(100svh - var(--banner-top,var(--banner-top-guess)) - 12px)));height:var(--banner-height);aspect-ratio:auto;background:#f0e6d6}
  .titanium-store .atelier-banner-media{left:auto;right:0;width:min(100%,calc(var(--banner-height)*16/9));mask-image:linear-gradient(to right,transparent,#000 12%)}
  .titanium-store .atelier-banner .titanium-hero{top:12%;width:min(40%,600px)}
  .titanium-store .atelier-banner .atelier-typewriter h1{font-size:clamp(20px,min(2.65cqw,4.8svh),42px)}
  .titanium-store:dir(ltr) .atelier-banner .atelier-typewriter h1{font-size:clamp(19px,min(2.4cqw,4.5svh),38px)}
 }
+
+/* One low header row whose ground and rule reach both page edges; the content keeps the page's side padding. */
+.titanium-store .titanium-header{border-block-end:1px solid var(--color-line-soft)}
+.titanium-store .titanium-header-inner{min-height:64px;padding-block:6px;gap:8px}
+.titanium-store .titanium-logo{width:clamp(108px,30vw,148px)}
+.titanium-store .header-wordmark{gap:3px}
+.titanium-store .header-wordmark-signature{font-size:14px}
+.titanium-store .titanium-logo picture img{width:auto;max-width:100%;max-height:52px;margin-inline:auto}
+.titanium-store .titanium-header-controls{gap:0}
+.titanium-store .atelier-account-label{display:none}
+@media(max-width:1099px){
+ .titanium-store .titanium-desktop-nav,.titanium-store .titanium-preferences{display:none}
+ .titanium-store .titanium-header-inner>button{display:grid}
+}
+@media(min-width:1100px){
+ .titanium-store .titanium-header-inner{display:flex;align-items:center;min-height:72px;gap:clamp(12px,1.6vw,28px)}
+ .titanium-store .titanium-header-inner>button{display:none}
+ .titanium-store .titanium-logo{flex:0 0 auto;width:clamp(132px,10.5vw,160px)}
+ .titanium-store .titanium-desktop-nav{display:block;flex:1 1 auto;min-width:0;width:auto;border-top:0;padding-top:0}
+ .titanium-store .titanium-desktop-nav nav.container-page{justify-content:center;gap:0}
+ .titanium-store .titanium-desktop-nav nav ul{flex:0 1 auto;width:auto;justify-content:center}
+ .titanium-store .titanium-desktop-nav nav a{font-size:clamp(14px,1.15vw,17px);padding-inline:clamp(6px,.75vw,12px)}
+ .titanium-store .titanium-preferences{display:flex}
+ .titanium-store .titanium-search-link{display:grid}
+}
+@media(min-width:1440px){.titanium-store .atelier-account-label{display:inline}}
+/* The way back from inner pages. */
+.titanium-store .back-control-row{padding-block:12px 0}
+.titanium-store .back-control{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding-inline:12px 14px;border:1px solid var(--color-line);border-radius:var(--radius-control);font-size:14px;font-weight:600;color:var(--ti-ink);transition:background-color .15s ease}
+.titanium-store .back-control:hover{background:var(--ti-sand)}
+/* Finder fields hold one short label and one value; nothing wraps or is cut mid-word on a phone. */
+.titanium-store .vf-field{min-height:64px}
+.titanium-store .vf-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.titanium-store .vf-hint{margin-top:10px;color:var(--ti-muted);font-size:13px}
+/* What stands above the first screen's banner before its script measures it, so the banner does not change size as the page starts. */
+.titanium-store{--banner-top-guess:73px}
+.titanium-store:has(>[role=region]:first-child){--banner-top-guess:113px}
+[role=note]~.titanium-store{--banner-top-guess:125px}

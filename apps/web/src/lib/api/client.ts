@@ -1,6 +1,7 @@
 'use client';
 
 import { CSRF_COOKIE, CSRF_HEADER, IDEMPOTENCY_HEADER } from '@hedax/contracts/constants';
+import { randomId } from '@/lib/random-id';
 import { ApiRequestError } from './errors';
 
 function readCookie(name: string): string | null {
@@ -22,7 +23,7 @@ async function refreshCsrf(): Promise<void> {
 
 /** Random key for retry-safe mutations (checkout, payments, refunds, imports). */
 export function newIdempotencyKey(): string {
-  return crypto.randomUUID().replace(/-/g, '') + Date.now().toString(36);
+  return randomId().replace(/-/g, '') + Date.now().toString(36);
 }
 
 export interface ApiOptions {

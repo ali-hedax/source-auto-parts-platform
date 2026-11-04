@@ -12,6 +12,7 @@ import { Alert, Spinner } from '@/components/ui/misc';
 import { FileUploader } from '@/components/files/file-uploader';
 import { Link } from '@/i18n/navigation';
 import { api } from '@/lib/api/client';
+import { randomId } from '@/lib/random-id';
 
 interface Pending {
   clientMessageId: string;
@@ -169,7 +170,7 @@ export function ChatThread({ conversationId, quoteLinkBase = '/account/quotes', 
   const send = () => {
     const text = body.trim();
     if (!text && !files.length) return;
-    const p: Pending = { clientMessageId: `c${crypto.randomUUID().replace(/-/g, '')}`, body: text, attachmentIds: files, state: 'sending', createdAt: new Date().toISOString() };
+    const p: Pending = { clientMessageId: `c${randomId().replace(/-/g, '')}`, body: text, attachmentIds: files, state: 'sending', createdAt: new Date().toISOString() };
     setPending((list) => [...list, p]);
     setBody('');
     setFiles([]);

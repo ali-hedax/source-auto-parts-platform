@@ -333,13 +333,8 @@
 .titanium-hub-card h3 { font-size: 20px; font-weight: 800; margin-bottom: 8px; }
 .titanium-hub-card > p { font-size: 14px; line-height: 1.9; color: var(--ti-muted); }
 .titanium-hub-card .titanium-hub-status { display: flex; align-items: center; gap: 6px; font-size: 12px; margin-block: 14px; }
-.titanium-hub-card > small { display: block; margin-top: auto; padding-top: 16px; font-size: 12px; line-height: 1.9; color: var(--ti-muted); }
-.titanium-price-sample > div { display: flex; justify-content: space-between; gap: 20px; padding-block: 5px; font-size: 14px; }
-.titanium-price-sample dd { font-weight: 700; }
 .titanium-hub-article summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; color: #064b94; font-size: 14px; text-decoration: underline; text-underline-offset: 5px; }
 .titanium-hub-article p { font-size: 14px; line-height: 1.9; padding-block: 6px 12px; color: var(--ti-muted); }
-.titanium-hub-play { position: absolute; inset: 0; margin: auto; width: 50px; height: 50px; display: grid; place-items: center; background: #0c263eac; color: #fff; border: 1px solid #5bc4ff; border-radius: 50%; }
-.titanium-hub-pending { opacity: .65; cursor: not-allowed; font-size: 12px; padding-inline: 12px; box-shadow: none; }
 .titanium-home section:has(> div [id^='faq-title-']) details { border: 1px solid #348cde; border-radius: 13px; background: transparent; box-shadow: 0 0 5px #087dff33; margin-block: 10px; padding-inline: 16px; }
 @media(max-width:767px) {
  .titanium-hub-grid { grid-template-columns: 1fr; gap: 22px; }

@@ -91,13 +91,13 @@ export function VehicleFinderSteps({ groups, locale, buttonLabel, requestHref, c
 
   // Why a step has nothing to offer, in words (no placeholder options).
   const vehicleStatus = vehicles.state === 'error' ? (fa ? 'فهرست خودروها دریافت نشد. دوباره تلاش کنید.' : 'Could not load the vehicles. Try again.')
-    : group && vehicles.state === 'ready' && !vehicleItems.length ? (fa ? 'برای این گروه هنوز خودرویی ثبت نشده است.' : 'No vehicles are listed for this group yet.') : null;
+    : group && vehicles.state === 'ready' && !vehicleItems.length ? (fa ? 'برای این گروه خودرویی ثبت نشده.' : 'No vehicles in this group yet.') : null;
   const modelStatus = !vehicle ? null : models.state === 'error' ? (fa ? 'فهرست مدل‌ها دریافت نشد. خودرو را دوباره انتخاب کنید.' : 'Could not load the models. Choose the vehicle again.')
-    : models.state === 'ready' && !modelItems.length ? (fa ? 'مدل یا تیپی برای این خودرو ثبت نشده؛ بدون مدل جست‌وجو کنید.' : 'No models are listed for this vehicle; search without one.') : null;
-  const yearStatus = !vehicle || models.state !== 'ready' ? null : !yearOptions.length ? (fa ? 'سال ساخت معتبری برای این انتخاب ثبت نشده؛ بدون سال جست‌وجو کنید.' : 'No verified model years are recorded for this choice; search without a year.') : null;
+    : models.state === 'ready' && !modelItems.length ? (fa ? 'مدلی ثبت نشده؛ بدون مدل جست‌وجو کنید.' : 'No models listed; search without one.') : null;
+  const yearStatus = !vehicle || models.state !== 'ready' ? null : !yearOptions.length ? (fa ? 'سالی ثبت نشده؛ بدون سال جست‌وجو کنید.' : 'No years listed; search without one.') : null;
   const canSearch = Boolean(q.trim() || group || vehicle);
   const common = { locale, searchLabel: fa ? 'جست‌وجو در فهرست' : 'Search the list', noMatch: fa ? 'موردی پیدا نشد' : 'No match', clearLabel: fa ? '— بدون انتخاب —' : '— No choice —', loadingText: fa ? 'در حال دریافت…' : 'Loading…' };
-  const optional = fa ? '(اختیاری)' : '(optional)';
+  const firstVehicle = fa ? 'ابتدا خودرو' : 'Vehicle first';
 
   return <form action={`/${locale}/parts`} method="get" className="vf-form" role="search" aria-label={fa ? 'جست‌وجوی قطعه و انتخاب خودرو' : 'Part search and vehicle finder'}>
     {compact ? null : <label className="vf-query">
@@ -107,14 +107,14 @@ export function VehicleFinderSteps({ groups, locale, buttonLabel, requestHref, c
         placeholder={fa ? 'نام قطعه، کد کالا یا شماره فنی' : 'Part name, SKU or part number'} />
     </label>}
     <div className="vf-steps">
-      <FinderSelect {...common} step={1} label={`${fa ? 'برند / گروه خودرو' : 'Make / group'} ${optional}`} placeholder={fa ? 'همهٔ گروه‌ها' : 'All groups'} options={groupOptions} value={group}
+      <FinderSelect {...common} step={1} label={fa ? 'برند / گروه' : 'Make / group'} placeholder={fa ? 'همهٔ گروه‌ها' : 'All groups'} options={groupOptions} value={group}
         onChange={pickGroup} active={!group && !vehicle && !q.trim()} />
-      <FinderSelect {...common} step={2} label={`${fa ? 'خودرو' : 'Vehicle'} ${optional}`} placeholder={fa ? 'انتخاب خودرو' : 'Choose a vehicle'}
+      <FinderSelect {...common} step={2} label={fa ? 'خودرو' : 'Vehicle'} placeholder={fa ? 'انتخاب خودرو' : 'Choose a vehicle'}
         options={vehicleOptions} value={vehicle} onChange={pickVehicle} onOpen={openVehicles} disabled={Boolean(group) && vehicles.state === 'ready' && !vehicleItems.length}
         loading={vehicles.state === 'loading'} active={Boolean(group) && !vehicle} status={vehicleStatus} />
-      <FinderSelect {...common} step={3} label={`${fa ? 'مدل / تیپ' : 'Model / trim'} ${optional}`} placeholder={!vehicle ? (fa ? 'ابتدا خودرو را انتخاب کنید' : 'Choose a vehicle first') : (fa ? 'همهٔ مدل‌ها' : 'All models')}
+      <FinderSelect {...common} step={3} label={fa ? 'مدل / تیپ' : 'Model / trim'} placeholder={!vehicle ? firstVehicle : (fa ? 'همهٔ مدل‌ها' : 'All models')}
         options={modelOptions} value={model} onChange={pickModel} disabled={!vehicle || !modelItems.length} loading={models.state === 'loading'} active={Boolean(vehicle) && !model && modelItems.length > 0} status={modelStatus} />
-      <FinderSelect {...common} step={4} label={`${fa ? 'سال ساخت' : 'Year'} ${optional}`} placeholder={!vehicle ? (fa ? 'ابتدا خودرو را انتخاب کنید' : 'Choose a vehicle first') : (fa ? 'همهٔ سال‌ها' : 'All years')}
+      <FinderSelect {...common} step={4} label={fa ? 'سال ساخت' : 'Year'} placeholder={!vehicle ? firstVehicle : (fa ? 'همهٔ سال‌ها' : 'All years')}
         options={yearOptions} value={year} onChange={setYear} disabled={!yearOptions.length} active={false} status={yearStatus} />
     </div>
     {group ? <input type="hidden" name="group" value={group} /> : null}
@@ -125,9 +125,8 @@ export function VehicleFinderSteps({ groups, locale, buttonLabel, requestHref, c
       <button type="submit" className="vf-submit" disabled={!canSearch}><Search aria-hidden size={18} />{buttonLabel}</button>
       {compact ? null : <a className="vf-help" href={requestHref}>{fa ? 'قطعه یا خودروی خود را پیدا نکردید؟ درخواست تأمین ثبت کنید' : 'Can’t find your part or vehicle? Send a sourcing request'}</a>}
     </div>
-    <p className={compact ? 'sr-only' : 'vf-hint'}>{vehicleInfo?.make && groupInfo
-      ? (fa ? `برند اصلی: ${name(vehicleInfo.make)} · گروه: ${name(groupInfo.name)}` : `Make: ${name(vehicleInfo.make)} · group: ${name(groupInfo.name)}`)
-      : (fa ? 'همهٔ گزینه‌ها اختیاری‌اند؛ قطعات با سازگاری تأییدشده اول نمایش داده می‌شوند.'
-        : 'Every choice is optional; parts with verified fitment come first.')}</p>
+    {!canSearch || (vehicleInfo?.make && groupInfo) ? <p className="vf-hint">{!canSearch
+      ? (compact ? (fa ? 'برای جست‌وجو، برند یا خودرو را انتخاب کنید.' : 'Choose a make or vehicle to search.') : (fa ? 'برای جست‌وجو، نام قطعه یا خودرو را مشخص کنید.' : 'Enter a part or choose a vehicle to search.'))
+      : (fa ? `برند: ${name(vehicleInfo!.make!)} · گروه: ${name(groupInfo!.name)}` : `Make: ${name(vehicleInfo!.make!)} · group: ${name(groupInfo!.name)}`)}</p> : null}
   </form>;
 }

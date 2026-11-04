@@ -1,12 +1,13 @@
 'use client';
 
-import type { CartView, MeView } from '@hedax/contracts';
-import { toPersianDigits } from '@hedax/domain';
+import type { MeView } from '@hedax/contracts';
 import { ShoppingCart, UserRound, ShieldCheck } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from '@/i18n/navigation';
 import { api } from '@/lib/api/client';
+import { useCartCount } from '@/lib/cart-count';
+import { cartBadgeText } from '@/lib/cart-units';
 
 export function useMe(): { me: MeView | null; loading: boolean } {
   const [state, setState] = useState<{ me: MeView | null; loading: boolean }>({ me: null, loading: true });
@@ -31,7 +32,7 @@ export function AccountLink() {
   const label = me?.kind === 'STAFF' ? t('admin') : me ? t('account') : t('login');
   return (
     <details className="atelier-account">
-      <summary aria-label={label}><UserRound aria-hidden className="size-5" /><span className="hidden xl:inline">{label}</span></summary>
+      <summary aria-label={label}><UserRound aria-hidden className="size-5" /><span className="atelier-account-label">{label}</span></summary>
       <div className="atelier-account-menu">
         <Link href={me?.kind === 'CUSTOMER' ? '/account' : '/login'}><UserRound aria-hidden className="size-4" />{t('customerEntry')}</Link>
         <Link href={me?.kind === 'STAFF' ? href : '/staff/login'}><ShieldCheck aria-hidden className="size-4" />{t('staffEntry')}</Link>
@@ -42,27 +43,28 @@ export function AccountLink() {
 
 export function CartLink() {
   const t = useTranslations('nav');
-  const locale = useLocale();
-  const [count, setCount] = useState(0);
+  const locale = useLocale() as 'fa' | 'en';
+  const { count } = useCartCount();
+  // Changes are announced once the first total is known; the first answer itself is not news.
+  const previous = useRef(count);
+  const [announcement, setAnnouncement] = useState('');
   useEffect(() => {
-    const load = () =>
-      api<CartView>('/cart')
-        .then((c) => setCount(c.lines.reduce((s, l) => s + l.quantity, 0)))
-        .catch(() => setCount(0));
-    load();
-    window.addEventListener('hedax:cart-changed', load);
-    return () => window.removeEventListener('hedax:cart-changed', load);
-  }, []);
-  const shown = count > 99 ? '99+' : String(count);
+    if (previous.current !== null && count !== null && previous.current !== count) setAnnouncement(t('cartChanged', { count }));
+    previous.current = count;
+  }, [count, t]);
   return (
-    <Link href="/cart" className={`relative min-w-11 justify-center ${control}`}>
-      <ShoppingCart aria-hidden className="size-5" />
-      <span className="sr-only">{t('cartCount', { count })}</span>
-      {count > 0 ? (
-        <span aria-hidden className="absolute end-0.5 top-1 grid h-5 min-w-5 place-items-center rounded-full bg-signal px-1 text-[0.6875rem] font-bold leading-none text-carbon ring-2 ring-stage">
-          {locale === 'fa' ? toPersianDigits(shown) : shown}
-        </span>
-      ) : null}
-    </Link>
+    <>
+      <Link href="/cart" className={`relative min-w-11 justify-center ${control}`}>
+        <ShoppingCart aria-hidden className="size-5" />
+        <span className="sr-only">{count === null ? t('cart') : t('cartCount', { count })}</span>
+        {/* Fixed colours, not theme tokens: the storefront remaps "signal" to its dark ink, which hid dark digits on a dark circle. */}
+        {count ? (
+          <span aria-hidden data-cart-badge className="absolute -end-0.5 top-0 grid h-5 min-w-5 place-items-center rounded-full bg-[#2a1c16] px-1 text-xs font-bold leading-none text-[#fbf8f3] ring-2 ring-[#f5f0e8]">
+            {cartBadgeText(count, locale)}
+          </span>
+        ) : null}
+      </Link>
+      <span role="status" className="sr-only">{announcement}</span>
+    </>
   );
 }

@@ -18,6 +18,7 @@ import { routing } from '@/i18n/routing';
 import { dataSource, publicSiteUrl } from '@/lib/config';
 import { getSiteContent } from '@/lib/site-content';
 import { FixtureBanner } from '@/components/layout/fixture-banner';
+import { AssistantEntry } from '@/components/chat/assistant-entry';
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -66,6 +67,8 @@ export default async function LocaleLayout({ children, params }: { children: Rea
         <NextIntlClientProvider locale={locale} messages={messages}>
           {dataSource() === 'fixtures' ? <FixtureBanner /> : null}
           {children}
+          {/* Above the page layouts, so moving between pages never remounts the guide or restarts its conversation. */}
+          <AssistantEntry />
         </NextIntlClientProvider>
       </body>
     </html>

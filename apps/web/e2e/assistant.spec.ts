@@ -1,7 +1,21 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { DEFAULT_ASSISTANT_SETTINGS } from '@hedax/contracts/constants';
 
 test.use({ video: process.env.ASSISTANT_CAPTURE === '1' ? 'on' : 'off' });
+
+/** The guide fades while it would cover a control, wherever the page stands: moves the page until it is clear. */
+async function scrollGuideClear(page: Page) {
+  await expect(page.locator('.assistant-dock')).toBeAttached({ timeout: 30_000 });
+  for (let y = 0; y < 3000; y += 130) {
+    await page.evaluate((top) => window.scrollTo(0, top), y);
+    await page.waitForTimeout(300);
+    // Twice: a guide that has just appeared has not looked under itself yet.
+    if (await page.locator('.assistant-dock').getAttribute('data-yield') !== 'false') continue;
+    await page.waitForTimeout(300);
+    if (await page.locator('.assistant-dock').getAttribute('data-yield') === 'false') return;
+  }
+  throw new Error('the guide never found a clear place');
+}
 
 test('disabled by default; enabled guide is local, keyboard accessible and bilingual', async ({ page }) => {
   await page.goto('/fa');
@@ -12,6 +26,7 @@ test('disabled by default; enabled guide is local, keyboard accessible and bilin
   // The dev server's corner indicator (absent in production builds) sits over the compact launcher.
   await page.addStyleTag({ content: 'nextjs-portal { display: none !important; }' });
   const launcher = page.getByRole('button', { name: 'باز کردن هکسی، راهنمای سورس' });
+  await scrollGuideClear(page);
   await launcher.click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
@@ -33,6 +48,8 @@ test('disabled by default; enabled guide is local, keyboard accessible and bilin
   await expect(launcher).toBeFocused();
   expect(await page.evaluate(() => Object.keys(localStorage))).toEqual(['hedax-guide-paused']);
   await page.getByRole('button', { name: /English/ }).click();
+  await expect(page.getByRole('button', { name: 'Open Hexi, the Source guide' })).toBeAttached();
+  await scrollGuideClear(page);
   await page.getByRole('button', { name: 'Open Hexi, the Source guide' }).click();
   await expect(page.getByRole('dialog')).toHaveAttribute('dir', 'ltr');
   await expect(page.getByRole('dialog').getByRole('log')).toHaveText('');
@@ -50,20 +67,35 @@ for (const width of [390, 768, 1440]) {
     await page.goto('/fa');
     // The dev server's corner indicator (absent in production builds) sits over the compact launcher.
     await page.addStyleTag({ content: 'nextjs-portal { display: none !important; }' });
-    await expect(page.getByRole('button', { name: 'باز کردن هکسی، راهنمای سورس' })).toBeVisible();
+    await scrollGuideClear(page);
     await expect(page.locator('.assistant-character img')).toHaveAttribute('src', /brand\/source\/atelier\/hexi\.webp/);
+    const narrow = width < 1024;
     await expect(page.locator('.assistant-character')).not.toHaveCSS('background-color', 'rgb(255, 255, 255)');
-    expect(await page.locator('.assistant-avatar').evaluate((el) => getComputedStyle(el).animationName)).toBe('none');
+    expect(await page.locator(narrow ? '.assistant-face' : '.assistant-avatar').evaluate((el) => getComputedStyle(el).animationName)).toBe('none');
     await page.screenshot({ path: testInfo.outputPath(`assistant-launcher-${width}.png`), fullPage: false });
     const dock = (await page.locator('.assistant-dock').boundingBox())!;
-    expect(dock.y + dock.height).toBeLessThan(width < 640 ? 825 : 900);
+    expect(dock.y + dock.height).toBeLessThanOrEqual(900 - 12);
     await page.locator('.assistant-character').dragTo(page.locator('main'), { targetPosition: { x: Math.min(180, width / 2), y: 220 } });
     await expect.poll(() => page.evaluate(() => localStorage.getItem('hedax-guide-position'))).not.toBeNull();
     await expect(page.getByRole('dialog')).toHaveCount(0);
-    await page.getByRole('button', { name: 'بازگرداندن موقعیت کاراکتر' }).click();
+    if (narrow) {
+      // The phone launcher has no toolbar of its own; its controls are in the panel.
+      await page.getByRole('button', { name: 'باز کردن هکسی، راهنمای سورس' }).focus();
+      await page.keyboard.press('Enter');
+      await page.getByRole('dialog').getByRole('button', { name: 'بازگرداندن موقعیت کاراکتر' }).click();
+      await page.keyboard.press('Escape');
+    } else {
+      await page.locator('.assistant-character').hover();
+      await page.getByRole('button', { name: 'بازگرداندن موقعیت کاراکتر' }).click();
+    }
     await expect.poll(() => page.evaluate(() => localStorage.getItem('hedax-guide-position'))).toBeNull();
-    await page.getByRole('button', { name: 'کوچک‌کردن کاراکتر' }).click();
-    expect((await page.locator('.assistant-dock').boundingBox())!.width).toBeLessThan(dock.width);
+    if (narrow) {
+      expect((await page.locator('.assistant-dock').boundingBox())!.width).toBeLessThanOrEqual(56);
+    } else {
+      await page.locator('.assistant-character').hover();
+      await page.getByRole('button', { name: 'کوچک‌کردن کاراکتر' }).click();
+      expect((await page.locator('.assistant-dock').boundingBox())!.width).toBeLessThan(dock.width);
+    }
     await page.getByRole('button', { name: 'باز کردن هکسی، راهنمای سورس' }).focus();
     await page.keyboard.press('Enter');
     const box = (await page.getByRole('dialog').boundingBox())!;
@@ -72,20 +104,19 @@ for (const width of [390, 768, 1440]) {
     expect(box.y + box.height).toBeLessThanOrEqual(900);
     await page.screenshot({ path: testInfo.outputPath(`assistant-open-${width}.png`), fullPage: false });
     await page.keyboard.press('Escape');
+    await page.mouse.move(0, 0);
     await page.evaluate(() => {
+      // A launcher holding the keyboard focus or the mouse never fades out from under it.
+      (document.activeElement as HTMLElement | null)?.blur();
       const dock = document.querySelector('.assistant-dock')!.getBoundingClientRect();
       const action = document.createElement('button');
       action.id = 'assistant-collision-test'; action.textContent = 'Important test action';
       Object.assign(action.style, { position: 'fixed', left: `${dock.left}px`, top: `${dock.bottom - 80}px`, width: '80px', height: '48px' });
       document.querySelector('main')!.append(action); window.dispatchEvent(new Event('scroll'));
     });
-    await expect.poll(async () => {
-      const launcher = await page.locator('.assistant-dock').boundingBox();
-      const action = await page.locator('#assistant-collision-test').boundingBox();
-      if (!launcher || !action) return true;
-      return launcher.x + launcher.width <= action.x || launcher.x >= action.x + action.width || launcher.y + launcher.height <= action.y || launcher.y >= action.y + action.height;
-    }).toBe(true);
+    await expect(page.locator('.assistant-dock')).toHaveCSS('opacity', '0');
     await page.evaluate(() => { document.getElementById('assistant-collision-test')!.remove(); window.dispatchEvent(new Event('scroll')); });
+    await expect(page.locator('.assistant-dock')).toHaveCSS('opacity', '1');
     await page.getByRole('button', { name: 'باز کردن هکسی، راهنمای سورس' }).focus();
     await page.keyboard.press('Enter');
     // Short visual viewport approximates the usable space when a mobile keyboard is open.

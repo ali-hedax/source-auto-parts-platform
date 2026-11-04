@@ -12,7 +12,7 @@ export function PurchaseSteps({ current, labels, label, locale }: { current: 1 |
         return (
           <li key={text} aria-current={now ? 'step' : undefined} className="flex items-center gap-2">
             {i ? <span aria-hidden className={`h-px w-6 sm:w-10 ${done || now ? 'bg-signal' : 'bg-white/20'}`} /> : null}
-            <span aria-hidden className={`grid size-7 place-items-center rounded-full text-xs font-bold ${now ? 'bg-paper text-stage' : done ? 'bg-signal text-stage' : 'border border-white/25 text-mist'}`}>
+            <span aria-hidden className={`grid size-7 place-items-center rounded-full text-xs font-bold ${now ? 'bg-paper text-stage' : done ? 'bg-[#2a1c16] text-[#fbf8f3]' : 'border border-white/25 text-mist'}`}>
               {done ? <Check className="size-4" /> : digits(step)}
             </span>
             <span className={now ? 'font-bold text-white' : 'text-mist'}>{text}</span>

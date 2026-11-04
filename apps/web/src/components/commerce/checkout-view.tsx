@@ -7,7 +7,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button, ButtonLink } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/field';
 import { Money } from '@/components/ui/format';
-import { Alert, Spinner } from '@/components/ui/misc';
+import { Alert, EmptyState, Spinner } from '@/components/ui/misc';
 import { Link } from '@/i18n/navigation';
 import { api, newIdempotencyKey } from '@/lib/api/client';
 import { errorText, isApiError } from '@/lib/api/errors';
@@ -32,6 +32,8 @@ export function CheckoutClient() {
   const [error, setError] = useState<string | null>(null);
   const [paying, setPaying] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const idem = useRef<string>(newIdempotencyKey());
   const latestPreview = useRef(0);
 
@@ -48,7 +50,7 @@ export function CheckoutClient() {
     } catch (e) {
       if (seq !== latestPreview.current) return;
       if (isApiError(e) && e.status === 401) setLoginNeeded(true);
-      else setError(t('common.unavailable'));
+      else { setError(t('common.unavailable')); setLoadFailed(true); }
     }
   }, [t]);
 
@@ -60,10 +62,10 @@ export function CheckoutClient() {
         if (def) setAddressId(def.id);
       })
       .catch((e) => {
-        if (isApiError(e) && e.status === 401) setLoginNeeded(true);
-        setAddresses([]);
+        if (isApiError(e) && e.status === 401) { setLoginNeeded(true); setAddresses([]); }
+        else setLoadFailed(true);
       });
-  }, []);
+  }, [attempt]);
 
   useEffect(() => {
     if (addresses !== null && !loginNeeded) void loadPreview(addressId, shippingId);
@@ -71,6 +73,13 @@ export function CheckoutClient() {
 
   // Any change to what is being paid for gets a fresh idempotency key.
   useEffect(() => { idem.current = newIdempotencyKey(); }, [addressId, shippingId, preview?.totals?.grandTotal?.amountMinor]);
+
+  // Back from the gateway, a page restored from the browser's cache must not stay stuck on "redirecting".
+  useEffect(() => {
+    const restored = (event: PageTransitionEvent) => { if (event.persisted) setPaying(false); };
+    window.addEventListener('pageshow', restored);
+    return () => window.removeEventListener('pageshow', restored);
+  }, []);
 
   const pay = async () => {
     if (!preview?.totals?.grandTotal) return;
@@ -101,17 +110,36 @@ export function CheckoutClient() {
   if (loginNeeded) {
     return (
       <Alert tone="info" title={t('checkout.loginRequired')}>
-        <ButtonLink href={`/login?next=${encodeURIComponent(`/${locale}/checkout`)}`} className="mt-3">{t('nav.login')}</ButtonLink>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <ButtonLink href={`/login?next=${encodeURIComponent(`/${locale}/checkout`)}`}>{t('nav.login')}</ButtonLink>
+          <ButtonLink href="/cart" variant="secondary">{t('checkout.backToCart')}</ButtonLink>
+        </div>
+      </Alert>
+    );
+  }
+  if (loadFailed && (!preview || addresses === null)) {
+    return (
+      <Alert tone="warning" title={t('common.unavailable')}>
+        <Button variant="secondary" size="sm" className="mt-2" onClick={() => { setLoadFailed(false); setError(null); setAddresses(null); setAttempt((n) => n + 1); }}>{t('common.retry')}</Button>
       </Alert>
     );
   }
   if (!preview || addresses === null) return <Spinner label={t('common.loading')} />;
+  if (!preview.cart.lines.length) {
+    return (
+      <EmptyState title={t('checkout.emptyCart')}>
+        <ButtonLink href="/parts" className="mt-2">{t('cart.browse')}</ButtonLink>
+      </EmptyState>
+    );
+  }
 
   const selected = preview.shippingOptions.find((o) => o.id === shippingId);
   const grand = preview.totals?.grandTotal;
   // Totals still being recalculated for a new address or shipping choice are not payable.
   const current = previewFor === `${addressId}|${shippingId}`;
   const canPay = current && !!grand && accepted && preview.blockers.length === 0;
+  // Why the pay button is off when the server's own list of blockers does not already say.
+  const payHint = !current ? t('checkout.recalculating') : !preview.blockers.length && preview.policy.id && !accepted ? t('checkout.needTerms') : null;
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
@@ -192,6 +220,7 @@ export function CheckoutClient() {
         <Button variant="commerce" size="lg" disabled={!canPay} loading={paying} onClick={pay}>
           {paying ? t('checkout.starting') : grand ? t('checkout.pay', { amount: formatMoney(money('IRR', grand.amountMinor), locale) }) : t('checkout.review')}
         </Button>
+        {payHint ? <p className="text-center text-xs leading-6 text-steel">{payHint}</p> : null}
       </aside>
     </div>
   );

@@ -1,12 +1,13 @@
 'use client';
 
-import type { UnitRef } from '@hedax/contracts';
+import type { CartView, UnitRef } from '@hedax/contracts';
 import { Check, Loader2, ShoppingCart } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
 import { Link } from '@/i18n/navigation';
 import { firstAmount } from '@/components/commerce/quantity-stepper';
 import { api } from '@/lib/api/client';
+import { cartChanged } from '@/lib/cart-count';
 import { errorText } from '@/lib/api/errors';
 
 /** Uses the same CSRF-protected cart and sales-unit rules as the detail page. */
@@ -15,13 +16,16 @@ export function CardCartButton({ productId, name, unit }: { productId: string; n
   const busy = useRef(false);
   const [state, setState] = useState<'idle' | 'adding' | 'added' | 'error'>('idle');
   const [error, setError] = useState('');
+  const [atLimit, setAtLimit] = useState(false);
   async function add() {
     if (busy.current) return;
     busy.current = true;
     setState('adding'); setError('');
     try {
-      await api('/cart/items', { method: 'POST', body: { productId, quantity: firstAmount(unit) } });
-      setState('added'); window.dispatchEvent(new Event('hedax:cart-changed'));
+      const cart = await api<CartView>('/cart/items', { method: 'POST', body: { productId, quantity: firstAmount(unit) } });
+      const line = cart.lines.find((l) => l.productId === productId);
+      setAtLimit(Boolean(line && line.quantity >= line.maxOrderQuantity));
+      setState('added'); cartChanged(cart);
     } catch (e) { setState('error'); setError(errorText(t, e)); }
     finally { busy.current = false; }
   }
@@ -30,7 +34,7 @@ export function CardCartButton({ productId, name, unit }: { productId: string; n
       {state === 'adding' ? <Loader2 aria-hidden className="size-6 animate-spin" /> : state === 'added' ? <Check aria-hidden className="size-6" /> : <ShoppingCart aria-hidden className="size-6" fill="currentColor" strokeWidth={1.6} />}
     </button>
     <div className="part-card-feedback" aria-live="polite" aria-atomic="true">
-      {state === 'added' ? <p>{t('parts.added')} <Link href="/cart">{t('parts.viewCart')}</Link></p> : null}
+      {state === 'added' ? <p>{t(atLimit ? 'parts.addedAtLimit' : 'parts.added')} <Link href="/cart">{t('parts.viewCart')}</Link></p> : null}
       {state === 'error' ? <p role="alert" className="part-card-error">{error}</p> : null}
     </div>
   </div>;

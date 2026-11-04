@@ -18,6 +18,7 @@ export function AssistantEntry() {
   const ready = useAfterLoad();
   // no-store request on navigation: a stale cached page cannot enable the assistant.
   const state = useApi<AssistantPublicSettings>(allowed && ready ? `/site/assistant?path=${encodeURIComponent(pathname)}` : null);
-  if (!allowed || !ready || state.loading || state.error || state.data?.enabled !== true) return null;
-  return <Widget key={`${locale}:${pathname}`} locale={locale} settings={state.data} />;
+  // While the next page's answer loads the guide stays as it is; only an answer that turns it off removes it.
+  if (!allowed || !ready || state.error || state.data?.enabled !== true) return null;
+  return <Widget key={locale} locale={locale} settings={state.data} />;
 }
