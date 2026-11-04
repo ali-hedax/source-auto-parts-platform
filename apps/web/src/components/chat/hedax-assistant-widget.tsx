@@ -5,11 +5,11 @@ import './atelier-assistant.css';
 import * as RDialog from '@radix-ui/react-dialog';
 import type { AssistantMessageResult, AssistantPublicSettings, AssistantReply } from '@hedax/contracts';
 import { ASSISTANT_TOPICS, assistantReply } from '@hedax/contracts/constants';
-import { EyeOff, LocateFixed, Maximize2, Minimize2, Pause, Play, Send, X } from 'lucide-react';
+import { EyeOff, Send, X } from 'lucide-react';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/field';
@@ -38,42 +38,7 @@ const topicLabel = (label: string, topic: string, locale: 'fa' | 'en') => topic 
 const MASCOT = '/brand/source/atelier/hexi';
 
 
-/**
- * The configured sizes, bounded: a phone only ever shows the small launcher, and on wide screens the
- * full character must not outgrow what it stands beside, whatever an older saved setting says.
- */
-const faceSize = (settings: Pick<AssistantPublicSettings, 'mobileSize'>) => Math.min(Math.max(settings.mobileSize, 48), 56);
-const characterSize = (settings: Pick<AssistantPublicSettings, 'desktopSize'>) => Math.min(settings.desktopSize, 96);
-
-/** What the guide must never sit on. A link counts unless it is a whole tall card, where only the card's own controls matter. */
-const CONTROLS = 'button, input, select, textarea, video[controls], [role="combobox"], [data-assistant-avoid]';
-function coversControl(dock: HTMLElement): boolean {
-  const bubble = dock.querySelector('.assistant-greeting');
-  for (const box of [dock.getBoundingClientRect(), ...(bubble ? [bubble.getBoundingClientRect()] : [])]) {
-    for (let x = box.left + 2; x < box.right; x += 24) {
-      for (let y = box.top + 2; y < box.bottom; y += 24) {
-        for (const el of document.elementsFromPoint(x, y)) {
-          if (dock.contains(el)) continue;
-          const area = el.closest('main, footer');
-          const hit = el.closest<HTMLElement>(`${CONTROLS}, a`);
-          if (!area || !hit || !area.contains(hit)) continue;
-          if (hit.matches(CONTROLS)) return true;
-          const r = hit.getBoundingClientRect();
-          if (r.height <= 64 || r.width * r.height < 160 * 64) return true;
-        }
-      }
-    }
-  }
-  return false;
-}
-
-/** Against the page's own viewport, not the visible one: an opening keyboard must not push the guide about. */
-function clampToViewport(x: number, y: number, el: HTMLElement | null) {
-  const rect = el?.getBoundingClientRect();
-  return { x: Math.max(8, Math.min(x, window.innerWidth - (rect?.width ?? 56) - 8)), y: Math.max(8, Math.min(y, window.innerHeight - (rect?.height ?? 56) - 8)) };
-}
-
-/** Wide screens (≥1024 px) get the non-modal side panel. */
+/** Wide screens (≥1024 px) get the panel in the corner; phones a panel that follows the visible viewport and keyboard. */
 function useDesktop() {
   // This component only ever renders in the browser (next/dynamic, ssr: false).
   const [desktop, setDesktop] = useState(() => window.matchMedia('(min-width: 1024px)').matches);
@@ -104,96 +69,18 @@ export function HedaxAssistantWidget({ locale, settings }: { locale: 'fa' | 'en'
   const tSite = useTranslations();
   const artReady = useAfterLoad();
   const desktop = useDesktop();
-  // The standing character needs room: only the wide home page has it. Inner pages, with a filter or form column under that corner, get the launcher.
   const pathname = usePathname();
-  const home = /^\/(?:fa|en)\/?$/.test(pathname);
-  // The parts lists keep a sticky filter column on the start side, so there the guide stands on the other side. Fixed per page, never while scrolling.
+  // The parts lists keep a sticky filter column on the start side, so there the guide stands on the other side. Fixed per page.
   const side = desktop && /\/(?:parts|imported-parts)\/?$/.test(pathname) ? 'end' : settings.placement;
   const [open, setOpen] = useState(false);
-  const [compact, setCompact] = useState(false);
-  const [paused, setPaused] = useState(false);
-  const [hidden, setHidden] = useState(false);
   const [dismissed, setDismissed] = useState(() => session('hedax-guide-dismissed'));
-  const [yielding, setYielding] = useState(false);
-  const [greeted, setGreeted] = useState(() => session('hedax-guide-greeted'));
-  const [entrance] = useState(() => !session('hedax-guide-greeted'));
   const [draft, setDraft] = useState('');
   const [messages, setMessages] = useState<Array<{ question: string; reply: AssistantReply; products?: AssistantMessageResult['products'] }>>([]);
   const [busy, setBusy] = useState(false);
   const [operator, setOperator] = useState(false);
   const [viewport, setViewport] = useState<{ top: number; height: number } | null>(null);
-  const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
   const end = useRef<HTMLDivElement>(null);
   const conversationId = useRef<string | null>(null);
-  const dock = useRef<HTMLElement>(null);
-  const drag = useRef<{ pointerId: number; startX: number; startY: number; originX: number; originY: number; moved: boolean } | null>(null);
-  const suppressOpen = useRef(false);
-  // The guide has one fixed place: nothing moves it on scrolling (dragging is the only way). Scrolling only re-arms
-  // a timer, and the check after it can change one attribute: whether to fade over a control now under it.
-  // Never under a finger, while dragging or hovering, in a conversation, or with the focus on the guide itself.
-  useEffect(() => {
-    let timer = 0;
-    let touching = false;
-    const settle = () => {
-      const el = dock.current;
-      if (!el || touching || drag.current || document.querySelector('.assistant-panel')) return;
-      if (el.contains(document.activeElement) || el.matches(':hover')) { setYielding(false); return; }
-      setYielding(coversControl(el));
-    };
-    const later = () => { window.clearTimeout(timer); timer = window.setTimeout(settle, 140); };
-    const held = () => { touching = true; window.clearTimeout(timer); };
-    const released = (event: TouchEvent) => { if (!event.touches.length) { touching = false; later(); } };
-    const resized = () => {
-      later();
-      setPosition((p) => {
-        if (!p) return p;
-        const next = clampToViewport(p.x, p.y, dock.current);
-        return next.x === p.x && next.y === p.y ? p : next;
-      });
-    };
-    later();
-    window.addEventListener('scroll', later, { capture: true, passive: true });
-    window.addEventListener('resize', resized);
-    document.addEventListener('focusin', later);
-    document.addEventListener('focusout', later);
-    document.addEventListener('touchstart', held, { capture: true, passive: true });
-    document.addEventListener('touchend', released, { capture: true, passive: true });
-    document.addEventListener('touchcancel', released, { capture: true, passive: true });
-    window.visualViewport?.addEventListener('resize', later);
-    const observer = new ResizeObserver(later);
-    const main = document.querySelector('main');
-    if (main) observer.observe(main);
-    return () => {
-      window.clearTimeout(timer);
-      window.removeEventListener('scroll', later, { capture: true });
-      window.removeEventListener('resize', resized);
-      document.removeEventListener('focusin', later);
-      document.removeEventListener('focusout', later);
-      document.removeEventListener('touchstart', held, { capture: true });
-      document.removeEventListener('touchend', released, { capture: true });
-      document.removeEventListener('touchcancel', released, { capture: true });
-      window.visualViewport?.removeEventListener('resize', later);
-      observer.disconnect();
-    };
-  }, []);
-  // The greeting speaks once per visit, on wide screens, and then leaves the page alone.
-  useEffect(() => {
-    if (greeted) return;
-    const timer = window.setTimeout(() => { setGreeted(true); rememberForVisit('hedax-guide-greeted'); }, 8000);
-    return () => window.clearTimeout(timer);
-  }, [greeted]);
-  useEffect(() => {
-    try {
-      setPaused(localStorage.getItem('hedax-guide-paused') === 'true');
-      setCompact(localStorage.getItem('hedax-guide-compact') === 'true');
-      const saved = JSON.parse(localStorage.getItem('hedax-guide-position') ?? 'null') as { x?: unknown; y?: unknown } | null;
-      if (saved && typeof saved.x === 'number' && typeof saved.y === 'number' && Number.isFinite(saved.x) && Number.isFinite(saved.y)) setPosition({ x: saved.x, y: saved.y });
-    } catch { /* Preferences are optional. */ }
-    const visibility = () => setHidden(document.hidden);
-    visibility();
-    document.addEventListener('visibilitychange', visibility);
-    return () => document.removeEventListener('visibilitychange', visibility);
-  }, []);
   // Only an open panel follows the visible viewport and keyboard; a closed guide renders nothing on these events.
   useEffect(() => {
     if (!open) return;
@@ -204,33 +91,7 @@ export function HedaxAssistantWidget({ locale, settings }: { locale: 'fa' | 'en'
     return () => { window.visualViewport?.removeEventListener('resize', resize); window.visualViewport?.removeEventListener('scroll', resize); };
   }, [open]);
   useEffect(() => { end.current?.scrollIntoView({ block: 'nearest' }); }, [messages.length]);
-  const preference = (key: string, value: boolean) => { try { localStorage.setItem(key, String(value)); } catch { /* No message content is persisted. */ } };
-  const toggleMotion = () => { setPaused(!paused); preference('hedax-guide-paused', !paused); };
-  const toggleCompact = () => { setCompact(!compact); preference('hedax-guide-compact', !compact); };
   const hide = () => { setDismissed(true); rememberForVisit('hedax-guide-dismissed'); };
-  const persistPosition = (next: { x: number; y: number } | null) => {
-    setPosition(next);
-    try { if (next) localStorage.setItem('hedax-guide-position', JSON.stringify(next)); else localStorage.removeItem('hedax-guide-position'); } catch { /* Optional preference. */ }
-  };
-  const pointerDown = (event: ReactPointerEvent<HTMLButtonElement>) => {
-    if (event.button !== 0 || !dock.current) return;
-    const rect = dock.current.getBoundingClientRect();
-    drag.current = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, originX: rect.left, originY: rect.top, moved: false };
-    event.currentTarget.setPointerCapture(event.pointerId);
-  };
-  const pointerMove = (event: ReactPointerEvent<HTMLButtonElement>) => {
-    const active = drag.current;
-    if (!active || active.pointerId !== event.pointerId) return;
-    const dx = event.clientX - active.startX; const dy = event.clientY - active.startY;
-    if (Math.hypot(dx, dy) > 6) active.moved = true;
-    if (active.moved) { event.preventDefault(); setPosition(clampToViewport(active.originX + dx, active.originY + dy, dock.current)); }
-  };
-  const pointerUp = (event: ReactPointerEvent<HTMLButtonElement>) => {
-    const active = drag.current;
-    if (!active || active.pointerId !== event.pointerId) return;
-    if (active.moved) { suppressOpen.current = true; persistPosition(clampToViewport(active.originX + event.clientX - active.startX, active.originY + event.clientY - active.startY, dock.current)); window.setTimeout(() => { suppressOpen.current = false; }, 0); }
-    drag.current = null;
-  };
   /** One random id per browser tab, so the owner's log groups this visitor's messages; no content is stored here. */
   const chatSessionId = () => {
     if (conversationId.current) return conversationId.current;
@@ -255,47 +116,23 @@ export function HedaxAssistantWidget({ locale, settings }: { locale: 'fa' | 'en'
     } catch { append(question.trim(), { text: fallbackText(locale), links: fallbackLinks(locale) }); }
     finally { setBusy(false); }
   };
-  const moving = settings.animationEnabled && !paused && !hidden;
-  const launcherOnly = !desktop || !home || compact;
-  const size = { '--assistant-face': `${faceSize(settings)}px`, '--assistant-avatar-mobile': `${characterSize(settings)}px`, '--assistant-avatar-desktop': `${characterSize(settings)}px` } as CSSProperties;
   const avatar = settings.avatarUrl || `${MASCOT}.webp`;
   const customAvatar = avatar !== `${MASCOT}.webp`;
-  // The default character is cropped to head and shoulders inside the circle; an uploaded avatar is shown whole.
   const avatarFit = 'object-contain';
   const panelSide = side === 'start' ? 'start-3 sm:start-6' : 'end-3 sm:end-6';
-  const dockStyle = { ...size, ...(position ? { left: position.x, top: position.y, bottom: 'auto' } : {}) };
   if (dismissed) return null;
   return (
-    <aside ref={dock} aria-label={settings.name[locale]} className="atelier-assistant assistant-dock fixed z-40" style={dockStyle} data-side={position ? undefined : side} data-moving={moving} data-compact={launcherOnly} data-yield={yielding && !open} data-entrance={entrance && desktop}>
-      {/* Desktop: a side panel over the page (no dimming, the page stays usable); phones: a modal that follows the visible viewport and keyboard. */}
-      <RDialog.Root open={open} onOpenChange={setOpen} modal={!desktop}>
-        {/* The small actions row sits inside the dock (below the avatar), so it never falls off the screen edge. */}
-        {open || launcherOnly || greeted ? null : <p className="assistant-greeting">{settings.greeting[locale]}</p>}
-        <div className={`assistant-character-controls relative flex flex-col items-center gap-1 ${launcherOnly ? '' : 'pb-[3.25rem]'}`}>
-          <RDialog.Trigger asChild>
-            <button type="button" aria-label={t('open')} className="assistant-character grid min-h-12 min-w-12 touch-none cursor-grab place-items-center rounded-full text-action outline-offset-4 active:cursor-grabbing" onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={() => { drag.current = null; }} onClick={(event) => { if (suppressOpen.current) event.preventDefault(); }}>
-              {launcherOnly ? (
-                <span className="assistant-face" data-custom={customAvatar}>
-                  {/* eslint-disable-next-line @next/next/no-img-element -- the same pre-sized WebP; the circle reserves the box until it loads */}
-                  <img {...(artReady ? { src: avatar } : {})} alt="" decoding="async" draggable={false} className="pointer-events-none select-none" />
-                </span>
-              ) : (
-                <span className="assistant-avatar block overflow-hidden rounded-full border-2 border-white bg-stage shadow-[var(--shadow-overlay)]">
-                  {/* eslint-disable-next-line @next/next/no-img-element -- pre-sized WebP or the owner's uploaded avatar; the circle reserves the box until it loads */}
-                  <img {...(artReady ? { src: avatar } : {})} alt="" width={160} height={160} decoding="async" draggable={false} className={`pointer-events-none size-full select-none ${avatarFit}`} />
-                </span>
-              )}
-            </button>
-          </RDialog.Trigger>
-          {launcherOnly ? null : <div className="assistant-character-actions absolute bottom-0 start-1/2 flex -translate-x-1/2 gap-1 rounded-full border border-line-soft bg-white/95 p-1 shadow-[var(--shadow-overlay)] rtl:translate-x-1/2">
-            <button type="button" className="grid size-10 cursor-pointer place-items-center rounded-full text-steel hover:bg-surface" onClick={toggleCompact} aria-label={t('minimize')}><Minimize2 aria-hidden className="size-4" /></button>
-            {position ? <button type="button" className="grid size-10 cursor-pointer place-items-center rounded-full text-steel hover:bg-surface" onClick={() => persistPosition(null)} aria-label={t('resetPosition')}><LocateFixed aria-hidden className="size-4" /></button> : null}
-            <button type="button" className="grid size-10 cursor-pointer place-items-center rounded-full text-steel hover:bg-surface" onClick={hide} aria-label={t('hide')}><EyeOff aria-hidden className="size-4" /></button>
-          </div>}
-        </div>
+    // A direct child of <body> with its place set in CSS: no transformed parent can move it, and no script writes to it.
+    <aside aria-label={settings.name[locale]} className="atelier-assistant assistant-dock" data-side={side}>
+      <RDialog.Root open={open} onOpenChange={setOpen}>
+        <RDialog.Trigger aria-label={t('open')} className="assistant-launcher" data-custom={customAvatar}>
+          {/* eslint-disable-next-line @next/next/no-img-element -- the same pre-sized WebP; the launcher reserves the box until it loads */}
+          <img {...(artReady ? { src: avatar } : {})} alt="" decoding="async" draggable={false} />
+        </RDialog.Trigger>
         <RDialog.Portal>
-          {desktop ? null : <RDialog.Overlay className="fixed inset-0 z-50 bg-stage/50" />}
-          <RDialog.Content dir={locale === 'fa' ? 'rtl' : 'ltr'} onInteractOutside={(e) => { if (desktop) e.preventDefault(); }}
+          {/* Modal at every size: the page behind cannot be tapped by mistake while the panel is over it. */}
+          <RDialog.Overlay className="fixed inset-0 z-50 bg-stage/50" />
+          <RDialog.Content dir={locale === 'fa' ? 'rtl' : 'ltr'}
             className={`atelier-assistant assistant-panel fixed z-50 flex flex-col overflow-hidden rounded-[var(--radius-panel)] border border-line-soft bg-white shadow-[var(--shadow-overlay)] ${desktop ? `bottom-6 w-[26rem] max-h-[min(38rem,calc(100dvh-8rem))] ${panelSide}` : 'inset-x-3 mx-auto w-auto max-w-md'}`}
             style={!desktop && viewport ? { top: viewport.top, maxHeight: viewport.height } : undefined}>
             <header className="on-dark flex items-center gap-2 bg-stage p-3 text-silver">
@@ -303,11 +140,7 @@ export function HedaxAssistantWidget({ locale, settings }: { locale: 'fa' | 'en'
                 <Image src={settings.avatarUrl || `${MASCOT}.webp`} alt="" width={44} height={44} unoptimized className={`size-full ${avatarFit}`} />
               </span>
               <div className="min-w-0 flex-1"><RDialog.Title className="font-bold">{settings.name[locale]}</RDialog.Title><p className="text-xs text-signal">{t('phase')}</p></div>
-              <button type="button" className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-lg hover:bg-white/10" onClick={toggleMotion} aria-label={paused ? t('resume') : t('pause')} aria-pressed={paused}>{paused ? <Play aria-hidden className="size-4" /> : <Pause aria-hidden className="size-4" />}</button>
-              {/* The launcher has no room for controls of its own: they live here. */}
-              {desktop && home && compact ? <button type="button" className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-lg hover:bg-white/10" onClick={toggleCompact} aria-label={t('expand')}><Maximize2 aria-hidden className="size-4" /></button> : null}
-              {launcherOnly && position ? <button type="button" className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-lg hover:bg-white/10" onClick={() => persistPosition(null)} aria-label={t('resetPosition')}><LocateFixed aria-hidden className="size-4" /></button> : null}
-              {launcherOnly ? <button type="button" className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-lg hover:bg-white/10" onClick={hide} aria-label={t('hide')}><EyeOff aria-hidden className="size-4" /></button> : null}
+              <button type="button" className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-lg hover:bg-white/10" onClick={hide} aria-label={t('hide')}><EyeOff aria-hidden className="size-4" /></button>
               <RDialog.Close className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-lg hover:bg-white/10" aria-label={t('close')}><X aria-hidden className="size-5" /></RDialog.Close>
             </header>
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-canvas p-4">

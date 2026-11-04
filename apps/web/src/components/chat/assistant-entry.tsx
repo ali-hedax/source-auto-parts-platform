@@ -13,7 +13,8 @@ const Widget = dynamic(() => import('./hedax-assistant-widget').then((m) => m.He
 export function AssistantEntry() {
   const pathname = usePathname();
   const locale = useLocale() as 'fa' | 'en';
-  const allowed = assistantRouteAllowed(pathname);
+  // Not on the request form: it is all fields, and the guide has nothing to add there that would justify sitting on them.
+  const allowed = assistantRouteAllowed(pathname) && !/\/request-part\/?$/.test(pathname);
   // The guide is optional: its settings request and code wait until the page itself has loaded.
   const ready = useAfterLoad();
   // no-store request on navigation: a stale cached page cannot enable the assistant.

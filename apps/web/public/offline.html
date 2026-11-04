@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f5f0e8">
+<meta name="robots" content="noindex">
+<title>اتصال اینترنت برقرار نیست | Source by HEDAX</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100dvh; display: grid; place-items: center; background: #f5f0e8; color: #2a1c16;
+    font-family: Vazirmatn, Tahoma, "Segoe UI", sans-serif; line-height: 1.9;
+    padding: max(24px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+  }
+  main { width: 100%; max-width: 26rem; display: grid; gap: 14px; }
+  img { width: 56px; height: 56px; border-radius: 12px; }
+  h1 { margin: 0; font-size: 1.35rem; line-height: 1.6; }
+  p { margin: 0; color: #6c5c4e; }
+  button { min-height: 48px; border: 0; border-radius: 10px; background: #2a1c16; color: #fbf8f3; font: inherit; font-weight: 700; cursor: pointer; }
+  button:focus-visible { outline: 2px solid #705439; outline-offset: 3px; }
+  bdi { white-space: nowrap; }
+</style>
+</head>
+<body>
+<main>
+  <img src="/icons/icon-192.png" alt="" width="56" height="56">
+  <h1 id="title">اتصال اینترنت برقرار نیست</h1>
+  <p id="body">این صفحه بدون اینترنت باز نمی‌شود. سبد خرید شما روی سرور نگه داشته می‌شود و با برگشتن اتصال سر جایش است. پرداخت و ثبت سفارش فقط با اینترنت انجام می‌شوند.</p>
+  <button type="button" id="retry">تلاش دوباره</button>
+  <p id="contact">تماس: <bdi dir="ltr">+98 25 3666 6669</bdi></p>
+</main>
+<script>
+  if (location.pathname === '/en' || location.pathname.startsWith('/en/')) {
+    document.documentElement.lang = 'en';
+    document.documentElement.dir = 'ltr';
+    document.title = 'No internet connection | Source by HEDAX';
+    document.getElementById('title').textContent = 'No internet connection';
+    document.getElementById('body').textContent = 'This page needs the internet to open. Your cart is kept on the server and will be there when you are back online. Paying and placing an order need a connection.';
+    document.getElementById('retry').textContent = 'Try again';
+    document.getElementById('contact').firstChild.textContent = 'Call: ';
+  }
+  // Only when asked: reloading by itself could take over a page the visitor has just chosen to open.
+  document.getElementById('retry').addEventListener('click', function () { location.reload(); });
+</script>
+</body>
+</html>

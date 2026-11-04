@@ -1221,16 +1221,14 @@
     "makersLabel": "Part maker",
     "makersTitle": "Browse by part brand"
   },
+  "pwa": {
+    "install": "Install the app",
+    "iosGuide": "In Safari, tap the Share button (a square with an arrow pointing up), then choose “Add to Home Screen”."
+  },
   "assistant": {
     "open": "Open Hexi, the Source guide",
     "close": "Close guide",
-    "minimize": "Minimize character",
-    "expand": "Expand character",
-    "resetPosition": "Reset character position",
     "hide": "Hide Hexi for this visit",
-    "pause": "Pause motion",
-    "resume": "Resume motion",
-    "launcher": "Need a hand?",
     "phase": "Source AI guide",
     "disclaimer": "Messages are sent to an AI service to generate replies and kept for 90 days to improve answer quality. Answers may be inaccurate; confirm fitment, price and availability before purchase. Do not send sensitive information.",
     "input": "Part name, number or question",

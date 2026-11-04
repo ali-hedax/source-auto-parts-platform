@@ -1,5 +1,5 @@
 import { DEFAULT_ASSISTANT_SETTINGS } from '@hedax/contracts/constants';
-import { devices, expect, test, type Browser, type Page } from '@playwright/test';
+import { devices, expect, test, type Page } from '@playwright/test';
 import { cartBadgeText, cartUnitCount } from '../src/lib/cart-units';
 import { ignoresHistory, localeOf, moveTo, newTrail, parentOf, pushEntry, replaceEntry, resolveLoad, stepsBack, translatedTarget } from '../src/lib/nav-trail';
 
@@ -298,6 +298,21 @@ test.describe('cart count on the icon', () => {
     await page.reload();
     await onScreen('۱');
     await context.close();
+  });
+
+  test('adding from the home page, the list and a part\'s page all count in one total', async ({ page }) => {
+    await page.goto('/fa');
+    await expect(cartLink(page)).toHaveAccessibleName('سبد خرید خالی است');
+    await page.locator('.part-card-cart').first().click();
+    await expect(badge(page)).toHaveText('۱');
+    await page.goto('/fa/parts');
+    await expect(badge(page)).toHaveText('۱');
+    await page.locator('.part-card-cart').nth(1).click();
+    await expect(badge(page)).toHaveText('۲');
+    await addFromDetail(page, 'demo-spark-plug-elantra', 3);
+    await expect(badge(page)).toHaveText('۵');
+    await page.goBack();
+    await expect(badge(page)).toHaveText('۵');
   });
 
   test('while the cart is loading or unavailable it never claims to be empty', async ({ page }) => {
@@ -631,19 +646,33 @@ test.describe('back control', () => {
   });
 });
 
-test.describe('Hexi stays put', () => {
+test.describe('Hexi: one small fixed launcher', () => {
   const live = { ...DEFAULT_ASSISTANT_SETTINGS, enabled: true, mobileSize: 80, desktopSize: 128 };
   const enable = (page: Page) => page.route('**/api/v1/site/assistant?**', (route) => route.fulfill({ json: live }));
   const dock = (page: Page) => page.locator('.assistant-dock');
+  const launcher = (page: Page) => page.getByRole('button', { name: 'باز کردن هکسی، راهنمای سورس' });
+  const ready = async (page: Page, path: string) => {
+    await enable(page);
+    await page.goto(path);
+    await hideDevOverlay(page);
+    await expect(launcher(page)).toBeVisible();
+  };
 
-  /** Frame by frame through four passes down and up the whole page. */
+  /** Frame by frame through four passes down and up the whole page: where it is, how it looks, what changes on it. */
   const trace = (page: Page) => page.evaluate(async () => {
     const el = document.querySelector<HTMLElement>('.assistant-dock')!;
     const positions = new Set<string>();
-    let attributes = 0; let run = true;
-    const mo = new MutationObserver((list) => { attributes += list.length; });
-    mo.observe(el, { attributes: true, subtree: true });
-    const tick = () => { if (!run) return; const r = el.getBoundingClientRect(); positions.add(`${Math.round(r.left)},${Math.round(r.top)},${Math.round(r.width)},${Math.round(r.height)}`); requestAnimationFrame(tick); };
+    const looks = new Set<string>();
+    let mutations = 0; let run = true;
+    const mo = new MutationObserver((list) => { mutations += list.length; });
+    mo.observe(el, { attributes: true, childList: true, subtree: true });
+    const tick = () => {
+      if (!run) return;
+      const r = el.getBoundingClientRect(); const cs = getComputedStyle(el);
+      positions.add(`${Math.round(r.left)},${Math.round(r.top)},${Math.round(r.width)},${Math.round(r.height)}`);
+      looks.add(`${cs.opacity}|${cs.visibility}|${cs.display}|${cs.pointerEvents}`);
+      requestAnimationFrame(tick);
+    };
     requestAnimationFrame(tick);
     const h = document.documentElement.scrollHeight - innerHeight;
     for (const down of [true, false, true, false]) {
@@ -651,317 +680,143 @@ test.describe('Hexi stays put', () => {
         window.scrollTo(0, (down ? i / 60 : 1 - i / 60) * h);
         await new Promise((r) => requestAnimationFrame(r));
       }
+      // Rests between passes too: nothing may react after scrolling stops either.
+      await new Promise((r) => setTimeout(r, 300));
     }
     run = false; mo.disconnect();
-    return { positions: [...positions], attributes };
+    return { positions: [...positions], looks: [...looks], mutations, dialogs: document.querySelectorAll('[role=dialog]').length };
   });
 
   for (const [width, height, mobile] of [[360, 740, true], [390, 844, true], [768, 1024, true], [1440, 900, false]] as const) {
-    test(`${width}px: one position through back-and-forth scrolling, and no work per frame`, async ({ browser }) => {
-      const context = await browser.newContext({ viewport: { width, height }, ...(mobile ? { hasTouch: true, isMobile: width < 768 } : {}) });
+    test(`${width}px: the same place and look at every frame, resting or scrolling; it never opens by itself`, async ({ browser, baseURL }) => {
+      const context = await browser.newContext({ viewport: { width, height }, baseURL: baseURL as string, ...(mobile ? { hasTouch: true, isMobile: width < 768 } : {}) });
       const page = await context.newPage();
-      await enable(page);
-      await page.goto('/fa');
-      await hideDevOverlay(page);
-      await expect(dock(page)).toBeAttached();
-      await page.waitForTimeout(400);
-      const box = await dock(page).evaluate((el) => { const r = el.getBoundingClientRect(); return { width: r.width, height: r.height, right: innerWidth - r.right, bottom: innerHeight - r.bottom }; });
-      if (mobile) {
-        // The small launcher, not a standing character with a toolbar.
-        expect(box.width).toBeLessThanOrEqual(56);
-        expect(box.height).toBeLessThanOrEqual(56);
-        await expect(page.locator('.assistant-avatar, .assistant-greeting, .assistant-character-actions')).toHaveCount(0);
-      } else {
-        expect(box.width).toBeLessThanOrEqual(96);
-        expect(box.height).toBeLessThanOrEqual(200);
-      }
-      expect(box.right).toBeGreaterThanOrEqual(12);
-      expect(box.bottom).toBeGreaterThanOrEqual(16);
+      await ready(page, '/fa');
+      await page.waitForTimeout(800);
+      const box = await dock(page).evaluate((el) => { const r = el.getBoundingClientRect(); return { width: r.width, height: r.height, side: Math.min(r.left, innerWidth - r.right), bottom: innerHeight - r.bottom }; });
+      expect(box.width).toBeLessThanOrEqual(36);
+      expect(box.height).toBeLessThanOrEqual(52);
+      expect(box.side, 'flush to the screen edge').toBe(0);
+      expect(box.bottom).toBeGreaterThanOrEqual(14);
       const result = await trace(page);
-      expect(result.positions, 'the guide must not move while scrolling').toHaveLength(1);
-      expect(result.attributes, 'scrolling must not change the guide per frame').toBeLessThanOrEqual(4);
+      expect(result.positions, 'it must not move').toHaveLength(1);
+      expect(result.looks, 'it must not hide or fade').toEqual(['1|visible|block|auto']);
+      expect(result.mutations, 'scrolling must change nothing on it').toBe(0);
+      expect(result.dialogs).toBe(0);
       await context.close();
     });
   }
 
-  test('beside the film too: the launcher keeps its place and gives way to the film\'s controls', async ({ page }) => {
+  test('nothing can move it: it sits directly in the body, whatever the page transforms', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await enable(page);
-    await page.goto('/fa');
-    await hideDevOverlay(page);
-    const film = page.locator('.titanium-closing-film');
-    await film.scrollIntoViewIfNeeded();
-    await page.waitForTimeout(400);
+    await ready(page, '/fa/parts');
+    expect(await dock(page).evaluate((el) => el.parentElement === document.body)).toBe(true);
     const before = await dock(page).boundingBox();
-    for (let i = 0; i < 6; i++) { await page.mouse.wheel(0, i % 2 ? -160 : 160); await page.waitForTimeout(60); }
-    expect(await dock(page).boundingBox()).toEqual(before);
-    await page.evaluate(() => {
-      const d = document.querySelector('.assistant-dock')!.getBoundingClientRect();
-      const video = document.createElement('video');
-      video.id = 'film-under-guide'; video.controls = true;
-      Object.assign(video.style, { position: 'fixed', left: `${d.left - 20}px`, top: `${d.top - 20}px`, width: '120px', height: '100px', zIndex: '1' });
-      document.querySelector('main')!.append(video); window.dispatchEvent(new Event('scroll'));
-    });
-    await expect(dock(page)).toHaveAttribute('data-yield', 'true');
-    await expect(dock(page)).toHaveCSS('opacity', '0');
+    await page.addStyleTag({ content: '.titanium-store, main, header { transform: translateY(40px) scale(.9) !important; }' });
+    await page.evaluate(() => window.scrollTo(0, 600));
+    await page.waitForTimeout(200);
     expect(await dock(page).boundingBox()).toEqual(before);
   });
 
-  test('never covers buy, pay, search or input controls: it fades in place and returns', async ({ page }) => {
+  for (const path of ['/fa', '/fa/parts']) {
+    for (const width of [360, 390]) {
+      test(`${path} at ${width}px: at every scroll position it stays off the middle of every control`, async ({ page }) => {
+        await page.setViewportSize({ width, height: 800 });
+        await ready(page, path);
+        const worst = await page.evaluate(async () => {
+          const el = document.querySelector('.assistant-dock')!.getBoundingClientRect();
+          const h = document.documentElement.scrollHeight - innerHeight;
+          const problems: string[] = [];
+          let deepest = 0;
+          for (let y = 0; y <= h; y += 40) {
+            window.scrollTo(0, y);
+            await new Promise((r) => requestAnimationFrame(r));
+            for (const c of document.querySelectorAll<HTMLElement>('main button, main input, main select, main textarea, main video[controls], main a, .back-control')) {
+              const r = c.getBoundingClientRect();
+              if (!r.width || !r.height || getComputedStyle(c).visibility === 'hidden') continue;
+              const across = Math.min(r.right, el.right) - Math.max(r.left, el.left);
+              const down = Math.min(r.bottom, el.bottom) - Math.max(r.top, el.top);
+              if (across <= 0 || down <= 0) continue;
+              const cx = r.left + r.width / 2; const cy = r.top + r.height / 2;
+              // Large cards are links as a whole; what counts on them is their own buttons, checked here too.
+              if (cx > el.left && cx < el.right && cy > el.top && cy < el.bottom) problems.push(`${c.tagName}.${String(c.className).split(' ')[0]} at ${y}`);
+              deepest = Math.max(deepest, across);
+            }
+          }
+          return { problems: [...new Set(problems)].slice(0, 6), deepest: Math.round(deepest) };
+        });
+        expect(worst.problems).toEqual([]);
+        expect(worst.deepest, 'it reaches at most its own width in from the edge').toBeLessThanOrEqual(36);
+      });
+    }
+  }
+
+  test('it stays clear of the back control, on every inner page it appears on', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
+    await ready(page, '/fa/parts');
+    const [a, b] = [await dock(page).boundingBox(), await page.getByRole('link', { name: 'بازگشت', exact: true }).boundingBox()];
+    expect(a!.y).toBeGreaterThan(b!.y + b!.height);
+  });
+
+  test('not on the request form, nor anywhere in buying and paying', async ({ page }) => {
     await enable(page);
-    await page.goto('/fa/parts');
-    await hideDevOverlay(page);
-    await expect(dock(page)).toBeAttached();
-    await page.waitForTimeout(400);
-    const place = await dock(page).boundingBox();
-    const under = (tag: string) => page.evaluate((name) => {
-      const d = document.querySelector('.assistant-dock')!.getBoundingClientRect();
-      const el = document.createElement(name) as HTMLElement;
-      el.id = 'under-guide';
-      if (name === 'button') el.textContent = 'خرید';
-      Object.assign(el.style, { position: 'fixed', left: `${d.left}px`, top: `${d.top + 4}px`, width: '56px', height: '44px', zIndex: '1' });
-      document.querySelector('main')!.append(el);
-      window.dispatchEvent(new Event('scroll'));
-    }, tag);
-    for (const tag of ['button', 'input', 'select', 'textarea']) {
-      await under(tag);
-      await expect(dock(page), tag).toHaveAttribute('data-yield', 'true');
-      await expect(dock(page), tag).toHaveCSS('opacity', '0');
-      await expect(dock(page), tag).toHaveCSS('pointer-events', 'none');
-      expect(await dock(page).boundingBox(), tag).toEqual(place);
-      await page.evaluate(() => { document.getElementById('under-guide')!.remove(); window.dispatchEvent(new Event('scroll')); });
-      await expect(dock(page), tag).toHaveCSS('opacity', '1');
+    for (const path of ['/fa/request-part', '/fa/cart', '/fa/checkout', '/fa/payment/result', '/fa/parts/demo-air-filter-corolla', '/fa/account']) {
+      await page.goto(path);
+      await page.waitForTimeout(700);
+      await expect(dock(page), path).toHaveCount(0);
     }
   });
 
-  test('a wide, low link such as a request or contact row counts as a control; a tall card does not', async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await enable(page);
-    await page.goto('/fa/parts');
-    await hideDevOverlay(page);
-    await expect(dock(page)).toBeAttached();
-    await page.waitForTimeout(400);
-    const put = (height: number) => page.evaluate((h) => {
-      document.getElementById('under-guide')?.remove();
-      const d = document.querySelector('.assistant-dock')!.getBoundingClientRect();
-      const link = document.createElement('a');
-      link.id = 'under-guide'; link.href = '#x'; link.textContent = 'ردیف';
-      // Over everything else in the page, under the guide.
-      Object.assign(link.style, { position: 'fixed', left: '8px', top: `${d.bottom - h}px`, width: 'calc(100vw - 16px)', height: `${h}px`, zIndex: '39', background: '#fff' });
-      document.querySelector('main')!.append(link);
-      window.dispatchEvent(new Event('scroll'));
-    }, height);
-    await put(52);
-    await expect(dock(page)).toHaveAttribute('data-yield', 'true');
-    await put(300);
-    await expect(dock(page)).toHaveAttribute('data-yield', 'false');
-  });
-
-  test('a large card under it does not hide it, but the card\'s buy button does', async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await enable(page);
-    await page.goto('/fa/parts');
-    await hideDevOverlay(page);
-    await expect(dock(page)).toBeAttached();
-    const buy = page.locator('.part-card-cart').first();
-    await buy.scrollIntoViewIfNeeded();
-    const aligned = await page.evaluate(() => {
-      const button = document.querySelector('.part-card-cart')!.getBoundingClientRect();
-      const d = document.querySelector('.assistant-dock')!.getBoundingClientRect();
-      window.scrollBy(0, button.top - d.top);
-      return true;
-    });
-    expect(aligned).toBe(true);
-    await expect(dock(page)).toHaveAttribute('data-yield', 'true');
-    await page.evaluate(() => window.scrollBy(0, -120));
-    await expect(dock(page)).toHaveAttribute('data-yield', 'false');
-  });
-
-  /** A real control placed under the guide, as if the page had scrolled it there. */
-  const putControlUnder = (page: Page) => page.evaluate(() => {
-    const d = document.querySelector('.assistant-dock')!.getBoundingClientRect();
-    const el = document.createElement('button');
-    el.id = 'under-guide'; el.textContent = 'خرید';
-    Object.assign(el.style, { position: 'fixed', left: `${d.left}px`, top: `${d.top + 4}px`, width: '56px', height: '44px', zIndex: '1' });
-    document.querySelector('main')!.append(el);
-    window.dispatchEvent(new Event('scroll'));
-  });
-  const phoneOnForm = async (browser: Browser) => {
-    const context = await browser.newContext({ ...devices['Pixel 5'], viewport: { width: 390, height: 844 } });
+  test('a keyboard opening does not move or hide it', async ({ browser, baseURL }) => {
+    const context = await browser.newContext({ ...devices['Pixel 5'], viewport: { width: 390, height: 844 }, baseURL: baseURL as string });
     const page = await context.newPage();
-    await enable(page);
-    await page.goto('/fa/request-part');
-    await hideDevOverlay(page);
-    await expect(dock(page)).toBeAttached();
-    await page.evaluate(() => window.scrollTo(0, 0));
-    await expect(dock(page)).toHaveAttribute('data-yield', 'false');
-    await expect(dock(page)).toHaveCSS('opacity', '1');
-    return { context, page };
-  };
-
-  test('typing in a field away from it, or a keyboard opening, does not make it vanish', async ({ browser }) => {
-    const { context, page } = await phoneOnForm(browser);
+    await ready(page, '/fa');
     const place = await dock(page).boundingBox();
-    await page.getByRole('main').locator('input, textarea').first().focus();
-    await page.waitForTimeout(400);
-    await expect(dock(page)).toHaveAttribute('data-yield', 'false');
-    await expect(dock(page)).toHaveCSS('opacity', '1');
+    await page.locator('#quick-search-input').focus();
     await page.evaluate(() => {
       const v = window.visualViewport!;
       Object.defineProperty(v, 'height', { configurable: true, get: () => 400 });
       v.dispatchEvent(new Event('resize'));
+      window.dispatchEvent(new Event('resize'));
     });
     await page.waitForTimeout(400);
-    await expect(dock(page)).toHaveAttribute('data-yield', 'false');
     expect(await dock(page).boundingBox()).toEqual(place);
-    await context.close();
-  });
-
-  test('it gives way only to a field it really covers, and returns when that is gone', async ({ browser }) => {
-    const { context, page } = await phoneOnForm(browser);
-    await page.evaluate(() => {
-      const d = document.querySelector('.assistant-dock')!.getBoundingClientRect();
-      const input = document.createElement('input');
-      input.id = 'under-guide';
-      Object.assign(input.style, { position: 'fixed', left: `${d.left}px`, top: `${d.top + 4}px`, width: '56px', height: '44px', zIndex: '1' });
-      document.querySelector('main')!.append(input);
-      input.focus();
-    });
-    await expect(dock(page)).toHaveAttribute('data-yield', 'true');
-    await page.evaluate(() => document.getElementById('under-guide')!.remove());
-    await expect(dock(page)).toHaveAttribute('data-yield', 'false');
-    await context.close();
-  });
-
-  test('under a finger it does not vanish; it waits for the finger to lift', async ({ browser }) => {
-    const { context, page } = await phoneOnForm(browser);
-    const box = (await dock(page).boundingBox())!;
-    const cdp = await context.newCDPSession(page);
-    const point = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
-    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [point] });
-    await putControlUnder(page);
-    await page.waitForTimeout(500);
-    await expect(dock(page), 'a held finger keeps it').toHaveAttribute('data-yield', 'false');
-    await expect(dock(page)).toHaveCSS('opacity', '1');
-    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-    // Lifting is a tap: the conversation opens rather than the launcher disappearing from under it.
-    await expect(page.getByRole('dialog')).toBeVisible();
-    await expect(dock(page)).toHaveAttribute('data-yield', 'false');
-    await context.close();
-  });
-
-  test('a finger scrolling elsewhere does not make it vanish mid-gesture either', async ({ browser }) => {
-    const { context, page } = await phoneOnForm(browser);
-    const cdp = await context.newCDPSession(page);
-    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 100, y: 300 }] });
-    await putControlUnder(page);
-    await page.waitForTimeout(500);
-    await expect(dock(page)).toHaveAttribute('data-yield', 'false');
-    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-    await expect(dock(page)).toHaveAttribute('data-yield', 'true');
-    await context.close();
-  });
-
-  test('during a conversation nothing under the launcher can make it vanish, and closing returns the focus to it', async ({ browser }) => {
-    const { context, page } = await phoneOnForm(browser);
-    const launcher = page.getByRole('button', { name: 'باز کردن هکسی، راهنمای سورس' });
-    await launcher.focus();
-    await page.keyboard.press('Enter');
-    const dialog = page.getByRole('dialog');
-    await expect(dialog).toBeVisible();
-    await putControlUnder(page);
-    await dialog.getByLabel('نام قطعه، شماره فنی یا پرسش').focus();
-    await page.evaluate(() => {
-      const v = window.visualViewport!;
-      Object.defineProperty(v, 'height', { configurable: true, get: () => 400 });
-      v.dispatchEvent(new Event('resize'));
-    });
-    await page.waitForTimeout(500);
-    await expect(dock(page)).toHaveAttribute('data-yield', 'false');
-    await expect(dialog).toBeVisible();
-    await page.keyboard.press('Escape');
-    await expect(launcher).toBeFocused();
     await expect(dock(page)).toHaveCSS('opacity', '1');
     await context.close();
   });
 
-  test('with a physical keyboard it can always be reached, even while faded', async ({ page }) => {
+  test('turning the phone keeps it in its corner and adds no sideways scroll', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await enable(page);
-    await page.goto('/fa/request-part');
-    await hideDevOverlay(page);
-    await expect(dock(page)).toBeAttached();
-    await page.evaluate(() => window.scrollTo(0, 0));
-    await putControlUnder(page);
-    await expect(dock(page)).toHaveAttribute('data-yield', 'true');
-    await expect(dock(page)).toHaveCSS('opacity', '0');
-    const launcher = page.getByRole('button', { name: 'باز کردن هکسی، راهنمای سورس' });
-    await launcher.focus();
-    await expect(launcher).toBeFocused();
-    await expect(dock(page), 'it shows itself once it has the focus').toHaveCSS('opacity', '1');
-    await page.keyboard.press('Enter');
-    await expect(page.getByRole('dialog')).toBeVisible();
+    await ready(page, '/fa');
+    for (const [w, h] of [[844, 390], [390, 844]] as const) {
+      await page.setViewportSize({ width: w, height: h });
+      await page.waitForTimeout(200);
+      const r = (await dock(page).boundingBox())!;
+      expect(r.x + r.width).toBe(w);
+      expect(h - (r.y + r.height)).toBe(14);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+    }
   });
 
-  test('with the mouse resting on it, it stays until the mouse leaves', async ({ page }) => {
-    await page.setViewportSize({ width: 1440, height: 900 });
-    await enable(page);
-    await page.goto('/fa/contact');
-    await hideDevOverlay(page);
-    await expect(dock(page)).toBeAttached();
-    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
-    await page.waitForTimeout(400);
-    await dock(page).evaluate((el) => { el.dataset.test = 'x'; });
-    const box = (await dock(page).boundingBox())!;
-    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-    await putControlUnder(page);
-    await page.waitForTimeout(400);
-    await expect(dock(page)).toHaveAttribute('data-yield', 'false');
-    await page.mouse.move(10, 10);
-    await page.evaluate(() => window.dispatchEvent(new Event('scroll')));
-    await expect(dock(page)).toHaveAttribute('data-yield', 'true');
+  test('it has no animation or transition to reduce, with or without the setting', async ({ page }) => {
+    await ready(page, '/fa');
+    const moving = () => dock(page).evaluate((el) => [el, ...el.querySelectorAll('*')].map((node) => { const cs = getComputedStyle(node); return `${cs.animationName}|${cs.transitionDuration}`; }));
+    expect(new Set(await moving())).toEqual(new Set(['none|0s']));
+    expect(await dock(page).evaluate((el) => el.getAnimations({ subtree: true }).length)).toBe(0);
   });
 
-  test('it is the same element in the same place at every frame: fading hides no movement', async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await enable(page);
-    await page.goto('/fa/parts');
-    await hideDevOverlay(page);
-    await expect(dock(page)).toBeAttached();
-    // With fading switched off, nothing is left to mask a jump: one position, and it stays fully visible.
-    await page.addStyleTag({ content: '.assistant-dock { opacity: 1 !important; transition: none !important; }' });
-    const result = await trace(page);
-    expect(result.positions).toHaveLength(1);
-  });
-
-  test('rotation: anchored by CSS, and a dragged position is kept on screen', async ({ browser }) => {
-    const context = await browser.newContext({ viewport: { width: 844, height: 390 }, hasTouch: true });
+  test('a tap opens it, with the character and its message; Escape closes and returns the focus; it can be hidden for the visit', async ({ browser, baseURL }) => {
+    const context = await browser.newContext({ ...devices['Pixel 5'], viewport: { width: 390, height: 844 }, baseURL: baseURL as string });
     const page = await context.newPage();
-    await enable(page);
-    await page.addInitScript(() => { try { localStorage.setItem('hedax-guide-position', JSON.stringify({ x: 780, y: 320 })); } catch { /* optional */ } });
-    await page.goto('/fa');
-    await hideDevOverlay(page);
-    await expect(dock(page)).toBeAttached();
-    await page.setViewportSize({ width: 390, height: 844 });
-    await expect.poll(async () => { const b = await dock(page).boundingBox(); return b ? b.x + b.width <= 390 && b.y + b.height <= 844 : false; }).toBe(true);
-    await context.close();
-  });
-
-  test('the panel opens with the character and its message, and can hide the guide for the visit', async ({ browser }) => {
-    const context = await browser.newContext({ ...devices['Pixel 5'], viewport: { width: 390, height: 844 } });
-    const page = await context.newPage();
-    await enable(page);
-    await page.goto('/fa/parts');
-    await hideDevOverlay(page);
-    const launcher = page.getByRole('button', { name: 'باز کردن هکسی، راهنمای سورس' });
-    await launcher.waitFor({ state: 'attached' });
-    await page.evaluate(() => window.scrollTo(0, 0));
-    await expect(launcher).toBeVisible();
-    await launcher.click();
+    await ready(page, '/fa/parts');
+    await launcher(page).tap();
     const dialog = page.getByRole('dialog');
     await expect(dialog.locator('.assistant-intro-art')).toBeVisible();
     await expect(dialog).toContainText(DEFAULT_ASSISTANT_SETTINGS.greeting.fa);
+    await page.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
+    await expect(launcher(page)).toBeFocused();
+    await launcher(page).tap();
     await dialog.getByRole('button', { name: 'پنهان‌کردن هکسی تا پایان این بازدید' }).click();
     await expect(dock(page)).toHaveCount(0);
     await page.goto('/fa/contact');
@@ -970,86 +825,85 @@ test.describe('Hexi stays put', () => {
     await context.close();
   });
 
-  for (const path of ['/fa/parts', '/fa/request-part', '/fa/contact']) {
-    test(`${path} at 1440px: the small launcher, reachable, not gone behind the column under it`, async ({ page }) => {
-      await page.setViewportSize({ width: 1440, height: 900 });
-      await enable(page);
-      await page.goto(path);
-      await hideDevOverlay(page);
-      await expect(dock(page)).toBeAttached();
-      const box = (await dock(page).boundingBox())!;
-      expect(box.width).toBeLessThanOrEqual(56);
-      expect(box.height).toBeLessThanOrEqual(56);
-      await expect(page.locator('.assistant-greeting, .assistant-character-actions')).toHaveCount(0);
-      // At least one resting place of the page leaves it visible.
-      const height = await page.evaluate(() => document.documentElement.scrollHeight - innerHeight);
-      let clear = false;
-      for (let y = 0; y <= height && !clear; y += 150) {
-        await page.evaluate((top) => window.scrollTo(0, top), y);
-        await page.waitForTimeout(240);
-        clear = (await dock(page).getAttribute('data-yield')) === 'false';
-      }
-      expect(clear).toBe(true);
-      await page.getByRole('button', { name: 'باز کردن هکسی، راهنمای سورس' }).click();
-      await expect(page.getByRole('dialog').getByRole('button', { name: 'پنهان‌کردن هکسی تا پایان این بازدید' })).toBeVisible();
-    });
-  }
-
-  test('on the home page the character can be made small and large again', async ({ page }) => {
+  test('the open panel is modal at every size: the page behind cannot be tapped by mistake', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await enable(page);
-    await page.goto('/fa');
-    await hideDevOverlay(page);
-    await expect(dock(page)).toBeAttached();
-    for (let y = 0; y < 3000 && (await dock(page).getAttribute('data-yield')) !== 'false'; y += 130) { await page.evaluate((top) => window.scrollTo(0, top), y); await page.waitForTimeout(240); }
-    await page.locator('.assistant-character').hover();
-    await page.getByRole('button', { name: 'کوچک‌کردن کاراکتر' }).click();
-    await expect(page.locator('.assistant-face')).toBeVisible();
-    await page.getByRole('button', { name: 'باز کردن هکسی، راهنمای سورس' }).click();
-    await page.getByRole('dialog').getByRole('button', { name: 'بزرگ‌کردن کاراکتر' }).click();
-    await page.keyboard.press('Escape');
-    await expect(page.locator('.assistant-avatar')).toBeVisible();
+    await ready(page, '/fa/parts');
+    await launcher(page).click();
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await expect(page.locator('body')).toHaveCSS('pointer-events', 'none');
+    const box = (await page.getByRole('dialog').boundingBox())!;
+    expect(box.x + box.width).toBeLessThanOrEqual(1440);
+    expect(box.y + box.height).toBeLessThanOrEqual(900);
   });
 
-  test('moving between pages keeps the guide mounted and its conversation', async ({ page }) => {
+  test('moving between pages keeps the same launcher and its conversation', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await enable(page);
     await page.route('**/api/v1/assistant/messages', (route) => route.fulfill({ json: { text: 'پاسخ آزمایشی', products: [], provider: 'mock', model: 'test' } }));
-    await page.goto('/fa');
-    await hideDevOverlay(page);
-    await page.getByRole('button', { name: 'باز کردن هکسی، راهنمای سورس' }).focus();
-    await page.keyboard.press('Enter');
+    await ready(page, '/fa');
+    await launcher(page).click();
     const dialog = page.getByRole('dialog');
     await dialog.getByLabel('نام قطعه، شماره فنی یا پرسش').fill('لنت');
     await dialog.getByRole('button', { name: 'ارسال', exact: true }).click();
     await expect(dialog.getByText('پاسخ آزمایشی')).toBeVisible();
     await page.keyboard.press('Escape');
-    await page.evaluate(() => { document.querySelector('.assistant-dock')!.setAttribute('data-same-element', 'yes'); });
+    await dock(page).evaluate((el) => { el.setAttribute('data-same-element', 'yes'); });
     await page.locator('header nav').getByRole('link', { name: 'قطعات موجود' }).click();
     await expect(page).toHaveURL(/\/fa\/parts/);
     await expect(dock(page)).toHaveAttribute('data-same-element', 'yes');
-    for (let y = 0; y < 3000 && (await dock(page).getAttribute('data-yield')) !== 'false'; y += 130) { await page.evaluate((top) => window.scrollTo(0, top), y); await page.waitForTimeout(240); }
-    await page.getByRole('button', { name: 'باز کردن هکسی، راهنمای سورس' }).focus();
-    await page.keyboard.press('Enter');
+    await launcher(page).click();
     await expect(page.getByRole('dialog').getByText('پاسخ آزمایشی')).toBeVisible();
   });
+});
 
-  test('reduced motion: no entrance, no transition', async ({ page }) => {
-    await page.setViewportSize({ width: 1440, height: 900 });
-    await page.emulateMedia({ reducedMotion: 'reduce' });
-    await enable(page);
-    await page.goto('/fa');
-    await expect(dock(page)).toBeAttached();
-    expect(await page.locator('.assistant-avatar').evaluate((el) => getComputedStyle(el).animationName)).toBe('none');
+test.describe('installing the app', () => {
+  const install = (page: Page) => page.getByRole('button', { name: 'نصب برنامه' });
+
+  test('with no offer from the browser there is no install button', async ({ page }) => {
+    await page.goto('/fa/contact');
+    await page.waitForTimeout(600);
+    await expect(install(page)).toHaveCount(0);
   });
 
-  test('no entrance again after the first page of a visit, and none when returning to the tab', async ({ page }) => {
-    await page.setViewportSize({ width: 1440, height: 900 });
-    await enable(page);
-    await page.addInitScript(() => { try { sessionStorage.setItem('hedax-guide-greeted', 'true'); } catch { /* optional */ } });
-    await page.goto('/fa');
-    await expect(dock(page)).toBeAttached();
-    await expect(dock(page)).toHaveAttribute('data-entrance', 'false');
-    await expect(page.locator('.assistant-greeting')).toHaveCount(0);
+  test('the button appears only after the browser offers, and opens the browser\'s own dialog', async ({ page }) => {
+    await page.goto('/fa/contact');
+    // The count has answered, so the page is running.
+    await expect(cartLink(page)).toHaveAccessibleName('سبد خرید خالی است');
+    const offered = await page.evaluate(() => {
+      const event = new Event('beforeinstallprompt', { cancelable: true }) as Event & { prompt: () => Promise<void> };
+      (window as unknown as { asked: number }).asked = 0;
+      event.prompt = () => { (window as unknown as { asked: number }).asked++; return Promise.resolve(); };
+      window.dispatchEvent(event);
+      return event.defaultPrevented;
+    });
+    expect(offered, 'the browser\'s own banner gives way to the visitor\'s choice').toBe(true);
+    await expect(install(page)).toBeVisible();
+    await install(page).click();
+    await expect.poll(() => page.evaluate(() => (window as unknown as { asked: number }).asked)).toBe(1);
+    // Once asked, the offer is used up.
+    await expect(install(page)).toHaveCount(0);
+  });
+
+  test('on iPhone: the short steps, because Safari has no button a page can press', async ({ browser, baseURL }) => {
+    const context = await browser.newContext({ ...devices['iPhone 13'], baseURL: baseURL as string, locale: 'fa-IR' });
+    const page = await context.newPage();
+    await page.goto('/fa/contact');
+    await install(page).click();
+    await expect(page.getByText(/Add to Home Screen/)).toBeVisible();
+    await context.close();
+  });
+
+  test('once installed the offer disappears, and the back control is what is left to go back with', async ({ page, context }) => {
+    const cdp = await context.newCDPSession(page);
+    await cdp.send('Emulation.setEmulatedMedia', { features: [{ name: 'display-mode', value: 'standalone' }] });
+    await page.goto('/fa/parts/demo-air-filter-corolla');
+    await page.evaluate(() => {
+      const event = new Event('beforeinstallprompt', { cancelable: true }) as Event & { prompt: () => Promise<void> };
+      event.prompt = () => Promise.resolve();
+      window.dispatchEvent(event);
+    });
+    await page.waitForTimeout(300);
+    await expect(install(page)).toHaveCount(0);
+    await page.getByRole('link', { name: 'بازگشت', exact: true }).click();
+    await expect(page).toHaveURL(/\/fa\/parts$/);
   });
 });

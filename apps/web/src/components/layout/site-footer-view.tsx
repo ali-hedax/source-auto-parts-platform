@@ -6,6 +6,7 @@ import { Link } from '@/i18n/navigation';
 const DEFAULT_LOGO = '/brand/source/titanium/logo.webp';
 import { CONTACT_CHANNEL_ORDER, channelHref, channelText, resolveContactChannels, type ContactChannelKey } from '@hedax/contracts/constants';
 import { ContactIcon, type ContactIconName } from './contact-icons';
+import { InstallApp } from './pwa';
 
 /** Footer: logo, tagline, help links, the owner's pages, social links and contact details (all from site content). */
 export function SiteFooterView({ content, chrome, now }: { content: SiteContentView | null; chrome?: BuilderDocument['chrome'] | undefined; now: number }) {
@@ -43,6 +44,7 @@ export function SiteFooterView({ content, chrome, now }: { content: SiteContentV
           <p className="mb-3 font-bold">{locale === 'fa' ? 'دسترسی سریع' : 'Quick links'}</p>
           <ul>{[{ href: '/', label: t('nav.home') }, ...(chrome?.menu.length ? chrome.menu.filter(n => n.visible && n.href).map(n => ({ href: n.href, label: localize(n.label, locale) })) : [{ href: '/parts', label: t('nav.parts') }, { href: '/cars', label: t('nav.cars') }, { href: '/brands', label: t('nav.brands') }])].map(n => <li key={n.href}><Link href={n.href} className={link}>{n.label}</Link></li>)}</ul>
         </nav>
+        <InstallApp />
         <nav className="titanium-footer-help" aria-label={t('footer.help')}>
           <p className="mb-3 font-bold text-white">{t('footer.help')}</p>
           <ul className="grid grid-cols-2 gap-x-6 md:grid-cols-1">

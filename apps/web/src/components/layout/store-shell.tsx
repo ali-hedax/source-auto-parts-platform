@@ -6,6 +6,7 @@ import type { ReactNode } from 'react';
 import { AnnouncementBarView } from '@/components/layout/announcement-bar-view';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { NavTrailTracker } from '@/components/layout/back-control';
+import { PwaRegister } from '@/components/layout/pwa';
 import { getPublishedBuilder } from '@/lib/builder-server';
 import { titaniumConfig, titaniumCanvasStyle } from '@/components/store/titanium-config';
 import { getSiteContent } from '@/lib/site-content';
@@ -26,6 +27,7 @@ export async function StoreShell({ header, locale, children }: { header: ReactNo
       </main>
       <SiteFooter />
       <NavTrailTracker />
+      <PwaRegister />
     </div>
   );
 }

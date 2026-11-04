@@ -9,29 +9,22 @@
 .atelier-assistant.assistant-panel { background:var(--hexi-paper); color:var(--hexi-ink); border-color:var(--hexi-edge); }
 .atelier-assistant.assistant-panel > header { background:var(--hexi-sand); color:var(--hexi-ink); }
 .atelier-assistant.assistant-panel > header :is(p,button) { color:var(--hexi-ink); }
-.atelier-assistant :is(button,input,textarea) { min-height:44px; }
-.atelier-assistant .assistant-avatar { width:var(--assistant-avatar-mobile); height:calc(var(--assistant-avatar-mobile) * 1.5); border:0; border-radius:0; background:transparent; box-shadow:none; }
-.atelier-assistant .assistant-avatar img { object-fit:contain; transform:none; }
-/* Anchored to the viewport by CSS alone: scrolling, the phone's collapsing toolbar and rotation move nothing here. */
-.assistant-dock[data-side=start] { inset-inline-start:max(.75rem,env(safe-area-inset-left,0px),env(safe-area-inset-right,0px)); }
-.assistant-dock[data-side=end] { inset-inline-end:max(.75rem,env(safe-area-inset-left,0px),env(safe-area-inset-right,0px)); }
-@media(min-width:1024px) { .assistant-dock[data-side=start] { inset-inline-start:1.5rem; } .assistant-dock[data-side=end] { inset-inline-end:1.5rem; } }
-/* Resting over a control, the guide fades where it stands instead of moving away. It stays in the tab order and comes back with the keyboard focus. */
-.assistant-dock { transition:opacity .16s ease; }
-.assistant-dock[data-yield=true]:not(:focus-within) { opacity:0; pointer-events:none; }
-/* The one entrance of a visit; never repeated on navigation, on returning to the tab or on resuming motion. */
-.atelier-assistant.assistant-dock[data-moving=true][data-entrance=true] .assistant-avatar { animation:hexi-entrance .9s ease-out both; }
-/* The compact launcher: the character's head and shoulders in a circle. */
-.atelier-assistant .assistant-face { position:relative; display:block; overflow:hidden; width:var(--assistant-face); height:var(--assistant-face); border:2px solid var(--hexi-edge); border-radius:50%; background:var(--hexi-sand); box-shadow:0 6px 18px rgb(57 40 28 / .22); }
-.atelier-assistant .assistant-face img { position:absolute; inset-block-start:4%; inset-inline-start:50%; width:190%; max-width:none; height:auto; transform:translateX(-50%); }
-.atelier-assistant .assistant-face img:dir(rtl) { transform:translateX(50%); }
-.atelier-assistant .assistant-face[data-custom=true] img { inset:0; width:100%; height:100%; object-fit:contain; transform:none; }
+.atelier-assistant.assistant-panel :is(button,input,textarea) { min-height:44px; }
+/*
+ * One small tab fixed to the screen's edge in the bottom corner, set by CSS alone. It stays in the page's side
+ * margin as far as it can, so it does not sit on the middle of a button or field and needs no hiding or moving.
+ * Fixed to the bottom of the layout viewport: the phone browser's own bar and keyboard move or cover it natively.
+ */
+html[dir=rtl] .assistant-dock { --guide-start:env(safe-area-inset-right,0px); --guide-end:env(safe-area-inset-left,0px); }
+html[dir=ltr] .assistant-dock { --guide-start:env(safe-area-inset-left,0px); --guide-end:env(safe-area-inset-right,0px); }
+.assistant-dock { position:fixed; z-index:40; bottom:calc(14px + env(safe-area-inset-bottom,0px)); }
+.assistant-dock[data-side=start] { inset-inline-start:var(--guide-start); }
+.assistant-dock[data-side=end] { inset-inline-end:var(--guide-end); }
+.assistant-launcher { position:relative; display:block; width:36px; height:52px; padding:0; overflow:hidden; cursor:pointer; touch-action:manipulation; background:var(--hexi-sand); border:1.5px solid var(--hexi-edge); box-shadow:0 3px 10px rgb(57 40 28 / .22); }
+.assistant-dock[data-side=start] .assistant-launcher { border-inline-start:0; border-start-end-radius:20px; border-end-end-radius:20px; }
+.assistant-dock[data-side=end] .assistant-launcher { border-inline-end:0; border-start-start-radius:20px; border-end-start-radius:20px; }
+.assistant-launcher:focus-visible { outline:2px solid var(--hexi-ink); outline-offset:-3px; }
+/* The character's head and shoulders; an uploaded avatar is shown whole. */
+.assistant-launcher img { position:absolute; top:3px; left:50%; width:72px; max-width:none; height:auto; transform:translateX(-50%); pointer-events:none; user-select:none; }
+.assistant-launcher[data-custom=true] img { inset:0; width:100%; height:100%; object-fit:contain; transform:none; }
 .atelier-assistant .assistant-intro-art { float:inline-end; width:64px; height:96px; margin-inline-start:8px; object-fit:contain; }
-.atelier-assistant .assistant-character-actions { opacity:0; background:var(--hexi-paper); border-color:var(--hexi-edge); }
-@media(hover:none) { .atelier-assistant .assistant-character-actions { opacity:1; } }
-.atelier-assistant .assistant-character-actions button { width:44px; height:44px; }
-/* Outside the dock's flow: the character stands in the same place with or without the bubble. */
-.atelier-assistant .assistant-greeting { position:absolute; inset-block-end:100%; inset-inline-start:0; width:190px; background:var(--hexi-paper); color:var(--hexi-ink); border:1px solid var(--hexi-edge); border-radius:16px; padding:12px 16px; font-size:12px; line-height:1.8; margin-bottom:10px; box-shadow:0 10px 30px rgb(57 40 28 / .1); }
-@media(min-width:640px) { .atelier-assistant .assistant-avatar { width:var(--assistant-avatar-desktop); height:calc(var(--assistant-avatar-desktop) * 1.5); } }
-@keyframes hexi-entrance { from { opacity:0; } to { opacity:1; } }
-@media(prefers-reduced-motion:reduce) { .atelier-assistant *, .atelier-assistant *::before { animation:none!important; transition:none!important; } }

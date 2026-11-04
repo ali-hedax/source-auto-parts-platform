@@ -159,3 +159,6 @@
 .titanium-store{--banner-top-guess:73px}
 .titanium-store:has(>[role=region]:first-child){--banner-top-guess:113px}
 [role=note]~.titanium-store{--banner-top-guess:125px}
+/* Under a status bar or above a home indicator when installed. */
+.titanium-store .titanium-header{padding-top:env(safe-area-inset-top,0px)}
+.titanium-store .titanium-footer{padding-bottom:calc(28px + env(safe-area-inset-bottom,0px))}
