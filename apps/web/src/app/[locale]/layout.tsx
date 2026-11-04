@@ -18,6 +18,7 @@ import { routing } from '@/i18n/routing';
 import { dataSource, publicSiteUrl } from '@/lib/config';
 import { getSiteContent } from '@/lib/site-content';
 import { FixtureBanner } from '@/components/layout/fixture-banner';
+import { AssistantEntry } from '@/components/chat/assistant-entry';
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -37,7 +38,9 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
     title: { default: siteTitle, template: `%s | ${siteName}` },
     ...(description ? { description } : {}),
     // An uploaded icon replaces the built-in app/favicon.ico and app/icon.png.
-    ...(favicon ? { icons: { icon: favicon, apple: favicon } } : {}),
+    icons: { ...(favicon ? { icon: favicon } : {}), apple: '/apple-touch-icon.png' },
+    manifest: '/manifest.webmanifest',
+    appleWebApp: { capable: true, title: 'Source', statusBarStyle: 'default' },
     openGraph: { siteName, ...(shareImage ? { images: [shareImage] } : {}) },
     alternates: { languages: { fa: '/fa', en: '/en', 'x-default': '/fa' } },
     // The development preview must never be indexed.
@@ -48,7 +51,9 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#1A202C',
+  themeColor: '#f5f0e8',
+  // Lets the installed app and notched phones report their safe areas; the page keeps clear of them in CSS.
+  viewportFit: 'cover',
 };
 
 export default async function LocaleLayout({ children, params }: { children: ReactNode; params: Promise<{ locale: string }> }) {
@@ -66,6 +71,8 @@ export default async function LocaleLayout({ children, params }: { children: Rea
         <NextIntlClientProvider locale={locale} messages={messages}>
           {dataSource() === 'fixtures' ? <FixtureBanner /> : null}
           {children}
+          {/* Above the page layouts, so moving between pages never remounts the guide or restarts its conversation. */}
+          <AssistantEntry />
         </NextIntlClientProvider>
       </body>
     </html>

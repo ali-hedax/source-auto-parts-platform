@@ -11,6 +11,7 @@ import { Field, Input, Select, Textarea } from '@/components/ui/field';
 import { Alert } from '@/components/ui/misc';
 import { FileUploader } from '@/components/files/file-uploader';
 import { api } from '@/lib/api/client';
+import { randomId } from '@/lib/random-id';
 import { errorText, isApiError } from '@/lib/api/errors';
 
 interface ItemDraft {
@@ -38,7 +39,7 @@ interface Draft {
 
 const DRAFT_KEY = 'hedax:request-draft';
 const emptyItem = (partName = ''): ItemDraft => ({ partName, quantity: '1', brand: '', brandText: '', vehicleModel: '', vehicleYear: '', partCode: '', vin: '', preference: 'ANY', notes: '' });
-const newDraft = (): Draft => ({ clientRequestId: `draft-${crypto.randomUUID()}`, title: '', items: [emptyItem()], note: '', urgency: 'NORMAL', province: '', city: '' });
+const newDraft = (): Draft => ({ clientRequestId: `draft-${randomId()}`, title: '', items: [emptyItem()], note: '', urgency: 'NORMAL', province: '', city: '' });
 const toAscii = (s: string) => s.replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d))).replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)));
 
 /**

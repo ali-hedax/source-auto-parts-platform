@@ -18,8 +18,10 @@ export const firstAmount = (unit: Pick<UnitRef, 'step'>) => (unit.step <= 1 && 1
  * − [amount] + with the unit beside it. Buttons move by the unit's step (0.5 litre); typing is
  * accepted when the amount suits the unit (decimals only where allowed, a multiple of the step).
  */
-export function QuantityStepper({ id, value, onChange, unit, max, name, disabled = false, height = 'h-12' }: {
+export function QuantityStepper({ id, value, onChange, unit, max, name, disabled = false, height = 'h-12', showLimit = false }: {
   id: string; value: number; onChange: (v: number) => void; unit: UnitRef; max: number; name: string; disabled?: boolean; height?: string;
+  /** Says why «+» is off once the amount reaches the most that can be ordered. */
+  showLimit?: boolean;
 }) {
   const t = useTranslations();
   const locale = useLocale() as 'fa' | 'en';
@@ -67,6 +69,7 @@ export function QuantityStepper({ id, value, onChange, unit, max, name, disabled
         <span className="text-sm font-medium text-steel">{uName}</span>
       </div>
       {invalid ? <p id={`${id}-error`} role="alert" className="text-sm text-danger">{t('parts.quantityInvalid', { step: stepLabel, unit: uName })}</p> : null}
+      {showLimit && !invalid && addSteps(value, unit, 1) > max ? <p className="text-xs leading-5 text-steel">{t('cart.atMax', { max: formatQuantity(max, locale), unit: uName })}</p> : null}
     </div>
   );
 }

@@ -64,7 +64,12 @@ const nextConfig: NextConfig = {
     formats: ['image/avif', 'image/webp'],
   },
   async headers() {
-    return [{ source: '/:path*', headers: securityHeaders }];
+    return [
+      { source: '/:path*', headers: securityHeaders },
+      // Browsers must always ask for these two, so a new version is found and nobody is stuck on an old one.
+      { source: '/sw.js', headers: [{ key: 'Cache-Control', value: 'no-cache, max-age=0, must-revalidate' }] },
+      { source: '/offline.html', headers: [{ key: 'Cache-Control', value: 'no-cache, max-age=0, must-revalidate' }] },
+    ];
   },
   async rewrites() {
     // In production the reverse proxy serves /api/v1, /media and the WebSocket directly.

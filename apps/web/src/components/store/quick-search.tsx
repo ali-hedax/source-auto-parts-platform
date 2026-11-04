@@ -45,7 +45,7 @@ export function QuickSearch({ locale }: { locale: 'fa' | 'en' }) {
             <label htmlFor="quick-search-input" className="sr-only">{fa ? 'نام قطعه، شماره فنی یا کد کالا' : 'Part name, part number or SKU'}</label>
             <input
               id="quick-search-input" name="q" type="search" dir="auto" autoComplete="off" maxLength={120} value={q}
-              placeholder={fa ? 'نام قطعه، شماره فنی یا کد کالا' : 'Part name, part number or SKU'}
+              placeholder={fa ? 'نام یا شماره فنی قطعه' : 'Part name or number'}
               role="combobox" aria-expanded={open && items.length > 0} aria-controls={listId} aria-autocomplete="list"
               aria-activedescendant={active >= 0 ? `${listId}-${active}` : undefined}
               onChange={(e) => setQ(e.target.value)} onFocus={() => items.length && setOpen(true)} onBlur={() => window.setTimeout(() => setOpen(false), 150)}

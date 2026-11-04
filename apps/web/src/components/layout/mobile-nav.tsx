@@ -6,6 +6,7 @@ import { Menu, X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Suspense, useState, type ReactNode } from 'react';
 import type { Currency } from '@hedax/contracts';
+import { InstallApp } from './pwa';
 import { CurrencySwitcher, LocaleSwitcher } from './switchers';
 import { Link, usePathname } from '@/i18n/navigation';
 
@@ -59,6 +60,7 @@ export function MobileNav({ items, alwaysVisible = false, extra, currency = 'IRR
               })}
             </ul>
           </nav>
+          <div className="px-5"><InstallApp /></div>
           <div className="flex items-center gap-4 px-4 py-5">{extra || <><Suspense fallback={null}><LocaleSwitcher /></Suspense><CurrencySwitcher initial={currency} /></>}</div>
         </RDialog.Content>
       </RDialog.Portal>

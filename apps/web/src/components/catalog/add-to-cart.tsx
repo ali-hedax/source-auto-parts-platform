@@ -1,6 +1,6 @@
 'use client';
 
-import type { UnitRef } from '@hedax/contracts';
+import type { CartView, UnitRef } from '@hedax/contracts';
 import { formatQuantity } from '@hedax/domain';
 import { ShoppingCart } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
@@ -10,6 +10,7 @@ import { Button, ButtonLink } from '@/components/ui/button';
 import { unitName } from '@/components/ui/format';
 import { Alert } from '@/components/ui/misc';
 import { api } from '@/lib/api/client';
+import { cartChanged } from '@/lib/cart-count';
 import { errorText } from '@/lib/api/errors';
 
 /** Quantity in the product's unit (whole for «عدد», steps of 0.5 for «لیتر» …) and «افزودن به سبد». */
@@ -19,13 +20,17 @@ export function AddToCart({ productId, max, name, unit }: { productId: string; m
   const [qty, setQty] = useState(Math.min(firstAmount(unit), max));
   const [state, setState] = useState<'idle' | 'adding' | 'added' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [atLimit, setAtLimit] = useState(false);
   const add = async () => {
     setState('adding');
     setError(null);
     try {
-      await api('/cart/items', { method: 'POST', body: { productId, quantity: qty } });
+      const cart = await api<CartView>('/cart/items', { method: 'POST', body: { productId, quantity: qty } });
+      // The server never holds more than the stock, so the amount added can be less than asked for.
+      const line = cart.lines.find((l) => l.productId === productId);
+      setAtLimit(Boolean(line && line.quantity >= line.maxOrderQuantity));
       setState('added');
-      window.dispatchEvent(new Event('hedax:cart-changed'));
+      cartChanged(cart);
     } catch (e) {
       setState('error');
       setError(errorText(t, e));
@@ -45,7 +50,7 @@ export function AddToCart({ productId, max, name, unit }: { productId: string; m
       </p>
       <div aria-live="polite">
         {state === 'added' ? (
-          <Alert tone="success" title={t('parts.added')}>
+          <Alert tone="success" title={t(atLimit ? 'parts.addedAtLimit' : 'parts.added')}>
             <ButtonLink href="/cart" variant="secondary" size="sm" className="mt-2">
               {t('parts.viewCart')}
             </ButtonLink>

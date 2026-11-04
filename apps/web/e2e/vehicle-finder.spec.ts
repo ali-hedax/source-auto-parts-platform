@@ -147,15 +147,15 @@ test.describe('optional steps', () => {
   test('empty groups and models without verified years say so instead of showing made-up options', async ({ page }) => {
     await page.goto('/fa');
     await choose(page, 1, 'تویوتا');
-    await expect(step(page, 2).getByRole('status')).toHaveText('برای این گروه هنوز خودرویی ثبت نشده است.');
+    await expect(step(page, 2).getByRole('status')).toHaveText('برای این گروه خودرویی ثبت نشده.');
     await expect(step(page, 2).locator('.vf-field')).toBeDisabled();
     await choose(page, 1, 'ایران خودرو');
     await choose(page, 2, 'پژو ۲۰۶');
     await choose(page, 3, 'تیپ ۵');
-    await expect(step(page, 4).getByRole('status')).toHaveText('سال ساخت معتبری برای این انتخاب ثبت نشده؛ بدون سال جست‌وجو کنید.');
+    await expect(step(page, 4).getByRole('status')).toHaveText('سالی ثبت نشده؛ بدون سال جست‌وجو کنید.');
     await expect(step(page, 4).locator('.vf-field')).toBeDisabled();
     await choose(page, 2, 'سمند');
-    await expect(step(page, 3).getByRole('status')).toContainText('مدل یا تیپی برای این خودرو ثبت نشده');
+    await expect(step(page, 3).getByRole('status')).toContainText('مدلی ثبت نشده');
   });
 
   test('works with the keyboard alone', async ({ page }) => {
