@@ -11,20 +11,67 @@
 .atelier-assistant.assistant-panel > header :is(p,button) { color:var(--hexi-ink); }
 .atelier-assistant.assistant-panel :is(button,input,textarea) { min-height:44px; }
 /*
- * One small tab fixed to the screen's edge in the bottom corner, set by CSS alone. It stays in the page's side
- * margin as far as it can, so it does not sit on the middle of a button or field and needs no hiding or moving.
- * Fixed to the bottom of the layout viewport: the phone browser's own bar and keyboard move or cover it natively.
+ * The dock owns the place and nothing else: fixed by CSS alone, a direct child of <body>, never transformed or animated,
+ * and written to by no script. All motion lives on the two layers inside it, so it cannot move the dock or its tap area.
+ * vh, not dvh: it stays the same when the phone browser's bar slides, so the size cannot change while scrolling.
  */
 html[dir=rtl] .assistant-dock { --guide-start:env(safe-area-inset-right,0px); --guide-end:env(safe-area-inset-left,0px); }
 html[dir=ltr] .assistant-dock { --guide-start:env(safe-area-inset-left,0px); --guide-end:env(safe-area-inset-right,0px); }
-.assistant-dock { position:fixed; z-index:40; bottom:calc(14px + env(safe-area-inset-bottom,0px)); }
-.assistant-dock[data-side=start] { inset-inline-start:var(--guide-start); }
-.assistant-dock[data-side=end] { inset-inline-end:var(--guide-end); }
-.assistant-launcher { position:relative; display:block; width:36px; height:52px; padding:0; overflow:hidden; cursor:pointer; touch-action:manipulation; background:var(--hexi-sand); border:1.5px solid var(--hexi-edge); box-shadow:0 3px 10px rgb(57 40 28 / .22); }
-.assistant-dock[data-side=start] .assistant-launcher { border-inline-start:0; border-start-end-radius:20px; border-end-end-radius:20px; }
-.assistant-dock[data-side=end] .assistant-launcher { border-inline-end:0; border-start-start-radius:20px; border-end-start-radius:20px; }
-.assistant-launcher:focus-visible { outline:2px solid var(--hexi-ink); outline-offset:-3px; }
-/* The character's head and shoulders; an uploaded avatar is shown whole. */
-.assistant-launcher img { position:absolute; top:3px; left:50%; width:72px; max-width:none; height:auto; transform:translateX(-50%); pointer-events:none; user-select:none; }
-.assistant-launcher[data-custom=true] img { inset:0; width:100%; height:100%; object-fit:contain; transform:none; }
+.assistant-dock { --hexi-gap:8px; --hexi-width:min(clamp(72px,var(--hexi-mobile,80px),88px),15vh); position:fixed; z-index:40; bottom:calc(10px + env(safe-area-inset-bottom,0px)); width:var(--hexi-width); }
+@media(min-width:1024px) { .assistant-dock { --hexi-gap:20px; --hexi-width:min(clamp(100px,var(--hexi-desktop,104px),128px),20vh); bottom:calc(16px + env(safe-area-inset-bottom,0px)); } }
+.assistant-dock[data-side=start] { inset-inline-start:calc(var(--guide-start) + var(--hexi-gap)); }
+.assistant-dock[data-side=end] { inset-inline-end:calc(var(--guide-end) + var(--hexi-gap)); }
+.assistant-dock[data-state=collapsed] { width:auto; }
+/* With a phone's keyboard up, the small space left belongs to the field. Follows the focus only, never scrolling. */
+@media(pointer:coarse) { body:has(main :is(input,textarea,select):focus) > .assistant-dock { visibility:hidden; } }
+/*
+ * A fixed character cannot avoid everything that scrolls under it without moving or hiding, so the buttons that buy,
+ * the vehicle finder and the film controls make room instead: no scrolling can bring one under him. The room stays when he is collapsed,
+ * so collapsing shifts nothing on the page. Above 1700 px the page's own margin is wider than he is.
+ */
+body:has(> .assistant-dock[data-side=end]) .cine-controls { inset-inline-end:auto; inset-inline-start:max(12px,calc((100vw - 1200px) / 2)); }
+@media(max-width:1023px) {
+ body:has(> .assistant-dock) :is(.part-card-cart,.part-card-source) { width:calc(100% - 72px); }
+ body:has(> .assistant-dock) :is(.vf-steps,.vf-actions) { padding-inline-end:72px; }
+}
+/* The finder's fields keep room for their words in the narrower space. */
+@media(max-width:479px) {
+ body:has(> .assistant-dock) .vf-steps { gap:8px; }
+ body:has(> .assistant-dock) .vf-field { grid-template-columns:minmax(0,1fr) 14px; column-gap:4px; padding-inline:8px; }
+ body:has(> .assistant-dock) .vf-field > svg { width:14px; height:14px; }
+}
+@media(min-width:1024px) and (max-width:1699px) {
+ body:has(> .assistant-dock[data-list=true]) main { padding-inline-end:112px; }
+ body:has(> .assistant-dock[data-list=false][data-side=start]) .builder-products { padding-inline-start:140px; }
+ body:has(> .assistant-dock[data-list=false][data-side=end]) .builder-products { padding-inline-end:140px; }
+}
+/* The whole character and its name are the button. */
+.assistant-launcher { position:relative; isolation:isolate; display:block; width:100%; padding:0; cursor:pointer; touch-action:manipulation; background:none; border:0; }
+.assistant-launcher:focus-visible, .assistant-collapse:focus-visible, .assistant-chip:focus-visible { outline:2px solid var(--hexi-ink); outline-offset:2px; box-shadow:0 0 0 2px var(--hexi-paper); border-radius:12px; }
+/* The low plinth he stands on, behind his boots. */
+.assistant-launcher::before { content:""; position:absolute; z-index:-1; inset-inline:6%; bottom:12px; height:14px; border-radius:50%; background:var(--hexi-sand); border:1px solid var(--hexi-edge); box-shadow:0 2px 6px rgb(57 40 28 / .28); }
+/* Reacts to the pointer; a soft edge keeps his dark overalls readable over a dark film or photo. */
+.assistant-pose { display:block; aspect-ratio:2 / 3; transform-origin:50% 100%; filter:drop-shadow(0 0 1px rgb(251 248 243 / .9)) drop-shadow(0 2px 3px rgb(42 28 22 / .3)); }
+.assistant-launcher:active .assistant-pose { filter:brightness(.94) drop-shadow(0 0 1px rgb(251 248 243 / .9)); }
+/* Breathes. The art is one still image, so nothing more than this is claimed for it. */
+.assistant-art { display:block; width:100%; height:100%; object-fit:contain; transform-origin:50% 100%; pointer-events:none; user-select:none; }
+/* A riveted workshop tag, like the bronze studs on his overalls. */
+.assistant-plate { position:relative; display:block; width:max-content; max-width:100%; margin:-3px auto 0; padding:2px 13px; border:1px solid var(--hexi-edge); border-radius:5px; font-size:12px; font-weight:700; line-height:18px; color:var(--hexi-ink); white-space:nowrap; background:radial-gradient(circle at 6px 50%, var(--hexi-edge) 0 1.5px, transparent 2px), radial-gradient(circle at calc(100% - 6px) 50%, var(--hexi-edge) 0 1.5px, transparent 2px), var(--hexi-paper); box-shadow:0 1px 4px rgb(57 40 28 / .25); }
+@media(max-height:480px) { .assistant-plate { padding-inline:9px; font-size:11px; background:var(--hexi-paper); } }
+/* Small to see, large to tap. In the art's empty corner, so it covers neither his face nor his hand. */
+.assistant-collapse { position:absolute; top:0; left:0; display:grid; place-items:center; width:24px; height:24px; padding:0; cursor:pointer; touch-action:manipulation; color:var(--hexi-ink); background:var(--hexi-paper); border:1px solid var(--hexi-edge); border-radius:50%; box-shadow:0 1px 3px rgb(57 40 28 / .25); }
+.assistant-collapse::after { content:""; position:absolute; inset:-8px; }
+.assistant-collapse:hover { background:var(--hexi-sand); }
+/* Collapsed: his face and name on a small pill, still inside the screen. */
+.assistant-chip { display:flex; align-items:center; gap:6px; min-height:44px; padding-block:3px; padding-inline:4px 10px; cursor:pointer; touch-action:manipulation; font-size:13px; font-weight:700; color:var(--hexi-ink); background:var(--hexi-paper); border:1px solid var(--hexi-edge); border-radius:22px; box-shadow:0 2px 8px rgb(57 40 28 / .28); }
+.assistant-chip-face { position:relative; display:block; flex:none; width:36px; height:36px; overflow:hidden; border-radius:50%; background:var(--hexi-sand); }
+.assistant-chip-face img { position:absolute; top:1px; left:-22px; width:80px; max-width:none; height:auto; pointer-events:none; user-select:none; }
+.assistant-chip-face[data-custom=true] img { inset:0; width:100%; height:100%; object-fit:contain; }
+@media(min-width:1024px) and (hover:hover) and (prefers-reduced-motion:no-preference) {
+ .assistant-dock[data-motion=true] .assistant-art { animation:hexi-breathe 5s ease-in-out infinite; }
+ .assistant-dock[data-motion=true] .assistant-pose { transition:transform .22s ease-out; }
+ .assistant-dock[data-motion=true] .assistant-launcher:hover .assistant-pose { transform:translateY(-3px) rotate(-1.5deg); }
+ .assistant-dock[data-motion=true] .assistant-launcher:active .assistant-pose { transform:scale(.98); }
+}
+@keyframes hexi-breathe { 0%,100% { transform:none; } 50% { transform:scale(.996,1.012); } }
 .atelier-assistant .assistant-intro-art { float:inline-end; width:64px; height:96px; margin-inline-start:8px; object-fit:contain; }

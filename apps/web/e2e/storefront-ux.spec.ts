@@ -1,5 +1,5 @@
 import { DEFAULT_ASSISTANT_SETTINGS } from '@hedax/contracts/constants';
-import { devices, expect, test, type Page } from '@playwright/test';
+import { devices, expect, test, type Browser, type Page } from '@playwright/test';
 import { cartBadgeText, cartUnitCount } from '../src/lib/cart-units';
 import { ignoresHistory, localeOf, moveTo, newTrail, parentOf, pushEntry, replaceEntry, resolveLoad, stepsBack, translatedTarget } from '../src/lib/nav-trail';
 
@@ -646,21 +646,25 @@ test.describe('back control', () => {
   });
 });
 
-test.describe('Hexi: one small fixed launcher', () => {
+test.describe('Hexi: the whole character, fixed in its corner', () => {
   const live = { ...DEFAULT_ASSISTANT_SETTINGS, enabled: true, mobileSize: 80, desktopSize: 128 };
-  const enable = (page: Page) => page.route('**/api/v1/site/assistant?**', (route) => route.fulfill({ json: live }));
+  const enable = (page: Page, settings: object = live) => page.route('**/api/v1/site/assistant?**', (route) => route.fulfill({ json: settings }));
   const dock = (page: Page) => page.locator('.assistant-dock');
-  const launcher = (page: Page) => page.getByRole('button', { name: 'باز کردن هکسی، راهنمای سورس' });
-  const ready = async (page: Page, path: string) => {
-    await enable(page);
+  const launcher = (page: Page) => page.getByRole('button', { name: 'باز کردن هیکسی، راهنمای سورس' });
+  const collapse = (page: Page) => page.getByRole('button', { name: 'جمع‌کردن هیکسی' });
+  const chip = (page: Page) => page.getByRole('button', { name: 'نمایش هیکسی' });
+  const ready = async (page: Page, path: string, settings?: object) => {
+    await enable(page, settings);
     await page.goto(path);
     await hideDevOverlay(page);
     await expect(launcher(page)).toBeVisible();
   };
+  const phone = (browser: Browser, baseURL: string | undefined, width = 390, height = 844) => browser.newContext({ ...devices['Pixel 5'], viewport: { width, height }, baseURL: baseURL as string });
 
   /** Frame by frame through four passes down and up the whole page: where it is, how it looks, what changes on it. */
   const trace = (page: Page) => page.evaluate(async () => {
     const el = document.querySelector<HTMLElement>('.assistant-dock')!;
+    const tap = document.querySelector<HTMLElement>('.assistant-launcher')!;
     const positions = new Set<string>();
     const looks = new Set<string>();
     let mutations = 0; let run = true;
@@ -668,9 +672,9 @@ test.describe('Hexi: one small fixed launcher', () => {
     mo.observe(el, { attributes: true, childList: true, subtree: true });
     const tick = () => {
       if (!run) return;
-      const r = el.getBoundingClientRect(); const cs = getComputedStyle(el);
-      positions.add(`${Math.round(r.left)},${Math.round(r.top)},${Math.round(r.width)},${Math.round(r.height)}`);
-      looks.add(`${cs.opacity}|${cs.visibility}|${cs.display}|${cs.pointerEvents}`);
+      const r = el.getBoundingClientRect(); const t = tap.getBoundingClientRect(); const cs = getComputedStyle(el);
+      positions.add(`${r.left},${r.top},${r.width},${r.height}|${t.left},${t.top},${t.width},${t.height}`);
+      looks.add(`${cs.opacity}|${cs.visibility}|${cs.display}|${cs.transform}`);
       requestAnimationFrame(tick);
     };
     requestAnimationFrame(tick);
@@ -687,30 +691,49 @@ test.describe('Hexi: one small fixed launcher', () => {
     return { positions: [...positions], looks: [...looks], mutations, dialogs: document.querySelectorAll('[role=dialog]').length };
   });
 
-  for (const [width, height, mobile] of [[360, 740, true], [390, 844, true], [768, 1024, true], [1440, 900, false]] as const) {
-    test(`${width}px: the same place and look at every frame, resting or scrolling; it never opens by itself`, async ({ browser, baseURL }) => {
-      const context = await browser.newContext({ viewport: { width, height }, baseURL: baseURL as string, ...(mobile ? { hasTouch: true, isMobile: width < 768 } : {}) });
+  for (const [width, height, min, max] of [[360, 740, 72, 88], [390, 844, 72, 88], [768, 1024, 72, 88], [1440, 900, 100, 128]] as const) {
+    test(`${width}px: whole and inside the screen; the same place and look at every frame; it never opens by itself`, async ({ browser, baseURL }, testInfo) => {
+      const context = await browser.newContext({ viewport: { width, height }, baseURL: baseURL as string, ...(width < 1024 ? { hasTouch: true, isMobile: width < 768 } : {}) });
       const page = await context.newPage();
       await ready(page, '/fa');
       await page.waitForTimeout(800);
-      const box = await dock(page).evaluate((el) => { const r = el.getBoundingClientRect(); return { width: r.width, height: r.height, side: Math.min(r.left, innerWidth - r.right), bottom: innerHeight - r.bottom }; });
-      expect(box.width).toBeLessThanOrEqual(36);
-      expect(box.height).toBeLessThanOrEqual(52);
-      expect(box.side, 'flush to the screen edge').toBe(0);
-      expect(box.bottom).toBeGreaterThanOrEqual(14);
+      const shape = await dock(page).evaluate((el) => {
+        const r = el.getBoundingClientRect();
+        const art = el.querySelector<HTMLImageElement>('.assistant-art')!; const a = art.getBoundingClientRect();
+        const plate = el.querySelector('.assistant-plate')!; const p = plate.getBoundingClientRect();
+        return { width: r.width, left: r.left, right: innerWidth - r.right, bottom: innerHeight - r.bottom, parentIsBody: el.parentElement === document.body, ratio: a.height / a.width, natural: art.naturalHeight / art.naturalWidth, fit: getComputedStyle(art).objectFit, name: plate.textContent, plateBelow: p.top >= a.bottom - 4, plateColor: getComputedStyle(plate).color };
+      });
+      expect(shape.width).toBeGreaterThanOrEqual(min);
+      expect(shape.width).toBeLessThanOrEqual(max);
+      expect(shape.left, 'not cut by the edge').toBeGreaterThan(0);
+      expect(shape.right, 'not cut by the edge').toBeGreaterThan(0);
+      expect(shape.bottom).toBeGreaterThan(0);
+      expect(shape.parentIsBody).toBe(true);
+      expect(shape.ratio, 'his proportions').toBeCloseTo(shape.natural, 1);
+      expect(shape.fit).toBe('contain');
+      expect(shape.name).toBe('هیکسی');
+      expect(shape.plateBelow).toBe(true);
+      await page.screenshot({ path: testInfo.outputPath(`hexi-${width}.png`) });
       const result = await trace(page);
-      expect(result.positions, 'it must not move').toHaveLength(1);
-      expect(result.looks, 'it must not hide or fade').toEqual(['1|visible|block|auto']);
-      expect(result.mutations, 'scrolling must change nothing on it').toBe(0);
+      expect(result.positions, 'neither he nor his tap area may move').toHaveLength(1);
+      expect(result.looks, 'he must not hide, fade or be transformed').toEqual(['1|visible|block|none']);
+      expect(result.mutations, 'scrolling must change nothing on him').toBe(0);
       expect(result.dialogs).toBe(0);
       await context.close();
     });
   }
 
-  test('nothing can move it: it sits directly in the body, whatever the page transforms', async ({ page }) => {
+  test('no script listens to scrolling for him, and nothing the page transforms can move him', async ({ page }) => {
+    await page.addInitScript(() => {
+      const w = window as unknown as { __scrollListeners: string[] };
+      w.__scrollListeners = [];
+      const add = window.addEventListener.bind(window);
+      window.addEventListener = ((type: string, ...rest: [EventListener]) => { if (type === 'scroll') w.__scrollListeners.push(new Error().stack ?? ''); return add(type, ...rest); }) as typeof window.addEventListener;
+    });
     await page.setViewportSize({ width: 390, height: 844 });
     await ready(page, '/fa/parts');
-    expect(await dock(page).evaluate((el) => el.parentElement === document.body)).toBe(true);
+    const stacks = await page.evaluate(() => (window as unknown as { __scrollListeners: string[] }).__scrollListeners);
+    expect(stacks.filter((s) => /assistant/i.test(s))).toEqual([]);
     const before = await dock(page).boundingBox();
     await page.addStyleTag({ content: '.titanium-store, main, header { transform: translateY(40px) scale(.9) !important; }' });
     await page.evaluate(() => window.scrollTo(0, 600));
@@ -718,40 +741,52 @@ test.describe('Hexi: one small fixed launcher', () => {
     expect(await dock(page).boundingBox()).toEqual(before);
   });
 
-  for (const path of ['/fa', '/fa/parts']) {
-    for (const width of [360, 390]) {
-      test(`${path} at ${width}px: at every scroll position it stays off the middle of every control`, async ({ page }) => {
-        await page.setViewportSize({ width, height: 800 });
+  for (const path of ['/fa', '/fa/parts', '/fa/imported-parts']) {
+    for (const [width, height] of [[360, 740], [390, 844], [768, 1024], [1280, 800], [1440, 900]] as const) {
+      test(`${path} at ${width}px: no buying button, finder field, film control or back control ever under him; no field's middle either`, async ({ page }) => {
+        await page.setViewportSize({ width, height });
         await ready(page, path);
-        const worst = await page.evaluate(async () => {
+        await page.waitForTimeout(400);
+        const result = await page.evaluate(async () => {
           const el = document.querySelector('.assistant-dock')!.getBoundingClientRect();
           const h = document.documentElement.scrollHeight - innerHeight;
-          const problems: string[] = [];
-          let deepest = 0;
-          for (let y = 0; y <= h; y += 40) {
+          const under: string[] = [];
+          const middles: string[] = [];
+          const shown = (c: Element) => { const r = c.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(c).visibility !== 'hidden'; };
+          for (let y = 0; y <= h; y += 30) {
             window.scrollTo(0, y);
             await new Promise((r) => requestAnimationFrame(r));
-            for (const c of document.querySelectorAll<HTMLElement>('main button, main input, main select, main textarea, main video[controls], main a, .back-control')) {
+            for (const c of document.querySelectorAll('.part-card-cart, .part-card-source, .cine-control, .back-control, .vf-field, .vf-submit')) {
+              if (!shown(c)) continue;
               const r = c.getBoundingClientRect();
-              if (!r.width || !r.height || getComputedStyle(c).visibility === 'hidden') continue;
-              const across = Math.min(r.right, el.right) - Math.max(r.left, el.left);
-              const down = Math.min(r.bottom, el.bottom) - Math.max(r.top, el.top);
-              if (across <= 0 || down <= 0) continue;
+              if (Math.min(r.right, el.right) > Math.max(r.left, el.left) && Math.min(r.bottom, el.bottom) > Math.max(r.top, el.top)) under.push(`${c.className} at ${y}`);
+            }
+            for (const c of document.querySelectorAll('main input, main select, main textarea')) {
+              if (!shown(c)) continue;
+              const r = c.getBoundingClientRect();
               const cx = r.left + r.width / 2; const cy = r.top + r.height / 2;
-              // Large cards are links as a whole; what counts on them is their own buttons, checked here too.
-              if (cx > el.left && cx < el.right && cy > el.top && cy < el.bottom) problems.push(`${c.tagName}.${String(c.className).split(' ')[0]} at ${y}`);
-              deepest = Math.max(deepest, across);
+              if (cx > el.left && cx < el.right && cy > el.top && cy < el.bottom) middles.push(`${c.tagName}.${c.className} at ${y}`);
             }
           }
-          return { problems: [...new Set(problems)].slice(0, 6), deepest: Math.round(deepest) };
+          return { under: [...new Set(under)].slice(0, 6), middles: [...new Set(middles)].slice(0, 6) };
         });
-        expect(worst.problems).toEqual([]);
-        expect(worst.deepest, 'it reaches at most its own width in from the edge').toBeLessThanOrEqual(36);
+        expect(result.under).toEqual([]);
+        expect(result.middles).toEqual([]);
       });
     }
   }
 
-  test('it stays clear of the back control, on every inner page it appears on', async ({ page }) => {
+  for (const width of [360, 390]) {
+    test(`${width}px: the vehicle finder keeps its words whole beside him`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 800 });
+      await ready(page, '/fa');
+      await page.waitForTimeout(400);
+      const cut = await page.locator('.vf-value').evaluateAll((els) => els.filter((e) => e.scrollWidth > e.clientWidth).map((e) => e.textContent));
+      expect(cut).toEqual([]);
+    });
+  }
+
+  test('it stays clear of the back control', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await ready(page, '/fa/parts');
     const [a, b] = [await dock(page).boundingBox(), await page.getByRole('link', { name: 'بازگشت', exact: true }).boundingBox()];
@@ -767,48 +802,132 @@ test.describe('Hexi: one small fixed launcher', () => {
     }
   });
 
-  test('a keyboard opening does not move or hide it', async ({ browser, baseURL }) => {
-    const context = await browser.newContext({ ...devices['Pixel 5'], viewport: { width: 390, height: 844 }, baseURL: baseURL as string });
+  test('typing on a phone gives the room to the field; he returns to the same place, and nothing moved him', async ({ browser, baseURL }) => {
+    const context = await phone(browser, baseURL);
     const page = await context.newPage();
     await ready(page, '/fa');
     const place = await dock(page).boundingBox();
     await page.locator('#quick-search-input').focus();
+    await expect(dock(page)).toBeHidden();
     await page.evaluate(() => {
       const v = window.visualViewport!;
       Object.defineProperty(v, 'height', { configurable: true, get: () => 400 });
       v.dispatchEvent(new Event('resize'));
       window.dispatchEvent(new Event('resize'));
     });
-    await page.waitForTimeout(400);
+    await page.locator('#quick-search-input').blur();
+    await expect(dock(page)).toBeVisible();
     expect(await dock(page).boundingBox()).toEqual(place);
-    await expect(dock(page)).toHaveCSS('opacity', '1');
     await context.close();
   });
 
-  test('turning the phone keeps it in its corner and adds no sideways scroll', async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
+  test('the phone browser bar sliding away changes only the distance to the bottom edge, by CSS alone', async ({ browser, baseURL }) => {
+    const context = await phone(browser, baseURL, 390, 788);
+    const page = await context.newPage();
     await ready(page, '/fa');
-    for (const [w, h] of [[844, 390], [390, 844]] as const) {
+    const small = (await dock(page).boundingBox())!;
+    await dock(page).evaluate((el) => {
+      const w = window as unknown as { __changes: number };
+      w.__changes = 0;
+      new MutationObserver((l) => { w.__changes += l.length; }).observe(el, { attributes: true, childList: true, subtree: true });
+    });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.waitForTimeout(250);
+    const large = (await dock(page).boundingBox())!;
+    expect(large.width).toBe(small.width);
+    expect(large.height).toBe(small.height);
+    expect(844 - (large.y + large.height)).toBeCloseTo(788 - (small.y + small.height), 0);
+    expect(await page.evaluate(() => (window as unknown as { __changes: number }).__changes)).toBe(0);
+    await context.close();
+  });
+
+  test('turning the phone keeps him whole in his corner, and an open conversation stays', async ({ browser, baseURL }) => {
+    const context = await phone(browser, baseURL);
+    const page = await context.newPage();
+    await ready(page, '/fa');
+    for (const [w, h] of [[844, 390], [390, 844], [360, 640], [640, 360]] as const) {
       await page.setViewportSize({ width: w, height: h });
       await page.waitForTimeout(200);
       const r = (await dock(page).boundingBox())!;
-      expect(r.x + r.width).toBe(w);
-      expect(h - (r.y + r.height)).toBe(14);
+      expect(r.x).toBeGreaterThan(0);
+      expect(r.x + r.width).toBeLessThan(w);
+      expect(r.y).toBeGreaterThan(0);
+      expect(r.y + r.height).toBeLessThan(h);
+      expect(r.height, 'he takes under half of a short screen').toBeLessThan(h * 0.45);
+      const plate = await page.locator('.assistant-plate').evaluate((el) => ({ text: el.scrollWidth <= el.clientWidth, inside: el.getBoundingClientRect().left >= 0 }));
+      expect(plate).toEqual({ text: true, inside: true });
       expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
     }
+    await page.setViewportSize({ width: 390, height: 844 });
+    await launcher(page).tap();
+    const dialog = page.getByRole('dialog');
+    await dialog.getByLabel('نام قطعه، شماره فنی یا پرسش').fill('لنت');
+    await dialog.evaluate((el) => { el.setAttribute('data-same-element', 'yes'); });
+    await page.setViewportSize({ width: 844, height: 390 });
+    await page.waitForTimeout(250);
+    await expect(dialog).toHaveAttribute('data-same-element', 'yes');
+    await expect(dialog.getByLabel('نام قطعه، شماره فنی یا پرسش')).toHaveValue('لنت');
+    await context.close();
   });
 
-  test('it has no animation or transition to reduce, with or without the setting', async ({ page }) => {
+  test('desktop: he breathes on an inner layer only, and reacts to the pointer, while his box stands still', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
     await ready(page, '/fa');
-    const moving = () => dock(page).evaluate((el) => [el, ...el.querySelectorAll('*')].map((node) => { const cs = getComputedStyle(node); return `${cs.animationName}|${cs.transitionDuration}`; }));
-    expect(new Set(await moving())).toEqual(new Set(['none|0s']));
-    expect(await dock(page).evaluate((el) => el.getAnimations({ subtree: true }).length)).toBe(0);
+    const inner = await dock(page).evaluate((el) => ({
+      art: getComputedStyle(el.querySelector('.assistant-art')!).animationName,
+      others: [el, el.querySelector('.assistant-launcher')!, el.querySelector('.assistant-pose')!].map((n) => getComputedStyle(n).animationName),
+      outer: [el, el.querySelector('.assistant-launcher')!].map((n) => getComputedStyle(n).transform),
+    }));
+    expect(inner.art).toBe('hexi-breathe');
+    expect(inner.others).toEqual(['none', 'none', 'none']);
+    expect(inner.outer).toEqual(['none', 'none']);
+    const boxes = await dock(page).evaluate(async (el) => {
+      const seen = new Set<string>(); const art = new Set<string>();
+      const end = performance.now() + 2600;
+      while (performance.now() < end) {
+        const r = el.getBoundingClientRect(); seen.add(`${r.left},${r.top},${r.width},${r.height}`);
+        art.add(getComputedStyle(el.querySelector('.assistant-art')!).transform);
+        await new Promise((f) => requestAnimationFrame(f));
+      }
+      return { seen: seen.size, art: art.size };
+    });
+    expect(boxes.seen).toBe(1);
+    expect(boxes.art, 'the breathing really runs').toBeGreaterThan(5);
+    const before = await dock(page).boundingBox();
+    await launcher(page).hover();
+    await page.waitForTimeout(350);
+    expect(await page.locator('.assistant-pose').evaluate((el) => getComputedStyle(el).transform)).not.toBe('none');
+    expect(await dock(page).boundingBox()).toEqual(before);
+  });
+
+  test('no decorative motion on a phone, with reduced motion, or with the setting off', async ({ browser, baseURL }) => {
+    const still = (page: Page) => dock(page).evaluate((el) => el.getAnimations({ subtree: true }).length);
+    const onPhone = await phone(browser, baseURL);
+    const page = await onPhone.newPage();
+    await ready(page, '/fa');
+    expect(await still(page)).toBe(0);
+    await onPhone.close();
+    const reduced = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce', baseURL: baseURL as string });
+    const quiet = await reduced.newPage();
+    await ready(quiet, '/fa');
+    expect(await still(quiet)).toBe(0);
+    await launcher(quiet).hover();
+    await quiet.waitForTimeout(300);
+    expect(await quiet.locator('.assistant-pose').evaluate((el) => getComputedStyle(el).transform)).toBe('none');
+    await reduced.close();
+    const off = await browser.newContext({ viewport: { width: 1440, height: 900 }, baseURL: baseURL as string });
+    const plain = await off.newPage();
+    await ready(plain, '/fa', { ...live, animationEnabled: false });
+    expect(await still(plain)).toBe(0);
+    await off.close();
   });
 
   test('a tap opens it, with the character and its message; Escape closes and returns the focus; it can be hidden for the visit', async ({ browser, baseURL }) => {
-    const context = await browser.newContext({ ...devices['Pixel 5'], viewport: { width: 390, height: 844 }, baseURL: baseURL as string });
+    const context = await phone(browser, baseURL);
     const page = await context.newPage();
     await ready(page, '/fa/parts');
+    await page.waitForTimeout(1500);
+    await expect(page.getByRole('dialog'), 'it never opens by itself').toHaveCount(0);
     await launcher(page).tap();
     const dialog = page.getByRole('dialog');
     await expect(dialog.locator('.assistant-intro-art')).toBeVisible();
@@ -817,11 +936,79 @@ test.describe('Hexi: one small fixed launcher', () => {
     await expect(dialog).toHaveCount(0);
     await expect(launcher(page)).toBeFocused();
     await launcher(page).tap();
-    await dialog.getByRole('button', { name: 'پنهان‌کردن هکسی تا پایان این بازدید' }).click();
+    await dialog.getByRole('button', { name: 'پنهان‌کردن هیکسی تا پایان این بازدید' }).click();
     await expect(dock(page)).toHaveCount(0);
     await page.goto('/fa/contact');
     await page.waitForTimeout(1200);
     await expect(dock(page)).toHaveCount(0);
+    await context.close();
+  });
+
+  test('collapsing: a small clear button, a recognisable pill that stays collapsed, nothing else on the page shifts', async ({ browser, baseURL }, testInfo) => {
+    const context = await phone(browser, baseURL);
+    const page = await context.newPage();
+    await ready(page, '/fa/parts');
+    const size = await collapse(page).evaluate((el) => {
+      const r = el.getBoundingClientRect(); const hit = getComputedStyle(el, '::after');
+      return { seen: r.width, target: r.width - parseFloat(hit.left) - parseFloat(hit.right) };
+    });
+    expect(size.seen).toBeLessThanOrEqual(28);
+    expect(size.target, 'large enough for a finger').toBeGreaterThanOrEqual(40);
+    const cart = page.locator('.part-card-cart').first();
+    const before = { page: await page.evaluate(() => document.documentElement.scrollHeight), button: await cart.boundingBox() };
+    await collapse(page).tap();
+    await expect(chip(page)).toBeVisible();
+    await expect(chip(page)).toBeFocused();
+    await expect(launcher(page)).toHaveCount(0);
+    await expect(page.getByRole('dialog'), 'collapsing does not open the conversation').toHaveCount(0);
+    await expect(chip(page)).toContainText('هیکسی');
+    const pill = await chip(page).evaluate((el) => { const r = el.getBoundingClientRect(); return { left: r.left, right: innerWidth - r.right, bottom: innerHeight - r.bottom, height: r.height, face: el.querySelector('img')!.complete }; });
+    expect(pill.left).toBeGreaterThan(0);
+    expect(pill.right).toBeGreaterThan(0);
+    expect(pill.bottom).toBeGreaterThan(0);
+    expect(pill.height).toBeGreaterThanOrEqual(44);
+    expect(pill.face).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath('hexi-collapsed-390.png') });
+    expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(before.page);
+    expect(await cart.boundingBox()).toEqual(before.button);
+    await page.reload();
+    await hideDevOverlay(page);
+    await expect(chip(page)).toBeVisible();
+    await chip(page).tap();
+    await expect(launcher(page)).toBeVisible();
+    await expect(launcher(page)).toBeFocused();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await context.close();
+  });
+
+  test('the keyboard reaches him: a visible focus on both buttons, Enter opens, and a large enough target', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await ready(page, '/fa/contact');
+    const box = (await launcher(page).boundingBox())!;
+    expect(box.width).toBeGreaterThanOrEqual(44);
+    expect(box.height).toBeGreaterThanOrEqual(44);
+    await launcher(page).focus();
+    await page.keyboard.press('Tab');
+    await expect(collapse(page)).toBeFocused();
+    expect(await collapse(page).evaluate((el) => getComputedStyle(el).outlineStyle)).toBe('solid');
+    await page.keyboard.press('Shift+Tab');
+    await expect(launcher(page)).toBeFocused();
+    expect(await launcher(page).evaluate((el) => getComputedStyle(el).outlineStyle)).toBe('solid');
+    await page.keyboard.press('Enter');
+    await expect(page.getByRole('dialog')).toBeVisible();
+  });
+
+  test('English: the same character on the other side of the page, with its English name', async ({ browser, baseURL }) => {
+    const context = await phone(browser, baseURL);
+    const page = await context.newPage();
+    await enable(page);
+    await page.goto('/en');
+    await hideDevOverlay(page);
+    const open = page.getByRole('button', { name: 'Open Hexi, the Source guide' });
+    await expect(open).toBeVisible();
+    await expect(open).toContainText('Hexi');
+    const r = (await dock(page).boundingBox())!;
+    expect(r.x + r.width).toBeGreaterThan(390 - 100);
     await context.close();
   });
 
@@ -836,7 +1023,7 @@ test.describe('Hexi: one small fixed launcher', () => {
     expect(box.y + box.height).toBeLessThanOrEqual(900);
   });
 
-  test('moving between pages keeps the same launcher and its conversation', async ({ page }) => {
+  test('moving between pages keeps the same character and its conversation', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.route('**/api/v1/assistant/messages', (route) => route.fulfill({ json: { text: 'پاسخ آزمایشی', products: [], provider: 'mock', model: 'test' } }));
     await ready(page, '/fa');
