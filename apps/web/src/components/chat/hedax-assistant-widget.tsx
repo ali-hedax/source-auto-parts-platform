@@ -5,11 +5,11 @@ import './atelier-assistant.css';
 import * as RDialog from '@radix-ui/react-dialog';
 import type { AssistantMessageResult, AssistantPublicSettings, AssistantReply } from '@hedax/contracts';
 import { ASSISTANT_TOPICS, assistantReply } from '@hedax/contracts/constants';
-import { EyeOff, Send, X } from 'lucide-react';
+import { EyeOff, Minus, Send, X } from 'lucide-react';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/field';
@@ -55,6 +55,11 @@ function PlainText({ text }: { text: string }) {
   return <>{text.split(/([A-Za-z0-9][A-Za-z0-9._/-]*)/g).map((part, i) => /^[A-Za-z0-9]/.test(part) ? <bdi key={i} dir="ltr">{part}</bdi> : part)}</>;
 }
 
+/** Whether this visitor keeps the guide collapsed; a preference only, nothing about the conversation. */
+function savedCollapsed() {
+  try { return localStorage.getItem('hedax-guide-collapsed') === 'true'; } catch { return false; }
+}
+
 /** One browser tab's visit; nothing about the conversation is kept. */
 function session(key: string) {
   try { return sessionStorage.getItem(key) === 'true'; } catch { return false; }
@@ -70,10 +75,13 @@ export function HedaxAssistantWidget({ locale, settings }: { locale: 'fa' | 'en'
   const artReady = useAfterLoad();
   const desktop = useDesktop();
   const pathname = usePathname();
-  // The parts lists keep a sticky filter column on the start side, so there the guide stands on the other side. Fixed per page.
-  const side = desktop && /\/(?:parts|imported-parts)\/?$/.test(pathname) ? 'end' : settings.placement;
+  // Lines of text and field labels begin on the start side, so on small screens he stands at the end of the lines.
+  // The parts lists keep a sticky filter column on the start side, so he stands on the other side there too. Fixed per page.
+  const list = /\/(?:parts|imported-parts)\/?$/.test(pathname);
+  const side = desktop && !list ? settings.placement : 'end';
   const [open, setOpen] = useState(false);
   const [dismissed, setDismissed] = useState(() => session('hedax-guide-dismissed'));
+  const [collapsed, setCollapsed] = useState(savedCollapsed);
   const [draft, setDraft] = useState('');
   const [messages, setMessages] = useState<Array<{ question: string; reply: AssistantReply; products?: AssistantMessageResult['products'] }>>([]);
   const [busy, setBusy] = useState(false);
@@ -81,6 +89,9 @@ export function HedaxAssistantWidget({ locale, settings }: { locale: 'fa' | 'en'
   const [viewport, setViewport] = useState<{ top: number; height: number } | null>(null);
   const end = useRef<HTMLDivElement>(null);
   const conversationId = useRef<string | null>(null);
+  const launcher = useRef<HTMLButtonElement>(null);
+  const chip = useRef<HTMLButtonElement>(null);
+  const movedByHand = useRef(false);
   // Only an open panel follows the visible viewport and keyboard; a closed guide renders nothing on these events.
   useEffect(() => {
     if (!open) return;
@@ -91,7 +102,18 @@ export function HedaxAssistantWidget({ locale, settings }: { locale: 'fa' | 'en'
     return () => { window.visualViewport?.removeEventListener('resize', resize); window.visualViewport?.removeEventListener('scroll', resize); };
   }, [open]);
   useEffect(() => { end.current?.scrollIntoView({ block: 'nearest' }); }, [messages.length]);
+  // The button pressed goes away with the swap, so the focus moves to the one that replaces it.
+  useEffect(() => {
+    if (!movedByHand.current) return;
+    movedByHand.current = false;
+    (collapsed ? chip : launcher).current?.focus();
+  }, [collapsed]);
   const hide = () => { setDismissed(true); rememberForVisit('hedax-guide-dismissed'); };
+  const collapse = (next: boolean) => {
+    movedByHand.current = true;
+    setCollapsed(next);
+    try { localStorage.setItem('hedax-guide-collapsed', String(next)); } catch { /* Optional. */ }
+  };
   /** One random id per browser tab, so the owner's log groups this visitor's messages; no content is stored here. */
   const chatSessionId = () => {
     if (conversationId.current) return conversationId.current;
@@ -123,12 +145,26 @@ export function HedaxAssistantWidget({ locale, settings }: { locale: 'fa' | 'en'
   if (dismissed) return null;
   return (
     // A direct child of <body> with its place set in CSS: no transformed parent can move it, and no script writes to it.
-    <aside aria-label={settings.name[locale]} className="atelier-assistant assistant-dock" data-side={side}>
+    <aside aria-label={settings.name[locale]} className="atelier-assistant assistant-dock" data-side={side} data-list={list} data-state={collapsed ? 'collapsed' : 'full'} data-motion={settings.animationEnabled} style={{ '--hexi-mobile': `${settings.mobileSize}px`, '--hexi-desktop': `${settings.desktopSize}px` } as CSSProperties}>
       <RDialog.Root open={open} onOpenChange={setOpen}>
-        <RDialog.Trigger aria-label={t('open')} className="assistant-launcher" data-custom={customAvatar}>
-          {/* eslint-disable-next-line @next/next/no-img-element -- the same pre-sized WebP; the launcher reserves the box until it loads */}
-          <img {...(artReady ? { src: avatar } : {})} alt="" decoding="async" draggable={false} />
-        </RDialog.Trigger>
+        {collapsed ? (
+          <button ref={chip} type="button" className="assistant-chip" aria-label={t('expand')} onClick={() => collapse(false)}>
+            <span className="assistant-chip-face" data-custom={customAvatar}>
+              {/* eslint-disable-next-line @next/next/no-img-element -- the same pre-sized WebP, cropped to his face in CSS */}
+              <img {...(artReady ? { src: avatar } : {})} alt="" decoding="async" draggable={false} />
+            </span>
+            {t('label')}
+          </button>
+        ) : <>
+          <RDialog.Trigger ref={launcher} aria-label={t('open')} className="assistant-launcher">
+            <span className="assistant-pose">
+              {/* eslint-disable-next-line @next/next/no-img-element -- the same pre-sized WebP; the pose box reserves its space until it loads */}
+              <img {...(artReady ? { src: avatar } : {})} alt="" decoding="async" draggable={false} className="assistant-art" />
+            </span>
+            <span className="assistant-plate">{t('label')}</span>
+          </RDialog.Trigger>
+          <button type="button" className="assistant-collapse" aria-label={t('collapse')} onClick={() => collapse(true)}><Minus aria-hidden className="size-3.5" /></button>
+        </>}
         <RDialog.Portal>
           {/* Modal at every size: the page behind cannot be tapped by mistake while the panel is over it. */}
           <RDialog.Overlay className="fixed inset-0 z-50 bg-stage/50" />

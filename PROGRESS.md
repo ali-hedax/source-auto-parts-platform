@@ -1,6 +1,6 @@
 # Source by HEDAX — وضعیت و نقطهٔ ادامه
 
-آخرین checkpoint: 2026-11-04 شب، Asia/Tehran؛ وب `69efde3` (PR #83) با مجوز مالک روی سایت اصلی منتشر و با شبیه‌سازی روی سایت واقعی تأیید شد. آزمایش روی گوشی واقعی با مالک است.
+آخرین checkpoint: 2026-11-05، Asia/Tehran؛ ظاهر جدید هیکسی محلی آماده و منتظر بازبینی مالک است و منتشر نشده. سایت اصلی همچنان web `69efde3` است.
 
 > مرجع فعلی انتشار: web 69efde3 (`pwa-69efde3-20261104`)، api 38d74a8، worker edc508d. پیش از این web d3ac773 بود (`desktop-fit-d3ac773-20261031`). مدل هکسی طبق همان تنظیمات قبلی.
 > گزارش‌های عملیات امروز: `/srv/hedax-data/ops/20261028/`، `/srv/hedax-data/ops/tidy-20261028/` و `/srv/hedax-data/ops/kernel-20261028/` (خصوصی، روی سرور). یادداشت‌های
@@ -11,6 +11,26 @@
 هیچ رمز، توکن، دادهٔ مشتری یا محتوای محرمانهٔ فایل تأمین‌کننده در این فایل ثبت نشود.
 
 ## نقطهٔ فعلی
+
+### Implemented Pending Verification (release in progress) — ظاهر پت‌مانند هیکسی — 2026-11-05 Asia/Tehran
+
+- **وضعیت:** مالک در این گفتگو باریک‌شدن دکمه‌ها و کارت‌ها را پذیرفت و commit، push، مرتب‌کردن GitHub و انتشار را بدون مجوز بعدی مجاز کرد. آزمایش مالک روی گوشی واقعی گزارش نشده است. نتیجهٔ انتشار پس از اجرا در همین فایل ثبت می‌شود.
+- **علت پرش قدیمی (شواهد در `d3ac773`):** در `hedax-assistant-widget.tsx` شنوندهٔ `scroll` روی window در هر فریم همهٔ کنترل‌های صفحه را اندازه می‌گرفت و با `setLift`، `setFlipped`، `setCrowded` و `setObstructed` جا و سمت را عوض یا با کلاس `invisible` پنهان می‌کرد؛ effect هم به `lift` وابسته بود. در `assistant-entry.tsx` با `key={locale:pathname}` و برگشت `null` هنگام `state.loading` در هر تغییر صفحه دوباره mount می‌شد و انیمیشن ورود دوباره پخش می‌شد. اندازه‌گیری آن نسخه روی سایت: 15 موقعیت در 390. نسخهٔ میانی `2b73f7b` محوشدن هنگام اسکرول داشت که مالک رد کرد؛ `7589390` همه را حذف کرد ولی شخصیت را به برگهٔ 36×52 بریده تبدیل کرد.
+- **تغییر:** `.assistant-dock` فقط جای ثابت با CSS (فرزند مستقیم body، بدون transform و انیمیشن). حرکت روی دو لایهٔ داخلی: `.assistant-pose` واکنش hover و `.assistant-art` تنفس، فقط در دسکتاپ با hover و بدون reduced motion و با روشن بودن تنظیم. عرض از تنظیمات پنل دوباره اثر دارد: موبایل 72 تا 88، دسکتاپ 100 تا 128، و با `vh` برای صفحهٔ کوتاه محدود می‌شود. برچسب پرچ‌دار «هیکسی»، پایهٔ بیضی، دکمهٔ جمع‌کردن (دیده‌شدن 24، لمس 40)، حالت جمع‌شده با چهره و نام که در `localStorage` می‌ماند. در موبایل و تبلت همیشه سمت انتهای خط است. هنگام فوکوس ورودی روی صفحهٔ لمسی با CSS پنهان می‌شود؛ هیچ واکنشی به اسکرول ندارد.
+- **جا باز کردن برای هیکسی (تغییر قابل دیدن بیرون از خود او، برای بازبینی مالک):** زیر 1024: دکمهٔ سبد و تأمین 72px کوتاه‌تر، `.vf-steps` و `.vf-actions` با فاصلهٔ 72px و در زیر 480 فیلدها فشرده‌تر. کنترل فیلم در سمت مقابل. از 1024 تا 1699: `main` فهرست‌ها 112px و شبکهٔ محصولات خانه 140px فاصله. این فاصله‌ها در حالت جمع‌شده هم می‌مانند تا صفحه جابه‌جا نشود.
+- **متن:** `messages`: `label`، `collapse`، `expand` و املای «هیکسی». برچسب محل نمایش و اندازه در پنل مدیریت به‌روز شد. قرارداد API، دیتابیس، service worker و PWA تغییر نکرد.
+- **نتایج (محلی، شبیه‌سازی Edge):**
+  - `e2e/storefront-ux.spec.ts -g Hexi`: 35 passed، پس از آخرین تغییر، در 360، 390، 768، 1280، 1440.
+  - assistant + storefront-ux + atelier: اجرای اول 94 passed و 4 failed (timeout و ناوبری، هم‌زمان با lint و tsc)؛ همان 4 مورد تنها: 4 passed. این اجرا پیش از فشرده‌کردن فیلدهای یاب خودرو بود.
+  - `e2e/vehicle-finder.spec.ts` همراه فیلتر Hexi و finder: 47 passed و 7 failed. تعداد برابر 7 شکست از پیش ثبت‌شدهٔ `main`؛ خطاها از انتخابگرهای قدیمی مانند `.hh-logo` و ترتیب بلوک‌ها هستند. مقایسهٔ نام‌به‌نام با پایه دوباره انجام نشد.
+  - build تولیدی با API واقعی و دادهٔ نمونه: `next build` موفق. PWA و مسیر خرید: 14 passed و 1 skipped (نیازمند runner ایزوله). اسکرول واقعی (wheel و synthesizeScrollGesture)، 4 رفت‌وبرگشت در 360، 390، 768، 1440 روی /fa و /fa/parts: 1 موقعیت، 0 تغییر، 0 گفتگو، بدون خطای صفحه. در حالت سکون چیزی زیر او نیست.
+  - `tsc -p tsconfig.typecheck.json`، `check-messages` و eslint فایل‌های تغییرکرده: موفق.
+- **باقی‌مانده:** لینک‌های عادی می‌توانند هنگام اسکرول از زیر او رد شوند: «برندها» در خانه (در 360 حداقل 10٪ آزاد)، ردیف تماس فوتر (61 تا 80٪ آزاد؛ در 1024 تا 1440 در انتهای صفحه هم زیر اوست)، کارت‌های لینکی و پرسش‌های متداول. ورودی جست‌وجوی خانهٔ دسکتاپ حداکثر 10٪ از لبه. مرورگرهای بدون `:has` (Safari زیر 15.4) جا باز نمی‌کنند.
+- **آزموده‌نشده:** گوشی واقعی، نوار مرورگر واقعی به‌ویژه iOS، صفحه‌کلید واقعی، چرخش واقعی و ناحیهٔ امن واقعی. شبیه‌سازی با تغییر اندازهٔ viewport بوده است.
+- **تصمیم مالک لازم:** نام پنل گفتگو از تنظیمات ذخیره‌شده می‌آید و روی سایت «هکسی 😎🔧» است؛ برچسب جدید «هیکسی» است. تغییر نام از پنل مدیریت انجام می‌شود و این انتشار دادهٔ سایت را تغییر نمی‌دهد.
+- **پیش‌نمایش:** `node F:\tmp\phone-preview\start.mjs 192.168.2.168` روی `http://192.168.2.168:3397/fa`، API و دیتابیس روی loopback. باز کردن پورت 3397 در فایروال Windows با دسترسی مدیر لازم است. service worker روی این آدرس فعال نیست.
+- **فایل‌های تولیدی:** `apps/web/next-env.d.ts` و `apps/web/tsconfig.json` با build تغییر می‌کنند و به حالت Git برگردانده شدند؛ `apps/web/.next-phone` ردیابی نمی‌شود.
+- **قدم بعد:** تصاویر انتشار، استقرار فقط وب با مسیر بازگشت، و تأیید روی سایت اصلی.
 
 ### Completed & Tested on Production (emulation) / Pending owner phone — انتشار وب 69efde3 — 2026-11-04 شب Asia/Tehran
 
@@ -24,6 +44,21 @@
 - **آزمایش‌نشده روی سایت اصلی:** گوشی واقعی، نصب واقعی، باز کردن از آیکن، iOS Safari. سناریوی 2+3 واحد چون همهٔ 25 کالای موجود سقف سفارش 1 دارند و موجودی تغییر داده نشد؛ این سناریو در محیط ایزوله پاس است. + و − به همین دلیل با دلیل نمایشی غیرفعال‌اند. دریافت نسخهٔ جدید PWA فقط در آزمایش ایزوله، چون این اولین نسخه است.
 - **یافته برای مالک:** `health/ready` سایت اصلی `paymentProvider: none` و `smsProvider: none` گزارش می‌کند. پس پرداخت و احتمالاً پیامک ورود روی سایت اصلی هنوز راه‌اندازی نشده‌اند. این از این انتشار نیست و تغییر داده نشد.
 - **قدم بعد:** آزمایش مالک روی گوشی واقعی. پیش از انتشار بعدی boot id دوباره نمونه‌برداری شود.
+
+### تاریخچه — Arvan split-brain: duplicate hedax instance on the same disk — 2026-10-31 16:25 Asia/Tehran (از PR #81)
+
+- **Discovery (while preparing the web-only 2e6784b deploy):** SSH to 188.121.125.173 alternately reached two machines with the same hostname, SSH host key, MAC `fa:16:3e:b2:c3:65`, root volume serial `1adbb0f5-b136-422e-b…` and root FS UUID `7ebaf03c…`:
+  - **original**: boot_id `21c05ea9…`, up since 2026-10-28 09:10 UTC, all containers from earlier deploys, MTU routes 3 + MSS rules 7, **no** access to the metadata service; about 9/10 SSH sessions reached it.
+  - **duplicate**: boot_id `73c0f6b7…`, booted about 10:27 UTC (host clock), Docker started 12:27 UTC, its own PostgreSQL/API/web running on the **same** disk, MTU/MSS temporary rules missing (only the persisted mail MSS service); metadata reachable, instance uuid `ee650196-8a8a-4e5a-94f1-d53f6efac782`, name hedax.
+  - No reboot/power command came from this session or a visible SSH login; cause unknown, most likely an Arvan HA/evacuation restart while the original kept running.
+- **Action (owner-approved in this chat, 12:50:29 UTC):** immediate poweroff (sysrq `o`, no sync, to avoid extra writes to the shared disk) executed only after checking boot_id = 73c0f6b7. Afterwards 15/15 and 12/12 SSH samples reached only 21c05ea9.
+- **Original after the action (read-only checks):** dmesg 0 EXT4/I/O errors; PostgreSQL log 0 PANIC/corruption lines (the only ERROR lines were this session's own probe with a wrong table name); fresh dump `/srv/hedax-data/ops/split-20261031/after-split.dump` 565081 bytes, 106 TABLE DATA; api ready 200 (database/redis/storage/scanner up); /fa, /en, /fa/contact 200; Chrome from the operator PC 200.
+- **Risks still open:** the duplicate wrote to the shared volume for about 2 h 20 min (10:27–12:50 UTC); latent filesystem/database damage cannot be ruled out by these checks. Any visitor writes that landed on the duplicate are lost. The Arvan panel controls the **duplicate's** identity: pressing Start/Restart there may boot it again on the same disk.
+- **Owner/Arvan next steps:** urgent Arvan ticket with the evidence above (two hypervisors running instance ee650196… on one volume); ask Arvan to fence correctly without restarting the duplicate; do not press Start/Restart in the panel; after Arvan confirms, run a fresh fsck/database consistency check in a maintenance window and keep the dumps.
+- **Deploy on hold:** PR79 (desktop menu 13px → 15px, 14px at 900–1199px) merged as `2e6784b02deecfd6d684ff9f0eebf0bde0c07d72` after CI 41201861202/41201855352. Release images 41202104035 succeeded for all four images; web `sha256:03e07976cccdac073f582695183e7d0902a2cf2c8f67e32a982e35e14625461b`, revision label = full SHA. Script prepared locally (web only, same rollback procedure, old web cdfdee3a… / wrapper d4f28373…) but **not run**; the owner's earlier deploy approval came before the incident, so get fresh approval once the host is stable.
+- **Test note:** `atelier.spec.ts` "hero types Persian then English, pauses…" fails on main without PR79 (2/2): PR78's continuous slogan makes the old one-shot assertion catch the text mid-erase. That test needs updating; CI does not run E2E.
+- **Concurrency note:** another session's uncommitted PR78 edits were found in `Desktop/source-hexi-release` (branch name `fix/full-width-banner-nav-size`, created by this session's branch switch). They were left in place; PR78 itself is merged.
+- **وضعیت بعدی:** این متن همان یادداشت 2026-10-31 است. سرور در 2 نوامبر reboot شد و boot id پیش از انتشار 69efde3 برابر `b47b0b0c` بود و در نمونه‌ها نسخهٔ دوم دیده نشد. پاسخ آروان و بررسی fsck در این فایل ثبت نشده است. web `2e6784b` در انتشارهای بعدی پوشش داده شد.
 
 ### Completed & Tested locally — هیکسی ثابت، PWA، آمادهٔ انتشار — 2026-11-04 شب Asia/Tehran
 

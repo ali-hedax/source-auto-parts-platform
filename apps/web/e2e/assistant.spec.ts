@@ -6,13 +6,13 @@ test.use({ video: process.env.ASSISTANT_CAPTURE === '1' ? 'on' : 'off' });
 
 test('disabled by default; enabled guide is local, keyboard accessible and bilingual', async ({ page }) => {
   await page.goto('/fa');
-  await expect(page.getByRole('button', { name: 'باز کردن هکسی، راهنمای سورس' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'باز کردن هیکسی، راهنمای سورس' })).toHaveCount(0);
   await page.route('**/api/v1/site/assistant?**', (route) => route.fulfill({ json: { ...DEFAULT_ASSISTANT_SETTINGS, enabled: true } }));
   await page.route('**/api/v1/assistant/messages', (route) => route.fulfill({ json: { text: 'نتیجهٔ grounded آزمایشی', products: [{ slug: 'demo', sku: '000123', name: { fa: 'لنت نمونه', en: 'Sample pad' }, partNumber: '000123', availability: 'IN_STOCK', unit: { name: 'عدد', nameEn: 'piece' }, price: { kind: 'price', payable: { amountMinor: '1000', currency: 'IRR' }, display: { amountMinor: '1000', currency: 'IRR' }, displayIsReference: false }, fitments: [], primaryImage: null }], provider: 'mock', model: 'test' } }));
   await page.reload();
   // The dev server's corner indicator (absent in production builds) sits over the compact launcher.
   await page.addStyleTag({ content: 'nextjs-portal { display: none !important; }' });
-  const launcher = page.getByRole('button', { name: 'باز کردن هکسی، راهنمای سورس' });
+  const launcher = page.getByRole('button', { name: 'باز کردن هیکسی، راهنمای سورس' });
   await launcher.click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
@@ -42,20 +42,21 @@ test('disabled by default; enabled guide is local, keyboard accessible and bilin
 });
 
 for (const width of [390, 768, 1440]) {
-  test(`visual ${width}: small launcher, and a panel inside the viewport, with a keyboard's height too`, async ({ page }, testInfo) => {
+  test(`visual ${width}: the whole character, and a panel inside the viewport, with a keyboard's height too`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.route('**/api/v1/site/assistant?**', (route) => route.fulfill({ json: { ...DEFAULT_ASSISTANT_SETTINGS, enabled: true } }));
     await page.goto('/fa');
-    // The dev server's corner indicator (absent in production builds) sits over the compact launcher.
+    // The dev server's corner indicator (absent in production builds) sits over the launcher.
     await page.addStyleTag({ content: 'nextjs-portal { display: none !important; }' });
-    const launcher = page.getByRole('button', { name: 'باز کردن هکسی، راهنمای سورس' });
+    const launcher = page.getByRole('button', { name: 'باز کردن هیکسی، راهنمای سورس' });
     await expect(launcher).toBeVisible();
     await expect(page.locator('.assistant-launcher img')).toHaveAttribute('src', /brand\/source\/atelier\/hexi\.webp/);
     await page.screenshot({ path: testInfo.outputPath(`assistant-launcher-${width}.png`), fullPage: false });
     const dock = (await page.locator('.assistant-dock').boundingBox())!;
-    expect(dock.width).toBeLessThanOrEqual(36);
-    expect(dock.y + dock.height).toBeLessThanOrEqual(900 - 14);
+    expect(dock.width).toBeGreaterThanOrEqual(width < 1024 ? 72 : 100);
+    expect(dock.width).toBeLessThanOrEqual(width < 1024 ? 88 : 128);
+    expect(dock.y + dock.height).toBeLessThanOrEqual(900 - 10);
     await launcher.focus();
     await page.keyboard.press('Enter');
     const box = (await page.getByRole('dialog').boundingBox())!;
@@ -76,7 +77,7 @@ test('excluded transactional and staff paths never mount the launcher', async ({
   await page.route('**/api/v1/site/assistant?**', (route) => route.fulfill({ json: { ...DEFAULT_ASSISTANT_SETTINGS, enabled: true } }));
   for (const path of ['/fa/checkout', '/fa/payment/result', '/fa/staff/login', '/fa/admin', '/fa/account', '/fa/parts/demo-air-filter-corolla']) {
     await page.goto(path);
-    await expect(page.getByRole('button', { name: /باز کردن هکسی|Open Hexi/ })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /باز کردن هیکسی|Open Hexi/ })).toHaveCount(0);
   }
 });
 
@@ -133,7 +134,7 @@ test('a failed smart answer is a friendly reply with the operator form, part sea
     : route.abort('connectionreset')));
   await page.goto('/fa');
   await page.addStyleTag({ content: 'nextjs-portal { display: none !important; }' });
-  await page.getByRole('button', { name: 'باز کردن هکسی، راهنمای سورس' }).click();
+  await page.getByRole('button', { name: 'باز کردن هیکسی، راهنمای سورس' }).click();
   const dialog = page.getByRole('dialog');
   const ask = async (text: string) => { await dialog.getByLabel('نام قطعه، شماره فنی یا پرسش').fill(text); await dialog.getByRole('button', { name: 'ارسال', exact: true }).click(); };
   await ask('سلام');
