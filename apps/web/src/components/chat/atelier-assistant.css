@@ -31,7 +31,7 @@ html[dir=ltr] .assistant-dock { --guide-start:env(safe-area-inset-left,0px); --g
  */
 body:has(> .assistant-dock[data-side=end]) .cine-controls { inset-inline-end:auto; inset-inline-start:max(12px,calc((100vw - 1200px) / 2)); }
 @media(max-width:1023px) {
- body:has(> .assistant-dock) :is(.part-card-cart,.part-card-source) { width:calc(100% - 80px); }
+ body:has(> .assistant-dock) :is(.part-card-cart,.part-card-source) { width:calc(100% - 84px); }
  body:has(> .assistant-dock) :is(.vf-steps,.vf-actions) { padding-inline-end:100px; }
 }
 /* The finder's fields keep room for their words in the narrower space. */
