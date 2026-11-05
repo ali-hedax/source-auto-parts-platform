@@ -788,6 +788,21 @@ test.describe('Hexi: the whole character, fixed in its corner', () => {
     });
   }
 
+  for (const width of [360, 390, 600]) {
+    test(`${width}px: buying buttons end before his column on the home page's tighter cards too`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 800 });
+      await ready(page, '/fa/parts');
+      // The home page's product cards have 16 px of side padding, the tightest there is; sample data has none of them.
+      await page.addStyleTag({ content: '.part-card-bottom { padding-inline: 16px !important; }' });
+      const { edge, buttons } = await page.evaluate(() => ({
+        edge: document.querySelector('.assistant-dock')!.getBoundingClientRect().right,
+        buttons: [...document.querySelectorAll('.part-card-cart, .part-card-source')].map((c) => c.getBoundingClientRect().left),
+      }));
+      expect(buttons.length).toBeGreaterThan(0);
+      expect(Math.min(...buttons)).toBeGreaterThanOrEqual(edge);
+    });
+  }
+
   test('it stays clear of the back control', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await ready(page, '/fa/parts');
