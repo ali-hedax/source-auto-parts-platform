@@ -17,8 +17,8 @@
  */
 html[dir=rtl] .assistant-dock { --guide-start:env(safe-area-inset-right,0px); --guide-end:env(safe-area-inset-left,0px); }
 html[dir=ltr] .assistant-dock { --guide-start:env(safe-area-inset-left,0px); --guide-end:env(safe-area-inset-right,0px); }
-.assistant-dock { --hexi-gap:8px; --hexi-width:min(clamp(72px,var(--hexi-mobile,80px),88px),15vh); position:fixed; z-index:40; bottom:calc(10px + env(safe-area-inset-bottom,0px)); width:var(--hexi-width); }
-@media(min-width:1024px) { .assistant-dock { --hexi-gap:20px; --hexi-width:min(clamp(100px,var(--hexi-desktop,104px),128px),20vh); bottom:calc(16px + env(safe-area-inset-bottom,0px)); } }
+.assistant-dock { --hexi-gap:8px; --hexi-width:min(clamp(72px,var(--hexi-mobile,80px),88px),15vh); position:fixed; z-index:40; bottom:calc(10px + env(safe-area-inset-bottom,0px)); width:max(var(--hexi-width),106px); }
+@media(min-width:1024px) { .assistant-dock { --hexi-gap:20px; --hexi-width:min(clamp(100px,var(--hexi-desktop,104px),128px),20vh); bottom:calc(16px + env(safe-area-inset-bottom,0px)); width:max(var(--hexi-width),124px); } }
 .assistant-dock[data-side=start] { inset-inline-start:calc(var(--guide-start) + var(--hexi-gap)); }
 .assistant-dock[data-side=end] { inset-inline-end:calc(var(--guide-end) + var(--hexi-gap)); }
 .assistant-dock[data-state=collapsed] { width:auto; }
@@ -31,8 +31,8 @@ html[dir=ltr] .assistant-dock { --guide-start:env(safe-area-inset-left,0px); --g
  */
 body:has(> .assistant-dock[data-side=end]) .cine-controls { inset-inline-end:auto; inset-inline-start:max(12px,calc((100vw - 1200px) / 2)); }
 @media(max-width:1023px) {
- body:has(> .assistant-dock) :is(.part-card-cart,.part-card-source) { width:calc(100% - 72px); }
- body:has(> .assistant-dock) :is(.vf-steps,.vf-actions) { padding-inline-end:72px; }
+ body:has(> .assistant-dock) :is(.part-card-cart,.part-card-source) { width:calc(100% - 80px); }
+ body:has(> .assistant-dock) :is(.vf-steps,.vf-actions) { padding-inline-end:100px; }
 }
 /* The finder's fields keep room for their words in the narrower space. */
 @media(max-width:479px) {
@@ -40,6 +40,7 @@ body:has(> .assistant-dock[data-side=end]) .cine-controls { inset-inline-end:aut
  body:has(> .assistant-dock) .vf-field { grid-template-columns:minmax(0,1fr) 14px; column-gap:4px; padding-inline:8px; }
  body:has(> .assistant-dock) .vf-field > svg { width:14px; height:14px; }
 }
+@media(max-width:379px) { body:has(> .assistant-dock) .vf-value { font-size:13px; } }
 @media(min-width:1024px) and (max-width:1699px) {
  body:has(> .assistant-dock[data-list=true]) main { padding-inline-end:112px; }
  body:has(> .assistant-dock[data-list=false][data-side=start]) .builder-products { padding-inline-start:140px; }
@@ -48,16 +49,17 @@ body:has(> .assistant-dock[data-side=end]) .cine-controls { inset-inline-end:aut
 /* The whole character and its name are the button. */
 .assistant-launcher { position:relative; isolation:isolate; display:block; width:100%; padding:0; cursor:pointer; touch-action:manipulation; background:none; border:0; }
 .assistant-launcher:focus-visible, .assistant-collapse:focus-visible, .assistant-chip:focus-visible { outline:2px solid var(--hexi-ink); outline-offset:2px; box-shadow:0 0 0 2px var(--hexi-paper); border-radius:12px; }
-/* The low plinth he stands on, behind his boots. */
-.assistant-launcher::before { content:""; position:absolute; z-index:-1; inset-inline:6%; bottom:12px; height:14px; border-radius:50%; background:var(--hexi-sand); border:1px solid var(--hexi-edge); box-shadow:0 2px 6px rgb(57 40 28 / .28); }
 /* Reacts to the pointer; a soft edge keeps his dark overalls readable over a dark film or photo. */
-.assistant-pose { display:block; aspect-ratio:2 / 3; transform-origin:50% 100%; filter:drop-shadow(0 0 1px rgb(251 248 243 / .9)) drop-shadow(0 2px 3px rgb(42 28 22 / .3)); }
+.assistant-pose { display:block; width:var(--hexi-width); margin-inline:auto; aspect-ratio:2 / 3; transform-origin:50% 100%; filter:drop-shadow(0 0 1px rgb(251 248 243 / .9)) drop-shadow(0 2px 3px rgb(42 28 22 / .3)); }
 .assistant-launcher:active .assistant-pose { filter:brightness(.94) drop-shadow(0 0 1px rgb(251 248 243 / .9)); }
 /* Breathes. The art is one still image, so nothing more than this is claimed for it. */
 .assistant-art { display:block; width:100%; height:100%; object-fit:contain; transform-origin:50% 100%; pointer-events:none; user-select:none; }
-/* A riveted workshop tag, like the bronze studs on his overalls. */
-.assistant-plate { position:relative; display:block; width:max-content; max-width:100%; margin:-3px auto 0; padding:2px 13px; border:1px solid var(--hexi-edge); border-radius:5px; font-size:12px; font-weight:700; line-height:18px; color:var(--hexi-ink); white-space:nowrap; background:radial-gradient(circle at 6px 50%, var(--hexi-edge) 0 1.5px, transparent 2px), radial-gradient(circle at calc(100% - 6px) 50%, var(--hexi-edge) 0 1.5px, transparent 2px), var(--hexi-paper); box-shadow:0 1px 4px rgb(57 40 28 / .25); }
-@media(max-height:480px) { .assistant-plate { padding-inline:9px; font-size:11px; background:var(--hexi-paper); } }
+/* A riveted workshop tag, like the bronze studs on his overalls, with the low plinth he stands on behind his boots. */
+.assistant-plate { position:relative; display:block; width:max-content; max-width:100%; margin:-3px auto 0; padding:2px 4px 3px; border:1px solid var(--hexi-edge); border-radius:6px; text-align:center; color:var(--hexi-ink); white-space:nowrap; background:radial-gradient(circle at 5px 5px, var(--hexi-edge) 0 1.5px, transparent 2px), radial-gradient(circle at calc(100% - 5px) 5px, var(--hexi-edge) 0 1.5px, transparent 2px), var(--hexi-paper); box-shadow:0 1px 4px rgb(57 40 28 / .25); }
+.assistant-plate::before { content:""; position:absolute; z-index:-1; left:50%; bottom:calc(100% - 7px); width:var(--hexi-width); height:14px; margin-left:calc(var(--hexi-width) / -2); border-radius:50%; background:var(--hexi-sand); border:1px solid var(--hexi-edge); box-shadow:0 2px 6px rgb(57 40 28 / .28); }
+.assistant-plate-name { display:block; overflow:hidden; text-overflow:ellipsis; font-size:12px; font-weight:700; line-height:16px; }
+.assistant-plate-role { display:block; font-size:10.5px; font-weight:500; line-height:14px; }
+@media(min-width:1024px) { .assistant-plate-name { font-size:13px; } .assistant-plate-role { font-size:11.5px; } }
 /* Small to see, large to tap. In the art's empty corner, so it covers neither his face nor his hand. */
 .assistant-collapse { position:absolute; top:0; left:0; display:grid; place-items:center; width:24px; height:24px; padding:0; cursor:pointer; touch-action:manipulation; color:var(--hexi-ink); background:var(--hexi-paper); border:1px solid var(--hexi-edge); border-radius:50%; box-shadow:0 1px 3px rgb(57 40 28 / .25); }
 .assistant-collapse::after { content:""; position:absolute; inset:-8px; }

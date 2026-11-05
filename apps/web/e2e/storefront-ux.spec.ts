@@ -647,12 +647,12 @@ test.describe('back control', () => {
 });
 
 test.describe('Hexi: the whole character, fixed in its corner', () => {
-  const live = { ...DEFAULT_ASSISTANT_SETTINGS, enabled: true, mobileSize: 80, desktopSize: 128 };
+  const live = { ...DEFAULT_ASSISTANT_SETTINGS, enabled: true, mobileSize: 80, desktopSize: 128, name: { fa: 'هکسی 😎🔧', en: 'Hexi 😎🔧' } };
   const enable = (page: Page, settings: object = live) => page.route('**/api/v1/site/assistant?**', (route) => route.fulfill({ json: settings }));
   const dock = (page: Page) => page.locator('.assistant-dock');
-  const launcher = (page: Page) => page.getByRole('button', { name: 'باز کردن هیکسی، راهنمای سورس' });
-  const collapse = (page: Page) => page.getByRole('button', { name: 'جمع‌کردن هیکسی' });
-  const chip = (page: Page) => page.getByRole('button', { name: 'نمایش هیکسی' });
+  const launcher = (page: Page) => page.getByRole('button', { name: 'باز کردن هکسی، راهنمای سورس' });
+  const collapse = (page: Page) => page.getByRole('button', { name: 'جمع‌کردن هکسی' });
+  const chip = (page: Page) => page.getByRole('button', { name: 'نمایش هکسی' });
   const ready = async (page: Page, path: string, settings?: object) => {
     await enable(page, settings);
     await page.goto(path);
@@ -701,7 +701,7 @@ test.describe('Hexi: the whole character, fixed in its corner', () => {
         const r = el.getBoundingClientRect();
         const art = el.querySelector<HTMLImageElement>('.assistant-art')!; const a = art.getBoundingClientRect();
         const plate = el.querySelector('.assistant-plate')!; const p = plate.getBoundingClientRect();
-        return { width: r.width, left: r.left, right: innerWidth - r.right, bottom: innerHeight - r.bottom, parentIsBody: el.parentElement === document.body, ratio: a.height / a.width, natural: art.naturalHeight / art.naturalWidth, fit: getComputedStyle(art).objectFit, name: plate.textContent, plateBelow: p.top >= a.bottom - 4, plateColor: getComputedStyle(plate).color };
+        return { width: a.width, left: r.left, right: innerWidth - r.right, bottom: innerHeight - r.bottom, parentIsBody: el.parentElement === document.body, ratio: a.height / a.width, natural: art.naturalHeight / art.naturalWidth, fit: getComputedStyle(art).objectFit, name: plate.querySelector('.assistant-plate-name')!.textContent, role: plate.querySelector('.assistant-plate-role')!.textContent, whole: [...plate.children].every((line) => line.getBoundingClientRect().width <= plate.clientWidth) && plate.getBoundingClientRect().left >= 0 && plate.getBoundingClientRect().right <= innerWidth, plateBelow: p.top >= a.bottom - 4, plateColor: getComputedStyle(plate).color };
       });
       expect(shape.width).toBeGreaterThanOrEqual(min);
       expect(shape.width).toBeLessThanOrEqual(max);
@@ -711,7 +711,9 @@ test.describe('Hexi: the whole character, fixed in its corner', () => {
       expect(shape.parentIsBody).toBe(true);
       expect(shape.ratio, 'his proportions').toBeCloseTo(shape.natural, 1);
       expect(shape.fit).toBe('contain');
-      expect(shape.name).toBe('هیکسی');
+      expect(shape.name).toBe(live.name.fa);
+      expect(shape.role).toBe('دستیار هوشمند سورس');
+      expect(shape.whole, 'the whole name tag is inside the screen').toBe(true);
       expect(shape.plateBelow).toBe(true);
       await page.screenshot({ path: testInfo.outputPath(`hexi-${width}.png`) });
       const result = await trace(page);
@@ -936,7 +938,7 @@ test.describe('Hexi: the whole character, fixed in its corner', () => {
     await expect(dialog).toHaveCount(0);
     await expect(launcher(page)).toBeFocused();
     await launcher(page).tap();
-    await dialog.getByRole('button', { name: 'پنهان‌کردن هیکسی تا پایان این بازدید' }).click();
+    await dialog.getByRole('button', { name: 'پنهان‌کردن هکسی تا پایان این بازدید' }).click();
     await expect(dock(page)).toHaveCount(0);
     await page.goto('/fa/contact');
     await page.waitForTimeout(1200);
@@ -961,7 +963,7 @@ test.describe('Hexi: the whole character, fixed in its corner', () => {
     await expect(chip(page)).toBeFocused();
     await expect(launcher(page)).toHaveCount(0);
     await expect(page.getByRole('dialog'), 'collapsing does not open the conversation').toHaveCount(0);
-    await expect(chip(page)).toContainText('هیکسی');
+    await expect(chip(page)).toContainText('هکسی');
     const pill = await chip(page).evaluate((el) => { const r = el.getBoundingClientRect(); return { left: r.left, right: innerWidth - r.right, bottom: innerHeight - r.bottom, height: r.height, face: el.querySelector('img')!.complete }; });
     expect(pill.left).toBeGreaterThan(0);
     expect(pill.right).toBeGreaterThan(0);
@@ -1006,7 +1008,8 @@ test.describe('Hexi: the whole character, fixed in its corner', () => {
     await hideDevOverlay(page);
     const open = page.getByRole('button', { name: 'Open Hexi, the Source guide' });
     await expect(open).toBeVisible();
-    await expect(open).toContainText('Hexi');
+    await expect(open).toContainText('Hexi 😎🔧');
+    await expect(open).toContainText('Source AI guide');
     const r = (await dock(page).boundingBox())!;
     expect(r.x + r.width).toBeGreaterThan(390 - 100);
     await context.close();
