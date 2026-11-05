@@ -161,7 +161,7 @@ export function HedaxAssistantWidget({ locale, settings }: { locale: 'fa' | 'en'
               {/* eslint-disable-next-line @next/next/no-img-element -- the same pre-sized WebP; the pose box reserves its space until it loads */}
               <img {...(artReady ? { src: avatar } : {})} alt="" decoding="async" draggable={false} className="assistant-art" />
             </span>
-            <span className="assistant-plate">{t('label')}</span>
+            <span className="assistant-plate"><span className="assistant-plate-name">{settings.name[locale]}</span><span className="assistant-plate-role">{t('phase')}</span></span>
           </RDialog.Trigger>
           <button type="button" className="assistant-collapse" aria-label={t('collapse')} onClick={() => collapse(true)}><Minus aria-hidden className="size-3.5" /></button>
         </>}
