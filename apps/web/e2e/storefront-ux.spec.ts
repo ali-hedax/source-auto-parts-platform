@@ -796,7 +796,8 @@ test.describe('Hexi: the whole character, fixed in its corner', () => {
       await page.setViewportSize({ width, height: 800 });
       await ready(page, '/fa/parts');
       // The tightest card padding there is: the phone card body (10 px).
-      await page.addStyleTag({ content: '.su-card-body { padding-inline: 10px !important; }' });
+      // ...and wider button text than the sample font gives (the live font is wider): the button must not grow under him.
+      await page.addStyleTag({ content: '.su-card-body { padding-inline: 10px !important; } .su-card-action, .su-card-action span { letter-spacing: 6px; }' });
       const { edge, buttons } = await page.evaluate(() => ({
         edge: document.querySelector('.assistant-dock')!.getBoundingClientRect().right,
         buttons: [...document.querySelectorAll('.part-card-cart, .part-card-source, .su-card-action')].map((c) => c.getBoundingClientRect().left),

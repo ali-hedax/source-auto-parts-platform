@@ -35,20 +35,24 @@ body:has(> .assistant-dock[data-side=end]) .cine-controls { inset-inline-end:aut
  body:has(> .assistant-dock) :is(.vf-steps,.vf-actions) { padding-inline-end:100px; }
  body:has(> .assistant-dock) .su-vehicle-form { padding-inline-end:100px; }
 }
+/* The card button on his side gets a fixed width that ends 92 px before the card edge, whatever its text or font;
+   where that is too narrow for the words it shows only its icon (the button keeps its full accessible name). */
 @media(max-width:380px) {
- body:has(> .assistant-dock) .su-card-grid > li .su-card-action { width:auto; margin-inline-end:92px; }
+ body:has(> .assistant-dock) .su-card-grid > li .su-card-action { width:calc(100% - 92px); min-width:44px; margin-inline-end:92px; overflow:hidden; white-space:nowrap; }
 }
 @media(min-width:381px) and (max-width:767px) {
- body:has(> .assistant-dock) .su-card-grid > li:nth-child(2n) .su-card-action { width:auto; min-width:44px; margin-inline-end:92px; }
+ body:has(> .assistant-dock) .su-card-grid > li:nth-child(2n) .su-card-action { width:calc(100% - 92px); min-width:44px; margin-inline-end:92px; overflow:hidden; white-space:nowrap; }
 }
-@media(min-width:381px) and (max-width:599px) {
- body:has(> .assistant-dock) .su-card-grid > li:nth-child(2n) .su-card-action { font-size:0; gap:0; padding-inline:12px; }
+@media(min-width:381px) and (max-width:639px) {
+ body:has(> .assistant-dock) .su-card-grid > li:nth-child(2n) .su-card-action { padding-inline:0; gap:0; font-size:0; justify-content:center; }
+ body:has(> .assistant-dock) .su-card-grid > li:nth-child(2n) .su-card-action > span { display:none; }
 }
 @media(min-width:768px) and (max-width:1023px) {
- body:has(> .assistant-dock) .su-card-grid > li:nth-child(3n) .su-card-action { width:auto; min-width:44px; margin-inline-end:92px; }
+ body:has(> .assistant-dock) .su-card-grid > li:nth-child(3n) .su-card-action { width:calc(100% - 92px); min-width:44px; margin-inline-end:92px; overflow:hidden; white-space:nowrap; }
 }
-@media(min-width:768px) and (max-width:959px) {
- body:has(> .assistant-dock) .su-card-grid > li:nth-child(3n) .su-card-action { font-size:0; gap:0; padding-inline:12px; }
+@media(min-width:768px) and (max-width:999px) {
+ body:has(> .assistant-dock) .su-card-grid > li:nth-child(3n) .su-card-action { padding-inline:0; gap:0; font-size:0; justify-content:center; }
+ body:has(> .assistant-dock) .su-card-grid > li:nth-child(3n) .su-card-action > span { display:none; }
 }
 /* The finder's fields keep room for their words in the narrower space. */
 @media(max-width:479px) {
