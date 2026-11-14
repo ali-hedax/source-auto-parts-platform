@@ -1,29 +1,35 @@
 <div align="center">
+
 <img src="apps/web/public/brand/source/logo-light.png" alt="Source by HEDAX" width="280">
 
-# Source by HEDAX
+### Auto parts commerce and custom sourcing in one connected workflow.
 
-**Auto parts commerce. Custom sourcing. One connected workflow.**
-
-[فارسی](README.fa.md) · [Architecture](docs/ARCHITECTURE.md) · [Deployment](docs/DEPLOYMENT.md) · [Launch status](docs/DEPLOYMENT_STATUS.md)
+[فارسی](README.fa.md) · [Live site](https://sourcebyhedax.ir/fa) · [Architecture](docs/ARCHITECTURE.md) · [Documentation](docs/README.md) · [Launch status](docs/DEPLOYMENT_STATUS.md)
 
 </div>
 
-Source connects an auto parts storefront with custom sourcing, quotations, staff operations and fulfillment. It supports Persian (RTL) and English (LTR), with shared business rules across the web application, API and background workers.
+Source is an online auto parts store joined to a custom sourcing service. A customer buys a part that is in stock, or asks for one that is not; staff answer with a versioned quotation and carry the request through sourcing, payment and delivery in the same system. The interface is Persian (right-to-left) and English, and the web application, API and background workers share one set of business rules.
 
-> **Pre-launch — updated 24 October 2026.** The public site is online at <https://sourcebyhedax.ir/fa>, but customer SMS sign-in and online payment are not connected yet, so it does not take real orders. See the [deployment status](docs/DEPLOYMENT_STATUS.md).
+**Status: pre-launch.** The public site is online at [sourcebyhedax.ir](https://sourcebyhedax.ir/fa). Customer sign-in by SMS and online payment are not connected yet, so the store does not take real orders. [Launch status](docs/DEPLOYMENT_STATUS.md) lists what remains.
 
-## Product workflows
+<p align="center">
+  <img src="docs/screenshots/readme-storefront.jpg" alt="Persian storefront with the Hexi assistant open" width="49%">
+  <img src="docs/screenshots/readme-admin.jpg" alt="Administration dashboard" width="49%">
+  <br><sub>Storefront with the Hexi assistant, and the administration dashboard (demonstration data).</sub>
+</p>
 
-| Workflow | Capabilities |
+## What it does
+
+| Area | Capabilities |
 | --- | --- |
-| Buy available parts | Catalog, Persian search, cart, inventory reservation, checkout and order fulfillment |
-| Request custom sourcing | Requests for any brand, conversation and file attachments, versioned quotations, acceptance and sourcing stages |
-| Operate the business | Staff roles, mandatory staff MFA, audit history, inventory imports/exports, returns and refunds |
-| Produce quotations | Persian and English PDFs, IRR settlement and AED reference pricing |
-| Manage the public look | Visual page builder with drafts, private preview, publish history and rollback; a hero film from the media library that can be published only after release clearance; slogan, logos, brand logos, guide avatar and social links edited in the panel |
-
-These capabilities have local test coverage; live payment and SMS acceptance still require provider accounts and public-site validation. Test evidence is recorded in [TEST_REPORT.md](docs/TEST_REPORT.md).
+| Storefront | Catalog by category, brand and vehicle; Persian search; cart, inventory reservation, checkout and order tracking |
+| Custom sourcing | Requests for any brand, conversation with file attachments, versioned quotations, acceptance and sourcing stages |
+| Quotations | Persian and English PDFs, settlement in IRR with AED reference pricing |
+| Hexi, the store assistant | Bilingual text assistant that answers from the live catalog only: part number, price, availability and recorded fitments. Daily spend and request limits; staff can read the conversations and take over |
+| Messaging | Bale bot for part lookups |
+| Administration | Staff roles and permissions, mandatory two-factor sign-in for staff, audit history, Excel and CSV imports with preview, returns and refunds, reports |
+| Site content | Visual page builder with drafts, private preview, publish history and rollback; media library; logos, slogan, contact details and social links edited in the panel |
+| Uploads | Private storage, type and size checks, and malware scanning with ClamAV before a file is released |
 
 ## Architecture
 
@@ -31,41 +37,36 @@ These capabilities have local test coverage; live payment and SMS acceptance sti
 | --- | --- | --- |
 | Storefront and administration | Next.js, React, next-intl | `apps/web` |
 | REST API and real-time messaging | NestJS, Socket.IO, Prisma | `apps/api` |
-| Jobs and PDF rendering | BullMQ, Playwright/Chromium | `apps/worker` |
+| Jobs and PDF rendering | BullMQ, Playwright (Chromium) | `apps/worker` |
 | Business rules | TypeScript | `packages/domain` |
 | Shared API contracts | Zod | `packages/contracts` |
 | Data and queues | PostgreSQL 18, Redis 8 | `database/prisma`, `infra` |
 | Upload scanning | ClamAV | `infra` |
 | Deployment | Docker Compose, Caddy | `infra` |
 
-## Local development
+Details: [architecture](docs/ARCHITECTURE.md) and [recorded decisions](docs/DECISIONS.md).
 
-Use Node.js 24 (the Docker runtime) and pnpm 10.34.6. The package manifests accept Node.js 22.12 or later.
+## Run locally
+
+Requires Node.js 24 (22.12 or later also works) and pnpm 10.34.6.
 
 ```bash
 corepack enable
 pnpm install --frozen-lockfile
-cp .env.example .env
-```
-
-Set unique development secrets and a local database connection in `.env`, then follow the [Persian setup guide](README.fa.md). Never reuse development credentials in production.
-
-```bash
+cp .env.example .env        # set development secrets and a local database connection
 pnpm db:generate
 pnpm build
 pnpm db:migrate:deploy
-pnpm db:seed:dev
+pnpm db:seed:dev            # local development database only
 ```
 
-`db:seed:dev` is for a local development database only. Create the first owner through `owner:bootstrap` as documented in the [deployment guide](docs/DEPLOYMENT.md); there is no default administrator password.
-
-| Local page | Address |
+| Page | Address |
 | --- | --- |
 | Storefront | `http://localhost:3000/fa` |
 | Staff sign-in | `http://localhost:3000/fa/staff/login` |
 | Administration | `http://localhost:3000/fa/admin` |
 
-On Windows, the existing `scripts/local/start-local.ps1` and `stop-local.ps1` manage the local stack. See [README.fa.md](README.fa.md) for prerequisites and commands.
+There is no default administrator password: the first owner is created with `owner:bootstrap`, as described in the [deployment guide](docs/DEPLOYMENT.md). On Windows, `scripts/local/start-local.ps1` and `stop-local.ps1` start and stop the local stack.
 
 ## Quality checks
 
@@ -73,38 +74,31 @@ On Windows, the existing `scripts/local/start-local.ps1` and `stop-local.ps1` ma
 pnpm lint
 pnpm typecheck
 pnpm test:unit
-# with a built API: database integration tests on a throwaway PostgreSQL
-pnpm --filter @hedax/api build && pnpm --filter @hedax/api test:integration
-# browser tests against the fixture data source
-pnpm --filter @hedax/web exec playwright test
+pnpm --filter @hedax/api build && pnpm --filter @hedax/api test:integration   # throwaway PostgreSQL
+pnpm --filter @hedax/web exec playwright test                                  # browser tests on fixture data
 ```
 
-The proposed GitHub Actions workflow runs lint, type checks and domain/contracts/API unit tests on pushes and pull requests. PDF/browser tests and database integration tests have separate setup requirements; see [CONTRIBUTING.md](CONTRIBUTING.md). A configured workflow is not a claim that a run has passed.
+CI runs lint, type checks and the unit tests on every pull request. It does not connect to production, run migrations or deploy. Results of each test run, with its date and environment, are in the [test report](docs/TEST_REPORT.md).
 
 ## Documentation
 
 | Guide | Purpose |
 | --- | --- |
-| [Documentation index](docs/README.md) | Find the appropriate guide |
+| [Documentation index](docs/README.md) | Where to start, by role |
 | [Architecture](docs/ARCHITECTURE.md) | Module boundaries, data and workflows |
-| [Admin guide](docs/ADMIN_GUIDE.md) | Product and operational tasks |
+| [Admin guide](docs/ADMIN_GUIDE.md) | Product and operational tasks in the panel |
 | [Deployment](docs/DEPLOYMENT.md) | Build, migrations, owner bootstrap and proxy setup |
-| [Deployment status](docs/DEPLOYMENT_STATUS.md) | Public release status and acceptance criteria |
+| [Launch status](docs/DEPLOYMENT_STATUS.md) and [checklist](docs/LAUNCH_CHECKLIST.md) | What is live and what is left before opening |
 | [Backup and restore](docs/BACKUP_RESTORE.md) | Backup design and recovery procedures |
-| [Launch checklist](docs/LAUNCH_CHECKLIST.md) | Technical and business acceptance criteria |
 | [API specification](docs/api/openapi.json) | OpenAPI contract |
-| [Contributing](CONTRIBUTING.md) | Branches, validation and pull requests |
-| [Security](SECURITY.md) | Private vulnerability reporting and secret handling |
+| [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Support](SUPPORT.md) | Branches and reviews, private vulnerability reporting, where to ask |
 
-## Preview
+Working log for contributors and coding agents: [PROGRESS.md](PROGRESS.md) and [AGENTS.md](AGENTS.md).
 
-![Persian storefront — local test preview](docs/test-artifacts/ui/home-fa-desktop.png)
+## HEDAX
 
-*Local test preview with demonstration data; this image is not evidence of a live public deployment.*
+Source is one of two HEDAX products, alongside [Manage by HEDAX](https://github.com/ali-hedax/manage-dealership-platform), the dealership operations platform. Both follow the [HEDAX brand guide](https://github.com/ali-hedax/brand-guide-hedax).
 
-## HEDAX projects
+## Rights
 
-- [HEDAX brand guide](https://github.com/ali-hedax/brand-guide-hedax) — brand identity and usage guidance.
-- [Dealership platform](https://github.com/ali-hedax/manage-dealership-platform) — dealership operations and analytics prototype.
-
-Maintained by [Ali Hedayatshodeh / ali-hedax](https://github.com/ali-hedax). No open-source license is currently supplied; public visibility does not grant permission to redistribute the code or brand assets.
+© HEDAX. All rights reserved. No open-source license is granted; the code and the brand assets may not be redistributed. Maintainer: [Ali Hedayatshodeh](https://github.com/ali-hedax).

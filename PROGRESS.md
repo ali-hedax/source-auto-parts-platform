@@ -12,6 +12,13 @@
 
 ## نقطهٔ فعلی
 
+### Implemented Pending Verification — مرتب‌سازی README و ریشهٔ مخزن (فقط مستندات) — 2026-11-14 Asia/Tehran
+
+- **شاخه:** `docs/readme-refresh-20261114` از main در `2bf8eae`. فقط مستندات؛ کد، migration، تنظیمات و سرور دست نخوردند. ادغام و انتشار با مالک است.
+- **تغییر:** `README.md` و `README.fa.md` هم‌تراز بازنویسی شدند (هکسی، بات بله، صفحه‌ساز، تصویرهای طرح فعلی در `docs/screenshots/`). `IMPLEMENTATION_PROGRESS.md` و `IMPLEMENTATION_STATUS.md` به `docs/archive/` منتقل و ارجاع‌ها اصلاح شدند.
+- **بررسی:** همهٔ پیوندهای نسبی دو README و `docs/README.md` به فایل موجود می‌رسند (بررسی محلی). CI روی PR.
+- **قدم بعد:** بازبینی و ادغام توسط مالک. PRهای باز #90، #91 و #92 دست نخورده‌اند.
+
 ### Implemented Pending Verification (release in progress) — رفع تداخل 2px دکمهٔ سبد — 2026-11-05 Asia/Tehran
 
 - **مجوز:** مالک صریحاً نوشت تداخل 2 پیکسلی را رفع و منتشر کن.

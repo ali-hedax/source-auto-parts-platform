@@ -11,7 +11,7 @@
 | Server operator | [Deployment](DEPLOYMENT.md), [current status](DEPLOYMENT_STATUS.md), [backup and restore](BACKUP_RESTORE.md) |
 | Business administrator | [Admin guide](ADMIN_GUIDE.md), [parts guide (fa)](STAFF_GUIDE_PARTS.md), [launch checklist](LAUNCH_CHECKLIST.md) |
 | API integrator | [OpenAPI](api/openapi.json), [import templates](import/) |
-| Reviewer | [Test evidence](TEST_REPORT.md), [implementation history](../IMPLEMENTATION_STATUS.md) |
+| Reviewer | [Test evidence](TEST_REPORT.md), [implementation history](archive/IMPLEMENTATION_STATUS_2026-10.md) |
 | Product planner | [One part (phase 4)](PARTS_UNIFIED_PHASE4.md), [future catalog](FUTURE_CATALOG.md) |
 
 ## Reading status and evidence
