@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { type GuestSourcingRequest, type GuestSourcingResult, type SourcingRequestCreate, type SourcingRequestView, composeSystemText } from '@hedax/contracts';
-import { DomainError, normalizeIranMobile, sourcingScope } from '@hedax/domain';
+import { type SourcingRequestCreate, type SourcingRequestView, composeSystemText } from '@hedax/contracts';
+import { DomainError, sourcingScope } from '@hedax/domain';
 import { REFERENCE_PREFIX, humanReference } from '@hedax/domain/server';
 import type { Prisma, SourcingRequestStatus } from '../../generated/prisma/client.js';
 import { AuditService } from '../../common/audit.service.js';
@@ -131,82 +131,6 @@ export class SourcingService {
     });
     const row = await this.prisma.sourcingRequest.findUniqueOrThrow({ where: { id }, include: requestInclude });
     return this.view(row, actor);
-  }
-
-  /**
-   * «درخواست تأمین» without signing in. The mobile number decides the customer account: an existing
-   * active customer account receives the request, otherwise a new customer account is created for that
-   * number (unverified until its owner signs in with the one-time code). The answer never says which
-   * happened, and no session is opened. A signed-in customer (actor) files it under their own account.
-   * Limits: per IP (hour and day) and per number (day), plus a hidden trap field for scripts.
-   */
-  async createGuest(input: GuestSourcingRequest, files: Array<{ originalname: string; size: number; buffer: Buffer }>, meta: { ipHash: string | null; actor: Actor | null; locale: 'fa' | 'en' }): Promise<GuestSourcingResult> {
-    if (input.website?.trim()) throw badRequest('REQUEST_REJECTED', 'The request could not be accepted');
-    const signedIn = meta.actor?.kind === 'CUSTOMER';
-    let actor = signedIn ? meta.actor : null;
-    if (!actor) {
-      await this.limits.hit(LIMITS.guestSourcingPerIp, meta.ipHash);
-      await this.limits.hit(LIMITS.guestSourcingPerIpDay, meta.ipHash);
-      const parsed = normalizeIranMobile(input.mobile ?? '');
-      if (!parsed.ok) throw badRequest('INVALID_MOBILE', 'Enter a valid Iranian mobile number');
-      await this.limits.hit(LIMITS.guestSourcingPerPhone, parsed.e164);
-      const user = await this.customerForMobile(parsed.e164, input.fullName ?? null);
-      actor = {
-        userId: user.id, kind: 'CUSTOMER', sessionId: 'guest-request', sessionTokenHash: '', authVersion: user.authVersion, mfaVerified: false,
-        permissions: new Set<string>(), isOwner: false, requiresMfa: false, approvedCustomerGroupId: null, displayName: null, locale: meta.locale,
-      };
-    }
-    // Photos go through the normal checks (type, size, quota, virus scan); rejected files are dropped.
-    const attachmentIds = files.length
-      ? (await this.attachments.upload(actor, 'SOURCING_REQUEST', files)).filter((a) => a.status !== 'REJECTED').map((a) => a.id)
-      : [];
-    // The stored model year is Gregorian (1950–2100); a Persian year stays with the model text.
-    const persianYear = input.vehicleYear && input.vehicleYear < 1950 ? input.vehicleYear : null;
-    const model = [input.trim, persianYear ? `سال ${persianYear}` : ''].filter(Boolean).join('، ');
-    const guestNote = signedIn ? undefined : ['ثبت بدون ورود؛ شمارهٔ موبایل هنوز با کد تأیید نشده است.', input.fullName ? `نام: ${input.fullName}` : ''].filter(Boolean).join('\n');
-    const view = await this.create(actor, {
-      title: `${input.partName} — ${input.vehicle}`.slice(0, 200),
-      clientRequestId: input.clientRequestId,
-      urgency: 'NORMAL',
-      attachmentIds,
-      note: guestNote,
-      deliveryCity: undefined,
-      deliveryProvince: undefined,
-      items: [{
-        partName: input.partName,
-        quantity: 1,
-        vehicleBrandCode: input.vehicleBrandCode ?? null,
-        vehicleBrandText: input.vehicleBrandCode ? undefined : input.vehicle,
-        vehicleModel: input.vehicleBrandCode ? [input.vehicle, model].filter(Boolean).join('، ').slice(0, 80) : (model || undefined),
-        vehicleYear: persianYear ? null : (input.vehicleYear ?? null),
-        partCode: input.partCode,
-        vin: input.vin,
-        preference: 'ANY',
-        notes: input.notes,
-      }],
-    });
-    return { reference: view.reference };
-  }
-
-  /** The active customer account of a mobile number, or a new one; staff numbers and blocked accounts are refused alike. */
-  private async customerForMobile(e164: string, fullName: string | null) {
-    const existing = await this.prisma.user.findUnique({ where: { mobileE164: e164 } });
-    if (existing) {
-      if (existing.kind !== 'CUSTOMER' || existing.status !== 'ACTIVE') throw forbidden('MOBILE_NOT_ACCEPTED', 'This number cannot be used here; please sign in');
-      return existing;
-    }
-    try {
-      return await this.prisma.$transaction(async (tx) => {
-        const created = await tx.user.create({ data: { kind: 'CUSTOMER', mobileE164: e164, ...(fullName ? { fullName } : {}) } });
-        await tx.customerProfile.create({ data: { userId: created.id } });
-        return created;
-      });
-    } catch (e) {
-      // Two requests for a new number at once: the other one created it.
-      const again = await this.prisma.user.findUnique({ where: { mobileE164: e164 } });
-      if (again?.kind === 'CUSTOMER' && again.status === 'ACTIVE') return again;
-      throw e;
-    }
   }
 
   async listForCustomer(actor: Actor) {

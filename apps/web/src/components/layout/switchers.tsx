@@ -32,12 +32,12 @@ export function LocaleSwitcher() {
 }
 
 /** Display currency only; the payable amount is always IRR and computed on the server. */
-export function CurrencySwitcher({ initial }: { initial: 'IRT' | 'IRR' | 'AED' }) {
+export function CurrencySwitcher({ initial }: { initial: 'IRR' | 'AED' }) {
   const t = useTranslations('common');
   const tp = useTranslations('price');
   const router = useNextRouter();
   return (
-    <label className="su-unit relative inline-flex min-h-11 items-center">
+    <label className="relative inline-flex min-h-11 items-center text-sm">
       <span className="sr-only">{t('currency')}</span>
       <select
         defaultValue={initial}
@@ -45,9 +45,8 @@ export function CurrencySwitcher({ initial }: { initial: 'IRT' | 'IRR' | 'AED' }
           document.cookie = `hedax_currency=${e.target.value}; path=/; max-age=31536000; samesite=lax`;
           router.refresh();
         }}
-        className="min-h-11 cursor-pointer appearance-none rounded-[6px] border ps-2.5 pe-7 font-medium"
+        className="min-h-9 cursor-pointer appearance-none rounded-[var(--radius-control)] border border-white/20 bg-stage ps-2.5 pe-7 font-semibold text-silver transition-colors hover:border-white/45"
       >
-        <option value="IRT">{tp('IRT')}</option>
         <option value="IRR">{tp('IRR')}</option>
         <option value="AED">{tp('AED')}</option>
       </select>

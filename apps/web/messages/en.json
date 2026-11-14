@@ -35,7 +35,7 @@
     "requestId": "Error reference: {id}",
     "page": "Page {page, number} of {total, number}",
     "results": "{count, plural, =0 {No results} one {# result} other {# results}}",
-    "partCount": "{count, plural, =0 {No parts} one {# part} other {# parts}}",
+    "partCount": "{count, plural, =0 {No published parts} one {# part} other {# parts}}",
     "englishFallback": "English name not provided",
     "sampleBanner": "Preview with SAMPLE data — nothing here is real and no purchase or payment happens.",
     "notConfigured": "Not configured yet",
@@ -101,7 +101,7 @@
     "usedIn": "Fits",
     "country": "Country of manufacture",
     "warranty": "Warranty",
-    "noWarranty": "No warranty",
+    "noWarranty": "No warranty information recorded",
     "unit": "Sale unit",
     "pack": "Pack quantity",
     "oemCodes": "Recorded part / OEM codes",
@@ -122,8 +122,8 @@
     "vehicleHint": "Parts for the whole vehicle and all its models",
     "vehicleModel": "Model",
     "allModels": "All models",
-    "carsTitle": "Vehicles",
-    "carsDescription": "Find your vehicle and see the parts that fit it; for vehicles without parts, send a sourcing request.",
+    "carsTitle": "Parts by vehicle",
+    "carsDescription": "Choose your vehicle to see every part that fits it.",
     "carsOther": "Other vehicles",
     "carTitle": "Spare parts for {name}",
     "carDescription": "Spare parts for {name} at today's prices, shipped across Iran; {count, number} fitting parts at Source.",
@@ -143,8 +143,7 @@
     "wholeVehicle": "All models",
     "requestSupply": "Request this part",
     "sourceableText": "This part has no price or stock right now. Send a sourcing request and we will tell you the price and when it can be ready.",
-    "clearSearch": "Clear the search",
-    "priceAfterInquiry": "Price on request"
+    "clearSearch": "Clear the search"
   },
   "availability": {
     "IN_STOCK": "In stock",
@@ -178,13 +177,12 @@
     "payable": "Amount payable",
     "perUnit": "per {unit}",
     "IRR": "IRR",
-    "AED": "AED",
-    "IRT": "Toman"
+    "AED": "AED"
   },
   "cart": {
     "title": "Cart",
-    "empty": "Your cart is empty",
-    "browse": "See parts in stock",
+    "empty": "Your cart is empty.",
+    "browse": "Browse in-stock parts",
     "item": "Item",
     "unitPrice": "Unit price",
     "lineTotal": "Total",
@@ -263,7 +261,7 @@
   },
   "request": {
     "title": "Request a part",
-    "intro": "Request any part for any vehicle — no sign-up, no fee. We send the price and lead time after review.",
+    "intro": "Request any brand — domestic or foreign. You'll receive a quote with price and lead time; nothing is sourced until you pay.",
     "requestTitle": "Request title",
     "requestTitleHint": "A short title, e.g. “Cerato 2018 suspension parts”",
     "items": "Requested items",
@@ -277,16 +275,16 @@
     "otherBrand": "Other brand (type it)",
     "brandText": "Brand name",
     "vehicleModel": "Vehicle model",
-    "vehicleYear": "Year",
-    "partCode": "Part number",
+    "vehicleYear": "Model year",
+    "partCode": "Part code",
     "vin": "VIN",
-    "vinHint": "Optional; helps find the exact part.",
+    "vinHint": "Optional; only used by our experts for review",
     "preference": "Preferred part type",
     "pref_ANY": "No preference",
     "pref_GENUINE": "Genuine",
     "pref_AFTERMARKET": "Aftermarket",
     "pref_STOCK": "Used (stock)",
-    "notes": "Notes",
+    "notes": "Item notes",
     "overallNote": "General note",
     "urgency": "Urgency",
     "urgency_NORMAL": "Normal",
@@ -296,7 +294,7 @@
     "city": "City",
     "files": "Photos or files (optional)",
     "filesOnly": "Only have a parts list file? Enter a title and attach the file — no need to type each item.",
-    "submit": "Send request",
+    "submit": "Submit request",
     "submitting": "Submitting…",
     "loginRequired": "Sign in to submit. Your draft is kept on this device.",
     "draftSaved": "Draft saved",
@@ -304,33 +302,7 @@
     "successHint": "A dedicated conversation was created. Follow our reply in your account.",
     "viewRequest": "View request",
     "prefilledFrom": "Similar to “{name}”",
-    "reference": "Tracking code",
-    "metaDescription": "Request any car part for any brand, without signing up; the price and lead time are sent by Bale and SMS.",
-    "vehicle": "Vehicle",
-    "vehicleHint": "e.g. Peugeot 206 or Toyota Corolla",
-    "trim": "Model / trim",
-    "photos": "Photo of the part",
-    "addPhoto": "Add a photo",
-    "photoRule": "Up to 3 JPG, PNG or WebP photos, 10 MB each.",
-    "fullName": "Name",
-    "mobile": "Mobile number",
-    "signedInAs": "The request is filed under your account {mobile}.",
-    "replyNote": "The answer is sent by Bale and SMS to this number.",
-    "errPart": "Enter the part name.",
-    "errVehicle": "Enter the vehicle.",
-    "errMobile": "Enter a valid Iranian mobile number, e.g. 09121234567.",
-    "errYear": "Enter a four-digit year, e.g. 2019.",
-    "errVin": "A VIN has 11–17 Latin letters and digits.",
-    "tooMany": "Too many requests from this device or number. Please try again later or call us.",
-    "mobileNotAccepted": "This number cannot be used without signing in. Please sign in or call us.",
-    "replyChannels": "The answer is sent by Bale and SMS to this number. Sign in with the same number to follow the request.",
-    "followUp": "Sign in to follow the request",
-    "howTitle": "How it works",
-    "step1": "Enter the part, the vehicle and your mobile number.",
-    "step2": "A Source expert finds the part.",
-    "step3": "You receive the price and lead time by Bale and SMS.",
-    "step4": "After you confirm and pay, the part ships with Tipax.",
-    "quickContact": "Quick contact"
+    "reference": "Tracking code"
   },
   "files": {
     "choose": "Choose files",
@@ -390,9 +362,7 @@
     "fullName": "Full name",
     "passwordRule": "At least 12 characters; avoid common phrases.",
     "accept": "Create account",
-    "logoutDone": "You have signed out.",
-    "codeChannels": "The code is sent by Bale and SMS.",
-    "agreement": "By signing in you accept the <terms>terms of sale</terms> and the <privacy>privacy policy</privacy>."
+    "logoutDone": "You have signed out."
   },
   "account": {
     "title": "My account",
@@ -590,9 +560,7 @@
     "shipping": "Shipping",
     "returns": "Returns & cancellations",
     "privacy": "Privacy",
-    "terms": "Terms of sale",
-    "about": "About us",
-    "contact": "Contact us"
+    "terms": "Terms of sale"
   },
   "pages": {
     "contactTitle": "Contact Source",
@@ -1267,8 +1235,7 @@
     "phase": "Source AI guide",
     "disclaimer": "Messages are sent to an AI service to generate replies and kept for 90 days to improve answer quality. Answers may be inaccurate; confirm fitment, price and availability before purchase. Do not send sensitive information.",
     "input": "Part name, number or question",
-    "send": "Send",
-    "headerRole": "Source assistant"
+    "send": "Send"
   },
   "finder": {
     "selected": "Parts for",
@@ -1316,63 +1283,5 @@
     "workspaceMotto": "A good day starts here.",
     "workspaceMottoTwo": "Precision in every detail.",
     "workspaceTitle": "Source workspace"
-  },
-  "seo": {
-    "termsTitle": "Terms of sale",
-    "termsDescription": "Terms for buying from Source: prices, payment, delivery, withdrawal and returns, warranty and complaints.",
-    "privacyTitle": "Privacy",
-    "privacyDescription": "What Source keeps about buyers, why, and how it is protected.",
-    "loginTitle": "Sign in",
-    "loginDescription": "Sign in to Source with your mobile number and a one-time code.",
-    "cartTitle": "Cart",
-    "cartDescription": "The parts you chose to buy from Source.",
-    "brandTitle": "{name} spare parts",
-    "brandDescription": "{name} spare parts from Source; {count, plural, =0 {sourcing requests for any part} other {# listed parts}}, shipped across Iran.",
-    "help": {
-      "buying": {
-        "title": "Buying guide",
-        "description": "From finding a part to payment and delivery: buying from Source step by step."
-      },
-      "sourcing": {
-        "title": "Sourcing process",
-        "description": "How a Source sourcing request is reviewed, priced and shipped."
-      },
-      "shipping": {
-        "title": "Shipping and delivery",
-        "description": "How, when and at what cost Source orders ship with Tipax across Iran."
-      },
-      "returns": {
-        "title": "Cancellation and returns",
-        "description": "The 7-day withdrawal period, returns and refunds at Source."
-      }
-    }
-  },
-  "buyingGuide": {
-    "title": "Buying guide",
-    "lede": "Buying a part from Source in six steps.",
-    "find": {
-      "title": "Find the part",
-      "body": "Type the part name, part number or SKU in the search at the top, or choose brand, vehicle and model under “Choose your vehicle”."
-    },
-    "fit": {
-      "title": "Check the fit",
-      "body": "Read “Fits” and the vehicle table on the part page. If unsure, compare the old part’s number or ask Hexi or support."
-    },
-    "cart": {
-      "title": "Add to cart",
-      "body": "For parts in stock pick the quantity and press “Add to cart”. Parts without a price are ordered with “Request”; we send the price and lead time."
-    },
-    "pay": {
-      "title": "Address and payment",
-      "body": "Enter the delivery address in the cart. The final amount, shipping included, is shown before you pay."
-    },
-    "ship": {
-      "title": "Shipping with Tipax",
-      "body": "In-stock orders reach Tipax 1–2 working days after payment and you receive a tracking code."
-    },
-    "after": {
-      "title": "After delivery",
-      "body": "You can withdraw within 7 working days of delivery without a reason, if the part is uninstalled and undamaged."
-    }
   }
 }

@@ -152,11 +152,10 @@ export class AssistantService {
         await this.log.record({ ...log, answer: text, status: 'ANSWERED', productSkus: products.map((p) => p.sku), provider: 'mock', model: 'synthetic-test-provider', latencyMs: Date.now() - started });
         return { text, products, provider: 'mock', model: 'synthetic-test-provider' };
       }
-      // Prices go to the model already written for people (Toman, grouped digits), so a reply never shows a raw rial figure.
-      const catalogFacts = products.length ? JSON.stringify(products.map((p) => ({ sku: p.sku, name: p.name, partNumber: p.partNumber, availability: p.availability, unit: { name: p.unit.name, nameEn: p.unit.nameEn }, priceText: priceText(p.price, input.locale), fitments: p.fitments }))) : 'NO_CATALOG_MATCH';
+      const catalogFacts = products.length ? JSON.stringify(products.map((p) => ({ sku: p.sku, name: p.name, partNumber: p.partNumber, availability: p.availability, unit: p.unit, price: p.price, fitments: p.fitments }))) : 'NO_CATALOG_MATCH';
       // Some gateway setups (knowledge base / guardrail) replace or drop the system message, so the
       // full instructions travel inside the latest user turn too; the system message stays short.
-      const instructions = `${basePrompt(settings.name)}\n\nPRICES: when you mention a price, copy the product's priceText exactly (Toman, grouped digits); never convert, round or write a price in rial.\n\n${settings.ai.systemPrompt[input.locale]}\n\nSITE_FACTS:${await this.siteFacts(input.locale)}\n\nCATALOG_FACTS:${catalogFacts}`;
+      const instructions = `${basePrompt(settings.name)}\n\n${settings.ai.systemPrompt[input.locale]}\n\nSITE_FACTS:${await this.siteFacts(input.locale)}\n\nCATALOG_FACTS:${catalogFacts}`;
       const body = { model: this.env.ASSISTANT_TEXT_MODEL, max_tokens: settings.ai.maxOutputTokens, temperature: 0.4, messages: [
         { role: 'system', content: `You are ${settings.name.en} (${settings.name.fa}), the Source by HEDAX site guide. Never say you are ChatGPT or any other model. Follow the SITE OWNER INSTRUCTIONS in the user message.` },
         ...cleanHistory(input.history),
@@ -253,16 +252,6 @@ export class AssistantService {
       catch { throw new AssistantProviderError(controller.signal.aborted ? 'Assistant provider timeout' : 'Assistant provider returned invalid JSON', true); }
     } finally { clearTimeout(timer); }
   }
-  private product(p: ProductCard) { return { id: p.id, slug: p.slug, sku: p.sku, name: p.name, partNumber: p.partNumber, availability: p.availability, purchasable: p.purchasable, unit: p.unit, price: p.price, fitments: p.fitments, primaryImage: p.primaryImage }; }
+  private product(p: ProductCard) { return { slug: p.slug, sku: p.sku, name: p.name, partNumber: p.partNumber, availability: p.availability, unit: { name: p.unit.name, nameEn: p.unit.nameEn }, price: p.price, fitments: p.fitments, primaryImage: p.primaryImage }; }
   private mockText(input: AssistantMessageInput, products: ReturnType<AssistantService['product']>[]) { if (products.length) return input.locale === 'fa' ? `${products.length} نتیجه از کاتالوگ آزمایشی پیدا شد. جزئیات فقط از دادهٔ ثبت‌شده در کارت‌هاست.` : `${products.length} result(s) were found in the synthetic catalog. Details come only from the product cards.`; return input.locale === 'fa' ? `در provider آزمایشی پرسش «${input.message}» دریافت شد، اما نتیجهٔ کاتالوگ ثبت‌شده‌ای پیدا نشد.` : `The test provider received “${input.message}”, but no registered catalog result was found.`; }
-}
-
-/** «۱۲٬۵۰۰٬۰۰۰ تومان» / "12,500,000 Toman" from a rial price; «قیمت پس از استعلام» when there is none. */
-export function priceText(price: ProductCard['price'], locale: 'fa' | 'en'): string {
-  if (price.kind !== 'price') return locale === 'fa' ? 'قیمت پس از استعلام' : 'Price on request';
-  const raw = price.payable?.currency === 'IRR' ? price.payable.amountMinor : undefined;
-  if (typeof raw !== 'string' || !/^\d+$/.test(raw)) return '';
-  const value = BigInt(raw);
-  const whole = new Intl.NumberFormat(locale === 'fa' ? 'fa-IR' : 'en-US', { useGrouping: true }).format(value / 10n);
-  return locale === 'fa' ? `${whole} تومان` : `${whole} Toman`;
 }

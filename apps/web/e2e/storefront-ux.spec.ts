@@ -101,46 +101,38 @@ test.describe('back trail (rules)', () => {
   });
 });
 
-test.describe('sticky header with search', () => {
+test.describe('one-row header', () => {
   for (const width of WIDTHS) {
-    test(`${width}px: edge to edge, nothing overlaps or scrolls sideways`, async ({ page }) => {
+    test(`${width}px: low, edge to edge, nothing overlaps or scrolls sideways`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
       await page.goto('/fa/parts');
       const g = await page.evaluate(() => {
-        const box = (el: Element | null) => { const r = el!.getBoundingClientRect(); return { left: r.left, right: r.right, top: r.top, bottom: r.bottom, width: r.width, height: r.height }; };
-        const header = document.querySelector('header.su-header')!;
-        const nav = header.querySelector('.su-header-nav')!;
-        const actions = [...header.querySelectorAll('.su-header-actions > *')].filter((el) => getComputedStyle(el).display !== 'none').map(box);
-        return {
-          header: box(header), logo: box(header.querySelector('.su-logo')), search: box(header.querySelector('.su-header-search')), actions,
-          navShown: getComputedStyle(nav).display !== 'none', position: getComputedStyle(header).position,
-          overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth, border: getComputedStyle(header).borderBottomWidth,
-          menu: [...header.querySelectorAll('button')].some((b) => b.getAttribute('aria-label') === 'باز کردن منو' && getComputedStyle(b).display !== 'none'),
-        };
+        const box = (el: Element) => { const r = el.getBoundingClientRect(); return { left: r.left, right: r.right, top: r.top, bottom: r.bottom, width: r.width, height: r.height }; };
+        const header = document.querySelector('header')!;
+        const logo = box(header.querySelector('.titanium-logo')!);
+        const controls = box(header.querySelector('.titanium-header-controls')!);
+        const nav = header.querySelector('.titanium-desktop-nav')!;
+        const links = [...nav.querySelectorAll('a')].map((a) => box(a));
+        return { header: box(header), logo, controls, navShown: getComputedStyle(nav).display !== 'none', navBox: box(nav), links, overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth, border: getComputedStyle(header).borderBottomWidth, menu: [...header.querySelectorAll('button')].some((b) => b.getAttribute('aria-label') === 'باز کردن منو' && getComputedStyle(b).display !== 'none') };
       });
-      expect(g.position).toBe('sticky');
+      expect(g.header.height).toBeLessThanOrEqual(width >= 1100 ? 80 : 72);
       expect(g.header.left).toBe(0);
       expect(g.header.width).toBe(width);
       expect(g.border).toBe('1px');
       expect(g.overflow).toBeLessThanOrEqual(0);
-      expect(g.header.height).toBeLessThanOrEqual(width >= 768 ? 130 : 140);
-      // RTL: the logo on the right; actions never overlap it and everything stays inside the page.
-      for (const a of g.actions) {
-        expect(a.right <= g.logo.left + 1 || a.top >= g.logo.bottom - 1, 'action beside the logo').toBe(true);
-        expect(a.left).toBeGreaterThanOrEqual(0);
-      }
+      // RTL: logo on the right, controls on the left, no overlap and everything inside the page.
+      expect(g.controls.right).toBeLessThanOrEqual(g.logo.left);
+      expect(g.controls.left).toBeGreaterThanOrEqual(0);
       expect(g.logo.right).toBeLessThanOrEqual(width);
-      if (width >= 768) {
-        // The search sits between the logo and the actions on the same row.
-        expect(g.search.right).toBeLessThanOrEqual(g.logo.left + 1);
-        for (const a of g.actions) if (Math.abs(a.top - g.search.top) < 30) expect(a.right).toBeLessThanOrEqual(g.search.left + 1);
+      if (width >= 1100) {
         expect(g.navShown).toBe(true);
+        expect(g.menu).toBe(false);
+        // A single row: every link on the same line, between the logo and the controls.
+        expect(new Set(g.links.map((l) => Math.round(l.top))).size).toBe(1);
+        expect(Math.min(...g.links.map((l) => l.left))).toBeGreaterThanOrEqual(g.controls.right);
+        expect(Math.max(...g.links.map((l) => l.right))).toBeLessThanOrEqual(g.logo.left);
       } else {
-        // On phones the search takes its own full row under the logo.
-        expect(g.search.top).toBeGreaterThanOrEqual(g.logo.bottom - 1);
         expect(g.navShown).toBe(false);
-      }
-      if (width < 1100) {
         expect(g.menu).toBe(true);
         await page.getByRole('button', { name: 'باز کردن منو' }).click();
         await expect(page.getByRole('dialog').getByRole('link', { name: 'برندها' })).toBeVisible();
@@ -150,29 +142,30 @@ test.describe('sticky header with search', () => {
     });
   }
 
-  test('the first screen does not jump: the hero is the same height before and after scripts run', async ({ browser, baseURL }) => {
+  test('the first screen does not jump: the banner is the height the low header leaves it, before scripts run too', async ({ browser, baseURL }) => {
     const height = async (javaScriptEnabled: boolean) => {
       const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, javaScriptEnabled, baseURL: baseURL as string });
       const page = await context.newPage();
       await page.goto('/fa');
-      const box = await page.locator('.su-hero').boundingBox();
+      if (javaScriptEnabled) await expect.poll(() => page.locator('.atelier-banner').evaluate((el: HTMLElement) => el.style.getPropertyValue('--banner-top'))).not.toBe('');
+      const box = await page.locator('.atelier-banner').boundingBox();
       await context.close();
       return box!.height;
     };
-    expect(Math.abs(await height(false) - await height(true))).toBeLessThanOrEqual(1);
+    // Only the preview's own notice bar, absent from production, may separate the two.
+    expect(Math.abs(await height(false) - await height(true))).toBeLessThanOrEqual(60);
   });
 
   test('reaches both edges in English too, mirrored', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/en/parts');
     const g = await page.evaluate(() => {
-      const logo = document.querySelector('.su-logo')!.getBoundingClientRect();
-      const search = document.querySelector('.su-header-search')!.getBoundingClientRect();
-      const header = document.querySelector('header.su-header')!.getBoundingClientRect();
-      return { logoRight: logo.right, searchLeft: search.left, width: header.width };
+      const logo = document.querySelector('.titanium-logo')!.getBoundingClientRect();
+      const controls = document.querySelector('.titanium-header-controls')!.getBoundingClientRect();
+      return { logoRight: logo.right, controlsLeft: controls.left, height: document.querySelector('header')!.getBoundingClientRect().height };
     });
-    expect(g.width).toBe(1440);
-    expect(g.logoRight).toBeLessThanOrEqual(g.searchLeft);
+    expect(g.height).toBeLessThanOrEqual(80);
+    expect(g.logoRight).toBeLessThanOrEqual(g.controlsLeft);
   });
 });
 
@@ -182,18 +175,22 @@ test.describe('search and home cards say only what is true', () => {
       await page.setViewportSize({ width, height: 900 });
       await page.goto('/fa');
       const finder = page.locator('#vehicle-finder');
-      await expect(finder.locator('.vf-label')).toHaveText(['برند', 'خودرو', 'مدل و سال']);
+      await expect(finder.locator('.vf-label')).toHaveText(['برند / گروه', 'خودرو', 'مدل / تیپ', 'سال ساخت']);
       await expect(finder).not.toContainText('اختیاری');
+      // The dependency between the fields is still explained.
+      await expect(finder.locator('.vf-hint')).toHaveText('برای جست‌وجو، برند یا خودرو را انتخاب کنید.');
       await expect(finder.locator('.vf-field').nth(2)).toContainText('ابتدا خودرو');
       await expect(finder.locator('.vf-field').nth(2)).toBeDisabled();
       for (const clipped of await finder.locator('.vf-label, .vf-value').all()) {
         expect(await clipped.evaluate((el) => el.scrollWidth <= el.clientWidth + 1), await clipped.innerText()).toBe(true);
       }
-      await expect(page.locator('#quick-search-input')).toHaveAttribute('placeholder', 'نام قطعه، شماره فنی یا کد کالا');
-      const hub = page.locator('.su-hub-grid');
+      const placeholder = page.locator('#quick-search-input');
+      await expect(placeholder).toHaveAttribute('placeholder', 'نام یا شماره فنی قطعه');
+      const hub = page.locator('.titanium-hub');
+      for (const title of ['قیمت روز خودرو', 'مجله و راهنمای فنی', 'ویدیوهای پربازدید خودرو']) await expect(hub.getByRole('heading', { name: title })).toBeVisible();
       for (const note of ['مرحله بعد', 'در انتظار', 'نمایشی', 'آپارات', 'محتوای ثابت']) await expect(hub).not.toContainText(note);
-      // No fake price rows or play buttons, and an honest status where there is no source.
-      await expect(hub.locator('dl, button[disabled]')).toHaveCount(0);
+      // No fake price rows, no play button on a picture, and an honest status where there is no source.
+      await expect(hub.locator('dl, button[disabled], .titanium-hub-play')).toHaveCount(0);
       await expect(hub.getByText('به‌زودی', { exact: true })).toHaveCount(2);
       await expect(hub.locator('details summary')).toHaveText('خواندن راهنمای کوتاه');
       expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
@@ -203,16 +200,16 @@ test.describe('search and home cards say only what is true', () => {
   test('the quick search and the finder still search', async ({ page }) => {
     await page.goto('/fa');
     await page.locator('#quick-search-input').fill('لنت');
-    await page.locator('.su-hero button[type=submit]').click();
+    await page.locator('.titanium-quick-search-submit').click();
     await expect(page).toHaveURL(/\/fa\/parts\?q=/);
     await page.goto('/fa');
     const finder = page.locator('#vehicle-finder');
-    const submit = finder.locator('button[type=submit]');
-    await expect(submit).toBeDisabled();
+    await expect(finder.locator('.vf-submit')).toBeDisabled();
     await finder.locator('.vf-field').first().click();
     await finder.getByRole('option').first().click();
-    await expect(submit).toBeEnabled();
-    await submit.click();
+    await expect(finder.locator('.vf-submit')).toBeEnabled();
+    await expect(finder.locator('.vf-hint')).toHaveCount(0);
+    await finder.locator('.vf-submit').click();
     await expect(page).toHaveURL(/\/fa\/parts\?.*group=/);
   });
 });
@@ -306,11 +303,11 @@ test.describe('cart count on the icon', () => {
   test('adding from the home page, the list and a part\'s page all count in one total', async ({ page }) => {
     await page.goto('/fa');
     await expect(cartLink(page)).toHaveAccessibleName('سبد خرید خالی است');
-    await page.locator('.su-card-buy .su-card-action').first().click();
+    await page.locator('.part-card-cart').first().click();
     await expect(badge(page)).toHaveText('۱');
     await page.goto('/fa/parts');
     await expect(badge(page)).toHaveText('۱');
-    await page.locator('.su-card-buy .su-card-action').nth(1).click();
+    await page.locator('.part-card-cart').nth(1).click();
     await expect(badge(page)).toHaveText('۲');
     await addFromDetail(page, 'demo-spark-plug-elantra', 3);
     await expect(badge(page)).toHaveText('۵');
@@ -503,7 +500,7 @@ test.describe('from choosing a part to paying', () => {
     await context.addCookies([{ name: 'hedax_fixture_role', value: 'customer', url: baseURL as string }]);
     await page.goto('/fa/checkout');
     await expect(page.getByText('سبد خرید شما خالی است')).toBeVisible();
-    await expect(page.getByRole('main').getByRole('link', { name: 'دیدن قطعات موجود' })).toHaveAttribute('href', '/fa/parts');
+    await expect(page.getByRole('main').getByRole('link', { name: 'مشاهدهٔ قطعات موجود' })).toHaveAttribute('href', '/fa/parts');
   });
 });
 
@@ -514,8 +511,8 @@ test.describe('back control', () => {
     test(`${width}px: one step back keeps the filters and the scroll position`, async ({ page }) => {
       await page.setViewportSize({ width, height: 800 });
       await page.goto('/fa');
-      await page.locator('#quick-search-input').fill('فیلتر');
-      await page.locator('.su-hero button[type=submit]').click();
+      await page.locator('.titanium-quick-search-form input').fill('فیلتر');
+      await page.locator('.titanium-quick-search-submit').click();
       await page.goto('/fa/parts?sort=name');
       await expect(back(page)).toBeVisible();
       const icon = await back(page).locator('svg').evaluate((el) => getComputedStyle(el).rotate);
@@ -740,7 +737,7 @@ test.describe('Hexi: the whole character, fixed in its corner', () => {
     const stacks = await page.evaluate(() => (window as unknown as { __scrollListeners: string[] }).__scrollListeners);
     expect(stacks.filter((s) => /assistant/i.test(s))).toEqual([]);
     const before = await dock(page).boundingBox();
-    await page.addStyleTag({ content: '.store-page, main, header { transform: translateY(40px) scale(.9) !important; }' });
+    await page.addStyleTag({ content: '.titanium-store, main, header { transform: translateY(40px) scale(.9) !important; }' });
     await page.evaluate(() => window.scrollTo(0, 600));
     await page.waitForTimeout(200);
     expect(await dock(page).boundingBox()).toEqual(before);
@@ -761,7 +758,7 @@ test.describe('Hexi: the whole character, fixed in its corner', () => {
           for (let y = 0; y <= h; y += 30) {
             window.scrollTo(0, y);
             await new Promise((r) => requestAnimationFrame(r));
-            for (const c of document.querySelectorAll('.part-card-cart, .part-card-source, .su-card-action, .cine-control, .back-control, .vf-field, .vf-submit')) {
+            for (const c of document.querySelectorAll('.part-card-cart, .part-card-source, .cine-control, .back-control, .vf-field, .vf-submit')) {
               if (!shown(c)) continue;
               const r = c.getBoundingClientRect();
               if (Math.min(r.right, el.right) > Math.max(r.left, el.left) && Math.min(r.bottom, el.bottom) > Math.max(r.top, el.top)) under.push(`${c.className} at ${y}`);
@@ -795,11 +792,11 @@ test.describe('Hexi: the whole character, fixed in its corner', () => {
     test(`${width}px: buying buttons end before his column on the home page's tighter cards too`, async ({ page }) => {
       await page.setViewportSize({ width, height: 800 });
       await ready(page, '/fa/parts');
-      // The tightest card padding there is: the phone card body (10 px).
-      await page.addStyleTag({ content: '.su-card-body { padding-inline: 10px !important; }' });
+      // The home page's product cards have 16 px of side padding, the tightest there is; sample data has none of them.
+      await page.addStyleTag({ content: '.part-card-bottom { padding-inline: 16px !important; }' });
       const { edge, buttons } = await page.evaluate(() => ({
         edge: document.querySelector('.assistant-dock')!.getBoundingClientRect().right,
-        buttons: [...document.querySelectorAll('.part-card-cart, .part-card-source, .su-card-action')].map((c) => c.getBoundingClientRect().left),
+        buttons: [...document.querySelectorAll('.part-card-cart, .part-card-source')].map((c) => c.getBoundingClientRect().left),
       }));
       expect(buttons.length).toBeGreaterThan(0);
       expect(Math.min(...buttons)).toBeGreaterThanOrEqual(edge);
@@ -974,7 +971,7 @@ test.describe('Hexi: the whole character, fixed in its corner', () => {
     });
     expect(size.seen).toBeLessThanOrEqual(28);
     expect(size.target, 'large enough for a finger').toBeGreaterThanOrEqual(40);
-    const cart = page.locator('.su-card-buy .su-card-action').first();
+    const cart = page.locator('.part-card-cart').first();
     const before = { page: await page.evaluate(() => document.documentElement.scrollHeight), button: await cart.boundingBox() };
     await collapse(page).tap();
     await expect(chip(page)).toBeVisible();

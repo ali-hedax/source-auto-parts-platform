@@ -15,7 +15,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const entry = (path: string, lastModified?: string): MetadataRoute.Sitemap[number] => ({
     url: `${base}/fa${path}`,
     ...(lastModified ? { lastModified } : {}),
-    // Only the Persian pages are listed; the English ones are noindex until the part names are translated.
+    alternates: { languages: { fa: `${base}/fa${path}`, en: `${base}/en${path}` } },
   });
   // Pages the owner added in the panel (site content → text pages, shown in the footer).
   let pages: Array<{ slug: string }> = [];

@@ -23,11 +23,10 @@ test.describe('vehicle fitment on the site', () => {
     await expect(fitment.getByRole('heading', { name: 'مناسب برای:' })).toBeVisible();
     await expect(fitment.getByRole('link', { name: 'پژو ۲۰۶' })).toHaveAttribute('href', '/fa/cars/peugeot?model=206');
     await expect(fitment.getByRole('link', { name: 'دنا', exact: true })).toHaveAttribute('href', '/fa/cars/dena');
-    // Owner layout 2026-11: the «مناسب برای» box sits in the information column, above the price.
-    await expect(page.locator('.su-product-info [data-testid=fitment]')).toHaveCount(1);
-    const fits = await fitment.boundingBox();
-    const price = await page.locator('.su-product-price').boundingBox();
-    expect(fits && price && fits.y < price.y).toBe(true);
+    // Under the photo: the chips start below the top of the gallery column, in the same column.
+    const photo = await page.locator('main#main .lg\\:col-start-1').first().boundingBox();
+    const chips = await fitment.boundingBox();
+    expect(chips && photo && chips.y > photo.y).toBe(true);
     await expect(page.getByTestId('price-unit').first()).toHaveText('/ عدد');
     // Structured data names the vehicles the part fits.
     const ld = JSON.parse((await page.locator('script[type="application/ld+json"]').first().textContent()) ?? '{}');
@@ -52,17 +51,13 @@ test.describe('vehicle fitment on the site', () => {
     for (const part of [/لنت ترمز جلو پژو ۲۰۶/, /واتر پمپ پژو ۴۰۵/]) await expect(page.getByRole('link', { name: part }).first()).toBeVisible();
 
     await page.goto('/fa/parts');
-    // The filter's vehicle step (brand, vehicle, model) works without choosing a brand first.
-    const vehicleStep = page.locator('#filter-vehicle .vf-step').nth(1);
-    await vehicleStep.locator('.vf-field').click();
-    await vehicleStep.getByRole('combobox').fill('دنا');
-    await vehicleStep.getByRole('option', { name: /^دنا/ }).first().click();
+    await page.locator('#filter-vehicle').selectOption('dena');
     await expect(page).toHaveURL(/vehicle=dena/);
     await expect(page.getByRole('link', { name: /لنت ترمز جلو پژو ۲۰۶/ }).first()).toBeVisible();
     await expect(page.getByRole('link', { name: /فيلتر روغن سمند|فیلتر روغن سمند/ }).first()).toBeVisible();
     await expect(page.getByRole('link', { name: /واتر پمپ/ })).toHaveCount(0);
-    // The vehicle filter offers its models in the third step.
-    await expect(page.locator('#filter-vehicle .vf-step').nth(2).locator('.vf-field')).toBeVisible();
+    // The vehicle filter offers its models.
+    await expect(page.locator('#filter-model')).toBeVisible();
 
     await page.goto(`/fa/parts?q=${encodeURIComponent('لنت دنا')}`);
     await expect(page.getByRole('link', { name: /لنت ترمز جلو پژو ۲۰۶/ }).first()).toBeVisible();

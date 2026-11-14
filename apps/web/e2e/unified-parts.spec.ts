@@ -6,36 +6,32 @@ import { expect, test } from '@playwright/test';
  * sourcing request with the name and number already filled in. Preview data (fixtures).
  */
 test.describe('one part, one search', () => {
-  test('one search for every part: the header box and the large home box send to the same list; no «کاتالوگ فنی»', async ({ page }) => {
-    // Owner layout 2026-11: the search sits in the header on every page and, larger, in the home hero.
+  test('home page has no second search box and no catalog block; the menu has no «کاتالوگ فنی»', async ({ page }) => {
     await page.goto('/fa');
-    const searches = page.getByRole('search');
-    await expect(searches).toHaveCount(2);
-    for (const form of await searches.all()) expect(await form.getAttribute('action')).toBe('/fa/parts');
+    await expect(page.getByRole('search')).toHaveCount(1);
     await expect(page.getByRole('link', { name: 'کاتالوگ فنی' })).toHaveCount(0);
+    await expect(page.getByTestId('home-makers')).toBeVisible();
   });
 
   test('search → in-stock part → cart', async ({ page }) => {
     await page.goto('/fa');
-    await page.locator('#header-search-input').fill('demo 0001');
-    await page.locator('#header-search-input').press('Enter');
+    await page.locator('#header-search').fill('demo 0001');
+    await page.locator('#header-search').press('Enter');
     await expect(page).toHaveURL(/\/fa\/parts\?q=/);
     await expect(page.getByTestId('search-term')).toContainText('demo 0001');
     await page.getByRole('link', { name: /لنت ترمز جلو پژو ۲۰۶/ }).first().click();
-    // The result card has its own «افزودن به سبد: …» button; buy on the part's page once it has opened.
-    await expect(page).toHaveURL(/\/fa\/parts\/[^?]+$/);
-    await page.getByRole('button', { name: 'افزودن به سبد', exact: true }).click();
+    await page.getByRole('button', { name: 'افزودن به سبد' }).click();
     await expect(page.getByText('به سبد اضافه شد')).toBeVisible();
   });
 
   test('search by an equivalent number with spaces → «قابل تأمین» → sourcing request with name and number', async ({ page }) => {
     await page.goto('/fa');
-    await page.locator('#header-search-input').fill('04465 33480');
-    await page.locator('#header-search-input').press('Enter');
+    await page.locator('#header-search').fill('04465 33480');
+    await page.locator('#header-search').press('Enter');
     const card = page.getByRole('article').filter({ hasText: 'لنت ترمز جلو کمری' });
     await expect(card).toBeVisible();
     await expect(card.getByText('قابل تأمین')).toBeVisible();
-    await card.getByRole('link', { name: /لنت ترمز جلو کمری/ }).click();
+    await card.getByRole('link').click();
 
     await expect(page).toHaveURL(/\/fa\/parts\/toyota-front-brake-pad-camry-04465-33471/);
     await expect(page.getByRole('button', { name: 'افزودن به سبد' })).toHaveCount(0);
@@ -44,8 +40,7 @@ test.describe('one part, one search', () => {
     await page.getByTestId('sourceable-box').getByRole('link', { name: 'درخواست تأمین' }).click();
 
     await expect(page).toHaveURL(/\/fa\/request-part\?/);
-    await expect(page.locator('#req-code')).toHaveValue('04465-33471');
-    await expect(page.locator('#req-part')).toHaveValue(/لنت ترمز جلو کمری/);
+    await expect(page.locator('#item-0-code')).toHaveValue('04465-33471');
   });
 
   test('in-stock parts come before «قابل تأمین» ones; the maker filter narrows the list', async ({ page }) => {

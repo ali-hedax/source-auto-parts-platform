@@ -46,16 +46,12 @@ export const assistantMessageSchema = z.strictObject({
 export type AssistantMessageInput = z.infer<typeof assistantMessageSchema>;
 
 export interface AssistantProductCard {
-  /** Product id, for «افزودن به سبد» on the card. */
-  id: string;
   slug: string;
   sku: string;
   name: { fa: string; en: string | null };
   partNumber: string | null;
   availability: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK';
-  /** Can be bought now (price, stock, sellable). */
-  purchasable: boolean;
-  unit: import('./catalog.js').UnitRef;
+  unit: { name: string; nameEn: string | null };
   price: import('./catalog.js').PriceView;
   fitments: import('./vehicles.js').FitmentView[];
   primaryImage: import('./catalog.js').MediaView | null;

@@ -1,92 +1,101 @@
-import { localize, resolveContactChannels, channelText } from '@hedax/contracts/constants';
+import { localize } from '@hedax/contracts/constants';
+import Image from 'next/image';
 import { useLocale, useTranslations } from 'next-intl';
 import type { BuilderDocument, SiteContentView } from '@hedax/contracts';
-import type { ReactNode } from 'react';
 import { Link } from '@/i18n/navigation';
-import { faDigits, iranNumberText, isLegacyHours, telHref, whatsappHref, whatsappText } from '@/lib/contact-format';
+const DEFAULT_LOGO = '/brand/source/titanium/logo.webp';
+import { CONTACT_CHANNEL_ORDER, channelHref, channelText, resolveContactChannels, type ContactChannelKey } from '@hedax/contracts/constants';
 import { ContactIcon, type ContactIconName } from './contact-icons';
 import { InstallApp } from './pwa';
 
-const DEFAULT_LOGO = '/brand/source/atelier/logo.webp';
-
-/**
- * Footer: introduction (logo, short text, warehouse address, room for the trust seal), quick links,
- * guide pages and contact details. Every text and number comes from site content in the panel
- * (general → brand, contact, text pages); only the link labels are built in.
- */
+/** Footer: logo, tagline, help links, the owner's pages, social links and contact details (all from site content). */
 export function SiteFooterView({ content, chrome, now }: { content: SiteContentView | null; chrome?: BuilderDocument['chrome'] | undefined; now: number }) {
   const t = useTranslations();
   const locale = useLocale() as 'fa' | 'en';
-  const fa = locale === 'fa';
-  const year = new Intl.DateTimeFormat(fa ? 'fa-IR-u-ca-persian' : 'en-GB', { year: 'numeric', timeZone: 'Asia/Tehran' }).format(new Date(now)).replace(/[^\d۰-۹]/g, '');
+  // Jalali year in Persian (e.g. ۱۴۰۵), Gregorian in English.
+  const year = new Intl.DateTimeFormat(locale === 'fa' ? 'fa-IR-u-ca-persian' : 'en-GB', { year: 'numeric', timeZone: 'Asia/Tehran' })
+    .format(new Date(now))
+    .replace(/[^\d۰-۹]/g, '');
+  // 44 px rows: every footer link is a comfortable touch target.
+  const link = 'inline-flex min-h-11 items-center text-[0.9375rem] text-white/85 underline-offset-4 transition-colors hover:text-white hover:underline';
   const brand = content?.brand;
+  const helpLinks: Array<[string, string]> = [
+    ['/help/buying', t('footer.buying')],
+    ['/help/sourcing', t('footer.sourcing')],
+    ['/help/shipping', t('footer.shipping')],
+    ['/help/returns', t('footer.returns')],
+    ['/privacy', t('footer.privacy')],
+    ['/terms', t('footer.terms')],
+    ...(content?.footerPages ?? []).map((p): [string, string] => [p.slug === 'about' ? '/about' : `/pages/${p.slug}`, localize(p.title, locale)]),
+  ];
+  const tagline = localize(brand?.tagline, locale);
   const about = localize(brand?.footerAbout, locale);
   const copyright = localize(brand?.copyright, locale).replaceAll('{year}', year);
-  const rawAddress = content ? localize(content.contact.address, locale) : '';
-  // Older content kept the Instagram handle in the address field; that is not an address.
-  const address = /اینستاگرام|instagram/i.test(rawAddress) ? '' : rawAddress;
-  const logo = chrome?.logo?.onLightUrl || DEFAULT_LOGO;
-  const quick: Array<[string, string]> = [
-    ['/parts', t('nav.parts')], ['/imported-parts', t('nav.imported')], ['/cars', t('nav.cars')], ['/brands', t('nav.brands')], ['/request-part', t('nav.requestPart')],
-  ];
-  const guide: Array<[string, string]> = [
-    ['/about', t('footer.about')], ['/contact', t('footer.contact')], ['/help/buying', t('footer.buying')], ['/help/shipping', t('footer.shipping')],
-    ['/help/returns', t('footer.returns')], ['/terms', t('footer.terms')], ['/privacy', t('footer.privacy')],
-    ...(content?.footerPages ?? []).filter((p) => p.slug !== 'about').map((p): [string, string] => [`/pages/${p.slug}`, localize(p.title, locale)]),
-  ];
   return (
-    <footer className="su-footer">
-      <div className="container-page su-footer-grid">
-        <div className="su-footer-intro">
-          <img src={logo} alt={localize(brand?.logoAlt, locale) || 'Source by HEDAX'} width={1100} height={368} loading="lazy" decoding="async" className="su-footer-logo" />
-          {about ? <p>{about}</p> : null}
-          {address ? <p className="su-footer-address"><ContactIcon name="address" /><span>{address}</span></p> : null}
-          {/* Reserved for the e-Namad trust seal once it is issued. */}
-          <div className="su-trust-slot" data-slot="trust-seal" aria-hidden />
+    <footer className="titanium-footer render-lazy text-sm">
+      <div className="container-page titanium-footer-grid">
+        <div className="titanium-footer-brand max-w-sm">
+          <Image src={chrome?.logo?.onLightUrl || (brand?.logoUrl && brand.logoUrl !== '/brand/source/logo-dark.png' ? brand.logoUrl : DEFAULT_LOGO)} width={600} height={191} unoptimized alt={localize(brand?.logoAlt, locale) || localize(brand?.siteName, locale)} className="titanium-footer-logo" style={chrome?.logo?.onLightUrl ? { filter: 'none' } : undefined} />
+          {tagline ? <p className="mt-4 font-medium text-signal">{tagline}</p> : null}
+          {about ? <p className="mt-2 leading-7">{about}</p> : null}
+
         </div>
-        <nav aria-labelledby="footer-quick">
-          <h2 id="footer-quick">{t('footer.links')}</h2>
-          <ul>{quick.map(([href, label]) => <li key={href}><Link href={href}>{label}</Link></li>)}</ul>
+        <nav className="titanium-footer-quick" aria-label={t('common.menu')}>
+          <p className="mb-3 font-bold">{locale === 'fa' ? 'دسترسی سریع' : 'Quick links'}</p>
+          <ul>{[{ href: '/', label: t('nav.home') }, ...(chrome?.menu.length ? chrome.menu.filter(n => n.visible && n.href).map(n => ({ href: n.href, label: localize(n.label, locale) })) : [{ href: '/parts', label: t('nav.parts') }, { href: '/cars', label: t('nav.cars') }, { href: '/brands', label: t('nav.brands') }])].map(n => <li key={n.href}><Link href={n.href} className={link}>{n.label}</Link></li>)}</ul>
         </nav>
-        <nav aria-labelledby="footer-guide">
-          <h2 id="footer-guide">{t('footer.help')}</h2>
-          <ul>{guide.map(([href, label]) => <li key={href}><Link href={href}>{label}</Link></li>)}</ul>
+        <InstallApp />
+        <nav className="titanium-footer-help" aria-label={t('footer.help')}>
+          <p className="mb-3 font-bold text-white">{t('footer.help')}</p>
+          <ul className="grid grid-cols-2 gap-x-6 md:grid-cols-1">
+            {helpLinks.map(([href, label]) => (
+              <li key={href}>
+                <Link href={href} className={link}>
+                  {label}
+                </Link>
+              </li>
+            ))}
+          </ul>
         </nav>
-        <div>
-          <h2>{t('nav.contact')}</h2>
+        <div className="titanium-footer-contact">
+          <p className="mb-3 font-bold">{t('nav.contact')}</p>
           {content ? <FooterContact content={content} locale={locale} /> : null}
-          <InstallApp className="su-footer-install" />
         </div>
       </div>
-      {copyright ? <div className="su-footer-copy"><p className="container-page">{copyright}</p></div> : null}
+      {copyright ? (
+        <div className="titanium-copyright">
+          <p className="container-page py-4 text-xs text-silver/80">{copyright}</p>
+        </div>
+      ) : null}
     </footer>
   );
 }
 
-function Row({ icon, label, children, href, external }: { icon: ContactIconName; label: string; children: ReactNode; href?: string; external?: boolean }) {
-  const body = <><ContactIcon name={icon} /><span className="su-contact-text"><span className="su-contact-label">{label}</span><span className="su-contact-value">{children}</span></span></>;
-  return <li>{href ? <a className="su-contact-row" href={href} {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>{body}</a> : <div className="su-contact-row">{body}</div>}</li>;
-}
-
-/** Contact column, in the order phone, mobile, WhatsApp, Bale, Telegram, Instagram, e-mail, hours. Empty channels are left out. */
+/**
+ * The footer's contact column: phone, mobile, WhatsApp, Telegram, Bale, Instagram (each from its own
+ * field in Admin → content → contact), then e-mail, hours and address. Empty channels are left out,
+ * so nothing is duplicated and no placeholder icons are shown.
+ */
 function FooterContact({ content, locale }: { content: SiteContentView; locale: 'fa' | 'en' }) {
   const fa = locale === 'fa';
-  const ch = resolveContactChannels(content.contact, content.social.links);
-  const hours = localize(content.contact.hours, locale);
-  const phoneHours = hours && !isLegacyHours(hours) ? hours : '';
-  return <ul className="su-contact" data-testid="footer-contact">
-    {ch.phone ? <Row icon="phone" label={fa ? 'تلفن' : 'Phone'} href={telHref(ch.phone, ch.phoneExtension)}>
-      <bdi dir="ltr">{iranNumberText(ch.phone, locale)}</bdi>{ch.phoneExtension ? <span className="su-contact-ext"> ({fa ? `داخلی ${faDigits(ch.phoneExtension)}` : `ext. ${ch.phoneExtension}`})</span> : null}
-    </Row> : null}
-    {ch.mobile ? <Row icon="mobile" label={fa ? 'موبایل' : 'Mobile'} href={telHref(ch.mobile)}><bdi dir="ltr">{iranNumberText(ch.mobile, locale)}</bdi></Row> : null}
-    {ch.whatsapp ? <Row icon="whatsapp" label={fa ? 'واتس‌اپ' : 'WhatsApp'} href={whatsappHref(ch.whatsapp)} external><bdi dir="ltr">{whatsappText(ch.whatsapp)}</bdi></Row> : null}
-    {ch.bale ? <Row icon="bale" label={fa ? 'بله' : 'Bale'} href={/^https:/i.test(ch.bale) ? ch.bale : `https://ble.ir/${ch.bale.replace(/^@/, '')}`} external><bdi dir="ltr">{channelText('bale', ch.bale)}</bdi></Row> : null}
-    {ch.telegram ? <Row icon="telegram" label={fa ? 'تلگرام' : 'Telegram'} href={/^https:/i.test(ch.telegram) ? ch.telegram : `https://t.me/${ch.telegram.replace(/^@/, '')}`} external><bdi dir="ltr">{channelText('telegram', ch.telegram)}</bdi></Row> : null}
-    {ch.instagram ? <Row icon="instagram" label={fa ? 'اینستاگرام' : 'Instagram'} href={/^https:/i.test(ch.instagram) ? ch.instagram : `https://instagram.com/${ch.instagram.replace(/^@/, '')}`} external><bdi dir="ltr">{channelText('instagram', ch.instagram)}</bdi></Row> : null}
-    {content.contact.email ? <Row icon="email" label={fa ? 'ایمیل' : 'Email'} href={`mailto:${content.contact.email}`}><bdi dir="ltr">{content.contact.email}</bdi></Row> : null}
-    <Row icon="hours" label={fa ? 'ساعت پاسخ‌گویی' : 'Response hours'}>
-      <span className="block">{fa ? 'هکسی: ۲۴ ساعته' : 'Hexi: 24 hours'}</span>
-      {phoneHours ? <span className="block">{fa ? 'تلفن' : 'Phone'}: {phoneHours}</span> : null}
-    </Row>
+  const contact = content.contact;
+  const ch = resolveContactChannels(contact, content.social.links);
+  const names: Record<ContactChannelKey, string> = fa
+    ? { phone: 'تلفن', mobile: 'موبایل', whatsapp: 'واتس‌اپ', telegram: 'تلگرام', bale: 'بله', instagram: 'اینستاگرام' }
+    : { phone: 'Phone', mobile: 'Mobile', whatsapp: 'WhatsApp', telegram: 'Telegram', bale: 'Bale', instagram: 'Instagram' };
+  const external = (k: ContactChannelKey) => k !== 'phone' && k !== 'mobile';
+  const address = localize(contact.address, locale);
+  // Older content kept the Instagram handle in the address field; don't show it twice.
+  const showAddress = address && !(ch.instagram && /اینستاگرام|instagram/i.test(address));
+  const hours = localize(contact.hours, locale);
+  const rows = CONTACT_CHANNEL_ORDER.filter((k) => ch[k]).map((k) => ({
+    key: k, icon: k as ContactIconName, label: names[k], href: channelHref(k, ch[k], k === 'phone' ? ch.phoneExtension : '')!, external: external(k),
+    value: <><bdi dir="ltr">{channelText(k, ch[k])}</bdi>{k === 'phone' && ch.phoneExtension ? <span className="footer-contact-ext">{fa ? 'داخلی' : 'ext.'} {ch.phoneExtension}</span> : null}</>,
+  }));
+  return <ul className="footer-contact-list" data-testid="footer-contact">
+    {rows.map((r) => <li key={r.key}><a className="footer-contact-row" href={r.href} {...(r.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}><ContactIcon name={r.icon} /><span className="footer-contact-text"><span className="footer-contact-label">{r.label}</span><span className="footer-contact-value">{r.value}</span></span></a></li>)}
+    {contact.email ? <li><a className="footer-contact-row" href={`mailto:${contact.email}`}><ContactIcon name="email" /><span className="footer-contact-text"><span className="footer-contact-label">{fa ? 'ایمیل' : 'Email'}</span><span className="footer-contact-value"><bdi dir="ltr">{contact.email}</bdi></span></span></a></li> : null}
+    {hours ? <li><div className="footer-contact-row"><ContactIcon name="hours" /><span className="footer-contact-text"><span className="footer-contact-label">{fa ? 'ساعت پاسخ‌گویی' : 'Support hours'}</span><span className="footer-contact-value">{hours}</span></span></div></li> : null}
+    {showAddress ? <li><div className="footer-contact-row"><ContactIcon name="address" /><span className="footer-contact-text"><span className="footer-contact-label">{fa ? 'آدرس' : 'Address'}</span><span className="footer-contact-value">{address}</span></span></div></li> : null}
   </ul>;
 }
