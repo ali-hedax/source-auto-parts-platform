@@ -4,7 +4,11 @@ import { CartClient } from '@/components/commerce/cart-view';
 import { ChapterBand } from '@/components/store/chapter-band';
 import { PurchaseSteps } from '@/components/store/purchase-steps';
 
-export const metadata: Metadata = { robots: { index: false, follow: false } };
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale });
+  return { title: t('seo.cartTitle'), description: t('seo.cartDescription'), robots: { index: false, follow: false } };
+}
 
 export default async function CartPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;

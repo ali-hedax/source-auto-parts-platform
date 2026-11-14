@@ -1,136 +1,102 @@
 'use client';
 
-import type { MeView, SourcingRequestView, VehicleBrandView } from '@hedax/contracts';
-import { CheckCircle2, ChevronDown, Info, Package, Plus, Trash2 } from 'lucide-react';
+import type { GuestSourcingResult, MeView, VehicleBrandView } from '@hedax/contracts';
+import { normalizeIranMobile } from '@hedax/domain';
+import { CheckCircle2, ImagePlus, Send, X } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Button, ButtonLink } from '@/components/ui/button';
+import { useEffect, useRef, useState } from 'react';
 import { ErrorSummary, type SummaryError } from '@/components/ui/error-summary';
-import { Field, Input, Select, Textarea } from '@/components/ui/field';
-import { Alert } from '@/components/ui/misc';
-import { FileUploader } from '@/components/files/file-uploader';
+import { Field, Input, Textarea } from '@/components/ui/field';
+import { Link } from '@/i18n/navigation';
 import { api } from '@/lib/api/client';
 import { randomId } from '@/lib/random-id';
 import { errorText, isApiError } from '@/lib/api/errors';
 
-interface ItemDraft {
-  partName: string;
-  quantity: string;
-  brand: string; // vehicle brand id | '__other' | ''
-  brandText: string;
-  vehicleModel: string;
-  vehicleYear: string;
-  partCode: string;
-  vin: string;
-  preference: 'ANY' | 'GENUINE' | 'AFTERMARKET' | 'STOCK';
-  notes: string;
-}
-
 interface Draft {
   clientRequestId: string;
-  title: string;
-  items: ItemDraft[];
-  note: string;
-  urgency: 'NORMAL' | 'URGENT';
-  province: string;
-  city: string;
+  partName: string;
+  vehicle: string;
+  trim: string;
+  year: string;
+  partCode: string;
+  vin: string;
+  notes: string;
+  fullName: string;
+  mobile: string;
 }
 
-const DRAFT_KEY = 'hedax:request-draft';
-const emptyItem = (partName = ''): ItemDraft => ({ partName, quantity: '1', brand: '', brandText: '', vehicleModel: '', vehicleYear: '', partCode: '', vin: '', preference: 'ANY', notes: '' });
-const newDraft = (): Draft => ({ clientRequestId: `draft-${randomId()}`, title: '', items: [emptyItem()], note: '', urgency: 'NORMAL', province: '', city: '' });
+const DRAFT_KEY = 'hedax:request-draft-v2';
+const MAX_PHOTOS = 3;
+const newDraft = (): Draft => ({ clientRequestId: `req-${randomId()}`, partName: '', vehicle: '', trim: '', year: '', partCode: '', vin: '', notes: '', fullName: '', mobile: '' });
 const toAscii = (s: string) => s.replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d))).replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)));
 
 /**
- * Multi-item sourcing request for any brand (A03). Brand = managed list OR free
- * text; VIN/part code are optional. The draft survives reloads, language
- * switches and a sign-in detour (spec §15).
+ * «درخواست تأمین قطعه» — no sign-in needed. Required: part, vehicle, mobile; everything else optional.
+ * The request is filed under the account of that mobile number (created if new) and the answer goes to
+ * the same number by Bale and SMS. A signed-in customer's own account is used and the number is not asked.
+ * The draft survives reloads; a hidden trap field and server limits stop automated submissions.
  */
 export function RequestForm({ brands }: { brands: VehicleBrandView[] }) {
   const t = useTranslations();
   const locale = useLocale() as 'fa' | 'en';
+  const fa = locale === 'fa';
   const search = useSearchParams();
   const [draft, setDraft] = useState<Draft | null>(null);
-  const [files, setFiles] = useState<string[]>([]);
-  const [filesBusy, setFilesBusy] = useState(false);
+  const [photos, setPhotos] = useState<File[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [me, setMe] = useState<MeView | null | undefined>(undefined);
   const [submitting, setSubmitting] = useState(false);
-  const [done, setDone] = useState<SourcingRequestView | null>(null);
-  const [savedNote, setSavedNote] = useState(false);
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // The success panel replaces the long form: move focus (and the view, on phones) to it.
+  const [done, setDone] = useState<GuestSourcingResult | null>(null);
+  const trap = useRef<HTMLInputElement>(null);
   const successRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (done) successRef.current?.focus();
-  }, [done]);
+  useEffect(() => { if (done) successRef.current?.focus(); }, [done]);
 
   useEffect(() => {
     let initial: Draft | null = null;
-    try {
-      const raw = localStorage.getItem(DRAFT_KEY);
-      if (raw) initial = JSON.parse(raw) as Draft;
-    } catch {
-      /* storage unavailable */
+    try { const raw = localStorage.getItem(DRAFT_KEY); if (raw) initial = { ...newDraft(), ...(JSON.parse(raw) as Partial<Draft>) }; } catch { /* storage unavailable */ }
+    // Arriving from a part («?part=&code=»), a vehicle («?vehicle=») or the vehicle finder («?vehicleBrand=&vehicleModel=&vehicleYear=»).
+    const part = (search.get('part') ?? '').slice(0, 200);
+    const brand = brands.find((b) => b.slug === search.get('vehicleBrand'));
+    const vehicle = [search.get('vehicle') ?? '', brand ? (fa ? brand.name.fa : brand.name.en || brand.name.fa) : '', search.get('vehicleModel') ?? ''].filter(Boolean).join(' ').slice(0, 80);
+    if (part || vehicle) {
+      initial = { ...(initial ?? newDraft()), clientRequestId: `req-${randomId()}` };
+      if (part) { initial.partName = part; initial.partCode = (search.get('code') ?? '').slice(0, 64); }
+      if (vehicle) initial.vehicle = vehicle;
+      const year = toAscii(search.get('vehicleYear') ?? '').replace(/\D/g, '').slice(0, 4);
+      if (year) initial.year = year;
     }
-    const part = search.get('part');
-    // From the vehicle finder (no parts for the chosen vehicle): group, vehicle/model text and year.
-    const vehicleModel = (search.get('vehicleModel') ?? '').slice(0, 80);
-    const fromVehicle = !part && (search.has('vehicleBrand') || vehicleModel !== '');
-    if (!initial || (part && !initial.items.some((i) => i.partName === part)) || (fromVehicle && !initial.items.some((i) => i.vehicleModel === vehicleModel))) {
-      initial = newDraft();
-      if (part) {
-        initial.title = part.slice(0, 200);
-        // «درخواست تأمین» on a catalog part also brings its technical number (?code=).
-        initial.items = [{ ...emptyItem(part.slice(0, 200)), partCode: (search.get('code') ?? '').slice(0, 80) }];
-      } else if (fromVehicle) {
-        const brand = brands.find((b) => b.slug === search.get('vehicleBrand'))?.code ?? '';
-        initial.items = [{ ...emptyItem(), brand, vehicleModel, vehicleYear: toAscii(search.get('vehicleYear') ?? '').replace(/\D/g, '').slice(0, 4) }];
-      }
-    }
-    setDraft(initial);
+    setDraft(initial ?? newDraft());
     api<MeView>('/me').then(setMe).catch(() => setMe(null));
-  }, [search, brands]);
+  }, [search, brands, fa]);
 
   useEffect(() => {
     if (!draft) return;
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => {
-      try {
-        localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-        setSavedNote(true);
-      } catch {
-        /* ignore */
-      }
-    }, 500);
+    const timer = setTimeout(() => { try { localStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch { /* ignore */ } }, 400);
+    return () => clearTimeout(timer);
   }, [draft]);
 
-  const onFiles = useCallback((ids: string[], busy: boolean) => {
-    setFiles(ids);
-    setFilesBusy(busy);
-  }, []);
-
-  const set = <K extends keyof Draft>(key: K, value: Draft[K]) => setDraft((d) => (d ? { ...d, [key]: value } : d));
-  const setItem = (index: number, patch: Partial<ItemDraft>) =>
-    setDraft((d) => (d ? { ...d, items: d.items.map((it, i) => (i === index ? { ...it, ...patch } : it)) } : d));
-
-  const brandName = useMemo(() => (b: VehicleBrandView) => (locale === 'en' ? (b.name.en ?? b.name.fa) : b.name.fa), [locale]);
+  const set = (key: keyof Draft, value: string) => setDraft((d) => (d ? { ...d, [key]: value } : d));
+  const customer = me?.kind === 'CUSTOMER';
 
   const validate = (d: Draft): Record<string, string> => {
     const e: Record<string, string> = {};
-    if (d.title.trim().length < 3) e['req-title'] = `${t('request.requestTitle')}: ${t('validation.tooShort')}`;
-    const filled = d.items.filter((i) => i.partName.trim());
-    if (filled.length === 0 && files.length === 0) e['item-0-name'] = t('validation.itemsOrFiles');
-    d.items.forEach((it, i) => {
-      if (!it.partName.trim()) return;
-      const n = Number(toAscii(it.quantity));
-      if (!Number.isInteger(n) || n < 1) e[`item-${i}-qty`] = `${t('request.item', { n: i + 1 })} — ${t('request.quantity')}: ${t('validation.invalidNumber')}`;
-      if (!it.brand || (it.brand === '__other' && !it.brandText.trim())) e[`item-${i}-brand`] = `${t('request.item', { n: i + 1 })} — ${t('validation.brandRequired')}`;
-      if (it.vehicleYear && !/^\d{4}$/.test(toAscii(it.vehicleYear))) e[`item-${i}-year`] = `${t('request.item', { n: i + 1 })} — ${t('request.vehicleYear')}: ${t('validation.invalidNumber')}`;
-    });
+    if (d.partName.trim().length < 2) e['req-part'] = t('request.errPart');
+    if (d.vehicle.trim().length < 2) e['req-vehicle'] = t('request.errVehicle');
+    if (!customer && !normalizeIranMobile(toAscii(d.mobile)).ok) e['req-mobile'] = t('request.errMobile');
+    const year = toAscii(d.year).trim();
+    if (year && !(/^\d{4}$/.test(year) && Number(year) >= 1300 && Number(year) <= 2100)) e['req-year'] = t('request.errYear');
+    const vin = toAscii(d.vin).trim().toUpperCase();
+    if (vin && !/^[A-HJ-NPR-Z0-9]{11,17}$/.test(vin)) e['req-vin'] = t('request.errVin');
     return e;
+  };
+
+  const addPhotos = (list: FileList | null) => {
+    if (!list) return;
+    const images = [...list].filter((f) => /^image\/(jpeg|png|webp)$/.test(f.type) && f.size <= 10 * 1024 * 1024);
+    if (images.length < list.length) setGeneralError(t('request.photoRule'));
+    setPhotos((p) => [...p, ...images].slice(0, MAX_PHOTOS));
   };
 
   const submit = async () => {
@@ -141,40 +107,28 @@ export function RequestForm({ brands }: { brands: VehicleBrandView[] }) {
     if (Object.keys(e).length) return;
     setSubmitting(true);
     try {
-      const view = await api<SourcingRequestView>('/sourcing-requests', {
-        method: 'POST',
-        body: {
-          title: draft.title.trim(),
-          clientRequestId: draft.clientRequestId,
-          note: draft.note || undefined,
-          urgency: draft.urgency,
-          deliveryProvince: draft.province || undefined,
-          deliveryCity: draft.city || undefined,
-          attachmentIds: files,
-          items: draft.items
-            .filter((i) => i.partName.trim())
-            .map((i) => ({
-              partName: i.partName.trim(),
-              quantity: Number(toAscii(i.quantity)),
-              vehicleBrandCode: i.brand && i.brand !== '__other' ? i.brand : null,
-              vehicleBrandText: i.brand === '__other' ? i.brandText.trim() : undefined,
-              vehicleModel: i.vehicleModel || undefined,
-              vehicleYear: i.vehicleYear ? Number(toAscii(i.vehicleYear)) : null,
-              partCode: i.partCode || undefined,
-              vin: i.vin ? toAscii(i.vin).toUpperCase() : '',
-              preference: i.preference,
-              notes: i.notes || undefined,
-            })),
-        },
-      });
-      localStorage.removeItem(DRAFT_KEY);
-      setDone(view);
+      const year = toAscii(draft.year).trim();
+      const payload = {
+        clientRequestId: draft.clientRequestId,
+        partName: draft.partName.trim(),
+        vehicle: draft.vehicle.trim(),
+        trim: draft.trim.trim() || undefined,
+        vehicleYear: year ? Number(year) : null,
+        partCode: draft.partCode.trim() || undefined,
+        vin: toAscii(draft.vin).trim().toUpperCase(),
+        notes: draft.notes.trim() || undefined,
+        fullName: draft.fullName.trim() || undefined,
+        mobile: customer ? undefined : toAscii(draft.mobile).trim(),
+        website: trap.current?.value ?? '',
+      };
+      const form = new FormData();
+      form.set('payload', JSON.stringify(payload));
+      for (const p of photos) form.append('files', p, p.name);
+      const result = await api<GuestSourcingResult>('/sourcing-requests/guest', { method: 'POST', body: form });
+      try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
+      setDone(result);
     } catch (err) {
-      if (isApiError(err) && err.fields.length) {
-        setGeneralError(t('errors.VALIDATION_FAILED'));
-      } else {
-        setGeneralError(errorText(t, err));
-      }
+      setGeneralError(isApiError(err) && err.code === 'RATE_LIMITED' ? t('request.tooMany') : isApiError(err) && err.code === 'MOBILE_NOT_ACCEPTED' ? t('request.mobileNotAccepted') : errorText(t, err));
     } finally {
       setSubmitting(false);
     }
@@ -184,132 +138,82 @@ export function RequestForm({ brands }: { brands: VehicleBrandView[] }) {
 
   if (done) {
     return (
-      <div ref={successRef} tabIndex={-1} className="card flex flex-col items-start gap-4 border-success/40 p-6 focus:outline-none sm:p-8" role="status">
-        <span className="grid size-12 place-items-center rounded-full bg-success-soft text-success"><CheckCircle2 aria-hidden className="size-7" /></span>
-        <h2 className="text-xl font-bold">{t('request.success', { reference: done.reference })}</h2>
-        <p className="max-w-prose leading-7 text-steel">{t('request.successHint')}</p>
-        <ButtonLink href={`/account/requests/${done.id}`}>{t('request.viewRequest')}</ButtonLink>
+      <div ref={successRef} tabIndex={-1} className="su-request-done" role="status">
+        <CheckCircle2 aria-hidden size={40} />
+        <h2>{t('request.success', { reference: done.reference })}</h2>
+        <p>{t('request.replyChannels')}</p>
+        <div className="su-actions">
+          {customer ? <Link href="/account/requests" className="su-btn su-btn-primary">{t('request.viewRequest')}</Link>
+            : <Link href={`/login?next=${encodeURIComponent(`/${locale}/account/requests`)}`} className="su-btn su-btn-primary">{t('request.followUp')}</Link>}
+          <Link href="/parts" className="su-btn su-btn-outline">{t('nav.parts')}</Link>
+        </div>
       </div>
     );
   }
 
   const summary: SummaryError[] = Object.entries(errors).map(([fieldId, message]) => ({ fieldId, message }));
-  const loginHref = `/${locale}/login?next=${encodeURIComponent(`/${locale}/request-part`)}`;
-
+  const optional = t('common.optional');
   return (
-    <form noValidate onSubmit={(ev) => { ev.preventDefault(); void submit(); }} className="flex flex-col gap-6">
+    <form noValidate onSubmit={(ev) => { ev.preventDefault(); void submit(); }} className="su-request-form">
       <ErrorSummary title={t('validation.summaryTitle')} errors={summary} generalError={generalError} />
-      {me === null ? (
-        <Alert tone="info" title={t('request.loginRequired')}>
-          <a href={loginHref} className="font-semibold text-action underline underline-offset-4 hover:text-action-hover">{t('nav.login')}</a>
-        </Alert>
-      ) : null}
-
-      <div className="card flex flex-col gap-4 p-5 sm:p-6">
-        <Field id="req-title" label={t('request.requestTitle')} hint={t('request.requestTitleHint')} error={errors['req-title']} required>
-          <Input id="req-title" value={draft.title} maxLength={200} invalid={!!errors['req-title']} aria-describedby="req-title-hint" onChange={(e) => set('title', e.target.value)} />
+      <div className="su-form-grid">
+        <Field id="req-part" label={t('request.partName')} error={errors['req-part']} required className="su-span-2">
+          <Input id="req-part" value={draft.partName} maxLength={200} invalid={!!errors['req-part']} autoComplete="off" onChange={(e) => set('partName', e.target.value)} />
         </Field>
-        <p className="flex gap-2 border-t border-line-soft pt-3 text-sm leading-6 text-steel"><Info aria-hidden className="mt-0.5 size-4 shrink-0" />{t('request.filesOnly')}</p>
-      </div>
-
-      <fieldset className="flex flex-col gap-4">
-        <legend className="mb-3 text-lg font-bold">{t('request.items')}</legend>
-        {draft.items.map((it, i) => (
-          <div key={i} className="card flex flex-col gap-4 p-5 sm:p-6">
-            <div className="-mt-1 flex min-h-11 items-center justify-between gap-3 border-b border-line-soft pb-3">
-              <h3 className="flex items-center gap-2 font-bold"><Package aria-hidden className="size-4 text-steel" />{t('request.item', { n: i + 1 })}</h3>
-              {draft.items.length > 1 ? (
-                <Button variant="ghost" size="sm" onClick={() => set('items', draft.items.filter((_, j) => j !== i))} icon={<Trash2 aria-hidden className="size-4" />}>
-                  {t('request.removeItem', { n: i + 1 })}
-                </Button>
-              ) : null}
-            </div>
-            <div className="grid gap-4 md:grid-cols-[2fr_1fr]">
-              <Field id={`item-${i}-name`} label={t('request.partName')} error={i === 0 ? errors['item-0-name'] : undefined}>
-                <Input id={`item-${i}-name`} value={it.partName} maxLength={200} onChange={(e) => setItem(i, { partName: e.target.value })} />
-              </Field>
-              <Field id={`item-${i}-qty`} label={t('request.quantity')} error={errors[`item-${i}-qty`]}>
-                <Input id={`item-${i}-qty`} inputMode="numeric" value={it.quantity} invalid={!!errors[`item-${i}-qty`]} onChange={(e) => setItem(i, { quantity: e.target.value })} />
-              </Field>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <Field id={`item-${i}-brand`} label={t('request.vehicleBrand')} error={errors[`item-${i}-brand`]}>
-                <Select id={`item-${i}-brand`} value={it.brand} invalid={!!errors[`item-${i}-brand`]} onChange={(e) => setItem(i, { brand: e.target.value })}>
-                  <option value="">{t('request.chooseBrand')}</option>
-                  {brands.map((b) => <option key={b.code} value={b.code}>{brandName(b)}</option>)}
-                  <option value="__other">{t('request.otherBrand')}</option>
-                </Select>
-              </Field>
-              {it.brand === '__other' ? (
-                <Field id={`item-${i}-brandtext`} label={t('request.brandText')}>
-                  <Input id={`item-${i}-brandtext`} value={it.brandText} maxLength={80} onChange={(e) => setItem(i, { brandText: e.target.value })} />
-                </Field>
-              ) : null}
-            </div>
-            <div className="grid gap-4 md:grid-cols-3">
-              <Field id={`item-${i}-model`} label={t('request.vehicleModel')} optionalLabel={t('common.optional')}>
-                <Input id={`item-${i}-model`} value={it.vehicleModel} maxLength={80} onChange={(e) => setItem(i, { vehicleModel: e.target.value })} />
-              </Field>
-              <Field id={`item-${i}-year`} label={t('request.vehicleYear')} optionalLabel={t('common.optional')} error={errors[`item-${i}-year`]}>
-                <Input id={`item-${i}-year`} inputMode="numeric" value={it.vehicleYear} onChange={(e) => setItem(i, { vehicleYear: e.target.value })} />
-              </Field>
-              <Field id={`item-${i}-pref`} label={t('request.preference')}>
-                <Select id={`item-${i}-pref`} value={it.preference} onChange={(e) => setItem(i, { preference: e.target.value as ItemDraft['preference'] })}>
-                  {(['ANY', 'GENUINE', 'AFTERMARKET', 'STOCK'] as const).map((p) => <option key={p} value={p}>{t(`request.pref_${p}`)}</option>)}
-                </Select>
-              </Field>
-            </div>
-            {/* Shown open when it already holds a value (e.g. the technical number brought from the catalog). */}
-            <details className="group rounded-[var(--radius-control)] border border-dashed border-line px-3" {...(it.partCode || it.vin ? { open: true } : {})}>
-              <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-sm font-semibold text-action [&::-webkit-details-marker]:hidden"><ChevronDown aria-hidden className="size-4 transition-transform duration-200 group-open:rotate-180" />{t('request.partCode')} / {t('request.vin')} ({t('common.optional')})</summary>
-              <div className="grid gap-4 pb-4 pt-1 md:grid-cols-2">
-                <Field id={`item-${i}-code`} label={t('request.partCode')} optionalLabel={t('common.optional')}>
-                  <Input id={`item-${i}-code`} dir="ltr" value={it.partCode} maxLength={64} onChange={(e) => setItem(i, { partCode: e.target.value })} />
-                </Field>
-                <Field id={`item-${i}-vin`} label={t('request.vin')} hint={t('request.vinHint')} optionalLabel={t('common.optional')}>
-                  <Input id={`item-${i}-vin`} dir="ltr" value={it.vin} maxLength={17} aria-describedby={`item-${i}-vin-hint`} onChange={(e) => setItem(i, { vin: e.target.value })} />
-                </Field>
-              </div>
-            </details>
-            <Field id={`item-${i}-notes`} label={t('request.notes')} optionalLabel={t('common.optional')}>
-              <Textarea id={`item-${i}-notes`} rows={2} value={it.notes} maxLength={1000} onChange={(e) => setItem(i, { notes: e.target.value })} />
-            </Field>
-          </div>
-        ))}
-        <div>
-          <Button variant="secondary" onClick={() => set('items', [...draft.items, emptyItem()])} disabled={draft.items.length >= 100} icon={<Plus aria-hidden className="size-4" />}>
-            {t('request.addItem')}
-          </Button>
-        </div>
-      </fieldset>
-
-      <div className="card flex flex-col gap-4 p-5 sm:p-6">
-        <FileUploader purpose="SOURCING_REQUEST" onChange={onFiles} id="req-files" label={t('request.files')} disabled={me === null} />
-        <Field id="req-note" label={t('request.overallNote')} optionalLabel={t('common.optional')}>
-          <Textarea id="req-note" value={draft.note} maxLength={3000} onChange={(e) => set('note', e.target.value)} />
+        <Field id="req-vehicle" label={t('request.vehicle')} hint={t('request.vehicleHint')} error={errors['req-vehicle']} required>
+          <Input id="req-vehicle" value={draft.vehicle} maxLength={80} invalid={!!errors['req-vehicle']} aria-describedby="req-vehicle-hint" onChange={(e) => set('vehicle', e.target.value)} />
         </Field>
-        <div className="grid gap-4 md:grid-cols-3">
-          <Field id="req-urgency" label={t('request.urgency')}>
-            <Select id="req-urgency" value={draft.urgency} onChange={(e) => set('urgency', e.target.value as Draft['urgency'])}>
-              <option value="NORMAL">{t('request.urgency_NORMAL')}</option>
-              <option value="URGENT">{t('request.urgency_URGENT')}</option>
-            </Select>
-          </Field>
-          <Field id="req-province" label={t('request.province')} optionalLabel={t('common.optional')}>
-            <Input id="req-province" value={draft.province} maxLength={80} onChange={(e) => set('province', e.target.value)} />
-          </Field>
-          <Field id="req-city" label={t('request.city')} optionalLabel={t('common.optional')}>
-            <Input id="req-city" value={draft.city} maxLength={80} onChange={(e) => set('city', e.target.value)} />
-          </Field>
+        <Field id="req-trim" label={t('request.trim')} optionalLabel={optional}>
+          <Input id="req-trim" value={draft.trim} maxLength={80} onChange={(e) => set('trim', e.target.value)} />
+        </Field>
+        <Field id="req-year" label={t('request.vehicleYear')} optionalLabel={optional} error={errors['req-year']}>
+          <Input id="req-year" inputMode="numeric" value={draft.year} maxLength={4} invalid={!!errors['req-year']} onChange={(e) => set('year', e.target.value)} />
+        </Field>
+        <Field id="req-code" label={t('request.partCode')} optionalLabel={optional}>
+          <Input id="req-code" dir="ltr" value={draft.partCode} maxLength={64} onChange={(e) => set('partCode', e.target.value)} />
+        </Field>
+        <Field id="req-vin" label={t('request.vin')} hint={t('request.vinHint')} optionalLabel={optional} error={errors['req-vin']} className="su-span-2">
+          <Input id="req-vin" dir="ltr" value={draft.vin} maxLength={17} invalid={!!errors['req-vin']} aria-describedby="req-vin-hint" onChange={(e) => set('vin', e.target.value)} />
+        </Field>
+        <div className="su-span-2 su-photos">
+          <span className="su-field-label">{t('request.photos')} <span className="su-muted">({optional})</span></span>
+          <ul className="su-photo-list">
+            {photos.map((p, i) => (
+              <li key={`${p.name}-${i}`}><span dir="auto">{p.name}</span>
+                <button type="button" className="su-icon-btn" aria-label={`${t('common.remove')}: ${p.name}`} onClick={() => setPhotos((list) => list.filter((_, j) => j !== i))}><X aria-hidden size={16} /></button>
+              </li>
+            ))}
+          </ul>
+          {photos.length < MAX_PHOTOS ? <label className="su-btn su-btn-outline su-photo-pick">
+            <ImagePlus aria-hidden size={18} />{t('request.addPhoto')}
+            <input type="file" accept="image/jpeg,image/png,image/webp" multiple className="sr-only" onChange={(e) => { addPhotos(e.target.files); e.target.value = ''; }} />
+          </label> : null}
+          <p className="su-muted">{t('request.photoRule')}</p>
         </div>
-        <p className="text-xs text-steel">{t('request.delivery')}</p>
+        <Field id="req-notes" label={t('request.notes')} optionalLabel={optional} className="su-span-2">
+          <Textarea id="req-notes" rows={3} value={draft.notes} maxLength={1000} onChange={(e) => set('notes', e.target.value)} />
+        </Field>
+        <Field id="req-name" label={t('request.fullName')} optionalLabel={optional}>
+          <Input id="req-name" value={draft.fullName} maxLength={80} autoComplete="name" onChange={(e) => set('fullName', e.target.value)} />
+        </Field>
+        {customer ? (
+          <p className="su-signed-in">{t('request.signedInAs', { mobile: me?.mobileMasked ?? '' })}</p>
+        ) : (
+          <Field id="req-mobile" label={t('request.mobile')} error={errors['req-mobile']} required>
+            <Input id="req-mobile" dir="ltr" inputMode="tel" autoComplete="tel" placeholder="09xx xxx xxxx" value={draft.mobile} maxLength={20} invalid={!!errors['req-mobile']} onChange={(e) => set('mobile', e.target.value)} />
+          </Field>
+        )}
+        {/* Trap for scripts: hidden from people and assistive technology, never filled by a person. */}
+        <div className="su-trap" aria-hidden>
+          <label htmlFor="req-website">Website</label>
+          <input ref={trap} id="req-website" name="website" type="text" tabIndex={-1} autoComplete="off" defaultValue="" />
+        </div>
       </div>
-
-      <div className="flex flex-wrap items-center gap-4 border-t border-line pt-6">
-        <Button type="submit" size="lg" className="min-w-48" loading={submitting} disabled={filesBusy || me === null}>
-          {submitting ? t('request.submitting') : t('request.submit')}
-        </Button>
-        {savedNote ? <span className="text-sm text-steel" role="status">{t('request.draftSaved')}</span> : null}
+      <div className="su-request-submit">
+        <button type="submit" className="su-btn su-btn-primary su-btn-lg" disabled={submitting} aria-busy={submitting || undefined}>
+          <Send aria-hidden size={18} />{submitting ? t('request.submitting') : t('request.submit')}
+        </button>
+        <p>{t('request.replyNote')}</p>
       </div>
     </form>
   );

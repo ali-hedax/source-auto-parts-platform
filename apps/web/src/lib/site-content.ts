@@ -29,10 +29,11 @@ export function faDigits(text: string): string {
  * Title, description and share image of a page from site content → SEO; anything left empty there
  * falls back to the page's own title and the site's default description and image.
  */
-export function seoMetadata(content: SiteContentView | null, page: SeoPage, locale: string, fallbackTitle?: string): Metadata {
+/** Page title, description and share image: the panel's SEO entry first, then this page's own fallback, then the site default. */
+export function seoMetadata(content: SiteContentView | null, page: SeoPage, locale: string, fallbackTitle?: string, fallbackDescription?: string): Metadata {
   const entry = content?.seo.pages[page];
   const title = localize(entry?.title, locale) || fallbackTitle;
-  const description = localize(entry?.description, locale) || localize(content?.seo.defaultDescription, locale);
+  const description = localize(entry?.description, locale) || fallbackDescription || localize(content?.seo.defaultDescription, locale);
   const image = entry?.imageUrl || content?.seo.defaultImageUrl;
   return {
     ...(title ? { title } : {}),

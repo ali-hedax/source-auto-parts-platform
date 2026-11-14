@@ -64,7 +64,10 @@ export function CartClient() {
   if (!cart.lines.length) {
     return (
       <EmptyState title={t('cart.empty')}>
-        <ButtonLink href="/parts" className="mt-2">{t('cart.browse')}</ButtonLink>
+        <div className="su-actions">
+          <ButtonLink href="/parts?inStock=1">{t('cart.browse')}</ButtonLink>
+          <ButtonLink href="/request-part" variant="secondary">{t('parts.requestSupply')}</ButtonLink>
+        </div>
       </EmptyState>
     );
   }

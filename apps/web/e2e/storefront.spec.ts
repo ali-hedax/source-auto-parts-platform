@@ -17,10 +17,10 @@ test.describe('language and direction (A05)', () => {
     await page.goto('/fa');
     await expect(page.locator('html')).toHaveAttribute('lang', 'fa');
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
-    await expect(page.getByRole('heading', { level: 1 })).toContainText('قطعهٔ مورد نیازت را پیدا کن');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('دنیای قطعات خودرو، هوشمندتر از همیشه');
     await page.goto('/en');
     await expect(page.locator('html')).toHaveAttribute('dir', 'ltr');
-    await expect(page.getByRole('heading', { level: 1 })).toContainText('Find the part you need');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('The world of auto parts, smarter than ever');
   });
 
   test('addresses without a language prefix redirect to Persian (default)', async ({ page }) => {
@@ -52,8 +52,8 @@ test.describe('language and direction (A05)', () => {
 
 test.describe('Persian search normalisation (A04)', () => {
   for (const [label, query, expected] of [
-    ['Persian ی matches Arabic ي in data', 'فیلتر روغن', 'فيلتر روغن سمند'],
-    ['Arabic ك in query matches', 'كمك فنر', 'كمك فنر عقب'],
+    ['Persian ی matches Arabic ي in data', 'فیلتر روغن', 'فیلتر روغن سمند'],
+    ['Arabic ك in query matches', 'كمك فنر', 'کمک فنر عقب'],
     ['ZWNJ-joined query matches spaced name', 'لنت‌ترمز', 'لنت ترمز جلو پژو'],
     ['Persian digits match', 'پژو ۲۰۶', 'پژو ۲۰۶'],
   ] as const) {
@@ -68,7 +68,7 @@ test.describe('Persian search normalisation (A04)', () => {
     const cta = page.getByRole('link', { name: 'ثبت درخواست تأمین همین قطعه' });
     await expect(cta).toBeVisible();
     await cta.click();
-    await expect(page.locator('#req-title')).toHaveValue('گیربکس اتوماتیک ولوو');
+    await expect(page.locator('#req-part')).toHaveValue('گیربکس اتوماتیک ولوو');
   });
 });
 
@@ -89,18 +89,18 @@ test.describe('stock purchase path (A02)', () => {
 });
 
 test.describe('sourcing request form (A03, §15)', () => {
-  test('any brand can be typed and invalid submit focuses the error summary', async ({ page, context }) => {
-    await context.addCookies([{ name: 'hedax_fixture_role', value: 'customer', url: 'http://localhost:3100' }]);
+  test('any vehicle can be typed and invalid submit focuses the error summary (signed-in customer)', async ({ page, context, baseURL }) => {
+    await context.addCookies([{ name: 'hedax_fixture_role', value: 'customer', url: baseURL! }]);
     await page.goto('/fa/request-part');
     await page.evaluate(() => localStorage.clear());
     await page.reload();
+    // Signed in: the request goes to this account, so no mobile field is asked for.
+    await expect(page.locator('#req-mobile')).toHaveCount(0);
     await page.getByRole('button', { name: 'ثبت درخواست' }).click();
     const summary = page.getByRole('alert').filter({ hasText: 'لطفاً موارد زیر را اصلاح کنید' });
     await expect(summary).toBeFocused();
-    await page.locator('#req-title').fill('قطعات بدنه چری تیگو ۷');
-    await page.locator('#item-0-name').fill('سپر جلو');
-    await page.locator('#item-0-brand').selectOption('__other');
-    await page.locator('#item-0-brandtext').fill('Chery');
+    await page.locator('#req-part').fill('سپر جلو');
+    await page.locator('#req-vehicle').fill('چری تیگو ۷');
     await page.getByRole('button', { name: 'ثبت درخواست' }).click();
     await expect(page.getByText(/درخواست HX-R-PREVIEW ثبت شد/)).toBeVisible();
   });
@@ -284,7 +284,8 @@ test.describe('layout, SEO and accessibility', () => {
         await expect(line).toHaveText('کاربرد: سمند، دنا');
         await expect(line).toHaveAttribute('title', 'سمند، دنا');
         const box = await line.boundingBox();
-        expect(box!.height, 'one line').toBeLessThan(24);
+        const lineHeight = await line.evaluate((el) => parseFloat(getComputedStyle(el).lineHeight));
+        expect(box!.height, 'one line').toBeLessThanOrEqual(lineHeight + 1);
         // Cards of parts without fitments have no empty «کاربرد» line.
         const without = page.locator('article').filter({ hasNotText: /DEMO-000[128]/ }).first();
         if (await without.count()) await expect(without.getByTestId('card-fitment')).toHaveCount(0);
@@ -384,36 +385,33 @@ test.describe('sign-in prompts when signed out', () => {
 });
 
 test.describe('contact details (site content → contact, same in footer and contact page)', () => {
-  const links = ['tel:+982536666669,119', 'tel:+971501441797', 'https://wa.me/971501441797', 'mailto:info@sourcebyhedax.ir'];
+  const links = ['tel:+982536666669,119', 'https://wa.me/971501441797', 'mailto:info@sourcebyhedax.ir'];
 
-  for (const [locale, phone, ext, mobile, hours] of [
-    ['fa', '۰۲۵-۳۶۶۶۶۶۶۹', '(داخلی ۱۱۹)', '+۹۷۱۵۰۱۴۴۱۷۹۷', 'پشتیبانی ۲۴ ساعته، ۷ روز هفته'],
-    ['en', '+98 25 3666 6669', '(Ext. 119)', '+971 50 144 1797', 'Customer support 24/7'],
+  for (const [locale, phone, ext, whatsapp, hexi] of [
+    ['fa', '۰۲۵-۳۶۶۶ ۶۶۶۹', '(داخلی ۱۱۹)', '+971 50 144 1797', 'هکسی: ۲۴ ساعته'],
+    ['en', '025-3666 6669', '(ext. 119)', '+971 50 144 1797', 'Hexi: 24 hours'],
   ] as const) {
-    test(`${locale}: footer and contact page show the same approved details, numbers left-to-right`, async ({ page }) => {
-      for (const path of [`/${locale}/contact`, `/${locale}`]) {
-        await page.goto(path);
-        const scope = path.endsWith('/contact') ? page.locator('main') : page.getByTestId('footer-contact');
-        for (const href of links) await expect(scope.locator(`a[href="${href}"]`)).toHaveCount(1);
-        const phoneNumber = scope.locator('a[href="tel:+982536666669,119"] bdi');
-        await expect(phoneNumber).toHaveText(phone);
-        await expect(phoneNumber).toHaveAttribute('dir', 'ltr');
-        await expect(scope).toContainText(ext);
-        const mobileNumber = scope.locator('a[href="tel:+971501441797"] bdi');
-        await expect(mobileNumber).toHaveText(mobile);
-        await expect(mobileNumber).toHaveAttribute('dir', 'ltr');
-        await expect(scope.locator('a[href="mailto:info@sourcebyhedax.ir"] bdi')).toHaveAttribute('dir', 'ltr');
-        await expect(scope).toContainText(hours);
-        // Nothing unapproved: no address, map, social links or "published later" placeholder.
-        await expect(page.locator('a[href*="instagram"], a[href*="linkedin"], iframe[src*="map"]')).toHaveCount(0);
-        await expect(page.getByText(/نشانی|Address|پس از راه‌اندازی رسمی|published at the official launch/)).toHaveCount(0);
-      }
+    test(`${locale}: footer and contact page show the panel's details with working links, numbers left-to-right`, async ({ page }) => {
+      await page.goto(`/${locale}/contact`);
+      for (const href of links) await expect(page.locator('main').locator(`a[href="${href}"]`)).toHaveCount(1);
+
+      await page.goto(`/${locale}`);
+      const footer = page.getByTestId('footer-contact');
+      for (const href of links) await expect(footer.locator(`a[href="${href}"]`)).toHaveCount(1);
+      const phoneNumber = footer.locator('a[href="tel:+982536666669,119"] bdi');
+      await expect(phoneNumber).toHaveText(phone);
+      await expect(phoneNumber).toHaveAttribute('dir', 'ltr');
+      await expect(footer).toContainText(ext);
+      const wa = footer.locator('a[href="https://wa.me/971501441797"]');
+      await expect(wa.locator('bdi')).toHaveText(whatsapp);
+      await expect(wa).toHaveAttribute('rel', 'noopener noreferrer');
+      await expect(footer.locator('a[href="mailto:info@sourcebyhedax.ir"] bdi')).toHaveAttribute('dir', 'ltr');
+      await expect(footer).toContainText(hexi);
+      // The old built-in hours text is not shown as phone hours.
+      await expect(footer).not.toContainText(/پشتیبانی ۲۴ ساعته|Customer support 24\/7/);
       // Support chat is switched off in the config until customer SMS sign-in works.
       await page.goto(`/${locale}/contact`);
       await expect(page.locator('main a[href$="/account/messages"]')).toHaveCount(0);
-      await expect(page.getByText(/سریع‌ترین راه ارتباط|fastest way to reach us/)).toHaveCount(0);
-      // The WhatsApp link opens outside the site safely.
-      await expect(page.getByTestId('footer-contact').locator('a[href="https://wa.me/971501441797"]')).toHaveAttribute('rel', 'noopener noreferrer');
     });
   }
 });

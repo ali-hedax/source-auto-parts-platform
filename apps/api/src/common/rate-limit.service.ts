@@ -22,6 +22,10 @@ export const LIMITS = {
   assistantPerIp: { bucket: 'assistant:ip', limit: 30, windowSeconds: 60 },
   operatorPerIp: { bucket: 'operator:ip', limit: 10, windowSeconds: 3600 },
   sourcingPerUser: { bucket: 'sourcing:user', limit: 20, windowSeconds: 3600 },
+  /** Requests sent without signing in: a person needs a few, a script is stopped early. */
+  guestSourcingPerIp: { bucket: 'sourcing-guest:ip', limit: 5, windowSeconds: 3600 },
+  guestSourcingPerIpDay: { bucket: 'sourcing-guest:ip-day', limit: 15, windowSeconds: 86_400 },
+  guestSourcingPerPhone: { bucket: 'sourcing-guest:phone', limit: 5, windowSeconds: 86_400 },
   invitePerActor: { bucket: 'invite:actor', limit: 30, windowSeconds: 3600 },
   staffErasePerActor: { bucket: 'staff-erase:actor', limit: 20, windowSeconds: 3600 },
   inviteResendPerInvitation: { bucket: 'invite-resend:invitation', limit: 5, windowSeconds: 3600 },

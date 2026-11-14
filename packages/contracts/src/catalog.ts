@@ -26,7 +26,8 @@ export const productListQuerySchema = z.object({
   group: z.string().max(64).optional(),
   /** Vehicle finder: model year, in the model's own calendar (requires `model`). */
   year: z.coerce.number().int().min(1300).max(2100).optional(),
-  category: z.string().max(64).optional(),
+  /** Category slug, or several separated by commas (any of them). */
+  category: z.string().max(400).optional(),
   /** Manufacturer (part brand) slug. */
   maker: z.string().max(80).optional(),
   partType: partTypeSchema.optional(),

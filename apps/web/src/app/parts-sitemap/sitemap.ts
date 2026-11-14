@@ -33,6 +33,6 @@ export default async function sitemap(props: { id: Promise<string> }): Promise<M
   return parts.map((p) => ({
     url: `${base}/fa/parts/${p.slug}`,
     lastModified: p.updatedAt,
-    alternates: { languages: { fa: `${base}/fa/parts/${p.slug}`, en: `${base}/en/parts/${p.slug}` } },
+    // Persian pages only (the English pages are noindex for now).
   }));
 }

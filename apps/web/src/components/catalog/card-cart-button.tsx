@@ -10,7 +10,7 @@ import { api } from '@/lib/api/client';
 import { cartChanged } from '@/lib/cart-count';
 import { errorText } from '@/lib/api/errors';
 
-/** Uses the same CSRF-protected cart and sales-unit rules as the detail page. */
+/** «افزودن به سبد» on a card: the same CSRF-protected cart call and sales-unit rules as the product page. */
 export function CardCartButton({ productId, name, unit }: { productId: string; name: string; unit: UnitRef }) {
   const t = useTranslations();
   const busy = useRef(false);
@@ -29,13 +29,14 @@ export function CardCartButton({ productId, name, unit }: { productId: string; n
     } catch (e) { setState('error'); setError(errorText(t, e)); }
     finally { busy.current = false; }
   }
-  return <div className="part-card-purchase">
-    <button type="button" className="part-card-cart" onClick={add} disabled={state === 'adding'} aria-busy={state === 'adding' || undefined} aria-label={`${state === 'adding' ? t('parts.adding') : t('parts.addToCart')}: ${name}`} title={t('parts.addToCart')}>
-      {state === 'adding' ? <Loader2 aria-hidden className="size-6 animate-spin" /> : state === 'added' ? <Check aria-hidden className="size-6" /> : <ShoppingCart aria-hidden className="size-6" fill="currentColor" strokeWidth={1.6} />}
+  return <div className="su-card-buy">
+    <button type="button" className="su-btn su-btn-primary su-btn-block su-card-action" onClick={add} disabled={state === 'adding'} aria-busy={state === 'adding' || undefined} aria-label={`${state === 'adding' ? t('parts.adding') : t('parts.addToCart')}: ${name}`}>
+      {state === 'adding' ? <Loader2 aria-hidden size={18} className="animate-spin" /> : state === 'added' ? <Check aria-hidden size={18} /> : <ShoppingCart aria-hidden size={18} />}
+      <span aria-hidden>{state === 'added' ? t('parts.added') : t('parts.addToCart')}</span>
     </button>
-    <div className="part-card-feedback" aria-live="polite" aria-atomic="true">
-      {state === 'added' ? <p>{t(atLimit ? 'parts.addedAtLimit' : 'parts.added')} <Link href="/cart">{t('parts.viewCart')}</Link></p> : null}
-      {state === 'error' ? <p role="alert" className="part-card-error">{error}</p> : null}
+    <div className="su-card-feedback" aria-live="polite" aria-atomic="true">
+      {state === 'added' ? <p>{atLimit ? t('parts.addedAtLimit') : null} <Link href="/cart">{t('parts.viewCart')}</Link></p> : null}
+      {state === 'error' ? <p role="alert" className="su-card-error">{error}</p> : null}
     </div>
   </div>;
 }
