@@ -235,8 +235,11 @@ export class CatalogService {
       // Model slugs are scoped to a vehicle. An incomplete filter must not return unrelated parts.
       conditions.push(Prisma.sql`FALSE`);
     }
-    if (query.category) {
-      conditions.push(Prisma.sql`c."slug" = ${query.category} OR EXISTS (SELECT 1 FROM "category" pc WHERE pc."id" = c."parent_id" AND pc."slug" = ${query.category})`);
+    // One category or several («a,b»: the catalogue's category checkboxes); a parent includes its children.
+    const categories = (query.category ?? '').split(',').map((x) => x.trim()).filter(Boolean).slice(0, 12);
+    if (categories.length) {
+      const list = Prisma.join(categories);
+      conditions.push(Prisma.sql`c."slug" IN (${list}) OR EXISTS (SELECT 1 FROM "category" pc WHERE pc."id" = c."parent_id" AND pc."slug" IN (${list}))`);
     }
     if (query.maker) {
       conditions.push(Prisma.sql`EXISTS (SELECT 1 FROM "manufacturer_brand" mb WHERE mb."id" = p."manufacturer_brand_id" AND mb."slug" = ${query.maker})`);

@@ -1,17 +1,14 @@
-// Per-weight files: one @font-face per subset with its unicode-range, so a page fetches only the
-// subsets its text needs, all at once. (The per-subset files declare no range: the Latin face then
-// claimed every character and the Arabic file was requested only after it had arrived.)
+// Vazirmatn only, in the three weights the site uses (400, 500, 700). Per-weight files: one @font-face
+// per subset with its unicode-range, so a page fetches only the subsets its text needs. Latin text,
+// codes and numbers use Vazirmatn's own Latin subset (no second family to download).
 import '@fontsource/vazirmatn/400.css';
 import '@fontsource/vazirmatn/500.css';
 import '@fontsource/vazirmatn/700.css';
-import '@fontsource/montserrat/400.css';
-import '@fontsource/montserrat/600.css';
-import '@fontsource/montserrat/700.css';
 import '../globals.css';
 import { localize } from '@hedax/contracts/constants';
 import type { Metadata, Viewport } from 'next';
 import { notFound } from 'next/navigation';
-import { hasLocale, NextIntlClientProvider } from 'next-intl';
+import { hasLocale, NextIntlClientProvider, type AbstractIntlMessages } from 'next-intl';
 import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server';
 import type { ReactNode } from 'react';
 import { routing } from '@/i18n/routing';
@@ -31,7 +28,8 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   const siteTitle = localize(content?.brand.siteTitle, locale) || 'Source';
   const siteName = localize(content?.brand.siteName, locale) || 'Source';
   const description = localize(content?.seo.defaultDescription, locale);
-  const shareImage = content?.seo.defaultImageUrl;
+  // Share image: the panel's default, otherwise the home hero artwork.
+  const shareImage = content?.seo.defaultImageUrl || '/brand/source/atelier/hero-parts.webp';
   const favicon = content?.brand.faviconUrl;
   return {
     metadataBase: new URL(publicSiteUrl()),
@@ -41,20 +39,30 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
     icons: { ...(favicon ? { icon: favicon } : {}), apple: '/apple-touch-icon.png' },
     manifest: '/manifest.webmanifest',
     appleWebApp: { capable: true, title: 'Source', statusBarStyle: 'default' },
-    openGraph: { siteName, ...(shareImage ? { images: [shareImage] } : {}) },
-    alternates: { languages: { fa: '/fa', en: '/en', 'x-default': '/fa' } },
-    // The development preview must never be indexed.
-    ...(dataSource() === 'fixtures' ? { robots: { index: false, follow: false } } : {}),
+    openGraph: { siteName, locale: locale === 'fa' ? 'fa_IR' : 'en_US', type: 'website', images: [shareImage] },
+    alternates: { languages: { fa: '/fa', 'x-default': '/fa' } },
+    // The development preview is never indexed; the English pages wait until the part names are translated.
+    ...(dataSource() === 'fixtures' ? { robots: { index: false, follow: false } } : locale === 'en' ? { robots: { index: false, follow: true } } : {}),
   };
 }
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#f5f0e8',
+  themeColor: '#fbf8f3',
   // Lets the installed app and notched phones report their safe areas; the page keeps clear of them in CSS.
   viewportFit: 'cover',
 };
+
+/**
+ * The storefront's browser code needs every namespace except the staff panel's (about a quarter of the
+ * messages); the admin layout hands the panel its full set. `admin.noPermission` is shared.
+ */
+function storefrontMessages(all: AbstractIntlMessages): AbstractIntlMessages {
+  const { admin, ...rest } = all as Record<string, AbstractIntlMessages>;
+  const noPermission = (admin as Record<string, unknown> | undefined)?.noPermission;
+  return { ...rest, admin: typeof noPermission === 'string' ? { noPermission } : {} };
+}
 
 export default async function LocaleLayout({ children, params }: { children: ReactNode; params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -68,7 +76,7 @@ export default async function LocaleLayout({ children, params }: { children: Rea
         <a href="#main" className="skip-link">
           {t('skipToContent')}
         </a>
-        <NextIntlClientProvider locale={locale} messages={messages}>
+        <NextIntlClientProvider locale={locale} messages={storefrontMessages(messages)}>
           {dataSource() === 'fixtures' ? <FixtureBanner /> : null}
           {children}
           {/* Above the page layouts, so moving between pages never remounts the guide or restarts its conversation. */}

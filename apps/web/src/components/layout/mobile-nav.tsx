@@ -5,14 +5,14 @@ import Image from 'next/image';
 import { Menu, X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Suspense, useState, type ReactNode } from 'react';
-import type { Currency } from '@hedax/contracts';
+import type { MoneyUnit } from '@/lib/money-unit';
 import { InstallApp } from './pwa';
 import { CurrencySwitcher, LocaleSwitcher } from './switchers';
 import { Link, usePathname } from '@/i18n/navigation';
 
 /** Drawer navigation (focus trapped, Escape closes, focus returns): small screens, or every size on the
  *  minimal home header (`alwaysVisible`), where `extra` (e.g. the currency choice) sits under the links. */
-export function MobileNav({ items, alwaysVisible = false, extra, currency = 'IRR' }: { items: Array<{ href: string; label: string }>; alwaysVisible?: boolean; extra?: ReactNode; currency?: Currency }) {
+export function MobileNav({ items, alwaysVisible = false, extra, currency = 'IRT' }: { items: Array<{ href: string; label: string }>; alwaysVisible?: boolean; extra?: ReactNode; currency?: MoneyUnit }) {
   const t = useTranslations('common');
   const tn = useTranslations('nav');
   const locale = useLocale();

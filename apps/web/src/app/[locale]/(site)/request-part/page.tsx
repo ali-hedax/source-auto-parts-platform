@@ -1,51 +1,52 @@
 import type { VehicleBrandView } from '@hedax/contracts';
-import { localize } from '@hedax/contracts/constants';
+import { resolveContactChannels } from '@hedax/contracts/constants';
+import { MessageCircle, Phone, Smartphone } from 'lucide-react';
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Suspense } from 'react';
 import { ChapterBand } from '@/components/store/chapter-band';
 import { RequestForm } from '@/components/sourcing/request-form';
 import { serverApi } from '@/lib/api/server';
+import { faDigits, iranNumberText, telHref, whatsappHref, whatsappText } from '@/lib/contact-format';
 import { getSiteContent, seoMetadata } from '@/lib/site-content';
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale });
-  return { ...seoMetadata(await getSiteContent(), 'requestPart', locale, t('request.title')), alternates: { canonical: `/${locale}/request-part`, languages: { fa: '/fa/request-part', en: '/en/request-part' } } };
+  return { ...seoMetadata(await getSiteContent(), 'requestPart', locale, t('request.title'), t('request.metaDescription')), alternates: { canonical: `/${locale}/request-part`, languages: { fa: '/fa/request-part', en: '/en/request-part' } } };
 }
 
 export default async function RequestPartPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations();
+  const fa = locale === 'fa';
   const [brands, content] = await Promise.all([serverApi<VehicleBrandView[]>('/catalog/vehicle-brands', { publicCache: 300 }).catch(() => []), getSiteContent()]);
-  // The same process steps as on the home page (site content → home page → first section).
-  const hero = content?.home.sections.find((s) => s.type === 'hero');
-  const processTitle = hero?.type === 'hero' ? localize(hero.processTitle, locale) : '';
-  const steps = hero?.type === 'hero' ? hero.steps.map((s) => localize(s.title, locale)) : [];
+  const ch = content ? resolveContactChannels(content.contact, content.social.links) : null;
+  const steps = [t('request.step1'), t('request.step2'), t('request.step3'), t('request.step4')];
   return (
-    <div className="store-page">
-      <ChapterBand title={t('request.title')} eyebrow="SOURCE · SOURCING" description={t('request.intro')} locale={locale} />
-      <div className="container-page grid gap-8 pb-10 lg:grid-cols-[minmax(0,50rem)_17rem] lg:justify-between">
-        <div className="store-card min-w-0 p-5 sm:p-7">
-          <Suspense>
-            <RequestForm brands={brands} />
-          </Suspense>
+    <div className="store-page su-request">
+      <ChapterBand title={t('request.title')} description={t('request.intro')} locale={locale} />
+      <div className="container-page su-request-layout">
+        <div className="su-panel su-request-main">
+          <Suspense><RequestForm brands={brands} /></Suspense>
         </div>
-        {/* What happens after submitting, kept beside the form on wide screens (the intro says it in short on phones). */}
-        {steps.length ? <aside aria-labelledby="request-steps-title" className="hidden lg:block">
-          <div className="store-card sticky top-32 p-5">
-            <h2 id="request-steps-title" className="mb-4 font-bold">{processTitle}</h2>
-            <ol className="flex flex-col gap-3">
-              {steps.map((s, i) => (
-                <li key={`${i}-${s}`} className="flex items-start gap-3 text-sm leading-6">
-                  <span aria-hidden className="num grid size-6 shrink-0 place-items-center rounded-full bg-stage text-xs font-bold text-white">{(i + 1).toLocaleString(locale === 'fa' ? 'fa-IR' : 'en-US')}</span>
-                  {s}
-                </li>
-              ))}
+        <aside className="su-request-aside">
+          <section className="su-panel" aria-labelledby="how-title">
+            <h2 id="how-title">{t('request.howTitle')}</h2>
+            <ol className="su-steps-list">
+              {steps.map((s, i) => <li key={i}><span aria-hidden>{(i + 1).toLocaleString(fa ? 'fa-IR' : 'en-US')}</span>{s}</li>)}
             </ol>
-          </div>
-        </aside> : null}
+          </section>
+          {ch && (ch.phone || ch.mobile || ch.whatsapp) ? <section className="su-panel" aria-labelledby="quick-contact-title">
+            <h2 id="quick-contact-title">{t('request.quickContact')}</h2>
+            <ul className="su-quick-contact">
+              {ch.phone ? <li><a href={telHref(ch.phone, ch.phoneExtension)}><Phone aria-hidden size={18} /><span>{fa ? 'تلفن' : 'Phone'}</span><bdi dir="ltr">{iranNumberText(ch.phone, fa ? 'fa' : 'en')}</bdi>{ch.phoneExtension ? <small>({fa ? `داخلی ${faDigits(ch.phoneExtension)}` : `ext. ${ch.phoneExtension}`})</small> : null}</a></li> : null}
+              {ch.mobile ? <li><a href={telHref(ch.mobile)}><Smartphone aria-hidden size={18} /><span>{fa ? 'موبایل' : 'Mobile'}</span><bdi dir="ltr">{iranNumberText(ch.mobile, fa ? 'fa' : 'en')}</bdi></a></li> : null}
+              {ch.whatsapp ? <li><a href={whatsappHref(ch.whatsapp)} target="_blank" rel="noopener noreferrer"><MessageCircle aria-hidden size={18} /><span>{fa ? 'واتس‌اپ' : 'WhatsApp'}</span><bdi dir="ltr">{whatsappText(ch.whatsapp)}</bdi></a></li> : null}
+            </ul>
+          </section> : null}
+        </aside>
       </div>
     </div>
   );

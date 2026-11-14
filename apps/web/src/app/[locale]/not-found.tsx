@@ -1,31 +1,30 @@
-import { SearchX } from 'lucide-react';
-import { getTranslations } from 'next-intl/server';
-import { SiteFooter } from '@/components/layout/site-footer';
+import { ClipboardList, Home, Package, SearchX } from 'lucide-react';
+import { getLocale, getTranslations } from 'next-intl/server';
+import { Link } from '@/i18n/navigation';
 import { SiteHeader } from '@/components/layout/site-header';
-import { ButtonLink } from '@/components/ui/button';
-import { PageHeader } from '@/components/ui/misc';
+import { StoreShell } from '@/components/layout/store-shell';
+import { PartSearch } from '@/components/store/part-search';
 
 /**
- * Localized 404 for unknown addresses and for notFound() (e.g. an unpublished part).
- * Keeps the header, footer and the #main target of the skip link.
+ * Localized 404 for unknown addresses and notFound() (e.g. an unpublished part), inside the normal
+ * storefront frame; the response status stays 404. A search box and the three likely next steps.
  */
 export default async function NotFound() {
   const t = await getTranslations();
+  const locale = (await getLocale()) as 'fa' | 'en';
   return (
-    <>
-      <SiteHeader />
-      <main id="main" tabIndex={-1} className="pb-16 focus:outline-none">
-        <div className="container-page max-w-3xl py-12 md:py-16">
-          <span className="mb-5 grid size-14 place-items-center rounded-full bg-canvas text-steel"><SearchX aria-hidden className="size-7" /></span>
-          <PageHeader title={t('common.notFound')} description={t('pages.notFoundHint')} />
-          <div className="flex flex-wrap gap-3">
-            <ButtonLink href="/parts">{t('nav.parts')}</ButtonLink>
-            <ButtonLink href="/request-part" variant="secondary">{t('nav.requestPart')}</ButtonLink>
-            <ButtonLink href="/" variant="ghost">{t('nav.home')}</ButtonLink>
-          </div>
+    <StoreShell header={<SiteHeader />} locale={locale}>
+      <div className="container-page su-notfound">
+        <span className="su-notfound-icon" aria-hidden><SearchX size={32} /></span>
+        <h1>{t('common.notFound')}</h1>
+        <p>{t('pages.notFoundHint')}</p>
+        <PartSearch locale={locale} variant="hero" idPrefix="notfound-search" />
+        <div className="su-actions">
+          <Link href="/" className="su-btn su-btn-secondary"><Home aria-hidden size={18} />{t('nav.home')}</Link>
+          <Link href="/parts" className="su-btn su-btn-outline"><Package aria-hidden size={18} />{t('nav.parts')}</Link>
+          <Link href="/request-part" className="su-btn su-btn-outline"><ClipboardList aria-hidden size={18} />{t('nav.requestPart')}</Link>
         </div>
-      </main>
-      <SiteFooter />
-    </>
+      </div>
+    </StoreShell>
   );
 }

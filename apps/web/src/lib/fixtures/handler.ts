@@ -162,7 +162,10 @@ function list(params: URLSearchParams, forceImported: boolean): SearchResult {
     items = items.filter((p) => matchOf.has(p.sku));
   } else if (vehicle) items = items.filter((p) => fixtureFits(p.sku, vehicle, params.get('model')));
   const category = params.get('category');
-  if (category) items = items.filter((p) => fixtureCategories.find((c) => c.slug === category)?.code === p.category);
+  if (category) {
+    const slugs = category.split(',').filter(Boolean);
+    items = items.filter((p) => slugs.some((slug) => fixtureCategories.find((c) => c.slug === slug)?.code === p.category));
+  }
   const maker = params.get('maker');
   if (maker) items = items.filter((p) => p.maker?.slug === maker);
   for (const key of ['partType', 'condition', 'origin'] as const) {
@@ -385,6 +388,7 @@ export async function handleFixture(method: string, pathWithQuery: string, rawBo
   if ((m = /^GET \/orders\/(.+)$/.exec(route))) return fixtureOrders.find((o) => o.id === m![1]) ? ok(fixtureOrders.find((o) => o.id === m![1])) : err(404, 'NOT_FOUND');
   if (route === 'GET /sourcing-requests') return ok([{ id: fixtureRequest.id, reference: fixtureRequest.reference, title: fixtureRequest.title, status: fixtureRequest.status, itemCount: 2, createdAt: fixtureRequest.createdAt }]);
   if ((m = /^GET \/sourcing-requests\/(.+)$/.exec(route))) return m[1] === fixtureRequest.id ? ok(fixtureRequest) : err(404, 'NOT_FOUND');
+  if (route === 'POST /sourcing-requests/guest') return ok({ reference: 'HX-R-PREVIEW' });
   if (route === 'POST /sourcing-requests') return ok({ ...fixtureRequest, reference: 'HX-R-PREVIEW', title: String(body.title ?? ''), status: 'SUBMITTED', quotes: [] });
   if ((m = /^GET \/quotes\/(.+)$/.exec(route))) return m[1] === fixtureQuote.versionId ? ok(fixtureQuote) : err(404, 'NOT_FOUND');
   if (route === 'POST /quote-acceptance') return ok({ status: body.decision === 'ACCEPT' ? 'ACCEPTED' : 'REJECTED', procurementId: fixtureProcurement.id });

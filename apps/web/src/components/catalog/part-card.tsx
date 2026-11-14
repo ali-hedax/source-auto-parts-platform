@@ -1,57 +1,53 @@
 import type { ProductCard } from '@hedax/contracts';
 import { fitmentLabels } from '@hedax/domain';
-import { Info, PackageSearch } from 'lucide-react';
+import { PackageSearch } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { Price } from '@/components/ui/format';
-import { Code, StatusBadge } from '@/components/ui/misc';
 import { PartImage } from '@/components/store/part-image';
 import { PartPlaceholder } from '@/components/store/part-placeholder';
+import { persianText } from '@/lib/persian-text';
 import { CardCartButton } from './card-cart-button';
-import './part-card.css';
 
-/** The same white product/purchase card on the home page and in the catalogue. */
-export function PartCard({ product, priority = false, hideCountUnit = false, concise = false }: { product: ProductCard; priority?: boolean; hideCountUnit?: boolean; concise?: boolean }) {
+/**
+ * The part card everywhere (home, catalogue, brand and vehicle pages): photo, stock state with the SKU,
+ * name, the vehicles it fits on one line, price and one action — «افزودن به سبد» when it can be
+ * bought now, otherwise «قیمت پس از استعلام» with «درخواست تأمین».
+ */
+export function PartCard({ product, priority = false, hideCountUnit = false }: { product: ProductCard; priority?: boolean; hideCountUnit?: boolean; concise?: boolean }) {
   const t = useTranslations();
   const locale = useLocale() as 'fa' | 'en';
-  const name = locale === 'en' ? (product.name.en ?? product.name.fa) : product.name.fa;
-  const brandNames = product.vehicleBrands.map(b => locale === 'en' ? (b.name.en ?? b.name.fa) : b.name.fa).join(locale === 'en' ? ', ' : '، ');
-  const usedIn = fitmentLabels(product.fitments ?? [], locale).join(locale === 'en' ? ', ' : '، ');
-  const kind = [t(`partType.${product.partType}`), product.condition !== 'NEW' ? t(`condition.${product.condition}`) : '', product.origin === 'IMPORTED' ? t('origin.IMPORTED') : ''].filter(Boolean).join(locale === 'en' ? ', ' : '، ');
+  const name = persianText(locale === 'en' ? (product.name.en || product.name.fa) : product.name.fa);
+  const usedIn = fitmentLabels(product.fitments ?? [], locale).map((l) => persianText(l)).join(locale === 'en' ? ', ' : '، ');
   const canBuy = product.purchasable && product.price.kind === 'price' && product.availability !== 'OUT_OF_STOCK';
-  const status = canBuy ? product.availability : 'SOURCEABLE';
-  const priceUnit = hideCountUnit && product.unit.name.trim() === 'عدد' ? undefined : product.unit;
-  return <article className="part-card">
-    <Link href={`/parts/${product.slug}`} className="part-card-main">
-      <div className="part-card-media">
-        {product.primaryImage ? <PartImage
-          fallback={<PartPlaceholder label={t('parts.noImage')} />}
-          src={product.primaryImage.url}
-          alt={locale === 'en' ? (product.primaryImage.alt.en ?? product.primaryImage.alt.fa) : product.primaryImage.alt.fa}
-          fill sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, 33vw"
-          className="object-contain p-7" priority={priority}
-        /> : <PartPlaceholder label={t('parts.noImage')} />}
-        <span className="part-card-stock"><StatusBadge status={status} label={t(`availability.${status}`)} /></span>
-      </div>
-      <div className="part-card-description">
-        <h3>{name}{locale === 'en' && !product.name.en ? <span className="part-card-fallback">({t('common.englishFallback')})</span> : null}</h3>
-        {product.partNumber ? <p className="part-card-meta">{t('parts.partNumber')}: <Code>{product.partNumber}</Code></p> : null}
-        {concise ? null : <p className="part-card-meta">{t('parts.sku')}: <Code>{product.sku}</Code></p>}
-        {!concise && brandNames ? <p className="part-card-meta">{t('parts.vehicleBrands')}: {brandNames}</p> : null}
-        {usedIn ? <p className="part-card-fitment" title={usedIn} data-testid="card-fitment">{t('parts.usedIn')}: {usedIn}</p> : null}
-        {/* Vehicle-finder search: verified fitment, or a suggestion that says it is not confirmed. */}
-        {product.finderMatch ? <p className="part-card-match" data-tier={product.finderMatch.tier} data-testid="card-finder-match">{t(`finder.reason.${product.finderMatch.reason}`)}</p> : null}
-        {concise ? null : <p className="part-card-kind">{kind}</p>}
-        <span className="part-card-more"><Info aria-hidden size={19} />{t('common.details')}</span>
-      </div>
+  const status = canBuy ? product.availability : product.price.kind === 'inquiry' ? 'SOURCEABLE' : 'OUT_OF_STOCK';
+  const priceUnit = hideCountUnit || product.unit.name.trim() === 'عدد' ? undefined : product.unit;
+  const href = `/parts/${product.slug}`;
+  return <article className="su-card">
+    <Link href={href} className="su-card-media" tabIndex={-1} aria-hidden>
+      {product.primaryImage ? <PartImage
+        fallback={<PartPlaceholder label={t('parts.noImage')} />}
+        src={product.primaryImage.url}
+        alt=""
+        fill sizes="(max-width: 639px) 50vw, (max-width: 1023px) 33vw, 20vw"
+        className="object-contain p-4" priority={priority}
+      /> : <PartPlaceholder label={t('parts.noImage')} />}
     </Link>
-    <div className="part-card-bottom">
-      <div className="part-card-price">{product.price.kind === 'inquiry'
-        ? <span data-testid="card-sourceable">{t('parts.requestSupply')}</span>
-        : <Price price={product.price} size="lg" unit={priceUnit} />}</div>
-      {canBuy ? <CardCartButton productId={product.id} name={name} unit={product.unit} />
-        : <Link href={`/request-part?part=${encodeURIComponent(product.partNumber || product.sku)}`} className="part-card-source"><PackageSearch aria-hidden size={21} />{t('parts.requestSupply')}</Link>}
-      {!concise && product.manufacturer ? <p className="part-card-maker">{locale === 'en' ? product.manufacturer.name.en || product.manufacturer.name.fa : product.manufacturer.name.fa}</p> : null}
+    <div className="su-card-body">
+      <p className="su-card-meta">
+        <span className="su-stock" data-status={status}>{t(`availability.${status}`)}</span>
+        <bdi dir="ltr" className="su-card-sku" title={t('parts.sku')}>{product.sku}</bdi>
+      </p>
+      <h3 className="su-card-name"><Link href={href}>{name}</Link></h3>
+      {usedIn ? <p className="su-card-fit" title={usedIn} data-testid="card-fitment">{t('parts.usedIn')}: {usedIn}</p> : null}
+      {product.finderMatch ? <p className="su-card-match" data-tier={product.finderMatch.tier} data-testid="card-finder-match">{t(`finder.reason.${product.finderMatch.reason}`)}</p> : null}
+      <div className="su-card-foot">
+        {product.price.kind === 'price'
+          ? <div className="su-card-price"><Price price={product.price} size="lg" unit={priceUnit} /></div>
+          : <p className="su-card-inquiry" data-testid="card-sourceable">{t('parts.priceAfterInquiry')}</p>}
+        {canBuy ? <CardCartButton productId={product.id} name={name} unit={product.unit} />
+          : <Link href={`/request-part?part=${encodeURIComponent(product.name.fa)}${product.partNumber ? `&code=${encodeURIComponent(product.partNumber)}` : ''}`} className="su-btn su-btn-outline su-btn-block"><PackageSearch aria-hidden size={18} />{t('parts.requestSupply')}</Link>}
+      </div>
     </div>
   </article>;
 }

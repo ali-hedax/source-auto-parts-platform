@@ -14,6 +14,18 @@ import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/field';
 import { Price } from '@/components/ui/format';
+import { CardCartButton } from '@/components/catalog/card-cart-button';
+import { MoneyUnitProvider, type MoneyUnit } from '@/lib/money-unit';
+import { persianText } from '@/lib/persian-text';
+
+/** The visitor's price unit (cookie set by the unit picker): Hexi sits outside the storefront frame. */
+function unitFromCookie(): MoneyUnit {
+  if (typeof document === 'undefined') return 'IRT';
+  const v = /(?:^|; )hedax_currency=([^;]*)/.exec(document.cookie)?.[1];
+  return v === 'AED' || v === 'IRR' ? v : 'IRT';
+}
+/** «هکسی · دستیار سورس»: the saved name without decorative emoji. */
+const plainName = (name: string) => name.replace(/\p{Extended_Pictographic}|️|‍/gu, '').trim();
 import { api } from '@/lib/api/client';
 import { useAfterLoad } from '@/lib/after-load';
 import { randomId } from '@/lib/random-id';
@@ -175,7 +187,7 @@ export function HedaxAssistantWidget({ locale, settings }: { locale: 'fa' | 'en'
               <span className="block size-11 shrink-0 overflow-hidden rounded-full border border-white/20 bg-stage-2">
                 <Image src={settings.avatarUrl || `${MASCOT}.webp`} alt="" width={44} height={44} unoptimized className={`size-full ${avatarFit}`} />
               </span>
-              <div className="min-w-0 flex-1"><RDialog.Title className="font-bold">{settings.name[locale]}</RDialog.Title><p className="text-xs text-signal">{t('phase')}</p></div>
+              <div className="min-w-0 flex-1"><RDialog.Title className="font-bold">{plainName(settings.name[locale])} · {t('headerRole')}</RDialog.Title></div>
               <button type="button" className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-lg hover:bg-white/10" onClick={hide} aria-label={t('hide')}><EyeOff aria-hidden className="size-4" /></button>
               <RDialog.Close className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-lg hover:bg-white/10" aria-label={t('close')}><X aria-hidden className="size-5" /></RDialog.Close>
             </header>
@@ -185,7 +197,7 @@ export function HedaxAssistantWidget({ locale, settings }: { locale: 'fa' | 'en'
               <div className="flow-root rounded-xl border border-line-soft bg-white p-4 text-sm leading-7"><Image src={avatar} alt="" width={64} height={96} unoptimized className="assistant-intro-art" /><p className="font-semibold">{settings.greeting[locale]}</p><p>{settings.introduction[locale]}</p></div>
               <div className="my-3 grid grid-cols-2 gap-2">{ASSISTANT_TOPICS.map((topic) => <button key={topic} type="button" className="min-h-12 cursor-pointer rounded-xl border border-line-strong bg-white px-3 py-2 text-start text-sm font-semibold text-action hover:bg-surface" onClick={() => topic === 'support' ? setOperator(true) : append(settings.topics[topic].label[locale], assistantReply(settings, locale, topic))}>{topicLabel(settings.topics[topic].label[locale], topic, locale)}</button>)}</div>
               <div role="log" aria-live="polite" aria-relevant="additions" className="space-y-3">
-                {messages.map((message, i) => <div key={i} className="space-y-2 text-sm leading-7"><p className="ms-6 rounded-xl bg-action p-3 text-white"><PlainText text={message.question} /></p><div className="me-3 rounded-xl border border-line-soft bg-white p-3"><p><PlainText text={message.reply.text} /></p>{message.reply.links.length ? <div className="mt-2 flex flex-wrap gap-x-4">{message.reply.links.map((link) => link.href === OPERATOR_LINK ? <button key={link.href} type="button" onClick={() => setOperator(true)} className="inline-flex min-h-11 cursor-pointer items-center font-bold text-action underline underline-offset-4">{link.label}</button> : <Link key={link.href} href={link.href} onClick={() => setOpen(false)} className="inline-flex min-h-11 items-center font-bold text-action underline underline-offset-4">{link.label}</Link>)}</div> : null}</div>{message.products?.map((p) => <Link key={p.slug} href={`/parts/${p.slug}`} onClick={() => setOpen(false)} className="block rounded-xl border border-line-soft bg-white p-3"><strong>{p.name[locale] || p.name.fa}</strong><div dir="ltr" className="text-xs text-steel">{p.partNumber || p.sku}</div><div className="mt-1 flex flex-wrap items-end justify-between gap-2"><span className="text-xs font-semibold text-steel">{tSite(`availability.${p.availability}`)}</span><Price price={p.price} unit={p.unit} /></div></Link>)}</div>)}
+                {messages.map((message, i) => <div key={i} className="space-y-2 text-sm leading-7"><p className="ms-6 rounded-xl bg-action p-3 text-white"><PlainText text={message.question} /></p><div className="me-3 rounded-xl border border-line-soft bg-white p-3"><p><PlainText text={message.reply.text} /></p>{message.reply.links.length ? <div className="mt-2 flex flex-wrap gap-x-4">{message.reply.links.map((link) => link.href === OPERATOR_LINK ? <button key={link.href} type="button" onClick={() => setOperator(true)} className="inline-flex min-h-11 cursor-pointer items-center font-bold text-action underline underline-offset-4">{link.label}</button> : <Link key={link.href} href={link.href} onClick={() => setOpen(false)} className="inline-flex min-h-11 items-center font-bold text-action underline underline-offset-4">{link.label}</Link>)}</div> : null}</div>{message.products?.map((p) => { const canBuy = p.purchasable && p.price.kind === 'price' && p.availability !== 'OUT_OF_STOCK'; const label = persianText(p.name[locale] || p.name.fa); return <div key={p.slug} className="hexi-card"><Link href={`/parts/${p.slug}`} onClick={() => setOpen(false)} className="hexi-card-link"><strong>{label}</strong><span dir="ltr" className="hexi-card-code">{p.partNumber || p.sku}</span><span className="hexi-card-row"><span className="hexi-card-stock">{tSite(`availability.${p.availability}`)}</span><MoneyUnitProvider unit={unitFromCookie()}><Price price={p.price} unit={p.unit} /></MoneyUnitProvider></span></Link>{canBuy ? <CardCartButton productId={p.id} name={label} unit={p.unit} /> : null}</div>; })}</div>)}
               </div></>}<div ref={end} />
             </div>
             {operator ? null : <form className="flex shrink-0 gap-2 border-t border-line-soft bg-white p-3" onSubmit={(e) => { e.preventDefault(); void ask(draft); }}>

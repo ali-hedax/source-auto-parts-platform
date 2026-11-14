@@ -12,6 +12,16 @@
 
 ## نقطهٔ فعلی
 
+### Implemented Pending Verification — بازطراحی فروشگاه طبق ۸ عکس مالک — 2026-11-14، Asia/Tehran
+
+- **شاخه:** `feature/storefront-redesign-20261114` در worktree `F:/source-redesign`، پایه `main` = `2bf8eae`. push/PR/انتشار انجام **نشده**؛ مالک گفته بدون تأیید روی Production منتشر نشود.
+- **انجام‌شده:** هدر چسبان با جستجو و «درخواست تأمین قطعه»، صفحهٔ اصلی جدید (`components/store/source-home.tsx`)، کارت قطعه، فهرست قطعات با فیلتر سه‌مرحله‌ای و چند دسته (API: `category=a,b`)، صفحهٔ محصول، فرم درخواست بدون ورود (API: `POST /sourcing-requests/guest` با محدودیت IP/شماره)، صفحهٔ خودروها، فوتر، ۴۰۴، سبد خالی، متن ورود، هکسی (عنوان، قیمت تومان، افزودن به سبد)، تومان پیش‌فرض (نمایشی؛ مبلغ‌ها ریال می‌مانند)، فقط وزیرمتن ۴۰۰/۵۰۰/۷۰۰، حذف پیام‌های پنل از بستهٔ مرورگر فروشگاه، سئو (عنوان/توضیح/canonical/og:image/Organization+WebSite)، noindex و حذف /en از نقشهٔ سایت. CSS جدید: `components/store/source-ui.css`.
+- **آزموده (محلی):** typecheck وب و API موفق؛ eslint بدون خطا (۵ هشدار img)؛ تست واحد contracts ۲۶/۲۶، domain ۱۳۲/۱۳۲، assistant ۱۳/۱۳. در API، `env-guards` (۲ تست) و `messenger-bots` به `apps/api/dist` نیاز دارند که در این worktree ساخته نشده؛ اجرا نشدند (ربطی به تغییر ندارند ولی تأییدنشده‌اند). پیش‌نمایش fixtures روی پورت 3197: همهٔ صفحه‌ها 200، ۴۰۴ با کد 404، بدون اسکرول افقی در ۳۶۰px، تیتر هیرو یک بار در HTML.
+- **اجرانشده:** e2e Playwright (چند تست قدیمی به DOM قبلی مثل `#quick-search-input`، `.titanium-quick-search-*`، `header.home-header` وابسته‌اند و باید به‌روز شوند)، build production، آزمون API واقعی درخواست مهمان روی پایگاه دادهٔ ایزوله.
+- **کارهای پنل با مالک:** `docs/storefront-redesign-20261114.md` (نشانی، ساعت تلفن، بله/تلگرام، FAQ واحد قیمت، دو غلط تایپی، دستهٔ 05402068، متن شرایط فروش).
+- **قدم بعد:** بازبینی مالک روی پیش‌نمایش؛ به‌روزکردن e2e؛ build و آزمون درخواست مهمان روی stack ایزوله؛ سپس PR و انتشار فقط با تأیید صریح.
+
+
 ### Implemented Pending Verification (release in progress) — رفع تداخل 2px دکمهٔ سبد — 2026-11-05 Asia/Tehran
 
 - **مجوز:** مالک صریحاً نوشت تداخل 2 پیکسلی را رفع و منتشر کن.
