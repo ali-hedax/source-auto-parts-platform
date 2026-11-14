@@ -49,7 +49,8 @@ export function SourceHome({ document, data, locale }: { document: BuilderDocume
   const useDefaultHero = !config?.imageUrl || config.imageUrl === `${ATELIER_ASSETS}/hero.webp`;
   const heroImage = useDefaultHero ? defaults.imageUrl : config.imageUrl;
   const heroAlt = L(useDefaultHero ? defaults.alt : config.alt) || L(defaults.alt);
-  const heroTitle = [L(config?.title ?? defaults.title), L(config?.body ?? defaults.body)].filter(Boolean).join(fa ? '، ' : ', ');
+  const heroTitle = [L(config?.title ?? defaults.title), L(config?.body ?? defaults.body)].filter(Boolean)
+    .map((part, i) => (i && !fa && /^[A-Z][a-z]/.test(part) ? part[0]!.toLowerCase() + part.slice(1) : part)).join(fa ? '، ' : ', ');
   const heroLede = L(data.content?.seo.defaultDescription) || (fa ? 'قطعهٔ موجود را بخرید یا برای هر برند درخواست تأمین بدهید.' : 'Buy in-stock parts or request any part for any brand.');
 
   const finder = document?.sections.find((b) => b.kind === 'vehicle-finder');
@@ -74,7 +75,7 @@ export function SourceHome({ document, data, locale }: { document: BuilderDocume
 
   return <div className="su-home">
     <section className="su-hero" aria-labelledby="hero-title">
-      <div className="su-hero-media"><Image src={heroImage} alt={heroAlt} fill preload quality={75} sizes="(min-width: 1920px) 100vw, (min-width: 640px) 1920px, 100vw" /></div>
+      <div className="su-hero-media"><Image src={heroImage} alt={heroAlt} fill preload fetchPriority="high" quality={75} sizes="(min-width: 1920px) 100vw, (min-width: 640px) 1920px, 100vw" /></div>
       <div className="container-page su-hero-inner">
         <div className="su-hero-copy">
           <h1 id="hero-title">{heroTitle}</h1>

@@ -36,7 +36,7 @@ export function SiteHeaderView({ content, chrome, currency }: { content: SiteCon
   const mobileLogo = chrome?.logo?.mobileUrl || logo;
   return <header className="su-header">
     <div className="container-page su-header-top">
-      <MobileNav items={nav} currency={currency} />
+      <MobileNav items={nav} currency={currency} hideClass="su-menu-trigger" />
       <Link href="/" className="su-logo" aria-label={localize(brand?.siteTitle, locale) || alt}>
         <picture>
           {mobileLogo !== logo ? <source media="(max-width: 639px)" srcSet={mobileLogo} /> : null}

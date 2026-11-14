@@ -12,7 +12,7 @@ import { Link, usePathname } from '@/i18n/navigation';
 
 /** Drawer navigation (focus trapped, Escape closes, focus returns): small screens, or every size on the
  *  minimal home header (`alwaysVisible`), where `extra` (e.g. the currency choice) sits under the links. */
-export function MobileNav({ items, alwaysVisible = false, extra, currency = 'IRT' }: { items: Array<{ href: string; label: string }>; alwaysVisible?: boolean; extra?: ReactNode; currency?: MoneyUnit }) {
+export function MobileNav({ items, alwaysVisible = false, extra, currency = 'IRT', hideClass = 'md:hidden' }: { items: Array<{ href: string; label: string }>; alwaysVisible?: boolean; extra?: ReactNode; currency?: MoneyUnit; hideClass?: string }) {
   const t = useTranslations('common');
   const tn = useTranslations('nav');
   const locale = useLocale();
@@ -22,7 +22,7 @@ export function MobileNav({ items, alwaysVisible = false, extra, currency = 'IRT
   const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(`${href}/`));
   return (
     <RDialog.Root open={open} onOpenChange={setOpen}>
-      <RDialog.Trigger className={`-ms-2 grid size-11 cursor-pointer place-items-center rounded-[var(--radius-control)] transition-colors hover:bg-white/10 ${alwaysVisible ? '' : 'md:hidden'}`} aria-label={t('openMenu')}>
+      <RDialog.Trigger className={`-ms-2 grid size-11 cursor-pointer place-items-center rounded-[var(--radius-control)] transition-colors hover:bg-white/10 ${alwaysVisible ? '' : hideClass}`} aria-label={t('openMenu')}>
         <Menu aria-hidden className="size-6" />
       </RDialog.Trigger>
       <RDialog.Portal>

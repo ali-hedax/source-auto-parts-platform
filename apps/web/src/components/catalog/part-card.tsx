@@ -46,7 +46,7 @@ export function PartCard({ product, priority = false, hideCountUnit = false }: {
           ? <div className="su-card-price"><Price price={product.price} size="lg" unit={priceUnit} /></div>
           : <p className="su-card-inquiry" data-testid="card-sourceable">{t('parts.priceAfterInquiry')}</p>}
         {canBuy ? <CardCartButton productId={product.id} name={name} unit={product.unit} />
-          : <Link href={`/request-part?part=${encodeURIComponent(product.name.fa)}${product.partNumber ? `&code=${encodeURIComponent(product.partNumber)}` : ''}`} className="su-btn su-btn-outline su-btn-block"><PackageSearch aria-hidden size={18} />{t('parts.requestSupply')}</Link>}
+          : <Link href={`/request-part?part=${encodeURIComponent(product.name.fa)}${product.partNumber ? `&code=${encodeURIComponent(product.partNumber)}` : ''}`} className="su-btn su-btn-outline su-btn-block su-card-action"><PackageSearch aria-hidden size={18} />{t('parts.requestSupply')}</Link>}
       </div>
     </div>
   </article>;

@@ -176,6 +176,7 @@ html[lang='en'] .su { font-family: var(--font-en); }
 .su-hero-copy p { margin-block: 12px 20px; font-size: 1rem; line-height: 1.9; color: var(--su-muted); }
 
 .su-finder .su-vehicle-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 12px; }
+@media (max-width: 1099px) { .su-finder .su-vehicle-form { grid-template-columns: 1fr; } .su-vehicle-submit { justify-self: start; } }
 .su-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .su .su-steps .vf-step { background: transparent; border: 0; box-shadow: none; padding: 0; }
 .su .su-steps .vf-field { min-height: 60px; background: var(--su-card); border: 1px solid var(--su-line-strong); border-radius: var(--su-r); box-shadow: none; grid-template-columns: auto minmax(0, 1fr) 18px; }
@@ -440,6 +441,9 @@ a.su-contact-row:hover .su-contact-value { color: #fff; text-decoration: underli
 .hexi-card .su-card-feedback p { font-size: 14px; color: #22663f; }
 
 /* ---------- Phones and tablets ---------- */
+/* The header's menu button stays until the row has room for language and currency. */
+.su-menu-trigger { display: grid; }
+@media (min-width: 1100px) { .su-menu-trigger { display: none; } }
 @media (max-width: 1099px) {
   .su-header-request { display: none; }
   .su-header-prefs { display: none; }

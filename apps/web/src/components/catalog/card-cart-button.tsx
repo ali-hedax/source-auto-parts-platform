@@ -30,7 +30,7 @@ export function CardCartButton({ productId, name, unit }: { productId: string; n
     finally { busy.current = false; }
   }
   return <div className="su-card-buy">
-    <button type="button" className="su-btn su-btn-primary su-btn-block" onClick={add} disabled={state === 'adding'} aria-busy={state === 'adding' || undefined} aria-label={`${state === 'adding' ? t('parts.adding') : t('parts.addToCart')}: ${name}`}>
+    <button type="button" className="su-btn su-btn-primary su-btn-block su-card-action" onClick={add} disabled={state === 'adding'} aria-busy={state === 'adding' || undefined} aria-label={`${state === 'adding' ? t('parts.adding') : t('parts.addToCart')}: ${name}`}>
       {state === 'adding' ? <Loader2 aria-hidden size={18} className="animate-spin" /> : state === 'added' ? <Check aria-hidden size={18} /> : <ShoppingCart aria-hidden size={18} />}
       <span aria-hidden>{state === 'added' ? t('parts.added') : t('parts.addToCart')}</span>
     </button>
