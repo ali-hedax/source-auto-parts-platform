@@ -21,7 +21,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   return {
     title: localize(page.seoTitle, locale) || localize(page.title, locale),
     ...(description ? { description } : {}),
-    alternates: { canonical: `/${locale}/pages/${slug}`, languages: { fa: `/fa/pages/${slug}`, en: `/en/pages/${slug}` } },
+    alternates: { canonical: `/${locale}/pages/${slug}` },
   };
 }
 

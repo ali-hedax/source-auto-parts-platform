@@ -127,6 +127,8 @@
     "carsOther": "Other vehicles",
     "carTitle": "Spare parts for {name}",
     "carDescription": "Spare parts for {name} at today's prices, shipped across Iran; {count, number} fitting parts at Source.",
+    "brandTitle": "{name} spare parts",
+    "brandDescription": "{name} spare parts at today's prices on Source. Can't find a part? Request it — no sign-up, no fee.",
     "quantityInvalid": "Enter a multiple of {step} {unit}.",
     "claimNote": "Part type and condition are as recorded by HEDAX.",
     "photos": "Part photos",

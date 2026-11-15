@@ -8,15 +8,17 @@ import { RichText } from '@/components/content/rich-text';
 import { ButtonLink } from '@/components/ui/button';
 import { PageHeader } from '@/components/ui/misc';
 import { getContentPage, getSiteContent } from '@/lib/site-content';
+import { canonical, describe } from '@/lib/seo';
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
   const visual = await getPublishedBuilder('about');
-  if (visual) return { title: localize(visual.title, locale), description: localize(visual.description, locale) };
+  if (visual) return { title: localize(visual.title, locale), description: localize(visual.description, locale), alternates: canonical(locale, '/about') };
   const page = await getContentPage('about');
   if (!page) return {};
-  const description = localize(page.seoDescription, locale);
-  return { title: localize(page.seoTitle, locale) || localize(page.title, locale), ...(description ? { description } : {}) };
+  // Without its own SEO description the page's opening words describe it, not the site's default line.
+  const description = localize(page.seoDescription, locale) || describe(localize(page.body, locale));
+  return { title: localize(page.seoTitle, locale) || localize(page.title, locale), ...(description ? { description } : {}), alternates: canonical(locale, '/about') };
 }
 
 /** «دربارهٔ ما»: text from site content → text pages → about; the tagline from general settings. */

@@ -35,7 +35,9 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   return {
     title,
     description: ((locale === 'en' ? p.description?.en : p.description?.fa) ?? fallback).slice(0, 300),
-    alternates: { canonical: `/${locale}/parts/${p.slug}`, languages: { fa: `/fa/parts/${p.slug}`, en: `/en/parts/${p.slug}` } },
+    alternates: { canonical: `/${locale}/parts/${p.slug}` },
+    // Shared links show the part's own photo; a part without one keeps the site's default image.
+    ...(p.images[0] ? { openGraph: { title, images: [{ url: p.images[0].url, alt: name }] } } : {}),
   };
 }
 

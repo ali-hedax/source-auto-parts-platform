@@ -6,7 +6,7 @@ import { getSiteContent, seoMetadata } from '@/lib/site-content';
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale });
-  return { ...seoMetadata(await getSiteContent(), 'imported', locale, t('parts.importedTitle')), alternates: { canonical: `/${locale}/imported-parts`, languages: { fa: '/fa/imported-parts', en: '/en/imported-parts' } } };
+  return { ...seoMetadata(await getSiteContent(), 'imported', locale, t('parts.importedTitle')), alternates: { canonical: `/${locale}/imported-parts` } };
 }
 
 /** Origin = IMPORTED; same stock and same purchase path as every other part (no duplicated stock). */

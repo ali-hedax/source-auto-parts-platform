@@ -11,7 +11,7 @@ import { getSiteContent, seoMetadata } from '@/lib/site-content';
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale });
-  return { ...seoMetadata(await getSiteContent(), 'requestPart', locale, t('request.title')), alternates: { canonical: `/${locale}/request-part`, languages: { fa: '/fa/request-part', en: '/en/request-part' } } };
+  return { ...seoMetadata(await getSiteContent(), 'requestPart', locale, t('request.title')), alternates: { canonical: `/${locale}/request-part` } };
 }
 
 export default async function RequestPartPage({ params }: { params: Promise<{ locale: string }> }) {
