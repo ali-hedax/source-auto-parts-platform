@@ -23,13 +23,20 @@ export function InventoryPage() {
   const l = useL();
   const search = useSearchParams();
   const [low, setLow] = useState(search.get('lowStock') === '1');
-  const state = useApi<{ items: InvRow[]; total: number }>(`/admin/inventory?pageSize=100${low ? '&lowStock=1' : ''}`);
+  const [q, setQ] = useState('');
+  const [applied, setApplied] = useState('');
+  const [page, setPage] = useState(1);
+  const state = useApi<{ items: InvRow[]; total: number }>(`/admin/inventory?page=${page}&pageSize=50${applied ? `&q=${encodeURIComponent(applied)}` : ''}${low ? '&lowStock=1' : ''}`);
   const [target, setTarget] = useState<InvRow | null>(null);
   const [ledgerFor, setLedgerFor] = useState<InvRow | null>(null);
   return (
     <>
       <PageHeader title={t('admin.inventory')} description={l('موجودی قابل فروش = موجودی فیزیکی − رزروشده. شمارش جدید نمی‌تواند کمتر از رزروشده باشد.', 'Available = on hand − reserved. A new count can never be lower than reserved.')} />
-      <Checkbox id="inv-low" label={t('admin.lowStock')} checked={low} onChange={(e) => setLow(e.target.checked)} className="mb-3" />
+      <form className="mb-4 flex flex-wrap items-end gap-3" onSubmit={(e) => { e.preventDefault(); setApplied(q.trim()); setPage(1); }}>
+        <Field id="inv-q" label={l('نام یا کد کالا', 'Name or SKU')} className="min-w-64 flex-1"><Input id="inv-q" type="search" maxLength={80} value={q} onChange={(e) => setQ(e.target.value)} /></Field>
+        <Checkbox id="inv-low" label={t('admin.lowStock')} checked={low} onChange={(e) => { setLow(e.target.checked); setPage(1); }} />
+        <Button type="submit" variant="secondary">{t('common.search')}</Button>
+      </form>
       <Async state={state}>
         {(data) => data.items.length ? (
           <TableScroll caption={t('admin.inventory')}>
@@ -54,6 +61,7 @@ export function InventoryPage() {
           </TableScroll>
         ) : <EmptyState title={t('parts.empty')} />}
       </Async>
+      <div className="mt-4 flex flex-wrap items-center gap-3"><Button variant="secondary" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>{l('قبلی', 'Previous')}</Button><span>{l('صفحه', 'Page')} {page}</span><Button variant="secondary" disabled={!state.data || page * 50 >= state.data.total} onClick={() => setPage((p) => p + 1)}>{l('بعدی', 'Next')}</Button></div>
       {target ? <AdjustDialog row={target} onClose={() => { setTarget(null); void state.reload(); }} /> : null}
       {ledgerFor ? <LedgerDialog row={ledgerFor} onClose={() => setLedgerFor(null)} /> : null}
     </>

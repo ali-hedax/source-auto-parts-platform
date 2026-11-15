@@ -79,25 +79,27 @@ test('owner creates, photographs, stocks and publishes a product that shoppers f
     await expect(page.getByRole('region', { name: 'دسته' })).toContainText('لنت و ترمز');
     await page.goto('/fa/admin/products/new');
   }
+  await page.getByText('اطلاعات تکمیلی (اختیاری)').click();
   await page.locator('#pf-sku').fill(sku);
   await page.locator('#pf-namefa').fill(productName);
   await page.locator('#pf-nameen').fill(`Front brake pad test ${stamp}`);
   await page.locator('#pf-category').selectOption({ index: 1 });
   await page.getByRole('checkbox', { name: 'ایران خودرو' }).check();
-  await page.locator('#pf-price').fill('4500000');
+  // The panel takes prices in toman: 450,000 toman is stored as 4,500,000 rial.
+  await page.locator('#pf-price').fill('450000');
   await page.getByRole('button', { name: 'ذخیره', exact: true }).click();
-  await expect(page).toHaveURL(/\/fa\/admin\/products\/[0-9a-f-]{36}$/);
+  await expect(page).toHaveURL(/\/fa\/admin\/products\/[0-9a-f-]{36}(\?saved=1)?$/);
   productPath = new URL(page.url()).pathname;
 
   // The photo's alt text starts as the part's name; the first photo becomes the main photo.
   await page.getByTestId('photo-input').setInputFiles({ name: 'brake-pad.png', mimeType: 'image/png', buffer: await pngOf(page) });
-  const photos = page.getByRole('region', { name: 'تصاویر' });
+  const photos = page.getByRole('region', { name: '۴. عکس‌ها' });
   const photo = photos.getByRole('img', { name: productName });
   await expect(photo).toBeVisible();
   await expect(photos.getByText('عکس اصلی')).toBeVisible();
   await expect.poll(() => photo.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
 
-  await page.getByRole('button', { name: 'انتشار', exact: true }).click();
+  await page.getByRole('button', { name: 'ذخیره و انتشار', exact: true }).click();
   await expect(page.getByRole('button', { name: 'لغو انتشار' })).toBeVisible();
   await reviewShot(page, 'admin-product-editor-fa-desktop');
 

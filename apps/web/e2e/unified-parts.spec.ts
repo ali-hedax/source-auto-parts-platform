@@ -83,6 +83,9 @@ test.describe('panel: one place for parts', () => {
   test('new part form: technical numbers, specs, photos before saving, «ذخیره و انتشار»', async ({ page }) => {
     await page.goto('/fa/admin/products/new');
     await expect(page.locator('#pf-partnumber')).toBeVisible();
+    await expect(page.locator('#pf-price')).toBeVisible();
+    await expect(page.locator('#pf-stock')).toBeVisible();
+    await page.getByText('اطلاعات تکمیلی (اختیاری)').click();
     await expect(page.locator('#pf-equivalents')).toBeVisible();
     await expect(page.getByRole('button', { name: 'افزودن مشخصه' })).toBeVisible();
     await expect(page.locator('#pf-photo-input')).toBeAttached();
@@ -118,7 +121,7 @@ test.describe('panel: one place for parts', () => {
     await expect(bulk.getByRole('link', { name: 'فایل نمونه' })).toHaveAttribute('href', '/api/v1/admin/brand-imports/sample.xlsx');
     await expect(bulk.getByRole('link', { name: 'قالب Excel' })).toHaveAttribute('href', '/api/v1/admin/imports/template');
     await page.goto('/fa/admin/products');
-    await expect(page.getByRole('link', { name: 'ورود اکسل', exact: true })).toHaveAttribute('href', '/fa/admin/imports');
+    await expect(page.getByRole('link', { name: 'ورود گروهی با اکسل', exact: true })).toHaveAttribute('href', '/fa/admin/imports');
   });
 
   test('workbook mapping keeps source choices separate and requires every included sheet to have a part number', async ({ page }) => {

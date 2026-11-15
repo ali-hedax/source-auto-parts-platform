@@ -8,9 +8,11 @@ for (const locale of ['fa', 'en']) {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(`/${locale}/admin/catalog`);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(locale === 'fa' ? 'مدیریت قطعات و منابع' : 'Manage parts & sources');
-    await expect(page.getByRole('heading', { name: locale === 'fa' ? 'ثبت یک قطعه' : 'Add one part', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: locale === 'fa' ? 'ثبت یک قطعه' : 'Add one part', exact: true })).toBeVisible();
+    // The everyday sections are one tap away; only rarely used tools are folded.
+    await expect(page.getByRole('navigation', { name: locale === 'fa' ? 'بخش‌های قطعات و منابع' : 'Parts & sources sections' }).getByRole('link', { name: locale === 'fa' ? 'موجودی انبار' : 'Stock', exact: true })).toBeVisible();
     await page.locator('main summary').click();
-    await expect(page.locator('main').getByRole('link', { name: locale === 'fa' ? 'خودرو و تیپ' : 'Vehicles & trims', exact: true })).toBeVisible();
+    await expect(page.locator('main').getByRole('link', { name: locale === 'fa' ? 'فهرست قطعات سازنده' : 'Manufacturer parts list', exact: true })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     await page.screenshot({ path: `test-results/admin-workspace-${locale}-mobile.png`, fullPage: true });
   });
@@ -47,6 +49,9 @@ test('reference edit handles stale version, then delete uses the updated version
 
 test('part form rejects zero pack and incomplete specification instead of silently dropping it', async ({ page }) => {
   await page.goto('/fa/admin/products/new');
+  // Rarely needed fields are folded; an error in one of them opens the block again.
+  await expect(page.locator('#pf-pack')).toBeHidden();
+  await page.getByText('اطلاعات تکمیلی (اختیاری)').click();
   await page.locator('#pf-pack').fill('٠');
   await page.getByRole('button', { name: 'افزودن مشخصه', exact: true }).click();
   await page.locator('#pf-sl-0').fill('کد موتور');
@@ -107,6 +112,27 @@ test('a failed photo upload after creating a part offers continuation and blocks
   expect(creates).toBe(1);
 });
 
+test('part form takes the price in toman and the stock count, then saves and publishes in one step', async ({ page }) => {
+  const id = '00000000-0000-7000-8000-00000000c003';
+  let created: { basePrice?: { currency: string; amountMinor: string } } = {};
+  let adjusted: { newOnHand?: number; reason?: string; expectedVersion?: number } = {};
+  let published = false;
+  await page.route('**/api/v1/admin/products', route => { created = route.request().postDataJSON(); return route.fulfill({ json: { id, version: 1 } }); });
+  await page.route(`**/api/v1/admin/products/${id}`, route => route.fulfill({ json: { id, version: 2, inventory: { onHand: 0, reserved: 0, version: 7, lowStockThreshold: 0 } } }));
+  await page.route('**/api/v1/admin/inventory/adjust', route => { adjusted = route.request().postDataJSON(); return route.fulfill({ json: {} }); });
+  await page.route(`**/api/v1/admin/products/${id}/publish`, route => { published = route.request().postDataJSON().published; return route.fulfill({ json: { id, published: true } }); });
+  await page.goto('/fa/admin/products/new');
+  await page.locator('#pf-namefa').fill('قطعهٔ آزمایشی');
+  await page.locator('#pf-partnumber').fill('TEST-456');
+  await page.locator('#pf-category').selectOption({ index: 1 });
+  await page.locator('#pf-price').fill('۴۵۰٬۰۰۰');
+  await page.locator('#pf-stock').fill('۵');
+  await page.getByRole('button', { name: 'ذخیره و انتشار', exact: true }).click();
+  await expect.poll(() => published).toBe(true);
+  expect(created.basePrice).toEqual({ currency: 'IRR', amountMinor: '4500000' });
+  expect(adjusted).toMatchObject({ newOnHand: 5, reason: 'RECEIVED', expectedVersion: 7 });
+});
+
 test('assistant diagnostics distinguish configuration and reference files from a real connection', async ({ page }) => {
   await page.route('**/api/v1/admin/assistant/status**', route => route.fulfill({ json: { provider: 'mock', model: 'synthetic-test-provider', configurationReady: false, checks: { liveProvider: false, endpointPresent: false, credentialPresent: false, liveCallsEnabled: false, assistantEnabled: false, budgetEnabled: false } } }));
   await page.route('**/api/v1/admin/settings/assistant**', route => route.fulfill({ json: { ...DEFAULT_ASSISTANT_SETTINGS, version: 1 } }));
@@ -122,7 +148,7 @@ test('read-only staff see no import/create actions and cannot submit the part fo
     await route.fulfill({ response, json: { ...user, isOwner: false, permissions: ['products.read'] } });
   });
   await page.goto('/fa/admin/products');
-  await expect(page.getByRole('link', { name: 'ورود اکسل', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'ورود گروهی با اکسل', exact: true })).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'قطعهٔ جدید', exact: true })).toHaveCount(0);
   await page.goto('/fa/admin/products/new');
   await expect(page.getByText('دسترسی شما فقط برای مشاهده است.')).toBeVisible();
