@@ -124,3 +124,20 @@ test.describe('search engines', () => {
     expect(parts).not.toContain('/en/');
   });
 });
+
+test.describe('font preloads', () => {
+  test('the first-screen fonts are preloaded from the head, and each one is a font the page then uses', async ({ page }) => {
+    await page.goto('/fa');
+    const r = await page.evaluate(async () => {
+      await document.fonts.ready;
+      const head = [...document.head.querySelectorAll<HTMLLinkElement>('link[rel="preload"][as="font"]')].map((l) => new URL(l.href).pathname);
+      const used = performance.getEntriesByType('resource').map((e) => new URL(e.name).pathname).filter((p) => p.endsWith('.woff2'));
+      return { head, used };
+    });
+    expect(r.head).toContain('/fonts/atelier/vazir-code.woff2');
+    expect(r.head.some((p) => /vazirmatn-arabic-400-normal\.[^/]+\.woff2$/.test(p))).toBe(true);
+    // A preload the page never uses costs a download and a console warning.
+    for (const href of r.head) expect(r.used, href).toContain(href);
+    expect(new Set(r.used.filter((p) => r.head.includes(p))).size).toBe(r.head.length);
+  });
+});

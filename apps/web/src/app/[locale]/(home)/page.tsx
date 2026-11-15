@@ -6,7 +6,8 @@ import { getBuilderData, getPublishedBuilder } from '@/lib/builder-server';
 import type { FinderGroupView } from '@hedax/contracts';
 import { serverApi } from '@/lib/api/server';
 import { TitaniumHome } from '@/components/store/titanium-home';
-import { preloadHeadlineFont } from '@/lib/font-preload';
+import { headlineFont } from '@/lib/font-preload';
+import { FontPreloads } from '@/components/layout/font-preloads';
 import { publicSiteUrl } from '@/lib/config';
 import { canonical, DEFAULT_SHARE_IMAGE, homeJsonLd } from '@/lib/seo';
 
@@ -29,7 +30,6 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  preloadHeadlineFont(locale);
   const document = await getPublishedBuilder('home');
   const data = await getBuilderData(document);
   if (!data.content) return null;
@@ -50,6 +50,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   });
   return (
     <>
+      <FontPreloads hrefs={[headlineFont(locale)]} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />
       <TitaniumHome document={document} data={data} locale={locale} />
     </>
