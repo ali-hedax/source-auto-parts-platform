@@ -29,7 +29,7 @@ const empty = { fa: '', en: '' };
  * shows nothing for that part rather than invented text.
  */
 const EMPTY_SECTIONS: ContentSections = {
-  brand: { siteName: { fa: 'Source', en: 'Source' }, siteTitle: { fa: 'Source', en: 'Source' }, tagline: empty, footerAbout: empty, copyright: empty, logoUrl: '', logoAlt: empty, faviconUrl: '' },
+  brand: { siteName: { fa: 'Source', en: 'Source' }, siteTitle: { fa: 'Source', en: 'Source' }, tagline: empty, footerAbout: empty, copyright: empty, logoUrl: '', logoAlt: empty, faviconUrl: '', trustSealUrl: '' },
   contact: { displayName: '', phones: [], email: '', address: empty, mapUrl: '', mapLat: null, mapLng: null, hours: empty, supportChat: false, channels: EMPTY_CONTACT_CHANNELS },
   social: { links: [] },
   home: { sections: [] },

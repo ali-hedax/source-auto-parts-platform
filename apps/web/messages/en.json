@@ -302,7 +302,16 @@
     "successHint": "A dedicated conversation was created. Follow our reply in your account.",
     "viewRequest": "View request",
     "prefilledFrom": "Similar to “{name}”",
-    "reference": "Tracking code"
+    "reference": "Tracking code",
+    "guestNote": "Send a request with no sign-up and no fee; an expert calls you on this mobile number. Have an account?",
+    "contact": "How to reach you",
+    "mobile": "Mobile number",
+    "mobileHint": "e.g. 0912 123 4567",
+    "fullName": "Name",
+    "guestPhotos": "Part photos",
+    "guestPhotosHint": "Up to 3 photos (JPG, PNG or WEBP, 10 MB each)",
+    "guestSuccessHint": "A Source expert will call the mobile number you gave shortly. To follow the request, sign in with that number.",
+    "yearHint": "Persian or Gregorian"
   },
   "files": {
     "choose": "Choose files",
@@ -560,7 +569,9 @@
     "shipping": "Shipping",
     "returns": "Returns & cancellations",
     "privacy": "Privacy",
-    "terms": "Terms of sale"
+    "terms": "Terms of sale",
+    "aboutUs": "About us",
+    "contactUs": "Contact us"
   },
   "pages": {
     "contactTitle": "Contact Source",
@@ -998,7 +1009,10 @@
     "invalidNumber": "Enter a valid number.",
     "invalidEmail": "Enter a valid email.",
     "brandRequired": "Choose a brand or type its name.",
-    "itemsOrFiles": "Add at least one item or attach a parts list file."
+    "itemsOrFiles": "Add at least one item or attach a parts list file.",
+    "mobileRequired": "Enter a valid Iranian mobile number (e.g. 09121234567).",
+    "partRequired": "Enter the part name.",
+    "tooManyPhotos": "Up to 3 photos."
   },
   "errors": {
     "FINDER_GROUP_REQUIRED": "Select at least one valid vehicle group for the finder.",

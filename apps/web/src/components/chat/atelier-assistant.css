@@ -30,8 +30,15 @@ html[dir=ltr] .assistant-dock { --guide-start:env(safe-area-inset-left,0px); --g
  * so collapsing shifts nothing on the page. Above 1700 px the page's own margin is wider than he is.
  */
 body:has(> .assistant-dock[data-side=end]) .cine-controls { inset-inline-end:auto; inset-inline-start:max(12px,calc((100vw - 1200px) / 2)); }
+/*
+ * Card buy buttons keep their words (owner, 2026-11-15), so the room is taken where it costs least: one column (< 640) and
+ * the column beside him in two columns (640–767) shorten the button; three columns (768–1023) are too narrow for that,
+ * so the whole grid leaves his width free and every button keeps the card's width.
+ */
+@media(max-width:639px) { body:has(> .assistant-dock) :is(.part-card-cart,.part-card-source) { width:calc(100% - 84px); } }
+@media(min-width:640px) and (max-width:767px) { body:has(> .assistant-dock) li:nth-child(2n) > .part-card :is(.part-card-cart,.part-card-source) { width:calc(100% - 84px); } }
+@media(min-width:768px) and (max-width:1023px) { body:has(> .assistant-dock) :is(ul,ol):has(> li > .part-card) { padding-inline-end:84px; } }
 @media(max-width:1023px) {
- body:has(> .assistant-dock) :is(.part-card-cart,.part-card-source) { width:calc(100% - 84px); }
  body:has(> .assistant-dock) :is(.vf-steps,.vf-actions) { padding-inline-end:100px; }
 }
 /* The finder's fields keep room for their words in the narrower space. */

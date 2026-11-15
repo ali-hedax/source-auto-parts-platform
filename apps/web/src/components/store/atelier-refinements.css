@@ -36,10 +36,18 @@
 .titanium-store .atelier-other-brand .atelier-brand-frame{position:relative;display:block;width:100%;aspect-ratio:1;overflow:hidden;border-radius:var(--radius-card)}
 .titanium-store .atelier-other-brand h3{font-weight:400;font-size:16px;margin:0}
 .titanium-store .atelier-other-brand p{font-size:12px;line-height:1.9;color:var(--ti-muted);margin:0}
-.titanium-store .part-card{border:0;box-shadow:none;background:transparent}
-.titanium-store .part-card-media{border-radius:var(--radius-card);background:var(--ti-sheet)}
+/* Part card (owner, 2026-11-15): a thin frame on the sheet colour and a blue buy button with its icon and words, everywhere. */
+.titanium-store .part-card,.titanium-store .builder-products article.part-card{background:var(--ti-sheet);border:1px solid var(--color-line-soft);border-radius:14px;box-shadow:none;overflow:hidden}
+.titanium-store .part-card-media{border-radius:0;background:var(--ti-sheet)}
 .titanium-store .part-card h3{font-weight:500;font-size:17px}
-.titanium-store .part-card .part-card-price bdi{font-size:21px}
+.titanium-store .part-card .part-card-price bdi{font-size:21px;font-weight:700;letter-spacing:0}
+.titanium-store .part-card .part-card-cart{background:var(--color-buy);border-color:var(--color-buy);color:#fff;min-height:46px;gap:8px;padding-inline:12px;font-size:15px;font-weight:600;white-space:nowrap}
+.titanium-store .part-card .part-card-cart:hover{background:var(--color-buy-hover);border-color:var(--color-buy-hover);color:#fff}
+.titanium-store .part-card .part-card-cart svg{width:19px;height:19px;flex:none}
+.titanium-store .part-card .part-card-cart-label{min-width:0}
+.builder-block[data-builder-kind='new-products'] .part-card-description{min-height:0;padding-bottom:6px}
+.builder-block[data-builder-kind='new-products'] .part-card-bottom{padding-top:0}
+.builder-block[data-builder-kind='new-products'] .part-card-price{min-height:0;margin-block:2px 10px}
 .titanium-store .titanium-closing-film{margin:0;width:100%}
 .titanium-store .titanium-closing-film :is(.cine-video,.cine-still img){filter:sepia(.68) saturate(.55) brightness(1.08)}
 .titanium-store .titanium-home .builder-root{background:transparent!important}
@@ -59,7 +67,6 @@
 @media(prefers-reduced-motion:reduce){.titanium-store .atelier-typewriter[data-typing=true] .atelier-type-source{opacity:1}.titanium-store .atelier-typewriter .atelier-type-render{display:none!important}}
 
 .titanium-store .atelier-brand-card{border:0;box-shadow:none;background:transparent;height:auto;align-self:start}
-.titanium-store .builder-products article.part-card{border:0;box-shadow:none;background:transparent}
 
 /* Equal side tracks keep the brand at the page centre in either reading direction. */
 .titanium-store .titanium-logo{grid-column:2;justify-self:center}
@@ -93,6 +100,9 @@
 }
 .titanium-store .titanium-sourcing{width:100%;max-width:none!important;margin-inline:0}
 .titanium-store .titanium-sourcing-art{width:100%;max-height:350px;filter:drop-shadow(0 18px 18px rgb(57 40 28 / .1))}
+.titanium-store .titanium-sourcing p.sourcing-promise{margin:12px 0 20px;font-size:20px;font-weight:700;color:var(--ti-ink)}
+.titanium-store .titanium-button.sourcing-cta{background:var(--color-buy);border-color:var(--color-buy);color:#fff;padding:15px 30px;font-size:16px;font-weight:600}
+.titanium-store .titanium-button.sourcing-cta:hover{background:var(--color-buy-hover);border-color:var(--color-buy-hover);color:#fff}
 /* Full-width storefront header with centred identity and navigation across the whole row. */
 .titanium-store .titanium-header-inner,.titanium-store .home-header .hh-inner{max-width:none;padding-inline:clamp(16px,3vw,48px)}
 .titanium-store .titanium-desktop-nav nav.container-page{max-width:none;padding-inline:0}
@@ -110,6 +120,22 @@
 .titanium-store .titanium-footer .footer-contact-value{font-size:15px;font-weight:600;color:var(--ti-paper);overflow-wrap:anywhere;line-height:1.6}
 .titanium-store .titanium-footer .footer-contact-ext{margin-inline-start:8px;font-size:12px;font-weight:400;color:var(--ti-sand)}
 @media(min-width:640px) and (max-width:1023px){.titanium-store .footer-contact-list{grid-template-columns:1fr 1fr;column-gap:16px}}
+/* Footer (owner, 2026-11-15): logo · quick links · help · contact; headings aligned over a hairline; 16 / 15 / 13 px. */
+@media(min-width:1024px){
+.titanium-store .titanium-footer-grid{grid-template-columns:1.25fr .7fr .8fr 1.25fr;gap:48px;align-items:start;padding-block:8px 36px}
+.titanium-store .titanium-footer-brand{order:1}.titanium-store .titanium-footer-quick{order:2}.titanium-store .titanium-footer-help{order:3}.titanium-store .titanium-footer-contact{order:4}
+}
+.titanium-store .titanium-footer .footer-heading{margin:0 0 14px;padding-bottom:10px;border-bottom:1px solid rgb(245 240 232 / .16);font-size:16px;font-weight:700;line-height:1.6}
+.titanium-store .titanium-footer a{font-size:15px}
+.titanium-store .titanium-footer .titanium-footer-brand p{font-size:15px;line-height:1.9}
+.titanium-store .titanium-footer .titanium-footer-brand>div{justify-items:start}
+.titanium-store .titanium-footer .footer-install{display:inline-flex;align-items:center;gap:8px;width:fit-content;min-height:44px;margin-top:14px;padding:0 16px;border:1px solid rgb(245 240 232 / .35);border-radius:999px;font-size:14px;font-weight:600;cursor:pointer}
+.titanium-store .titanium-footer .footer-trust-seal{display:inline-block;margin-top:14px;border-radius:10px;background:#fff;padding:4px}
+.titanium-store .titanium-footer .footer-trust-seal img{display:block;width:88px;height:auto}
+.titanium-store .titanium-footer .footer-contact-value{font-size:15px}
+.titanium-store .titanium-footer .footer-contact-label,.titanium-store .titanium-footer .footer-contact-ext{font-size:13px}
+.titanium-store .titanium-copyright{border-top:1px solid rgb(245 240 232 / .16)}
+.titanium-store .titanium-copyright p{font-size:13px}
 /* Slightly larger, easier-to-read main menu. */
 .titanium-store .titanium-desktop-nav nav a{font-size:clamp(17px,1.05rem + .15vw,20px);font-weight:600}
 @media(min-width:900px) and (max-width:1199px){.titanium-store .titanium-desktop-nav nav a{font-size:16px}}

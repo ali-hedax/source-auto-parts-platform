@@ -89,7 +89,7 @@ export function TitaniumHome({ document, data, locale }: { document: BuilderDocu
     </div>
 
     {sourcing?.visible !== false ? <section className="titanium-sourcing" aria-labelledby="titanium-sourcing-title">
-      <div className="titanium-sourcing-copy"><h2 id="titanium-sourcing-title">{localize(sourcing?.title, locale) || (fa ? 'قطعه‌تان را پیدا نکردید؟' : 'Can’t find your part?')}</h2><p>{localize(sourcing?.text, locale) || (fa ? 'پیدا کردنش را به سورس بسپارید.' : 'Let Source help you find it.')}</p><Link className="titanium-button" href={sourcing?.href || '/request-part'}><ClipboardList aria-hidden size={18} />{fa ? 'درخواست تأمین قطعه' : 'Request a part'}</Link></div>
+      <div className="titanium-sourcing-copy"><h2 id="titanium-sourcing-title">{localize(sourcing?.title, locale) || (fa ? 'قطعه‌تان را پیدا نکردید؟' : 'Can’t find your part?')}</h2><p>{localize(sourcing?.text, locale) || (fa ? 'پیدا کردنش را به سورس بسپارید.' : 'Let Source help you find it.')}</p><p className="sourcing-promise">{fa ? 'بدون ثبت‌نام، بدون هزینه' : 'No sign-up, no fee'}</p><Link className="titanium-button sourcing-cta" href={sourcing?.href || '/request-part'}><ClipboardList aria-hidden size={18} />{fa ? 'درخواست تأمین قطعه' : 'Request a part'}</Link></div>
       <Image className="titanium-sourcing-art" src={sourcing?.imageUrl || '/brand/source/atelier/sourcing-box.webp'} width={1448} height={1086} unoptimized alt={localize(sourcing?.alt, locale) || (fa ? 'جعبه سورس با قطعات خودرو' : 'Source box with automotive parts')} />
     </section> : null}
 

@@ -32,6 +32,7 @@ export function CardCartButton({ productId, name, unit }: { productId: string; n
   return <div className="part-card-purchase">
     <button type="button" className="part-card-cart" onClick={add} disabled={state === 'adding'} aria-busy={state === 'adding' || undefined} aria-label={`${state === 'adding' ? t('parts.adding') : t('parts.addToCart')}: ${name}`} title={t('parts.addToCart')}>
       {state === 'adding' ? <Loader2 aria-hidden className="size-6 animate-spin" /> : state === 'added' ? <Check aria-hidden className="size-6" /> : <ShoppingCart aria-hidden className="size-6" fill="currentColor" strokeWidth={1.6} />}
+      <span className="part-card-cart-label">{t('parts.addToCart')}</span>
     </button>
     <div className="part-card-feedback" aria-live="polite" aria-atomic="true">
       {state === 'added' ? <p>{t(atLimit ? 'parts.addedAtLimit' : 'parts.added')} <Link href="/cart">{t('parts.viewCart')}</Link></p> : null}

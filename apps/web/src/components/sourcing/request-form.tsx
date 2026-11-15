@@ -1,7 +1,8 @@
 'use client';
 
-import type { MeView, SourcingRequestView, VehicleBrandView } from '@hedax/contracts';
-import { CheckCircle2, ChevronDown, Info, Package, Plus, Trash2 } from 'lucide-react';
+import type { GuestSourcingResult, MeView, SourcingRequestView, VehicleBrandView } from '@hedax/contracts';
+import { normalizeIranMobile } from '@hedax/domain';
+import { CheckCircle2, ChevronDown, Info, Package, Phone, Plus, Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -35,17 +36,34 @@ interface Draft {
   urgency: 'NORMAL' | 'URGENT';
   province: string;
   city: string;
+  /** Without signing in: how the expert reaches the sender. */
+  mobile?: string;
+  fullName?: string;
 }
 
 const DRAFT_KEY = 'hedax:request-draft';
 const emptyItem = (partName = ''): ItemDraft => ({ partName, quantity: '1', brand: '', brandText: '', vehicleModel: '', vehicleYear: '', partCode: '', vin: '', preference: 'ANY', notes: '' });
-const newDraft = (): Draft => ({ clientRequestId: `draft-${randomId()}`, title: '', items: [emptyItem()], note: '', urgency: 'NORMAL', province: '', city: '' });
+const newDraft = (): Draft => ({ clientRequestId: `draft-${randomId()}`, title: '', items: [emptyItem()], note: '', urgency: 'NORMAL', province: '', city: '', mobile: '', fullName: '' });
+const GUEST_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const GUEST_PHOTO_MAX = 3;
 const toAscii = (s: string) => s.replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d))).replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)));
+
+/**
+ * The stored model year is Gregorian (1950–2100). A Persian year (۱۳۰۰–۱۴۹۹) is kept with the model text
+ * («۲۰۶ تیپ ۵، سال ۱۳۹۸») so the request is accepted instead of failing on the year.
+ */
+function vehicleOf(it: ItemDraft): { vehicleModel: string | undefined; vehicleYear: number | null } {
+  const year = it.vehicleYear ? Number(toAscii(it.vehicleYear)) : null;
+  if (year && year < 1950) return { vehicleModel: [it.vehicleModel.trim(), `سال ${it.vehicleYear.trim()}`].filter(Boolean).join('، ').slice(0, 80), vehicleYear: null };
+  return { vehicleModel: it.vehicleModel || undefined, vehicleYear: year };
+}
 
 /**
  * Multi-item sourcing request for any brand (A03). Brand = managed list OR free
  * text; VIN/part code are optional. The draft survives reloads, language
- * switches and a sign-in detour (spec §15).
+ * switches and a sign-in detour (spec §15). Without signing in (owner, 2026-11-15)
+ * the same form is sent with a mobile number: part name, vehicle and mobile are
+ * the only required fields; photos go with the request itself.
  */
 export function RequestForm({ brands }: { brands: VehicleBrandView[] }) {
   const t = useTranslations();
@@ -59,13 +77,15 @@ export function RequestForm({ brands }: { brands: VehicleBrandView[] }) {
   const [me, setMe] = useState<MeView | null | undefined>(undefined);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState<SourcingRequestView | null>(null);
+  const [guestDone, setGuestDone] = useState<string | null>(null);
+  const [photos, setPhotos] = useState<File[]>([]);
   const [savedNote, setSavedNote] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // The success panel replaces the long form: move focus (and the view, on phones) to it.
   const successRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (done) successRef.current?.focus();
-  }, [done]);
+    if (done || guestDone) successRef.current?.focus();
+  }, [done, guestDone]);
 
   useEffect(() => {
     let initial: Draft | null = null;
@@ -118,17 +138,23 @@ export function RequestForm({ brands }: { brands: VehicleBrandView[] }) {
 
   const brandName = useMemo(() => (b: VehicleBrandView) => (locale === 'en' ? (b.name.en ?? b.name.fa) : b.name.fa), [locale]);
 
+  const guest = me === null;
   const validate = (d: Draft): Record<string, string> => {
     const e: Record<string, string> = {};
-    if (d.title.trim().length < 3) e['req-title'] = `${t('request.requestTitle')}: ${t('validation.tooShort')}`;
+    // The title is optional: an empty one is made from the first part and vehicle.
+    if (d.title.trim() && d.title.trim().length < 3) e['req-title'] = `${t('request.requestTitle')}: ${t('validation.tooShort')}`;
     const filled = d.items.filter((i) => i.partName.trim());
-    if (filled.length === 0 && files.length === 0) e['item-0-name'] = t('validation.itemsOrFiles');
+    if (guest && filled.length === 0) e['item-0-name'] = t('validation.partRequired');
+    else if (filled.length === 0 && files.length === 0) e['item-0-name'] = t('validation.itemsOrFiles');
+    if (guest && !normalizeIranMobile(d.mobile ?? '').ok) e['req-mobile'] = t('validation.mobileRequired');
+    if (guest && photos.length > GUEST_PHOTO_MAX) e['req-photos'] = t('validation.tooManyPhotos');
     d.items.forEach((it, i) => {
       if (!it.partName.trim()) return;
       const n = Number(toAscii(it.quantity));
       if (!Number.isInteger(n) || n < 1) e[`item-${i}-qty`] = `${t('request.item', { n: i + 1 })} — ${t('request.quantity')}: ${t('validation.invalidNumber')}`;
       if (!it.brand || (it.brand === '__other' && !it.brandText.trim())) e[`item-${i}-brand`] = `${t('request.item', { n: i + 1 })} — ${t('validation.brandRequired')}`;
-      if (it.vehicleYear && !/^\d{4}$/.test(toAscii(it.vehicleYear))) e[`item-${i}-year`] = `${t('request.item', { n: i + 1 })} — ${t('request.vehicleYear')}: ${t('validation.invalidNumber')}`;
+      const year = Number(toAscii(it.vehicleYear));
+      if (it.vehicleYear && (!/^\d{4}$/.test(toAscii(it.vehicleYear)) || !((year >= 1300 && year <= 1499) || (year >= 1950 && year <= 2100)))) e[`item-${i}-year`] = `${t('request.item', { n: i + 1 })} — ${t('request.vehicleYear')}: ${t('validation.invalidNumber')}`;
     });
     return e;
   };
@@ -140,31 +166,55 @@ export function RequestForm({ brands }: { brands: VehicleBrandView[] }) {
     setErrors(e);
     if (Object.keys(e).length) return;
     setSubmitting(true);
+    const first = draft.items.find((i) => i.partName.trim());
+    const firstBrand = first ? brands.find((b) => b.code === first.brand) : undefined;
+    const firstVehicle = first ? (vehicleOf(first).vehicleModel || (first.brand === '__other' ? first.brandText.trim() : firstBrand ? brandName(firstBrand) : '')) : '';
+    const title = draft.title.trim() || [first?.partName.trim() ?? '', firstVehicle].filter(Boolean).join(' — ').slice(0, 200);
+    const items = draft.items
+      .filter((i) => i.partName.trim())
+      .map((i) => ({
+        partName: i.partName.trim(),
+        quantity: Number(toAscii(i.quantity)),
+        vehicleBrandCode: i.brand && i.brand !== '__other' ? i.brand : null,
+        vehicleBrandText: i.brand === '__other' ? i.brandText.trim() : undefined,
+        ...vehicleOf(i),
+        partCode: i.partCode || undefined,
+        vin: i.vin ? toAscii(i.vin).toUpperCase() : '',
+        preference: i.preference,
+        notes: i.notes || undefined,
+      }));
     try {
+      if (guest) {
+        const form = new FormData();
+        form.set('payload', JSON.stringify({
+          clientRequestId: draft.clientRequestId,
+          title: draft.title.trim() || undefined,
+          items,
+          note: draft.note || undefined,
+          urgency: draft.urgency,
+          deliveryProvince: draft.province || undefined,
+          deliveryCity: draft.city || undefined,
+          mobile: toAscii(draft.mobile ?? ''),
+          fullName: draft.fullName?.trim() || undefined,
+          website: (document.getElementById('req-website') as HTMLInputElement | null)?.value || undefined,
+        }));
+        for (const p of photos) form.append('files', p, p.name);
+        const result = await api<GuestSourcingResult>('/sourcing-requests/guest', { method: 'POST', body: form });
+        localStorage.removeItem(DRAFT_KEY);
+        setGuestDone(result.reference);
+        return;
+      }
       const view = await api<SourcingRequestView>('/sourcing-requests', {
         method: 'POST',
         body: {
-          title: draft.title.trim(),
+          title,
           clientRequestId: draft.clientRequestId,
           note: draft.note || undefined,
           urgency: draft.urgency,
           deliveryProvince: draft.province || undefined,
           deliveryCity: draft.city || undefined,
           attachmentIds: files,
-          items: draft.items
-            .filter((i) => i.partName.trim())
-            .map((i) => ({
-              partName: i.partName.trim(),
-              quantity: Number(toAscii(i.quantity)),
-              vehicleBrandCode: i.brand && i.brand !== '__other' ? i.brand : null,
-              vehicleBrandText: i.brand === '__other' ? i.brandText.trim() : undefined,
-              vehicleModel: i.vehicleModel || undefined,
-              vehicleYear: i.vehicleYear ? Number(toAscii(i.vehicleYear)) : null,
-              partCode: i.partCode || undefined,
-              vin: i.vin ? toAscii(i.vin).toUpperCase() : '',
-              preference: i.preference,
-              notes: i.notes || undefined,
-            })),
+          items,
         },
       });
       localStorage.removeItem(DRAFT_KEY);
@@ -181,6 +231,17 @@ export function RequestForm({ brands }: { brands: VehicleBrandView[] }) {
   };
 
   if (!draft) return null;
+
+  if (guestDone) {
+    return (
+      <div ref={successRef} tabIndex={-1} className="card flex flex-col items-start gap-4 border-success/40 p-6 focus:outline-none sm:p-8" role="status">
+        <span className="grid size-12 place-items-center rounded-full bg-success-soft text-success"><CheckCircle2 aria-hidden className="size-7" /></span>
+        <h2 className="text-xl font-bold">{t('request.success', { reference: guestDone })}</h2>
+        <p className="max-w-prose leading-7 text-steel">{t('request.guestSuccessHint')}</p>
+        <ButtonLink href={`/login?next=${encodeURIComponent(`/${locale}/account/requests`)}`} variant="secondary">{t('nav.login')}</ButtonLink>
+      </div>
+    );
+  }
 
   if (done) {
     return (
@@ -199,17 +260,17 @@ export function RequestForm({ brands }: { brands: VehicleBrandView[] }) {
   return (
     <form noValidate onSubmit={(ev) => { ev.preventDefault(); void submit(); }} className="flex flex-col gap-6">
       <ErrorSummary title={t('validation.summaryTitle')} errors={summary} generalError={generalError} />
-      {me === null ? (
-        <Alert tone="info" title={t('request.loginRequired')}>
+      {guest ? (
+        <Alert tone="info" title={t('request.guestNote')}>
           <a href={loginHref} className="font-semibold text-action underline underline-offset-4 hover:text-action-hover">{t('nav.login')}</a>
         </Alert>
       ) : null}
 
       <div className="card flex flex-col gap-4 p-5 sm:p-6">
-        <Field id="req-title" label={t('request.requestTitle')} hint={t('request.requestTitleHint')} error={errors['req-title']} required>
+        <Field id="req-title" label={t('request.requestTitle')} hint={t('request.requestTitleHint')} error={errors['req-title']} optionalLabel={t('common.optional')}>
           <Input id="req-title" value={draft.title} maxLength={200} invalid={!!errors['req-title']} aria-describedby="req-title-hint" onChange={(e) => set('title', e.target.value)} />
         </Field>
-        <p className="flex gap-2 border-t border-line-soft pt-3 text-sm leading-6 text-steel"><Info aria-hidden className="mt-0.5 size-4 shrink-0" />{t('request.filesOnly')}</p>
+        {guest ? null : <p className="flex gap-2 border-t border-line-soft pt-3 text-sm leading-6 text-steel"><Info aria-hidden className="mt-0.5 size-4 shrink-0" />{t('request.filesOnly')}</p>}
       </div>
 
       <fieldset className="flex flex-col gap-4">
@@ -225,7 +286,7 @@ export function RequestForm({ brands }: { brands: VehicleBrandView[] }) {
               ) : null}
             </div>
             <div className="grid gap-4 md:grid-cols-[2fr_1fr]">
-              <Field id={`item-${i}-name`} label={t('request.partName')} error={i === 0 ? errors['item-0-name'] : undefined}>
+              <Field id={`item-${i}-name`} label={t('request.partName')} error={i === 0 ? errors['item-0-name'] : undefined} required={i === 0}>
                 <Input id={`item-${i}-name`} value={it.partName} maxLength={200} onChange={(e) => setItem(i, { partName: e.target.value })} />
               </Field>
               <Field id={`item-${i}-qty`} label={t('request.quantity')} error={errors[`item-${i}-qty`]}>
@@ -233,7 +294,7 @@ export function RequestForm({ brands }: { brands: VehicleBrandView[] }) {
               </Field>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
-              <Field id={`item-${i}-brand`} label={t('request.vehicleBrand')} error={errors[`item-${i}-brand`]}>
+              <Field id={`item-${i}-brand`} label={t('request.vehicleBrand')} error={errors[`item-${i}-brand`]} required>
                 <Select id={`item-${i}-brand`} value={it.brand} invalid={!!errors[`item-${i}-brand`]} onChange={(e) => setItem(i, { brand: e.target.value })}>
                   <option value="">{t('request.chooseBrand')}</option>
                   {brands.map((b) => <option key={b.code} value={b.code}>{brandName(b)}</option>)}
@@ -250,8 +311,8 @@ export function RequestForm({ brands }: { brands: VehicleBrandView[] }) {
               <Field id={`item-${i}-model`} label={t('request.vehicleModel')} optionalLabel={t('common.optional')}>
                 <Input id={`item-${i}-model`} value={it.vehicleModel} maxLength={80} onChange={(e) => setItem(i, { vehicleModel: e.target.value })} />
               </Field>
-              <Field id={`item-${i}-year`} label={t('request.vehicleYear')} optionalLabel={t('common.optional')} error={errors[`item-${i}-year`]}>
-                <Input id={`item-${i}-year`} inputMode="numeric" value={it.vehicleYear} onChange={(e) => setItem(i, { vehicleYear: e.target.value })} />
+              <Field id={`item-${i}-year`} label={t('request.vehicleYear')} hint={t('request.yearHint')} optionalLabel={t('common.optional')} error={errors[`item-${i}-year`]}>
+                <Input id={`item-${i}-year`} aria-describedby={`item-${i}-year-hint`} inputMode="numeric" value={it.vehicleYear} onChange={(e) => setItem(i, { vehicleYear: e.target.value })} />
               </Field>
               <Field id={`item-${i}-pref`} label={t('request.preference')}>
                 <Select id={`item-${i}-pref`} value={it.preference} onChange={(e) => setItem(i, { preference: e.target.value as ItemDraft['preference'] })}>
@@ -284,7 +345,11 @@ export function RequestForm({ brands }: { brands: VehicleBrandView[] }) {
       </fieldset>
 
       <div className="card flex flex-col gap-4 p-5 sm:p-6">
-        <FileUploader purpose="SOURCING_REQUEST" onChange={onFiles} id="req-files" label={t('request.files')} disabled={me === null} />
+        {guest ? (
+          <Field id="req-photos" label={t('request.guestPhotos')} hint={t('request.guestPhotosHint')} optionalLabel={t('common.optional')} error={errors['req-photos']}>
+            <input id="req-photos" type="file" multiple accept={GUEST_PHOTO_TYPES.join(',')} aria-describedby="req-photos-hint" className="block min-h-11 w-full cursor-pointer text-sm file:me-3 file:min-h-11 file:cursor-pointer file:rounded-[var(--radius-control)] file:border file:border-line-strong file:bg-white file:px-4 file:font-semibold" onChange={(e) => setPhotos([...(e.target.files ?? [])].filter((p) => GUEST_PHOTO_TYPES.includes(p.type) && p.size <= 10 * 1024 * 1024))} />
+          </Field>
+        ) : <FileUploader purpose="SOURCING_REQUEST" onChange={onFiles} id="req-files" label={t('request.files')} disabled={me === undefined} />}
         <Field id="req-note" label={t('request.overallNote')} optionalLabel={t('common.optional')}>
           <Textarea id="req-note" value={draft.note} maxLength={3000} onChange={(e) => set('note', e.target.value)} />
         </Field>
@@ -305,8 +370,27 @@ export function RequestForm({ brands }: { brands: VehicleBrandView[] }) {
         <p className="text-xs text-steel">{t('request.delivery')}</p>
       </div>
 
+      {guest ? (
+        <div className="card relative flex flex-col gap-4 p-5 sm:p-6">
+          <h3 className="flex items-center gap-2 font-bold"><Phone aria-hidden className="size-4 text-steel" />{t('request.contact')}</h3>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field id="req-mobile" label={t('request.mobile')} hint={t('request.mobileHint')} error={errors['req-mobile']} required>
+              <Input id="req-mobile" type="tel" inputMode="tel" autoComplete="tel" dir="ltr" value={draft.mobile ?? ''} maxLength={20} invalid={!!errors['req-mobile']} aria-describedby="req-mobile-hint" onChange={(e) => set('mobile', e.target.value)} />
+            </Field>
+            <Field id="req-name" label={t('request.fullName')} optionalLabel={t('common.optional')}>
+              <Input id="req-name" autoComplete="name" value={draft.fullName ?? ''} maxLength={80} onChange={(e) => set('fullName', e.target.value)} />
+            </Field>
+          </div>
+          {/* People never see or fill this; scripts that fill every field are refused. */}
+          <div aria-hidden="true" className="pointer-events-none absolute h-px w-px overflow-hidden opacity-0" style={{ insetInlineStart: '-9999px' }}>
+            <label htmlFor="req-website">Website</label>
+            <input id="req-website" name="website" type="text" tabIndex={-1} autoComplete="off" defaultValue="" />
+          </div>
+        </div>
+      ) : null}
+
       <div className="flex flex-wrap items-center gap-4 border-t border-line pt-6">
-        <Button type="submit" size="lg" className="min-w-48" loading={submitting} disabled={filesBusy || me === null}>
+        <Button type="submit" size="lg" className="min-w-48" loading={submitting} disabled={filesBusy || me === undefined}>
           {submitting ? t('request.submitting') : t('request.submit')}
         </Button>
         {savedNote ? <span className="text-sm text-steel" role="status">{t('request.draftSaved')}</span> : null}

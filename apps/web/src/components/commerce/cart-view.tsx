@@ -124,7 +124,7 @@ export function CartClient() {
           <li className="flex gap-2"><Info aria-hidden className="mt-1 size-3.5 shrink-0" />{t('cart.separateQuotes')}</li>
         </ul>
         {cart.canCheckout ? (
-          <ButtonLink href="/checkout" variant="commerce" size="lg">{t('cart.checkout')}</ButtonLink>
+          <ButtonLink href="/checkout" variant="buy" size="lg">{t('cart.checkout')}</ButtonLink>
         ) : (
           <Alert tone="warning" title={t('checkout.blocker_CART_NOT_READY')} />
         )}

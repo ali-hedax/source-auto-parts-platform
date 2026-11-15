@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { idSchema } from './common.js';
-import { SOCIAL_NETWORKS, type Localized } from './constants.js';
+import { SOCIAL_NETWORKS, TRUST_SEAL_URL, type Localized } from './constants.js';
 
 /**
  * Editable site content (admin panel → «محتوای سایت»). Everything a visitor reads that is not
@@ -55,6 +55,11 @@ export const brandContentSchema = z.object({
   logoAlt: localizedSchema(120),
   /** Browser tab icon; empty = the built-in icon. */
   faviconUrl: contentImageSchema,
+  /**
+   * The eNamad trust seal link from enamad.ir («https://trustseal.enamad.ir/?id=…&Code=…»). Empty = nothing is
+   * shown; once saved, the seal appears in the footer's first column. Older saved content has none.
+   */
+  trustSealUrl: z.string().trim().max(300).refine((v) => v === '' || TRUST_SEAL_URL.test(v), { message: 'INVALID_URL' }).default(''),
 });
 export type BrandContent = z.infer<typeof brandContentSchema>;
 
