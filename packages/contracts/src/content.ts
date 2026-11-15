@@ -39,6 +39,13 @@ export const phoneNumberSchema = z.string().trim().regex(/^\+?[0-9][0-9 ()-]{5,2
 
 // ---- General ----
 
+/** The only accepted trust seal link: eNamad's own address with its id and code. */
+export const TRUST_SEAL_URL = /^https:\/\/trustseal\.enamad\.ir\/\?id=\d{1,12}&Code=[A-Za-z0-9]{4,64}$/;
+/** eNamad serves the seal image beside the link («…/logo.aspx?id=…&Code=…»). */
+export function trustSealImage(url: string): string {
+  return url.replace('https://trustseal.enamad.ir/?', 'https://trustseal.enamad.ir/logo.aspx?');
+}
+
 export const brandContentSchema = z.object({
   /** Short name used after every page title ("… | سورس"). */
   siteName: localizedRequiredSchema(60),
@@ -55,6 +62,11 @@ export const brandContentSchema = z.object({
   logoAlt: localizedSchema(120),
   /** Browser tab icon; empty = the built-in icon. */
   faviconUrl: contentImageSchema,
+  /**
+   * The eNamad trust seal link from enamad.ir («https://trustseal.enamad.ir/?id=…&Code=…»). Empty = nothing is
+   * shown; once saved, the seal appears in the footer's first column. Older saved content has none.
+   */
+  trustSealUrl: z.string().trim().max(300).refine((v) => v === '' || TRUST_SEAL_URL.test(v), { message: 'INVALID_URL' }).default(''),
 });
 export type BrandContent = z.infer<typeof brandContentSchema>;
 

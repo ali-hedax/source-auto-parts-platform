@@ -176,10 +176,25 @@ export function channelHref(key: ContactChannelKey, value: string, extension = '
   }
 }
 
-/** What to show for a channel: the number as written, or @username for profile links. */
+/**
+ * A mobile or WhatsApp number as people read it: an Iranian mobile as «0912 153 1797» and a UAE mobile as
+ * «+971 50 144 1797», whether it was saved with 0098/+98/00971 or without spaces. Anything else is shown as
+ * written, with a leading 00 turned into +.
+ */
+export function readableMobile(value: string): string {
+  const d = value.replace(/[^\d+]/g, '');
+  const intl = d.startsWith('+') ? d.slice(1) : d.startsWith('00') ? d.slice(2) : null;
+  const ir = intl?.startsWith('98') ? intl.slice(2) : d.startsWith('09') ? d.slice(1) : null;
+  if (ir && /^9\d{9}$/.test(ir)) return `0${ir.slice(0, 3)} ${ir.slice(3, 6)} ${ir.slice(6)}`;
+  if (intl && /^9715\d{8}$/.test(intl)) return `+971 ${intl.slice(3, 5)} ${intl.slice(5, 8)} ${intl.slice(8)}`;
+  return value.trim().replace(/^00/, '+');
+}
+
+/** What to show for a channel: the phone as written, a mobile as people read it, or @username for profile links. */
 export function channelText(key: ContactChannelKey, value: string): string {
   const v = value.trim();
-  if (key === 'phone' || key === 'mobile' || key === 'whatsapp') return v;
+  if (key === 'phone') return v;
+  if (key === 'mobile' || key === 'whatsapp') return readableMobile(v);
   const m = /^https:\/\/[^/]+\/([^/?#]+)/i.exec(v);
   return `@${(m ? m[1]! : v).replace(/^@/, '')}`;
 }

@@ -3,13 +3,13 @@
 import { Async } from '@/components/ui/async';
 import { Section } from '@/components/ui/misc';
 import { useL } from '../shell';
-import { ContentFrame, ContentHistory, ImageField, LocalizedField, SaveBar, useContentSection } from './kit';
+import { ContentFrame, ContentHistory, ImageField, LocalizedField, SaveBar, TextField, useContentSection } from './kit';
 
 /** Site name, tagline, logo, browser icon and the footer's texts. */
 export function ContentGeneralPage() {
   const l = useL();
   const s = useContentSection('brand');
-  const names = { siteName: l('نام کوتاه', 'Short name'), siteTitle: l('عنوان سایت', 'Site title'), tagline: l('شعار', 'Tagline'), footerAbout: l('معرفی کوتاه', 'Short introduction'), copyright: l('حق نشر', 'Copyright'), logoUrl: l('لوگو', 'Logo'), logoAlt: l('متن جایگزین لوگو', 'Logo alt text'), faviconUrl: l('آیکن مرورگر', 'Browser icon') };
+  const names = { siteName: l('نام کوتاه', 'Short name'), siteTitle: l('عنوان سایت', 'Site title'), tagline: l('شعار', 'Tagline'), footerAbout: l('معرفی کوتاه', 'Short introduction'), copyright: l('حق نشر', 'Copyright'), logoUrl: l('لوگو', 'Logo'), logoAlt: l('متن جایگزین لوگو', 'Logo alt text'), faviconUrl: l('آیکن مرورگر', 'Browser icon'), trustSealUrl: l('لینک نماد اعتماد (اینماد)', 'Trust seal link (eNamad)') };
   return (
     <ContentFrame title={l('تنظیمات عمومی', 'General')} description={l('نام، شعار و نشانه‌های سایت که در سربرگ، پایین صفحه و عنوان مرورگر دیده می‌شوند.', 'Name, tagline and marks shown in the header, footer and browser tab.')}>
       <Async state={s.state}>
@@ -32,6 +32,7 @@ export function ContentGeneralPage() {
             <Section title={l('پایین صفحه', 'Footer')}>
               <div className="flex flex-col gap-5">
                 <LocalizedField id="b-about" path="footerAbout" label={names.footerAbout} multiline maxLength={400} value={s.draft.footerAbout} onChange={(v) => s.update({ footerAbout: v })} errors={s.errors} />
+                <TextField id="b-trust" label={names.trustSealUrl} ltr inputMode="url" maxLength={300} value={s.draft.trustSealUrl} onChange={(v) => s.update({ trustSealUrl: v })} error={s.errors.trustSealUrl} hint={l('همان لینکی که enamad.ir برای سایت می‌دهد، مثل https://trustseal.enamad.ir/?id=…&Code=… . خالی = نماد نشان داده نمی‌شود.', 'The link enamad.ir gives for the site, e.g. https://trustseal.enamad.ir/?id=…&Code=… . Empty = no seal is shown.')} />
                 <LocalizedField id="b-copy" path="copyright" label={names.copyright} maxLength={120} value={s.draft.copyright} onChange={(v) => s.update({ copyright: v })} errors={s.errors} hint={l('{year} به سال جاری تبدیل می‌شود؛ مثل «© {year} هداکس».', '{year} becomes the current year, e.g. "© {year} HEDAX".')} />
               </div>
             </Section>

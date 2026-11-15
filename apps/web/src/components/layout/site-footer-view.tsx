@@ -5,10 +5,14 @@ import type { BuilderDocument, SiteContentView } from '@hedax/contracts';
 import { Link } from '@/i18n/navigation';
 const DEFAULT_LOGO = '/brand/source/titanium/logo.webp';
 import { CONTACT_CHANNEL_ORDER, channelHref, channelText, resolveContactChannels, type ContactChannelKey } from '@hedax/contracts/constants';
+import { trustSealImage } from '@hedax/contracts';
 import { ContactIcon, type ContactIconName } from './contact-icons';
 import { InstallApp } from './pwa';
 
-/** Footer: logo, tagline, help links, the owner's pages, social links and contact details (all from site content). */
+/**
+ * Footer in four columns (owner, 2026-11-15): (1) logo, tagline, introduction, «نصب برنامه» and the trust seal,
+ * (2) quick links, (3) help with «درباره ما» and «تماس با ما», (4) contact. All texts come from site content.
+ */
 export function SiteFooterView({ content, chrome, now }: { content: SiteContentView | null; chrome?: BuilderDocument['chrome'] | undefined; now: number }) {
   const t = useTranslations();
   const locale = useLocale() as 'fa' | 'en';
@@ -28,6 +32,11 @@ export function SiteFooterView({ content, chrome, now }: { content: SiteContentV
     ['/terms', t('footer.terms')],
     ...(content?.footerPages ?? []).map((p): [string, string] => [p.slug === 'about' ? '/about' : `/pages/${p.slug}`, localize(p.title, locale)]),
   ];
+  // «درباره ما» and «تماس با ما» are always in the help column (once, even when a footer page is the about page).
+  for (const extra of [['/about', t('footer.aboutUs')], ['/contact', t('footer.contactUs')]] as Array<[string, string]>) {
+    if (!helpLinks.some(([href]) => href === extra[0])) helpLinks.push(extra);
+  }
+  const trustSeal = brand?.trustSealUrl ?? '';
   const tagline = localize(brand?.tagline, locale);
   const about = localize(brand?.footerAbout, locale);
   const copyright = localize(brand?.copyright, locale).replaceAll('{year}', year);
@@ -38,16 +47,17 @@ export function SiteFooterView({ content, chrome, now }: { content: SiteContentV
           <Image src={chrome?.logo?.onLightUrl || (brand?.logoUrl && brand.logoUrl !== '/brand/source/logo-dark.png' ? brand.logoUrl : DEFAULT_LOGO)} width={600} height={191} unoptimized alt={localize(brand?.logoAlt, locale) || localize(brand?.siteName, locale)} className="titanium-footer-logo" style={chrome?.logo?.onLightUrl ? { filter: 'none' } : undefined} />
           {tagline ? <p className="mt-4 font-medium text-signal">{tagline}</p> : null}
           {about ? <p className="mt-2 leading-7">{about}</p> : null}
-
+          <InstallApp className="footer-install" />
+          {/* The trust seal's place: empty until its link is saved in the panel (general settings → footer). */}
+          {trustSeal ? <a className="footer-trust-seal" href={trustSeal} target="_blank" rel="noopener" referrerPolicy="origin">{/* eslint-disable-next-line @next/next/no-img-element -- eNamad serves the seal itself and checks the page it is shown on */}<img src={trustSealImage(trustSeal)} alt={locale === 'fa' ? 'نماد اعتماد الکترونیکی' : 'eNamad trust seal'} width={96} height={96} loading="lazy" referrerPolicy="origin" /></a> : null}
         </div>
         <nav className="titanium-footer-quick" aria-label={t('common.menu')}>
-          <p className="mb-3 font-bold">{locale === 'fa' ? 'دسترسی سریع' : 'Quick links'}</p>
+          <p className="footer-heading">{locale === 'fa' ? 'دسترسی سریع' : 'Quick links'}</p>
           <ul>{[{ href: '/', label: t('nav.home') }, ...(chrome?.menu.length ? chrome.menu.filter(n => n.visible && n.href).map(n => ({ href: n.href, label: localize(n.label, locale) })) : [{ href: '/parts', label: t('nav.parts') }, { href: '/cars', label: t('nav.cars') }, { href: '/brands', label: t('nav.brands') }])].map(n => <li key={n.href}><Link href={n.href} className={link}>{n.label}</Link></li>)}</ul>
         </nav>
-        <InstallApp />
         <nav className="titanium-footer-help" aria-label={t('footer.help')}>
-          <p className="mb-3 font-bold text-white">{t('footer.help')}</p>
-          <ul className="grid grid-cols-2 gap-x-6 md:grid-cols-1">
+          <p className="footer-heading">{t('footer.help')}</p>
+          <ul className="grid grid-cols-2 gap-x-6 lg:grid-cols-1">
             {helpLinks.map(([href, label]) => (
               <li key={href}>
                 <Link href={href} className={link}>
@@ -58,7 +68,7 @@ export function SiteFooterView({ content, chrome, now }: { content: SiteContentV
           </ul>
         </nav>
         <div className="titanium-footer-contact">
-          <p className="mb-3 font-bold">{t('nav.contact')}</p>
+          <p className="footer-heading">{t('nav.contact')}</p>
           {content ? <FooterContact content={content} locale={locale} /> : null}
         </div>
       </div>
@@ -88,9 +98,12 @@ function FooterContact({ content, locale }: { content: SiteContentView; locale: 
   // Older content kept the Instagram handle in the address field; don't show it twice.
   const showAddress = address && !(ch.instagram && /اینستاگرام|instagram/i.test(address));
   const hours = localize(contact.hours, locale);
+  // Persian pages show every number in Persian digits; the tel: and wa.me links keep Latin digits so dialling works.
+  const digits = (v: string) => (fa ? v.replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[Number(d)]!) : v);
+  const numeric = (k: ContactChannelKey) => k === 'phone' || k === 'mobile' || k === 'whatsapp';
   const rows = CONTACT_CHANNEL_ORDER.filter((k) => ch[k]).map((k) => ({
     key: k, icon: k as ContactIconName, label: names[k], href: channelHref(k, ch[k], k === 'phone' ? ch.phoneExtension : '')!, external: external(k),
-    value: <><bdi dir="ltr">{channelText(k, ch[k])}</bdi>{k === 'phone' && ch.phoneExtension ? <span className="footer-contact-ext">{fa ? 'داخلی' : 'ext.'} {ch.phoneExtension}</span> : null}</>,
+    value: <><bdi dir="ltr">{numeric(k) ? digits(channelText(k, ch[k])) : channelText(k, ch[k])}</bdi>{k === 'phone' && ch.phoneExtension ? <span className="footer-contact-ext">{fa ? 'داخلی' : 'ext.'} {digits(ch.phoneExtension)}</span> : null}</>,
   }));
   return <ul className="footer-contact-list" data-testid="footer-contact">
     {rows.map((r) => <li key={r.key}><a className="footer-contact-row" href={r.href} {...(r.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}><ContactIcon name={r.icon} /><span className="footer-contact-text"><span className="footer-contact-label">{r.label}</span><span className="footer-contact-value">{r.value}</span></span></a></li>)}
