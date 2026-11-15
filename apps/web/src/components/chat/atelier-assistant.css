@@ -52,6 +52,8 @@ body:has(> .assistant-dock[data-side=end]) .cine-controls { inset-inline-end:aut
  body:has(> .assistant-dock[data-list=true]) main { padding-inline-end:112px; }
  body:has(> .assistant-dock[data-list=false][data-side=start]) .builder-products { padding-inline-start:140px; }
  body:has(> .assistant-dock[data-list=false][data-side=end]) .builder-products { padding-inline-end:140px; }
+ /* At the very bottom he stands where the copyright line starts; the line starts past him instead. */
+ body:has(> .assistant-dock[data-side=start]) .titanium-copyright p { padding-inline-start:160px; }
 }
 /* The whole character and its name are the button. */
 .assistant-launcher { position:relative; isolation:isolate; display:block; width:100%; padding:0; cursor:pointer; touch-action:manipulation; background:none; border:0; }
