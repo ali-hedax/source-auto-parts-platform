@@ -38,6 +38,14 @@ const schema = z
     WEB_INTERNAL_URL: z.preprocess(emptyAsUnset, z.url().optional()),
     /** Shared with the web app (≥32 random bytes, base64). */
     REVALIDATE_SECRET: z.preprocess(emptyAsUnset, z.string().min(32).optional()),
+    /**
+     * Arvan CDN in front of the site: after the web app's cache, the CDN's copies of the guest pages are
+     * purged too, so a changed price or stock never shows from the CDN. Both unset = no CDN purge (the
+     * site is not behind the CDN; guest pages carry s-maxage for when it is). The key is the panel's
+     * «Apikey …» value; the domain is the zone name, e.g. sourcebyhedax.ir.
+     */
+    ARVAN_CDN_API_KEY: z.preprocess(emptyAsUnset, z.string().min(20).optional()),
+    ARVAN_CDN_DOMAIN: z.preprocess(emptyAsUnset, z.string().regex(/^(?=.{1,253}$)([a-z0-9-]{1,63}\.)+[a-z]{2,63}$/).optional()),
 
     /** ≥32 random bytes, base64. Signs CSRF tokens and hashes IPs. */
     SESSION_SECRET: z.string().min(32),

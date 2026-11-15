@@ -19,6 +19,7 @@ import { dataSource, publicSiteUrl } from '@/lib/config';
 import { getSiteContent } from '@/lib/site-content';
 import { FixtureBanner } from '@/components/layout/fixture-banner';
 import { AssistantEntry } from '@/components/chat/assistant-entry';
+import { preloadFirstScreenFonts } from '@/lib/font-preload';
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -42,9 +43,9 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
     manifest: '/manifest.webmanifest',
     appleWebApp: { capable: true, title: 'Source', statusBarStyle: 'default' },
     openGraph: { siteName, ...(shareImage ? { images: [shareImage] } : {}) },
-    alternates: { languages: { fa: '/fa', en: '/en', 'x-default': '/fa' } },
-    // The development preview must never be indexed.
-    ...(dataSource() === 'fixtures' ? { robots: { index: false, follow: false } } : {}),
+    // No language alternates while /en is not indexed (lib/seo.ts); each page names its own canonical.
+    // The development preview is never indexed; the English pages wait until their translation is complete.
+    ...(dataSource() === 'fixtures' ? { robots: { index: false, follow: false } } : locale === 'en' ? { robots: { index: false, follow: true } } : {}),
   };
 }
 
@@ -60,7 +61,12 @@ export default async function LocaleLayout({ children, params }: { children: Rea
   const { locale } = await params;
   if (!hasLocale(routing.locales, locale)) notFound();
   setRequestLocale(locale);
-  const messages = await getMessages();
+  // Persian pages are set in Vazirmatn from the first line on.
+  if (locale === 'fa') preloadFirstScreenFonts();
+  // The admin texts (a third of all texts) go only to the admin pages, which add them in their own layout;
+  // every storefront page carried them in its HTML. A storefront 403 message is the one admin text used outside.
+  const { admin, ...storefront } = (await getMessages()) as Record<string, unknown> & { admin: { noPermission: string } };
+  const messages = { ...storefront, admin: { noPermission: admin.noPermission } };
   const t = await getTranslations({ locale, namespace: 'common' });
   return (
     <html lang={locale} dir={locale === 'fa' ? 'rtl' : 'ltr'}>

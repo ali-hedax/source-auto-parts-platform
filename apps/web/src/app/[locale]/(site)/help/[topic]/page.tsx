@@ -2,7 +2,8 @@ import { localize } from '@hedax/contracts/constants';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { RichText } from '@/components/content/rich-text';
-import { PolicyPage } from '@/components/content/policy-page';
+import type { Metadata } from 'next';
+import { PolicyPage, policyMetadata } from '@/components/content/policy-page';
 import { getContentPage } from '@/lib/site-content';
 
 const TOPICS = {
@@ -14,6 +15,19 @@ const TOPICS = {
 
 export function generateStaticParams() {
   return Object.keys(TOPICS).map((topic) => ({ topic }));
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string; topic: string }> }): Promise<Metadata> {
+  const { locale, topic } = await params;
+  const def = TOPICS[topic as keyof typeof TOPICS];
+  if (!def) return {};
+  const t = await getTranslations({ locale });
+  const page = await getContentPage(`help-${topic}`);
+  // The help page's own SEO fields from the panel win; then its title and introduction.
+  const meta = await policyMetadata(def.kind, locale, `/help/${topic}`, page ? localize(page.title, locale) : t(def.label), page ? localize(page.body, locale) : undefined);
+  const seoTitle = page ? localize(page.seoTitle, locale) : '';
+  const seoDescription = page ? localize(page.seoDescription, locale) : '';
+  return { ...meta, ...(seoTitle ? { title: seoTitle } : {}), ...(seoDescription ? { description: seoDescription } : {}) };
 }
 
 /**

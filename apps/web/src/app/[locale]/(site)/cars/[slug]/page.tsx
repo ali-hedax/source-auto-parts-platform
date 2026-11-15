@@ -18,7 +18,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   const description = (locale === 'fa' && v.seoDescription) || t('parts.carDescription', { name, count: v.productCount });
   return {
     title, description,
-    alternates: { canonical: `/${locale}/cars/${v.slug}`, languages: { fa: `/fa/cars/${v.slug}`, en: `/en/cars/${v.slug}` } },
+    alternates: { canonical: `/${locale}/cars/${v.slug}` },
     openGraph: { title, description, type: 'website' },
   };
 }

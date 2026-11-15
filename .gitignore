@@ -49,3 +49,6 @@ id_ed25519*
 # public releases take the film from the panel's media library after release clearance.
 apps/web/public/review-media/
 /hero-videos/
+
+# Built web assets copied for Caddy at release time (infra/docker-compose.yml)
+infra/web-static/

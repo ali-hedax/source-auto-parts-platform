@@ -5,7 +5,8 @@
 #   /api/*    → NestJS API (REST, uploads, payment callbacks, chat WebSocket at /api/v1/ws)
 #   /media/*  → public S3 images (products/ product photos, content/ site-content images);
 #               every other prefix and the private bucket stay private (authenticated API routes).
-#   else      → Next.js web (storefront + admin)
+#   /_next/static/* → built files on disk (precompressed), else the web app
+#   else      → Next.js web (storefront + admin); guest public pages get a CDN cache header
 # /health/* is intentionally not routed: probes run inside the Docker network.
 
 {
@@ -49,6 +50,42 @@
 			header_up -Referer
 			header_up -X-Forwarded-*
 		}
+	}
+
+	# Content-hashed JS, CSS and fonts: served from the copy each release puts on disk, with the brotli
+	# and gzip files made when the web image was built (infra/docker/precompress.mjs). Older releases'
+	# files stay there, so a page opened before a release still loads; a file not on disk (yet) is
+	# still served by the web app.
+	@builtAsset {
+		path /_next/static/*
+		file {
+			root /srv/web-static
+		}
+	}
+	handle @builtAsset {
+		root * /srv/web-static
+		header Cache-Control "public, max-age=31536000, immutable"
+		file_server {
+			precompressed br gzip
+		}
+	}
+
+	# Guest copies of the public pages may be kept by a CDN for two minutes (s-maxage) and are purged by
+	# the API after every price, stock or content change (PublicCacheService); browsers always ask again
+	# (max-age=0). A signed-in visitor, a chosen currency and Next's in-page (RSC) requests are never
+	# shared, and the language cookie is not set on a shareable response.
+	@guestPage {
+		method GET HEAD
+		path_regexp ^/(fa|en)(/(parts|imported-parts|brands|cars|help|pages)(/[^/]+)*|/(about|contact|terms|privacy|request-part))?/?$
+		not header Cookie *hedax_sid=*
+		not header Cookie *hedax_currency=*
+		not header RSC *
+		not query _rsc=*
+	}
+	header @guestPage {
+		Cache-Control "public, max-age=0, s-maxage=120"
+		-Set-Cookie
+		defer
 	}
 
 	handle {

@@ -13,7 +13,7 @@ import { vehicleBrandLogo } from '@/lib/vehicle-brand-logos';
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale });
-  return { ...seoMetadata(await getSiteContent(), 'brands', locale, t('nav.brands')), alternates: { canonical: `/${locale}/brands`, languages: { fa: '/fa/brands', en: '/en/brands' } } };
+  return { ...seoMetadata(await getSiteContent(), 'brands', locale, t('nav.brands')), alternates: { canonical: `/${locale}/brands` } };
 }
 
 export default async function BrandsPage({ params }: { params: Promise<{ locale: string }> }) {

@@ -7,13 +7,14 @@ import { ContactDetails } from '@/components/layout/contact-details';
 import { ButtonLink } from '@/components/ui/button';
 import { PageHeader } from '@/components/ui/misc';
 import { getSiteContent, seoMetadata } from '@/lib/site-content';
+import { canonical } from '@/lib/seo';
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
   const visual = await getPublishedBuilder('contact');
-  if (visual) return { title: localize(visual.title, locale), description: localize(visual.description, locale) };
+  if (visual) return { title: localize(visual.title, locale), description: localize(visual.description, locale), alternates: canonical(locale, '/contact') };
   const t = await getTranslations({ locale });
-  return seoMetadata(await getSiteContent(), 'contact', locale, t('pages.contactTitle'));
+  return { ...seoMetadata(await getSiteContent(), 'contact', locale, t('pages.contactTitle')), alternates: canonical(locale, '/contact') };
 }
 
 /** Contact page: details from site content → contact; the chat text and button follow its «support chat» switch. */

@@ -1,0 +1,62 @@
+name: Uptime monitor
+# Checks the live storefront and its public API every minute from GitHub (outside the server and its
+# network) and sends the owner a Bale message when the site goes down and when it is back
+# (.github/scripts/uptime.mjs). Each run watches for about 28 minutes; a new run starts every half hour
+# and carries the state (up/down and since when) over in the Actions cache, so an outage is reported
+# once, not by every run. GitHub can start a scheduled run a few minutes late; the minutes in between
+# are not checked.
+#
+# Needs two repository secrets (Settings → Secrets and variables → Actions):
+#   MONITOR_BALE_TOKEN    the bot token of @sourcebyhedaxbot (the server's BALE_BOT_TOKEN)
+#   MONITOR_BALE_CHAT_ID  the owner's Bale chat id with the bot
+# Without them the checks still run and the run summary says nothing could be sent.
+# «Run workflow» with «test» on sends one test message.
+on:
+  schedule:
+    - cron: '7,37 * * * *'
+  workflow_dispatch:
+    inputs:
+      test:
+        description: 'Send one test message now (no monitoring)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: uptime-monitor
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/scripts
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Restore the last state
+        uses: actions/cache/restore@v4
+        with:
+          path: uptime-state.json
+          key: uptime-state-${{ github.run_id }}
+          restore-keys: uptime-state-
+      - name: Watch the site
+        env:
+          BALE_TOKEN: ${{ secrets.MONITOR_BALE_TOKEN }}
+          BALE_CHAT_ID: ${{ secrets.MONITOR_BALE_CHAT_ID }}
+          TEST_MESSAGE: ${{ inputs.test && '1' || '' }}
+          STATE_FILE: uptime-state.json
+          SUMMARY: ${{ github.step_summary }}
+          DURATION_MIN: '28'
+        run: node .github/scripts/uptime.mjs
+      - name: Keep the state for the next run
+        if: always() && !inputs.test
+        uses: actions/cache/save@v4
+        with:
+          path: uptime-state.json
+          key: uptime-state-${{ github.run_id }}

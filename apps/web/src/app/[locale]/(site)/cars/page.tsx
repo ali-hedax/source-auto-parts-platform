@@ -9,7 +9,7 @@ import { serverApi } from '@/lib/api/server';
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale });
-  return { title: t('parts.carsTitle'), description: t('parts.carsDescription'), alternates: { canonical: `/${locale}/cars`, languages: { fa: '/fa/cars', en: '/en/cars' } } };
+  return { title: t('parts.carsTitle'), description: t('parts.carsDescription'), alternates: { canonical: `/${locale}/cars` } };
 }
 
 /** Parts by vehicle: every active vehicle, grouped by its category (vehicles without one come last). */
