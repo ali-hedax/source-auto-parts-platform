@@ -162,3 +162,36 @@
 /* Under a status bar or above a home indicator when installed. */
 .titanium-store .titanium-header{padding-top:env(safe-area-inset-top,0px)}
 .titanium-store .titanium-footer{padding-bottom:calc(28px + env(safe-area-inset-bottom,0px))}
+
+/* PREVIEW ONLY — proposal 2026-11-15 */
+:root{--src-blue:#1D4FBF;--src-blue-hover:#173f99}
+.titanium-store .part-card :is(.part-card-cart){background:var(--src-blue);border-color:var(--src-blue);color:#fff;min-height:46px;font-size:15px;font-weight:600;gap:8px}
+.titanium-store .part-card :is(.part-card-cart):hover{background:var(--src-blue-hover);border-color:var(--src-blue-hover)}
+.titanium-store .part-card .part-card-cart svg{width:19px;height:19px}
+.titanium-store article.part-card,.titanium-store .builder-products article.part-card{background:var(--ti-sheet);border:1px solid var(--color-line-soft);border-radius:14px;overflow:hidden}
+.titanium-store .part-card-media{border-radius:0}
+.builder-block[data-builder-kind='new-products'] .part-card-price{min-height:0;margin-block:2px 10px}
+.titanium-store .part-card .part-card-price bdi{font-weight:700;letter-spacing:0}
+.titanium-store .sourcing-promise{margin:10px 0 18px;font-size:19px;font-weight:700;color:var(--ti-ink)!important}
+.titanium-store .titanium-button.sourcing-cta{background:var(--src-blue);border-color:var(--src-blue);color:#fff;padding:15px 30px;font-size:16px;font-weight:600}
+.titanium-store .titanium-button.sourcing-cta:hover{background:var(--src-blue-hover);border-color:var(--src-blue-hover)}
+@media(min-width:1024px){
+.titanium-store .titanium-footer-grid{grid-template-columns:1.25fr .7fr .8fr 1.25fr;gap:48px;align-items:start;padding-block:8px 36px}
+.titanium-store .titanium-footer-brand{order:1}.titanium-store .titanium-footer-quick{order:2}.titanium-store .titanium-footer-help{order:3}.titanium-store .titanium-footer-contact{order:4}
+.titanium-store .titanium-footer-help ul{grid-template-columns:1fr}
+}
+.titanium-store .titanium-footer :is(.titanium-footer-quick,.titanium-footer-help,.titanium-footer-contact)>p:first-child{font-size:16px;font-weight:700;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid rgb(245 240 232 / .16)}
+.titanium-store .titanium-footer a{font-size:15px}
+.titanium-store .titanium-footer .titanium-footer-brand p{font-size:15px;line-height:1.9}
+.titanium-store .titanium-footer .titanium-footer-brand button{margin-top:14px;padding:0 16px;border:1px solid rgb(245 240 232 / .35);border-radius:999px;font-size:14px}
+.titanium-store .titanium-footer .footer-contact-value{font-size:15px}
+.titanium-store .titanium-footer .footer-contact-label{font-size:13px}
+.titanium-store .titanium-copyright{border-top:1px solid rgb(245 240 232 / .16)}
+.titanium-store .titanium-copyright p{font-size:13px}
+.titanium-store .titanium-sourcing p.sourcing-promise{margin:12px 0 20px;font-size:20px;font-weight:700;color:var(--ti-ink)}
+.titanium-store .titanium-footer .titanium-footer-brand button{width:fit-content}
+.titanium-store .titanium-footer .titanium-footer-brand>div{justify-items:start}
+.builder-block[data-builder-kind='new-products'] .part-card-bottom{padding-top:0}
+.builder-block[data-builder-kind='new-products'] .part-card-description{min-height:0;padding-bottom:6px}
+
+.titanium-store .part-card [data-testid='price-unit']{display:none}

@@ -38,13 +38,13 @@ export function SiteFooterView({ content, chrome, now }: { content: SiteContentV
           <Image src={chrome?.logo?.onLightUrl || (brand?.logoUrl && brand.logoUrl !== '/brand/source/logo-dark.png' ? brand.logoUrl : DEFAULT_LOGO)} width={600} height={191} unoptimized alt={localize(brand?.logoAlt, locale) || localize(brand?.siteName, locale)} className="titanium-footer-logo" style={chrome?.logo?.onLightUrl ? { filter: 'none' } : undefined} />
           {tagline ? <p className="mt-4 font-medium text-signal">{tagline}</p> : null}
           {about ? <p className="mt-2 leading-7">{about}</p> : null}
+          <InstallApp />
 
         </div>
         <nav className="titanium-footer-quick" aria-label={t('common.menu')}>
           <p className="mb-3 font-bold">{locale === 'fa' ? 'دسترسی سریع' : 'Quick links'}</p>
           <ul>{[{ href: '/', label: t('nav.home') }, ...(chrome?.menu.length ? chrome.menu.filter(n => n.visible && n.href).map(n => ({ href: n.href, label: localize(n.label, locale) })) : [{ href: '/parts', label: t('nav.parts') }, { href: '/cars', label: t('nav.cars') }, { href: '/brands', label: t('nav.brands') }])].map(n => <li key={n.href}><Link href={n.href} className={link}>{n.label}</Link></li>)}</ul>
         </nav>
-        <InstallApp />
         <nav className="titanium-footer-help" aria-label={t('footer.help')}>
           <p className="mb-3 font-bold text-white">{t('footer.help')}</p>
           <ul className="grid grid-cols-2 gap-x-6 md:grid-cols-1">
@@ -88,9 +88,10 @@ function FooterContact({ content, locale }: { content: SiteContentView; locale: 
   // Older content kept the Instagram handle in the address field; don't show it twice.
   const showAddress = address && !(ch.instagram && /اینستاگرام|instagram/i.test(address));
   const hours = localize(contact.hours, locale);
+  const faDigits = (v: string) => (fa ? v.replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[Number(d)]!) : v);
   const rows = CONTACT_CHANNEL_ORDER.filter((k) => ch[k]).map((k) => ({
     key: k, icon: k as ContactIconName, label: names[k], href: channelHref(k, ch[k], k === 'phone' ? ch.phoneExtension : '')!, external: external(k),
-    value: <><bdi dir="ltr">{channelText(k, ch[k])}</bdi>{k === 'phone' && ch.phoneExtension ? <span className="footer-contact-ext">{fa ? 'داخلی' : 'ext.'} {ch.phoneExtension}</span> : null}</>,
+    value: <><bdi dir="ltr">{external(k) && k !== 'whatsapp' ? channelText(k, ch[k]) : faDigits(channelText(k, ch[k]))}</bdi>{k === 'phone' && ch.phoneExtension ? <span className="footer-contact-ext">{fa ? 'داخلی' : 'ext.'} {faDigits(ch.phoneExtension)}</span> : null}</>,
   }));
   return <ul className="footer-contact-list" data-testid="footer-contact">
     {rows.map((r) => <li key={r.key}><a className="footer-contact-row" href={r.href} {...(r.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}><ContactIcon name={r.icon} /><span className="footer-contact-text"><span className="footer-contact-label">{r.label}</span><span className="footer-contact-value">{r.value}</span></span></a></li>)}
