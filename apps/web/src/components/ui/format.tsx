@@ -37,7 +37,10 @@ export function Quantity({ value, unit, className }: { value: number; unit: { na
   );
 }
 
-/** `unit`: the price is per this unit and shown as «۲۵۰٬۰۰۰ تومان / دست». */
+/** The default sales unit; a price per piece needs no «/ عدد» beside it. */
+const PIECE_UNIT = 'عدد';
+
+/** `unit`: the price is per this unit and shown as «۲۵۰٬۰۰۰ تومان / دست» (nothing for «عدد»). */
 export function Price({ price, size = 'md', unit }: { price: PriceView; size?: 'md' | 'lg'; unit?: Pick<UnitRef, 'name' | 'nameEn'> }) {
   const t = useTranslations('price');
   const locale = useLocale();
@@ -48,7 +51,7 @@ export function Price({ price, size = 'md', unit }: { price: PriceView; size?: '
     <span className="flex flex-col gap-0.5">
       <span className="flex flex-wrap items-baseline gap-x-1.5">
         <Money value={price.display} className={size === 'lg' ? 'text-[1.75rem] font-bold leading-tight' : 'text-lg font-bold leading-7'} />
-        {unit ? <span className={`${size === 'lg' ? 'text-base' : 'text-sm'} font-medium text-steel`} data-testid="price-unit">/ {unitName(unit, locale)}</span> : null}
+        {unit && unit.name.trim() !== PIECE_UNIT ? <span className={`${size === 'lg' ? 'text-base' : 'text-sm'} font-medium text-steel`} data-testid="price-unit">/ {unitName(unit, locale)}</span> : null}
       </span>
       {price.displayIsReference ? (
         <span className="text-xs leading-5 text-steel">
