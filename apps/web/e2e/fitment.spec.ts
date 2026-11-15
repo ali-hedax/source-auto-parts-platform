@@ -17,7 +17,7 @@ async function axe(page: Page) {
 const PAD_ID = '00000000-0000-7000-8000-000000000001';
 
 test.describe('vehicle fitment on the site', () => {
-  test('«مناسب برای:» sits under the photo with clickable vehicles and models; the price is per unit', async ({ page }) => {
+  test('«مناسب برای:» sits under the photo with clickable vehicles and models; a price per «عدد» shows no unit', async ({ page }) => {
     await page.goto('/fa/parts/demo-front-brake-pad-206');
     const fitment = page.getByTestId('fitment');
     await expect(fitment.getByRole('heading', { name: 'مناسب برای:' })).toBeVisible();
@@ -27,7 +27,7 @@ test.describe('vehicle fitment on the site', () => {
     const photo = await page.locator('main#main .lg\\:col-start-1').first().boundingBox();
     const chips = await fitment.boundingBox();
     expect(chips && photo && chips.y > photo.y).toBe(true);
-    await expect(page.getByTestId('price-unit').first()).toHaveText('/ عدد');
+    await expect(page.locator('main [data-testid=price-unit]')).toHaveCount(0);
     // Structured data names the vehicles the part fits.
     const ld = JSON.parse((await page.locator('script[type="application/ld+json"]').first().textContent()) ?? '{}');
     expect(ld.isAccessoryOrSparePartFor.map((v: { name: string }) => v.name)).toEqual(expect.arrayContaining(['پژو ۲۰۶', 'دنا']));

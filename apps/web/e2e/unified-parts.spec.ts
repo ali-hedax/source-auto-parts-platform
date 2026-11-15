@@ -1,37 +1,42 @@
 import { expect, test } from '@playwright/test';
 
 /**
- * One «قطعه»: the customer finds a part with the one search in the header (name, SKU, technical or
- * equivalent number, written any way), then buys it — or, when it has no price yet, sends a
+ * One «قطعه»: the customer finds a part with the quick search under the home film (name, SKU, technical or
+ * equivalent number, written any way; the header's search icon leads to the parts list), then buys it — or, when it has no price yet, sends a
  * sourcing request with the name and number already filled in. Preview data (fixtures).
  */
 test.describe('one part, one search', () => {
-  test('home page has no second search box and no catalog block; the menu has no «کاتالوگ فنی»', async ({ page }) => {
+  test('home page: one text search and the vehicle finder, no catalog block; the menu has no «کاتالوگ فنی»', async ({ page }) => {
     await page.goto('/fa');
-    await expect(page.getByRole('search')).toHaveCount(1);
+    // The quick search (text) and the vehicle finder (choices) both lead to the same parts list.
+    await expect(page.getByRole('search')).toHaveCount(2);
+    for (const form of await page.getByRole('search').all()) await expect(form).toHaveAttribute('action', '/fa/parts');
+    await expect(page.locator('main input[type=search]')).toHaveCount(1);
     await expect(page.getByRole('link', { name: 'کاتالوگ فنی' })).toHaveCount(0);
-    await expect(page.getByTestId('home-makers')).toBeVisible();
+    await expect(page.getByRole('banner').locator('a.titanium-search-link')).toHaveAttribute('href', '/fa/parts');
   });
 
   test('search → in-stock part → cart', async ({ page }) => {
     await page.goto('/fa');
-    await page.locator('#header-search').fill('demo 0001');
-    await page.locator('#header-search').press('Enter');
+    await page.locator('#quick-search-input').fill('demo 0001');
+    await page.locator('#quick-search-input').press('Enter');
     await expect(page).toHaveURL(/\/fa\/parts\?q=/);
     await expect(page.getByTestId('search-term')).toContainText('demo 0001');
-    await page.getByRole('link', { name: /لنت ترمز جلو پژو ۲۰۶/ }).first().click();
-    await page.getByRole('button', { name: 'افزودن به سبد' }).click();
-    await expect(page.getByText('به سبد اضافه شد')).toBeVisible();
+    await page.locator('article', { hasText: 'لنت ترمز جلو پژو ۲۰۶' }).first().locator('a.part-card-main').click();
+    // On the product page (the cards in the list have their own buy buttons).
+    await expect(page).toHaveURL(/\/fa\/parts\/[^?]+$/);
+    await page.getByRole('main').getByRole('button', { name: 'افزودن به سبد', exact: true }).click();
+    await expect(page.getByText(/به سبد اضافه شد/)).toBeVisible();
   });
 
   test('search by an equivalent number with spaces → «قابل تأمین» → sourcing request with name and number', async ({ page }) => {
     await page.goto('/fa');
-    await page.locator('#header-search').fill('04465 33480');
-    await page.locator('#header-search').press('Enter');
+    await page.locator('#quick-search-input').fill('04465 33480');
+    await page.locator('#quick-search-input').press('Enter');
     const card = page.getByRole('article').filter({ hasText: 'لنت ترمز جلو کمری' });
     await expect(card).toBeVisible();
     await expect(card.getByText('قابل تأمین')).toBeVisible();
-    await card.getByRole('link').click();
+    await card.locator('a.part-card-main').click();
 
     await expect(page).toHaveURL(/\/fa\/parts\/toyota-front-brake-pad-camry-04465-33471/);
     await expect(page.getByRole('button', { name: 'افزودن به سبد' })).toHaveCount(0);

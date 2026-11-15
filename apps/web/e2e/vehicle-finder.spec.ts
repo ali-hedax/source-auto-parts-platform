@@ -31,57 +31,44 @@ async function choose(page: Page, n: number, option: string) {
 }
 
 test.describe('home layout and header', () => {
-  test('part search under the film, shopping paths and categories last before the footer', async ({ page }) => {
+  test('hero, quick search, vehicle finder, shopping paths, collections and the sourcing band, in that order before the footer', async ({ page }) => {
     await page.goto('/fa');
-    const kinds = await page.locator('[data-builder-kind]').evaluateAll((els) => els.map((e) => e.getAttribute('data-builder-kind')));
-    expect(kinds).toEqual(['cinematic-hero', 'vehicle-finder', 'new-products', 'shopping-paths']);
-    // The three shopping paths render once, in their own last section (links kept), not inside the film.
-    await expect(page.locator('.cine-discover')).toHaveCount(1);
-    await expect(page.locator('[data-builder-kind="cinematic-hero"] .cine-discover')).toHaveCount(0);
-    const paths = page.locator('[data-builder-kind="shopping-paths"]');
-    await expect(paths.getByRole('link', { name: /خودروی من/ })).toHaveAttribute('href', '/fa/cars');
-    await expect(paths.getByRole('link', { name: /کاتالوگ قطعات/ })).toHaveAttribute('href', '/fa/parts');
-    await expect(paths.getByRole('link', { name: /درخواست تأمین/ })).toHaveAttribute('href', '/fa/request-part');
-    const pathsBox = await paths.boundingBox();
-    const footerBox = await page.locator('footer').boundingBox();
-    expect(pathsBox && footerBox && pathsBox.y < footerBox.y).toBe(true);
-    const band = await finder(page).boundingBox();
-    const width = await page.evaluate(() => document.documentElement.clientWidth);
-    expect(band && Math.abs(band.width - width)).toBeLessThanOrEqual(1);
+    const order = ['.atelier-banner', '.titanium-quick-search', '#vehicle-finder', '#shopping-paths', '.titanium-collections', '.titanium-sourcing', 'footer'];
+    const tops: number[] = [];
+    for (const selector of order) {
+      const box = await page.locator(selector).first().boundingBox();
+      expect(box, selector).not.toBeNull();
+      tops.push(box!.y);
+    }
+    expect([...tops].sort((a, b) => a - b)).toEqual(tops);
+    // The shopping paths are photo tiles with working links.
+    const paths = page.locator('#shopping-paths .titanium-path');
+    expect(await paths.count()).toBeGreaterThan(0);
+    for (const tile of await paths.all()) {
+      await expect(tile.locator('img')).toHaveCount(1);
+      expect(await tile.getAttribute('href')).toMatch(/^\/fa\//);
+    }
     await expect(finder(page).getByText(/پلاک|VIN|شاسی/)).toHaveCount(0);
     await expect(finder(page).locator('.vf-submit')).toBeDisabled();
     await axe(page, '#vehicle-finder');
   });
 
-  test('minimal header: centred logo, no search box, compact controls, compact state on scroll', async ({ page }) => {
+  test('one header everywhere: the logo, no search box, a search link to the parts list and the menu on phones', async ({ page }) => {
+    for (const path of ['/fa', '/fa/parts']) {
+      await page.goto(path);
+      const header = page.getByRole('banner');
+      await expect(header.locator('.titanium-logo')).toBeVisible();
+      await expect(header.locator('input')).toHaveCount(0);
+      await expect(header.locator('a.titanium-search-link')).toHaveAttribute('href', '/fa/parts');
+    }
+    await axe(page, 'header');
+    // Phones: the menu holds every page, plus language and currency.
+    await page.setViewportSize({ width: 390, height: 800 });
     await page.goto('/fa');
-    const header = page.locator('header.home-header');
-    await expect(header).toBeVisible();
-    await expect(header.locator('input')).toHaveCount(0);
-    const logo = await header.locator('.hh-logo img').boundingBox();
-    const width = await page.evaluate(() => document.documentElement.clientWidth);
-    expect(logo && Math.abs(logo.x + logo.width / 2 - width / 2)).toBeLessThan(24);
-    expect(logo!.height).toBeGreaterThanOrEqual(48);
-    await expect(header.getByRole('link', { name: 'جست‌وجوی قطعه' })).toHaveAttribute('href', '/fa#part-search');
-    await expect(header).toHaveAttribute('data-scrolled', 'false');
-    await page.mouse.wheel(0, 900);
-    await expect(header).toHaveAttribute('data-scrolled', 'true');
-    // The search control takes the visitor to the part search under the film.
-    await page.evaluate(() => scrollTo(0, 0));
-    await header.getByRole('link', { name: 'جست‌وجوی قطعه' }).click();
-    await expect(page.locator('#part-search')).toBeInViewport();
-    // Menu: every page, plus language, currency and account.
-    await header.getByRole('button', { name: 'باز کردن منو' }).click();
+    await page.getByRole('banner').getByRole('button', { name: 'باز کردن منو' }).click();
     const drawer = page.getByRole('dialog');
     await expect(drawer.getByRole('link', { name: 'درخواست تأمین قطعه' })).toBeVisible();
-    await expect(drawer.getByRole('combobox')).toBeVisible();
-    await axe(page, 'header');
-  });
-
-  test('other pages keep the classic header with its search box', async ({ page }) => {
-    await page.goto('/fa/parts');
-    await expect(page.locator('header.home-header')).toHaveCount(0);
-    await expect(page.locator('#header-search')).toBeVisible();
+    await expect(drawer.getByRole('combobox').first()).toBeVisible();
   });
 });
 
@@ -136,10 +123,10 @@ test.describe('optional steps', () => {
     await expect(page).toHaveURL(/group=iran-khodro&vehicle=dena&year=1400/);
   });
 
-  test('only a typed part name or number searches the catalogue', async ({ page }) => {
+  test('a typed part name or number searches the catalogue (the quick search above the finder)', async ({ page }) => {
     await page.goto('/fa');
-    await page.locator('#part-search').fill('لنت');
-    await finder(page).locator('.vf-submit').click();
+    await page.locator('#quick-search-input').fill('لنت');
+    await page.locator('#quick-search-input').press('Enter');
     await expect(page).toHaveURL(/\/fa\/parts\?q=/);
     await expect(page.getByTestId('search-term')).toContainText('لنت');
   });
@@ -226,7 +213,7 @@ test.describe('ranked results', () => {
 test.describe('English and phones', () => {
   test('English is left-to-right with English labels', async ({ page }) => {
     await page.goto('/en');
-    await expect(page.locator('.builder-root')).toHaveAttribute('dir', 'ltr');
+    await expect(page.locator('html')).toHaveAttribute('dir', 'ltr');
     await choose(page, 1, 'Iran Khodro');
     await choose(page, 2, 'Peugeot 206');
     await choose(page, 3, 'Type 2');
@@ -235,21 +222,21 @@ test.describe('English and phones', () => {
   });
 
   for (const width of [390, 360]) {
-    test(`no horizontal scroll at ${width}px, steps stacked, header fits`, async ({ page }) => {
+    test(`no horizontal scroll at ${width}px, two steps per row, header fits`, async ({ page }) => {
       await page.setViewportSize({ width, height: 800 });
       for (const locale of ['fa', 'en']) {
         await page.goto(`/${locale}`);
         await noHorizontalScroll(page);
         // Header controls never overlap the centred logo.
-        const logo = (await page.locator('.hh-logo').boundingBox())!;
-        for (const control of await page.locator('.hh-start > *, .hh-end > *:visible').all()) {
+        const logo = (await page.locator('header .titanium-logo').boundingBox())!;
+        for (const control of await page.locator('.titanium-header-inner > :not(.titanium-logo):visible').all()) {
           const box = await control.boundingBox();
           if (!box || !box.width) continue;
           expect(box.x + box.width <= logo.x + 1 || box.x >= logo.x + logo.width - 1, 'control beside the logo').toBe(true);
         }
         await finder(page).scrollIntoViewIfNeeded();
         const boxes = await finder(page).locator('.vf-step').evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().y)));
-        expect(new Set(boxes).size, 'one step per row').toBe(4);
+        expect(new Set(boxes).size, 'two steps per row').toBe(2);
         await choose(page, 1, locale === 'fa' ? 'ایران خودرو' : 'Iran Khodro');
         await step(page, 2).locator('.vf-field').click();
         await noHorizontalScroll(page);
