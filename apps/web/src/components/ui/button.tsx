@@ -20,7 +20,7 @@ const variants: Record<Variant, string> = {
   // The storefront's buy action (add to cart, checkout, pay): stage text on commerce orange ≈ 9:1. One per view.
   commerce: 'bg-commerce text-stage font-bold shadow-[0_10px_24px_-14px_rgb(255_138_0/0.9)] hover:bg-commerce-hover active:bg-[#e67a00] disabled:hover:bg-commerce',
   // Add to cart on the product page and «ادامه و تکمیل خرید» in the cart: the owner's blue, bold.
-  buy: 'bg-buy text-white font-bold hover:bg-buy-hover active:bg-buy-hover disabled:hover:bg-buy',
+  buy: 'bg-buy text-white !font-bold hover:bg-buy-hover active:bg-buy-hover disabled:hover:bg-buy',
 };
 
 const sizes: Record<Size, string> = {
