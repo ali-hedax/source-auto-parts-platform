@@ -117,7 +117,17 @@ export async function CatalogPage({
       <div className="container-page pb-8">
       <div className="grid gap-4 lg:grid-cols-[17rem_minmax(0,1fr)] lg:gap-6">
         <aside className="lg:sticky lg:top-32 lg:max-h-[calc(100vh-9rem)] lg:self-start lg:overflow-y-auto">
-          <CatalogFilters categories={categories} brands={brands} makers={makers} vehicles={vehicles} {...(fixedVehicle ? { fixedVehicle } : {})} current={current} showOrigin={endpoint === '/catalog/products'} />
+          <CatalogFilters
+            categories={categories.map(({ slug, name: n }) => ({ slug, name: n }))}
+            brands={brands.map(({ slug, name: n }) => ({ slug, name: n }))}
+            makers={makers.map(({ slug, name: n }) => ({ slug, name: n }))}
+            // Only what the filter shows: every vehicle's name, and the models of the chosen one. The full
+            // list with every model and its search texts was the larger part of each catalog page's HTML.
+            vehicles={vehicles.map(({ slug, name: n, models }) => ({ slug, name: n, models: slug === current.vehicle ? models : [] }))}
+            {...(fixedVehicle ? { fixedVehicle: { slug: fixedVehicle.slug, name: fixedVehicle.name, models: fixedVehicle.models } } : {})}
+            current={current}
+            showOrigin={endpoint === '/catalog/products'}
+          />
         </aside>
         <div className="min-w-0">
           {selection ? (

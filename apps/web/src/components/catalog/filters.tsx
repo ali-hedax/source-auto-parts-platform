@@ -1,6 +1,6 @@
 'use client';
 
-import type { CategoryView, ManufacturerView, VehicleBrandView, VehiclePublicView } from '@hedax/contracts';
+import type { VehiclePublicView } from '@hedax/contracts';
 import { ChevronDown, SlidersHorizontal } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useState, useTransition } from 'react';
@@ -18,8 +18,11 @@ export type FilterKey = 'q' | 'group' | 'vehicle' | 'model' | 'year' | 'brand' |
  * streamed panel measured CLS 0.66 on mobile). On small screens it is collapsed
  * behind a button so results are visible first; from `lg` up it is always open.
  */
+type Named = { slug: string; name: { fa: string; en: string | null } };
+type FilterVehicle = Pick<VehiclePublicView, 'slug' | 'name' | 'models'>;
+
 export function CatalogFilters({ categories, brands, makers = [], vehicles = [], fixedVehicle, current, showOrigin = true }: {
-  categories: CategoryView[]; brands: VehicleBrandView[]; makers?: ManufacturerView[]; vehicles?: VehiclePublicView[]; fixedVehicle?: VehiclePublicView; current: Partial<Record<FilterKey, string>>; showOrigin?: boolean;
+  categories: Named[]; brands: Named[]; makers?: Named[]; vehicles?: FilterVehicle[]; fixedVehicle?: FilterVehicle; current: Partial<Record<FilterKey, string>>; showOrigin?: boolean;
 }) {
   const t = useTranslations();
   const locale = useLocale() as 'fa' | 'en';
