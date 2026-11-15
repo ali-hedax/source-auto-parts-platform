@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import { ErrorSummary } from '@/components/ui/error-summary';
 import { Field, Input } from '@/components/ui/field';
 import { Alert, Ltr } from '@/components/ui/misc';
-import { Link } from '@/i18n/navigation';
 import { api } from '@/lib/api/client';
 import { errorText } from '@/lib/api/errors';
 
@@ -98,9 +97,6 @@ export function OtpLogin() {
       <Button type="submit" size="lg" loading={busy}>
         {step === 'mobile' ? (busy ? t('auth.sending') : t('auth.sendCode')) : busy ? t('auth.verifying') : t('auth.verify')}
       </Button>
-      {/* How the code arrives, and what signing in accepts. */}
-      <p className="su-login-note">{t('auth.codeChannels')}</p>
-      <p className="su-login-note">{t.rich('auth.agreement', { terms: (c) => <Link href="/terms" className="su-link">{c}</Link>, privacy: (c) => <Link href="/privacy" className="su-link">{c}</Link> })}</p>
       {step === 'code' ? (
         <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
           <button type="button" className="min-h-11 cursor-pointer font-semibold text-action underline-offset-4 hover:underline disabled:cursor-not-allowed disabled:font-normal disabled:text-steel disabled:no-underline" disabled={cooldown > 0 || busy} onClick={() => void request()}>

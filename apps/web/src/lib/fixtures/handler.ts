@@ -162,10 +162,7 @@ function list(params: URLSearchParams, forceImported: boolean): SearchResult {
     items = items.filter((p) => matchOf.has(p.sku));
   } else if (vehicle) items = items.filter((p) => fixtureFits(p.sku, vehicle, params.get('model')));
   const category = params.get('category');
-  if (category) {
-    const slugs = category.split(',').filter(Boolean);
-    items = items.filter((p) => slugs.some((slug) => fixtureCategories.find((c) => c.slug === slug)?.code === p.category));
-  }
+  if (category) items = items.filter((p) => fixtureCategories.find((c) => c.slug === category)?.code === p.category);
   const maker = params.get('maker');
   if (maker) items = items.filter((p) => p.maker?.slug === maker);
   for (const key of ['partType', 'condition', 'origin'] as const) {
@@ -352,9 +349,6 @@ export async function handleFixture(method: string, pathWithQuery: string, rawBo
     }
     return ok(cartView(cartId, 'IRR'));
   }
-
-  // «درخواست تأمین قطعه» needs no sign-in.
-  if (route === 'POST /sourcing-requests/guest') return ok({ reference: 'HX-R-PREVIEW' });
 
   // --- customer area ---
   if (role !== 'customer' && role !== 'staff') return err(401, 'UNAUTHENTICATED');

@@ -41,9 +41,9 @@
   --color-info-soft: #ebf4fb;
 
   --font-fa: 'Vazirmatn', 'Tahoma', system-ui, sans-serif;
-  --font-en: 'Vazirmatn', system-ui, sans-serif;
+  --font-en: 'Montserrat', 'Vazirmatn', system-ui, sans-serif;
   /* Part codes, SKUs, references and VINs: the brand's Latin face with tabular figures. */
-  --font-code: 'Vazirmatn', system-ui, sans-serif;
+  --font-code: 'Montserrat', 'Vazirmatn', system-ui, sans-serif;
 
   /* Corners grow with the size of the thing: controls < cards < panels. */
   --radius-control: 6px;

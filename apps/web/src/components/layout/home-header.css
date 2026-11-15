@@ -1,0 +1,54 @@
+/*
+ * Home header: the film's deep ground, a large centred logo, minimal links and compact controls.
+ * Once the page scrolls it turns translucent and compact (no motion with reduced-motion).
+ * Logo size presets keep a big logo from crowding the phone header.
+ */
+.home-header {
+  --hh-ground: #05080d; --hh-h: 6rem; --hh-logo: 3.5rem; --hh-logo-m: 2.1rem;
+  position: sticky; top: 0; z-index: 40; color: #d7dde5;
+  background: var(--hh-ground);
+  transition: background-color .25s ease, box-shadow .25s ease, backdrop-filter .25s ease;
+}
+.home-header[data-size='md'] { --hh-logo: 2.75rem; --hh-logo-m: 1.85rem; --hh-h: 5.25rem; }
+.home-header[data-size='xl'] { --hh-logo: 4.25rem; --hh-logo-m: 2.35rem; --hh-h: 6.75rem; }
+.home-header[data-scrolled='true'] {
+  background: color-mix(in srgb, var(--hh-ground) 90%, transparent);
+  -webkit-backdrop-filter: saturate(140%) blur(14px); backdrop-filter: saturate(140%) blur(14px);
+  box-shadow: 0 1px 0 rgb(255 255 255 / .07), 0 12px 28px -18px rgb(0 0 0 / .8);
+}
+.hh-inner {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: .75rem;
+  max-width: 1440px; height: var(--hh-h); margin-inline: auto; padding-inline: clamp(.75rem, 3vw, 2rem);
+  transition: height .25s ease;
+}
+.home-header[data-scrolled='true'] .hh-inner { height: calc(var(--hh-h) - 1.5rem); }
+.home-header[data-align='start'] .hh-inner { grid-template-columns: auto minmax(0, 1fr) auto; }
+.home-header[data-align='start'] .hh-logo { order: -1; }
+.home-header[data-align='start'] .hh-start { justify-self: start; }
+.hh-start { display: flex; align-items: center; gap: .25rem; min-width: 0; }
+.hh-end { display: flex; align-items: center; justify-content: flex-end; gap: .125rem; min-width: 0; }
+.hh-logo { display: flex; justify-content: center; border-radius: .5rem; padding: .25rem; }
+.hh-logo img { display: block; width: auto; height: var(--hh-logo); max-width: min(46vw, 22rem); object-fit: contain; transition: height .25s ease; }
+.home-header[data-scrolled='true'] .hh-logo img { height: calc(var(--hh-logo) * .74); }
+.hh-logo:focus-visible, .hh-links a:focus-visible, .hh-icon:focus-visible { outline: 2px solid #39a0ff; outline-offset: 3px; }
+.hh-links ul { display: flex; gap: .25rem; list-style: none; margin: 0; padding: 0; }
+.hh-links a {
+  display: inline-flex; min-height: 2.75rem; align-items: center; padding-inline: .7rem; border-radius: .5rem;
+  font-size: .9rem; font-weight: 600; letter-spacing: .01em; color: #c5ced9; transition: color .15s ease, background-color .15s ease;
+}
+.hh-links a:hover { color: #fff; background: rgb(255 255 255 / .07); }
+.hh-icon { display: inline-grid; place-items: center; min-width: 2.75rem; min-height: 2.75rem; border-radius: .5rem; transition: background-color .15s ease; }
+.hh-icon:hover { background: rgb(255 255 255 / .1); }
+@media (max-width: 1023px) { .hh-links { display: none; } }
+@media (max-width: 639px) {
+  .home-header { --hh-h: 4rem; }
+  .home-header[data-size='xl'] { --hh-h: 4.25rem; }
+  .hh-inner { gap: .25rem; padding-inline: .5rem; }
+  .hh-wide { display: none; }
+  .hh-logo img { height: var(--hh-logo-m); max-width: 44vw; }
+  .home-header[data-scrolled='true'] .hh-logo img { height: calc(var(--hh-logo-m) * .85); }
+  .home-header[data-scrolled='true'] .hh-inner { height: calc(var(--hh-h) - .5rem); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-header, .hh-inner, .hh-logo img { transition: none; }
+}

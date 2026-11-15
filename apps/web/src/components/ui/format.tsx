@@ -3,19 +3,6 @@
 import type { MoneyDto, PriceView, UnitRef } from '@hedax/contracts';
 import { currencyLabel, formatDateTime, formatMinorNumber, formatQuantity, money, toPersianDigits } from '@hedax/domain';
 import { useLocale, useTranslations } from 'next-intl';
-import { useMoneyUnit } from '@/lib/money-unit';
-
-export const tomanLabel = (locale: 'fa' | 'en') => (locale === 'fa' ? 'تومان' : 'Toman');
-
-/** A rial amount as Toman with grouped digits; a rial remainder shows as one decimal («۱۲٬۵۰۰٫۵»). */
-export function formatToman(rial: bigint, locale: 'fa' | 'en'): string {
-  const negative = rial < 0n;
-  const abs = negative ? -rial : rial;
-  const whole = new Intl.NumberFormat(locale === 'fa' ? 'fa-IR' : 'en-US', { useGrouping: true }).format(abs / 10n);
-  const rest = abs % 10n;
-  const fraction = rest ? `${locale === 'fa' ? '٫' : '.'}${locale === 'fa' ? toPersianDigits(rest.toString()) : rest.toString()}` : '';
-  return `${negative ? (locale === 'fa' ? '−' : '-') : ''}${whole}${fraction}`;
-}
 
 /**
  * Money is always rendered from the string minor-unit contract with its explicit unit.
@@ -24,13 +11,10 @@ export function formatToman(rial: bigint, locale: 'fa' | 'en'): string {
  */
 export function Money({ value, className }: { value: MoneyDto | null | undefined; className?: string }) {
   const locale = useLocale() as 'fa' | 'en';
-  const shownUnit = useMoneyUnit();
   if (!value) return <span className={className}>—</span>;
   const amount = money(value.currency, value.amountMinor);
-  // Storefront default: rial amounts are printed as Toman (÷10); the amount itself stays rial.
-  const toman = shownUnit === 'IRT' && amount.currency === 'IRR';
-  const figure = <span className="num">{toman ? formatToman(amount.minor, locale) : formatMinorNumber(amount.minor, amount.currency, locale)}</span>;
-  const unit = <span className="money-unit text-[0.8em] font-medium opacity-80">{toman ? tomanLabel(locale) : currencyLabel(amount.currency, locale)}</span>;
+  const figure = <span className="num">{formatMinorNumber(amount.minor, amount.currency, locale)}</span>;
+  const unit = <span className="text-[0.8em] font-medium opacity-80">{currencyLabel(amount.currency, locale)}</span>;
   return (
     <bdi className={`whitespace-nowrap ${className ?? ''}`} dir={locale === 'fa' ? 'rtl' : 'ltr'}>
       {locale === 'fa' ? <>{figure} {unit}</> : <>{unit} {figure}</>}

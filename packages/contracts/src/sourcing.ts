@@ -38,35 +38,6 @@ export const sourcingRequestCreateSchema = z
   });
 export type SourcingRequestCreate = z.infer<typeof sourcingRequestCreateSchema>;
 
-/**
- * «درخواست تأمین قطعه» without signing in (owner, 2026-11): part, vehicle and mobile are required.
- * The request is filed under the customer account of that mobile (created when it does not exist yet);
- * nothing tells the sender whether an account already existed. `website` is a hidden trap field that
- * people never fill. Photos travel in the same multipart request (field `files`, the JSON in `payload`).
- */
-export const guestSourcingRequestSchema = z.object({
-  clientRequestId: z.string().min(16).max(64),
-  partName: z.string().trim().min(2).max(200),
-  vehicle: z.string().trim().min(2).max(80),
-  vehicleBrandCode: z.string().regex(/^[A-Z0-9_]{2,40}$/).optional().nullable(),
-  trim: optionalText(80),
-  /** Persian (۱۳۰۰–۱۴۹۹) or Gregorian; a Persian year is kept with the model text (the stored year is Gregorian-only). */
-  vehicleYear: z.number().int().min(1300).max(2100).optional().nullable(),
-  partCode: optionalText(64),
-  vin: z.string().trim().toUpperCase().regex(/^[A-HJ-NPR-Z0-9]{11,17}$/).optional().or(z.literal('').transform(() => undefined)),
-  notes: optionalText(1000),
-  fullName: optionalText(80),
-  /** Required unless a customer is signed in (their own account is used then). */
-  mobile: z.string().trim().max(20).optional(),
-  website: z.string().max(200).optional(),
-});
-export type GuestSourcingRequest = z.infer<typeof guestSourcingRequestSchema>;
-
-/** What a guest submission returns: only the reference (no account details). */
-export interface GuestSourcingResult {
-  reference: string;
-}
-
 export interface SourcingRequestView {
   id: string;
   reference: string;

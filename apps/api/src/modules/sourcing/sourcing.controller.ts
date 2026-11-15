@@ -1,15 +1,12 @@
-import { Body, Controller, Get, Headers, Param, ParseUUIDPipe, Patch, Post, Put, Query, UploadedFiles, UseInterceptors } from '@nestjs/common';
-import { FilesInterceptor } from '@nestjs/platform-express';
-import { memoryStorage } from 'multer';
-import { MB } from '@hedax/domain';
+import { Body, Controller, Get, Headers, Param, ParseUUIDPipe, Patch, Post, Put, Query } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { IDEMPOTENCY_HEADER, guestSourcingRequestSchema, QUOTE_VERSION_STATUSES, quoteDecisionSchema, quoteDraftSchema, shipmentSchema, sourcingRequestCreateSchema } from '@hedax/contracts';
+import { IDEMPOTENCY_HEADER, QUOTE_VERSION_STATUSES, quoteDecisionSchema, quoteDraftSchema, shipmentSchema, sourcingRequestCreateSchema } from '@hedax/contracts';
 import { SOURCING_REQUEST_STATES, PROCUREMENT_STATES } from '@hedax/domain';
 import { z } from 'zod';
-import { CurrentActor, CustomerOnly, Public, RequirePermissions, StaffOnly } from '../../common/auth/decorators.js';
-import { badRequest, forbidden } from '../../common/errors.js';
+import { CurrentActor, CustomerOnly, RequirePermissions, StaffOnly } from '../../common/auth/decorators.js';
+import { forbidden } from '../../common/errors.js';
 import { PrismaService } from '../../common/prisma.service.js';
-import { type Actor, currentContext } from '../../common/request-context.js';
+import type { Actor } from '../../common/request-context.js';
 import { ApiZodBody, zod } from '../../common/zod.js';
 import { ProcurementService } from './procurement.service.js';
 import { QuotesService } from './quotes.service.js';
@@ -51,22 +48,6 @@ export class SourcingController {
   @ApiZodBody(sourcingRequestCreateSchema)
   create(@CurrentActor() actor: Actor, @Body(zod(sourcingRequestCreateSchema)) body: z.infer<typeof sourcingRequestCreateSchema>) {
     return this.sourcing.create(actor, body);
-  }
-
-  /**
-   * «درخواست تأمین» without signing in (multipart: `payload` = JSON, `files` = up to 3 photos). Public, so a
-   * visitor needs no account; rate-limited per IP and per number. A signed-in customer's own account is used.
-   */
-  @Public()
-  @Post('sourcing-requests/guest')
-  @UseInterceptors(FilesInterceptor('files', 3, { storage: memoryStorage(), limits: { fileSize: 10 * MB, files: 3, fields: 2 } }))
-  createGuest(@UploadedFiles() files: Express.Multer.File[] | undefined, @Body() body: Record<string, unknown>) {
-    let payload: unknown;
-    try { payload = typeof body.payload === 'string' ? JSON.parse(body.payload) : body; } catch { throw badRequest('VALIDATION_FAILED'); }
-    const parsed = guestSourcingRequestSchema.safeParse(payload);
-    if (!parsed.success) throw badRequest('VALIDATION_FAILED', 'Check the highlighted fields', { fields: parsed.error.issues.map((i) => i.path.join('.')) });
-    const ctx = currentContext();
-    return this.sourcing.createGuest(parsed.data, (files ?? []).map((f) => ({ originalname: f.originalname, size: f.size, buffer: f.buffer })), { ipHash: ctx?.ipHash ?? null, actor: ctx?.actor ?? null, locale: ctx?.actor?.locale ?? 'fa' });
   }
 
   @CustomerOnly()

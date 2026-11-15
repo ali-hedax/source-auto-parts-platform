@@ -4,11 +4,7 @@ import { Suspense } from 'react';
 import { OtpLogin } from '@/components/auth/otp-login';
 import Image from 'next/image';
 
-export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
-  const { locale } = await params;
-  const t = await getTranslations({ locale });
-  return { title: t('seo.loginTitle'), description: t('seo.loginDescription'), robots: { index: false, follow: false } };
-}
+export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 export default async function LoginPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;

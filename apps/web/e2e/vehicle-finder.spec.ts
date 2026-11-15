@@ -2,9 +2,9 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 
 /**
- * Vehicle choice (owner layout 2026-11): three optional steps on the home page (brand, vehicle,
- * model & year) and the same steps as a catalogue filter. Results are ranked and labelled.
- * The home layout itself is covered in source-ui.spec.ts.
+ * Home page (fixtures preview): the published home of the fixture sets the film, the part search /
+ * vehicle finder under it, new products and the shopping paths last, before the footer
+ * (cookie hedax_fixture_home=finder). Every finder step is optional; results are ranked and labelled.
  */
 test.beforeEach(async ({ context, baseURL }) => {
   await context.addCookies([{ name: 'hedax_fixture_home', value: 'finder', url: baseURL! }]);
@@ -22,7 +22,6 @@ async function axe(page: Page, include: string) {
 }
 
 const finder = (page: Page) => page.locator('#vehicle-finder');
-const submit = (page: Page) => finder(page).locator('button[type=submit]');
 const step = (page: Page, n: number) => finder(page).locator('.vf-step').nth(n - 1);
 async function choose(page: Page, n: number, option: string) {
   await expect(step(page, n).locator('.vf-field')).toBeEnabled();
@@ -31,30 +30,84 @@ async function choose(page: Page, n: number, option: string) {
   await expect(step(page, n).locator('.vf-value')).toHaveText(option);
 }
 
+test.describe('home layout and header', () => {
+  test('part search under the film, shopping paths and categories last before the footer', async ({ page }) => {
+    await page.goto('/fa');
+    const kinds = await page.locator('[data-builder-kind]').evaluateAll((els) => els.map((e) => e.getAttribute('data-builder-kind')));
+    expect(kinds).toEqual(['cinematic-hero', 'vehicle-finder', 'new-products', 'shopping-paths']);
+    // The three shopping paths render once, in their own last section (links kept), not inside the film.
+    await expect(page.locator('.cine-discover')).toHaveCount(1);
+    await expect(page.locator('[data-builder-kind="cinematic-hero"] .cine-discover')).toHaveCount(0);
+    const paths = page.locator('[data-builder-kind="shopping-paths"]');
+    await expect(paths.getByRole('link', { name: /خودروی من/ })).toHaveAttribute('href', '/fa/cars');
+    await expect(paths.getByRole('link', { name: /کاتالوگ قطعات/ })).toHaveAttribute('href', '/fa/parts');
+    await expect(paths.getByRole('link', { name: /درخواست تأمین/ })).toHaveAttribute('href', '/fa/request-part');
+    const pathsBox = await paths.boundingBox();
+    const footerBox = await page.locator('footer').boundingBox();
+    expect(pathsBox && footerBox && pathsBox.y < footerBox.y).toBe(true);
+    const band = await finder(page).boundingBox();
+    const width = await page.evaluate(() => document.documentElement.clientWidth);
+    expect(band && Math.abs(band.width - width)).toBeLessThanOrEqual(1);
+    await expect(finder(page).getByText(/پلاک|VIN|شاسی/)).toHaveCount(0);
+    await expect(finder(page).locator('.vf-submit')).toBeDisabled();
+    await axe(page, '#vehicle-finder');
+  });
+
+  test('minimal header: centred logo, no search box, compact controls, compact state on scroll', async ({ page }) => {
+    await page.goto('/fa');
+    const header = page.locator('header.home-header');
+    await expect(header).toBeVisible();
+    await expect(header.locator('input')).toHaveCount(0);
+    const logo = await header.locator('.hh-logo img').boundingBox();
+    const width = await page.evaluate(() => document.documentElement.clientWidth);
+    expect(logo && Math.abs(logo.x + logo.width / 2 - width / 2)).toBeLessThan(24);
+    expect(logo!.height).toBeGreaterThanOrEqual(48);
+    await expect(header.getByRole('link', { name: 'جست‌وجوی قطعه' })).toHaveAttribute('href', '/fa#part-search');
+    await expect(header).toHaveAttribute('data-scrolled', 'false');
+    await page.mouse.wheel(0, 900);
+    await expect(header).toHaveAttribute('data-scrolled', 'true');
+    // The search control takes the visitor to the part search under the film.
+    await page.evaluate(() => scrollTo(0, 0));
+    await header.getByRole('link', { name: 'جست‌وجوی قطعه' }).click();
+    await expect(page.locator('#part-search')).toBeInViewport();
+    // Menu: every page, plus language, currency and account.
+    await header.getByRole('button', { name: 'باز کردن منو' }).click();
+    const drawer = page.getByRole('dialog');
+    await expect(drawer.getByRole('link', { name: 'درخواست تأمین قطعه' })).toBeVisible();
+    await expect(drawer.getByRole('combobox')).toBeVisible();
+    await axe(page, 'header');
+  });
+
+  test('other pages keep the classic header with its search box', async ({ page }) => {
+    await page.goto('/fa/parts');
+    await expect(page.locator('header.home-header')).toHaveCount(0);
+    await expect(page.locator('#header-search')).toBeVisible();
+  });
+});
+
 test.describe('optional steps', () => {
   test('lists load as needed, changing a step clears the later ones, the URL carries the selection', async ({ page }) => {
     await page.goto('/fa');
     // Every step is optional: the vehicle step works without a group; model and year need a vehicle.
     await expect(step(page, 2).locator('.vf-field')).toBeEnabled();
     await expect(step(page, 3).locator('.vf-field')).toBeDisabled();
-    await expect(finder(page).locator('.vf-step')).toHaveCount(3);
-    await expect(submit(page)).toBeDisabled();
+    await expect(step(page, 4).locator('.vf-field')).toBeDisabled();
     await expect(step(page, 1)).toHaveAttribute('data-active', 'true');
-    await axe(page, '#vehicle-finder');
 
     await choose(page, 1, 'ایران خودرو');
-    await expect(submit(page)).toBeEnabled();
+    await expect(finder(page).locator('.vf-submit')).toBeEnabled();
     await step(page, 2).locator('.vf-field').click();
     await step(page, 2).getByRole('combobox').fill('پژو');
     await expect(step(page, 2).getByRole('option')).toHaveCount(1);
     await step(page, 2).getByRole('option', { name: 'پژو ۲۰۶' }).click();
     await choose(page, 3, 'تیپ ۲');
+    await choose(page, 4, '۱۳۹۰');
 
-    // Changing the vehicle clears the model; the vehicle can be cleared again.
+    // Changing the vehicle clears model and year; the vehicle can be cleared again.
     await choose(page, 2, 'دنا');
     await expect(step(page, 3).locator('.vf-value')).toHaveText('همهٔ مدل‌ها');
     await step(page, 2).locator('.vf-field').click();
-    await step(page, 2).getByRole('option', { name: '— همه —' }).click();
+    await step(page, 2).getByRole('option', { name: '— بدون انتخاب —' }).click();
     await expect(step(page, 2).locator('.vf-value')).toHaveText('انتخاب خودرو');
     await expect(step(page, 3).locator('.vf-field')).toBeDisabled();
     // Changing the group clears everything after it.
@@ -65,43 +118,42 @@ test.describe('optional steps', () => {
     await choose(page, 1, 'ایران خودرو');
     await choose(page, 2, 'پژو ۲۰۶');
     await choose(page, 3, 'تیپ ۲');
-    await submit(page).click();
-    await expect(page).toHaveURL(/\/fa\/parts\?group=iran-khodro&vehicle=peugeot-206&model=type-2$/);
-    // The choice shows as removable chips above the results and fills the filter steps.
-    await expect(page.getByTestId('active-filters')).toContainText('پژو ۲۰۶');
-    await expect(page.getByTestId('active-filters')).toContainText('تیپ ۲');
-    await expect(page.locator('#filter-vehicle .vf-value').nth(1)).toHaveText('پژو ۲۰۶');
+    await choose(page, 4, '۱۳۹۰');
+    await finder(page).locator('.vf-submit').click();
+    await expect(page).toHaveURL(/\/fa\/parts\?group=iran-khodro&vehicle=peugeot-206&model=type-2&year=1390/);
+    await expect(page.getByTestId('vehicle-selection')).toContainText('پژو ۲۰۶');
+    await expect(page.getByTestId('vehicle-selection')).toContainText('شمسی');
   });
 
-  test('a vehicle chosen first fills in its brand', async ({ page }) => {
+  test('a vehicle chosen first fills in its group; a year without a model uses the vehicle’s model years', async ({ page }) => {
     await page.goto('/fa');
     await step(page, 2).locator('.vf-field').click();
     await step(page, 2).getByRole('combobox').fill('دنا');
     await step(page, 2).getByRole('option', { name: /^دنا/ }).first().click();
     await expect(step(page, 1).locator('.vf-value')).toHaveText('ایران خودرو');
-    await submit(page).click();
-    await expect(page).toHaveURL(/group=iran-khodro&vehicle=dena$/);
+    await choose(page, 4, '۱۴۰۰');
+    await finder(page).locator('.vf-submit').click();
+    await expect(page).toHaveURL(/group=iran-khodro&vehicle=dena&year=1400/);
   });
 
-  test('a typed part name or number searches the catalogue', async ({ page }) => {
+  test('only a typed part name or number searches the catalogue', async ({ page }) => {
     await page.goto('/fa');
-    await page.locator('#quick-search-input').fill('لنت');
-    await page.locator('.su-hero button[type=submit]').click();
+    await page.locator('#part-search').fill('لنت');
+    await finder(page).locator('.vf-submit').click();
     await expect(page).toHaveURL(/\/fa\/parts\?q=/);
     await expect(page.getByTestId('search-term')).toContainText('لنت');
   });
 
-  test('empty brands and vehicles without models say so instead of showing made-up options', async ({ page }) => {
+  test('empty groups and models without verified years say so instead of showing made-up options', async ({ page }) => {
     await page.goto('/fa');
     await choose(page, 1, 'تویوتا');
-    await expect(step(page, 2).getByRole('status')).toHaveText('برای این برند خودرویی ثبت نشده.');
+    await expect(step(page, 2).getByRole('status')).toHaveText('برای این گروه خودرویی ثبت نشده.');
     await expect(step(page, 2).locator('.vf-field')).toBeDisabled();
     await choose(page, 1, 'ایران خودرو');
     await choose(page, 2, 'پژو ۲۰۶');
-    // Model years are shown beside each model instead of a separate year step.
-    await step(page, 3).locator('.vf-field').click();
-    await expect(step(page, 3).getByRole('option', { name: /تیپ ۲/ })).toContainText('۱۳۸۱–۱۴۰۲ شمسی');
-    await page.keyboard.press('Escape');
+    await choose(page, 3, 'تیپ ۵');
+    await expect(step(page, 4).getByRole('status')).toHaveText('سالی ثبت نشده؛ بدون سال جست‌وجو کنید.');
+    await expect(step(page, 4).locator('.vf-field')).toBeDisabled();
     await choose(page, 2, 'سمند');
     await expect(step(page, 3).getByRole('status')).toContainText('مدلی ثبت نشده');
   });
@@ -134,7 +186,7 @@ test.describe('optional steps', () => {
 test.describe('ranked results', () => {
   test('a group alone gives verified results under their heading, labelled on each card', async ({ page }) => {
     await page.goto('/fa/parts?group=iran-khodro');
-    await expect(page.getByTestId('active-filters')).toContainText('ایران خودرو');
+    await expect(page.getByTestId('vehicle-selection')).toContainText('ایران خودرو');
     await expect(page.getByTestId('tier-verified')).toContainText('سازگاری تأییدشده');
     await expect(page.getByTestId('card-finder-match').first()).toHaveText('ثبت‌شده برای خودرویی از این گروه');
   });
@@ -166,9 +218,7 @@ test.describe('ranked results', () => {
     for (const qs of ['group=saipa&vehicle=samand', 'group=iran-khodro&vehicle=peugeot-206&model=turbo', 'group=iran-khodro&vehicle=peugeot-206&model=type-2&year=1410', 'group=nope&vehicle=samand']) {
       await page.goto(`/fa/parts?${qs}`);
       await expect(page.getByText('این انتخاب خودرو معتبر نیست'), qs).toBeVisible();
-      // The way back clears the selection; the filter steps are beside the results.
-      await expect(page.getByRole('link', { name: 'انتخاب دوبارهٔ خودرو' })).toHaveAttribute('href', '/fa/parts');
-      await expect(page.locator('#filter-vehicle .vf-field')).toHaveCount(3);
+      await expect(page.getByRole('link', { name: 'انتخاب دوبارهٔ خودرو' })).toHaveAttribute('href', '/fa#vehicle-finder');
     }
   });
 });
@@ -176,23 +226,30 @@ test.describe('ranked results', () => {
 test.describe('English and phones', () => {
   test('English is left-to-right with English labels', async ({ page }) => {
     await page.goto('/en');
-    await expect(page.locator('html')).toHaveAttribute('dir', 'ltr');
-    await expect(finder(page).locator('.vf-label')).toHaveText(['Brand', 'Vehicle', 'Model & year']);
+    await expect(page.locator('.builder-root')).toHaveAttribute('dir', 'ltr');
     await choose(page, 1, 'Iran Khodro');
     await choose(page, 2, 'Peugeot 206');
     await choose(page, 3, 'Type 2');
-    await expect(submit(page)).toHaveText('Show parts');
+    await expect(step(page, 4).locator('.vf-field')).toBeEnabled();
+    await expect(finder(page).locator('.vf-submit')).toHaveText('Search parts');
   });
 
   for (const width of [390, 360]) {
-    test(`no horizontal scroll at ${width}px, steps stacked`, async ({ page }) => {
+    test(`no horizontal scroll at ${width}px, steps stacked, header fits`, async ({ page }) => {
       await page.setViewportSize({ width, height: 800 });
       for (const locale of ['fa', 'en']) {
         await page.goto(`/${locale}`);
         await noHorizontalScroll(page);
+        // Header controls never overlap the centred logo.
+        const logo = (await page.locator('.hh-logo').boundingBox())!;
+        for (const control of await page.locator('.hh-start > *, .hh-end > *:visible').all()) {
+          const box = await control.boundingBox();
+          if (!box || !box.width) continue;
+          expect(box.x + box.width <= logo.x + 1 || box.x >= logo.x + logo.width - 1, 'control beside the logo').toBe(true);
+        }
         await finder(page).scrollIntoViewIfNeeded();
         const boxes = await finder(page).locator('.vf-step').evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().y)));
-        expect(new Set(boxes).size, 'one step per row').toBe(3);
+        expect(new Set(boxes).size, 'one step per row').toBe(4);
         await choose(page, 1, locale === 'fa' ? 'ایران خودرو' : 'Iran Khodro');
         await step(page, 2).locator('.vf-field').click();
         await noHorizontalScroll(page);
