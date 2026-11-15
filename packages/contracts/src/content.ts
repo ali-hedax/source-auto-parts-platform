@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { idSchema } from './common.js';
-import { SOCIAL_NETWORKS, type Localized } from './constants.js';
+import { SOCIAL_NETWORKS, TRUST_SEAL_URL, type Localized } from './constants.js';
 
 /**
  * Editable site content (admin panel → «محتوای سایت»). Everything a visitor reads that is not
@@ -38,13 +38,6 @@ const externalUrlSchema = z.string().trim().max(500).refine((v) => v === '' || /
 export const phoneNumberSchema = z.string().trim().regex(/^\+?[0-9][0-9 ()-]{5,24}$/, { message: 'INVALID_PHONE' });
 
 // ---- General ----
-
-/** The only accepted trust seal link: eNamad's own address with its id and code. */
-export const TRUST_SEAL_URL = /^https:\/\/trustseal\.enamad\.ir\/\?id=\d{1,12}&Code=[A-Za-z0-9]{4,64}$/;
-/** eNamad serves the seal image beside the link («…/logo.aspx?id=…&Code=…»). */
-export function trustSealImage(url: string): string {
-  return url.replace('https://trustseal.enamad.ir/?', 'https://trustseal.enamad.ir/logo.aspx?');
-}
 
 export const brandContentSchema = z.object({
   /** Short name used after every page title ("… | سورس"). */

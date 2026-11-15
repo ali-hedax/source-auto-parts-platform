@@ -176,6 +176,13 @@ export function channelHref(key: ContactChannelKey, value: string, extension = '
   }
 }
 
+/** The only accepted trust seal link: eNamad's own address with its id and code. */
+export const TRUST_SEAL_URL = /^https:\/\/trustseal\.enamad\.ir\/\?id=\d{1,12}&Code=[A-Za-z0-9]{4,64}$/;
+/** eNamad serves the seal image beside the link («…/logo.aspx?id=…&Code=…»). */
+export function trustSealImage(url: string): string {
+  return url.replace('https://trustseal.enamad.ir/?', 'https://trustseal.enamad.ir/logo.aspx?');
+}
+
 /**
  * A mobile or WhatsApp number as people read it: an Iranian mobile as «0912 153 1797» and a UAE mobile as
  * «+971 50 144 1797», whether it was saved with 0098/+98/00971 or without spaces. Anything else is shown as

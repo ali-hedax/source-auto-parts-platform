@@ -4,8 +4,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import type { BuilderDocument, SiteContentView } from '@hedax/contracts';
 import { Link } from '@/i18n/navigation';
 const DEFAULT_LOGO = '/brand/source/titanium/logo.webp';
-import { CONTACT_CHANNEL_ORDER, channelHref, channelText, resolveContactChannels, type ContactChannelKey } from '@hedax/contracts/constants';
-import { trustSealImage } from '@hedax/contracts';
+import { CONTACT_CHANNEL_ORDER, channelHref, channelText, resolveContactChannels, trustSealImage, type ContactChannelKey } from '@hedax/contracts/constants';
 import { ContactIcon, type ContactIconName } from './contact-icons';
 import { InstallApp } from './pwa';
 
@@ -49,7 +48,9 @@ export function SiteFooterView({ content, chrome, now }: { content: SiteContentV
           {about ? <p className="mt-2 leading-7">{about}</p> : null}
           <InstallApp className="footer-install" />
           {/* The trust seal's place: empty until its link is saved in the panel (general settings → footer). */}
-          {trustSeal ? <a className="footer-trust-seal" href={trustSeal} target="_blank" rel="noopener" referrerPolicy="origin">{/* eslint-disable-next-line @next/next/no-img-element -- eNamad serves the seal itself and checks the page it is shown on */}<img src={trustSealImage(trustSeal)} alt={locale === 'fa' ? 'نماد اعتماد الکترونیکی' : 'eNamad trust seal'} width={96} height={96} loading="lazy" referrerPolicy="origin" /></a> : null}
+          {trustSeal ? <a className="footer-trust-seal" href={trustSeal} target="_blank" rel="noopener" referrerPolicy="origin">
+            {/* eslint-disable-next-line @next/next/no-img-element -- eNamad serves the seal itself and checks the page it is shown on */}
+            <img src={trustSealImage(trustSeal)} alt={locale === 'fa' ? 'نماد اعتماد الکترونیکی' : 'eNamad trust seal'} width={96} height={96} loading="lazy" referrerPolicy="origin" /></a> : null}
         </div>
         <nav className="titanium-footer-quick" aria-label={t('common.menu')}>
           <p className="footer-heading">{locale === 'fa' ? 'دسترسی سریع' : 'Quick links'}</p>
