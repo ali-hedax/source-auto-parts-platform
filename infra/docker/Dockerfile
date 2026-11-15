@@ -51,6 +51,8 @@ ENV API_INTERNAL_URL=$API_INTERNAL_URL \
     NEXT_OUTPUT=standalone
 RUN pnpm --filter @hedax/api run prisma:generate \
  && pnpm build
+# Brotli and gzip copies of the built JS/CSS, which Caddy serves for /_next/static/* (infra/docker/precompress.mjs).
+RUN node infra/docker/precompress.mjs apps/web/.next/static
 
 # One-off tasks (migrate deploy, bootstrap owner, base seed) need the Prisma CLI.
 FROM build AS tools

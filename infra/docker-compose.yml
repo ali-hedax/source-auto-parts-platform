@@ -260,6 +260,8 @@ services:
       ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL (contact e-mail for the TLS certificate)}
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # Built web assets each release copies here (see infra/caddy/Caddyfile, @builtAsset); empty is fine.
+      - ${HEDAX_WEB_STATIC_DIR:-./web-static}:/srv/web-static:ro
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
