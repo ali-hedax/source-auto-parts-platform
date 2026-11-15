@@ -350,6 +350,9 @@ export async function handleFixture(method: string, pathWithQuery: string, rawBo
     return ok(cartView(cartId, 'IRR'));
   }
 
+  // A part request without signing in (multipart, not read here): only the reference comes back.
+  if (route === 'POST /sourcing-requests/guest') return ok({ reference: 'HX-R-PREVIEW' });
+
   // --- customer area ---
   if (role !== 'customer' && role !== 'staff') return err(401, 'UNAUTHENTICATED');
 
