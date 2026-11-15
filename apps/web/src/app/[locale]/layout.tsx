@@ -19,7 +19,8 @@ import { dataSource, publicSiteUrl } from '@/lib/config';
 import { getSiteContent } from '@/lib/site-content';
 import { FixtureBanner } from '@/components/layout/fixture-banner';
 import { AssistantEntry } from '@/components/chat/assistant-entry';
-import { preloadFirstScreenFonts } from '@/lib/font-preload';
+import { firstScreenFonts } from '@/lib/font-preload';
+import { FontPreloads } from '@/components/layout/font-preloads';
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -61,8 +62,6 @@ export default async function LocaleLayout({ children, params }: { children: Rea
   const { locale } = await params;
   if (!hasLocale(routing.locales, locale)) notFound();
   setRequestLocale(locale);
-  // Persian pages are set in Vazirmatn from the first line on.
-  if (locale === 'fa') preloadFirstScreenFonts();
   // The admin texts (a third of all texts) go only to the admin pages, which add them in their own layout;
   // every storefront page carried them in its HTML. A storefront 403 message is the one admin text used outside.
   const { admin, ...storefront } = (await getMessages()) as Record<string, unknown> & { admin: { noPermission: string } };
@@ -71,6 +70,8 @@ export default async function LocaleLayout({ children, params }: { children: Rea
   return (
     <html lang={locale} dir={locale === 'fa' ? 'rtl' : 'ltr'}>
       <body className="min-h-screen bg-white antialiased">
+        {/* Persian pages are set in Vazirmatn from the first line on. */}
+        {locale === 'fa' ? <FontPreloads hrefs={firstScreenFonts()} /> : null}
         <a href="#main" className="skip-link">
           {t('skipToContent')}
         </a>
