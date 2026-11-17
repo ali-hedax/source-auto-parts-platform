@@ -99,6 +99,10 @@ const TEMPLATE_CHOICES: Partial<Record<ImportColumn, readonly string[]>> = {
   base_currency: ['ریال', 'درهم'],
 };
 
+const TEMPLATE_VISIBLE = new Set<ImportColumn>([
+  'technical_number', 'name_fa', 'manufacturer_brand', 'category_code', 'vehicle_models', 'part_type', 'condition', 'origin',
+]);
+
 const EMPTY_DEFAULTS: ImportSettings['defaults'] = {
   categoryCode: null, partType: null, condition: null, origin: null, manufacturerBrandId: null, vehicleBrandCodes: [], unit: null, initialOnHand: null,
 };
@@ -184,7 +188,7 @@ export class ImportsService {
    * itself never carries sample rows).
    */
   /**
-   * Operator template: the nine columns operators fill, with Persian headers, Persian drop-down
+   * Operator template with a short set of visible columns, Persian headers and drop-down
    * lists for the fixed values and the SKU column stored as text. The other columns are still
    * accepted on import; the «راهنما» sheet lists them with their exact header.
    */
@@ -192,6 +196,11 @@ export class ImportsService {
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet('کالاها', { views: [{ rightToLeft: true, state: 'frozen', ySplit: 1 }] });
     const examples = wb.addWorksheet('نمونه', { views: [{ rightToLeft: true }] });
+    const lookup = wb.addWorksheet('گزینه‌ها', { state: 'veryHidden' });
+    const vehicles = await this.prisma.vehicle.findMany({ where: { active: true }, orderBy: { name: 'asc' }, include: { models: { where: { active: true } } } });
+    const vehicleChoices = [...new Set(vehicles.flatMap(({ name, models }) => [name, ...models.map((model) => name + ' ' + model.name)]))];
+    lookup.getColumn(1).values = ['Vehicle', ...vehicleChoices];
+    if (vehicleChoices.length) wb.definedNames.add("'گزینه‌ها'!$A$2:$A$" + (vehicleChoices.length + 1), 'SourceVehicleChoices');
     for (const sheet of [ws, examples]) {
       sheet.addRow(TEMPLATE_CORE.map(([, label]) => label));
       sheet.getRow(1).font = { bold: true };
@@ -199,13 +208,15 @@ export class ImportsService {
         const col = sheet.getColumn(i + 1);
         col.width = c === 'name_fa' || c === 'vehicle_models' ? 36 : 16;
         if (c === 'sku' || c === 'technical_number' || c === 'equivalent_numbers' || c === 'replacement_numbers') col.numFmt = '@';
+        if (sheet === ws) col.hidden = !TEMPLATE_VISIBLE.has(c);
         const list = TEMPLATE_CHOICES[c];
-        if (list) {
+        const vehicleList = c === 'vehicle_models' && vehicleChoices.length > 0;
+        if (list || vehicleList) {
           const letter = col.letter;
           // Range validation exists in ExcelJS at runtime but is missing from its type definitions.
           (sheet as unknown as { dataValidations: { add(range: string, rule: ExcelJS.DataValidation): void } }).dataValidations.add(`${letter}2:${letter}${MAX_IMPORT_ROWS + 1}`, {
-            type: 'list', allowBlank: true, formulae: [`"${list.join(',')}"`],
-            showErrorMessage: true, errorTitle: 'مقدار نامعتبر', error: `یکی از این‌ها: ${list.join('، ')}`,
+            type: 'list', allowBlank: true, formulae: [vehicleList ? 'SourceVehicleChoices' : `"${(list ?? []).join(',')}"`],
+            showErrorMessage: !vehicleList, errorTitle: 'مقدار نامعتبر', error: 'یک گزینه از فهرست انتخاب کنید.',
           });
         }
       });
@@ -219,6 +230,7 @@ export class ImportsService {
     help.addRow(['عنوان ستون', 'کلید انگلیسی', 'توضیح', 'نمونه']);
     help.getRow(1).font = { bold: true };
     for (const [col, label] of TEMPLATE_CORE) help.addRow([label, col, HEADER_HELP_FA[col].help, HEADER_HELP_FA[col].example]);
+    help.addRow(['ستون‌های تکمیلی', '', 'برای ورود قیمت، موجودی یا کد کالا، ستون‌های پنهان برگهٔ اول را نمایش دهید. عکس‌ها بعد از ثبت فایل در مرحلهٔ افزودن عکس اضافه می‌شوند.']);
     help.addRow([]);
     help.addRow(['ستون‌های اختیاری', '', 'در صورت نیاز، با همین عنوان به شیت «کالاها» اضافه کنید:']);
     for (const col of TEMPLATE_COLUMNS.filter((c) => !TEMPLATE_CORE.some(([k]) => k === c))) help.addRow([importColumnLabel(col, 'fa'), col, HEADER_HELP_FA[col].help, HEADER_HELP_FA[col].example]);
