@@ -1,6 +1,24 @@
 # Source by HEDAX — وضعیت و نقطهٔ ادامه
 
-### Implemented Pending Verification — 2026-11-17, Asia/Tehran
+آخرین به‌روزرسانی: 2026-11-17، حدود 17:15 Asia/Tehran؛ شاخهٔ main در `8705ea8`.
+
+### Completed & Tested — انتشار PR #102 (ثبت تکی قطعه و قالب Excel) — 2026-11-17، 13:14 UTC
+
+- **Production فعلی:** web+api `b2009650ff5fae69b1e00989c6b1674fe6b6e1de` (= `824240b` + فقط پنج فایل #102)، worker `edc508d`. هر دو healthy؛ بررسی نهایی 17:08 Asia/Tehran.
+- **سابقه:** جلسهٔ قبل (12:43 UTC) فقط بررسی کرد و هنگام پرسش دامنهٔ انتشار، رایانه خاموش شد؛ هیچ ساخت یا انتشاری شروع نشده بود.
+- **تصمیم مالک:** فقط #102 روی `824240b`. PR #99 (سرعت/SEO، که 2026-11-15 با «Font preloads missing» برگشت خورد) روی سایت نرفت. main عوض نشد، پس main ≠ Production.
+- **ساخت:** شاخهٔ `deploy/parts-102-b200965`، CI run `44089831153` موفق. تگ `images-production-parts-b200965`، Release images run `44089751923` موفق. digestها: api `sha256:33043550201e88add2ea6a8b262d9c5cf8ce4354fc0544c7445d395def95b8b0`، web `sha256:58058bc54598462be89e2e4e59b5817d684320cbffbfb61b7eff3fa9445b83c5`.
+- **انتشار:** candidate `/opt/hedax-release-candidates/parts-b200965-20261117`، اسکریپت‌ها `/opt/hedax-release-tools/parts-{prepare,deploy}.py`. boot `b47b0b0c` در چند نمونه. dump معتبر (106 جدول). digest کشیده‌شده پیش از سوییچ با ساخت GitHub مقایسه شد. worker و Caddy دست نخوردند؛ migration یا تغییر داده‌ای نبود.
+- **چک‌ها:** `/fa`، `/fa/parts`، صفحهٔ قطعه، `/fa/cars`، صفحه‌های ورود، sitemap و robots = 200. `/fa/admin/products` و `/fa/admin/imports` = 200. قالب بدون ورود = 401. health/ready موفق. JS سرو‌شده متن‌های جدید #102 را دارد.
+- **بازگشت:** `compose.before` در همان candidate (web `sha256:1604d28d…`، api `sha256:ac3a1772…`، هر دو `824240b`) و تگ‌های `hedax-parts-rollback-{web,api}:pre-b200965`.
+- **Completed & Tested — تست ایزوله (API، پایگاه دادهٔ موقت):** قالب واقعی ۴ برگه دارد (کالاها، نمونه، گزینه‌ها veryHidden، راهنما)؛ ۸ ستون پیدا و ۱۱ پنهان؛ فهرست کشویی خودرو `SourceVehicleChoices`. ردیفی که فقط در ستون‌های پیدا پر شد: پیش‌نمایش ۱ جدید / ۰ خطا، بعد COMMITTED با خودروی سازگار، بعد عکس (photoCount=1). قطعهٔ تکی با عکس اصلی ثبت شد. spec موقت ۳/۳ موفق؛ سوئیت‌های 40/41/86/90/91 = ۳۰ تست موفق.
+- **Blocked External — تست مرورگری:** روی رایانهٔ مالک Next.js 16.4.2 هم `next dev` و هم `next build` را با `SecurityFatalError` (توصیهٔ ارتقای امنیتی) متوقف می‌کند. در GitHub Actions همان نسخه بدون مشکل ساخته شد. ارتقا اجرا نشد.
+- **Requires Owner Decision:** (۱) ارتقای امنیتی Next.js؛ (۲) نگه‌داشتن یا حذف شاخهٔ `deploy/parts-102-b200965` و تگ انتشار؛ (۳) آزمایش پنل با حساب مالک روی سایت.
+- **قدم بعد:** تصمیم‌های بالا. انتشار بعدی باید PR #99/#100 را آگاهانه شامل کند یا کنار بگذارد.
+
+### Completed & Tested (پیش‌تر Implemented Pending Verification) — 2026-11-17, Asia/Tehran
+
+- Resolved: CI passed on PR #102 and main; the isolated single-entry and template-import checks above passed.
 
 - Base: main 2a27f86. Reviewed the live product editor and import page without submitting changes.
 - Grouped optional product fields, moved photos before advanced settings, condensed import instructions, collapsed import history and kept older summaries from displaying undefined values. The first worksheet now shows eight columns and keeps the existing import headers; the live download uses active vehicle choices.
