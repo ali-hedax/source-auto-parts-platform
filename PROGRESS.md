@@ -1,5 +1,12 @@
 # Source by HEDAX — وضعیت و نقطهٔ ادامه
 
+### Implemented Pending Verification — 2026-11-17, Asia/Tehran
+
+- Base: main 2a27f86. Reviewed the live product editor and import page without submitting changes.
+- Grouped optional product fields, moved photos before advanced settings, condensed import instructions, collapsed import history and kept older summaries from displaying undefined values. The first worksheet now shows eight columns and keeps the existing import headers; the live download uses active vehicle choices.
+- Changed files: product editor, import page, template generator, and this checkpoint. TypeScript syntax parsing passed. Dependency installation was blocked by a missing cached package, so full type checks and end-to-end verification remain pending. Next: review CI, then validate one synthetic single entry and one template import with photos in an isolated environment.
+
+
 آخرین checkpoint: 2026-11-15 ظهر، Asia/Tehran؛ تغییرهای تأییدشدهٔ مالک (PR #97، merge `824240b`) با مجوز صریح او منتشر شد: web و api روی `824240b`، worker `edc508d` دست‌نخورده؛ داده‌ها و محتوای پنل طبق همان پرامپت اصلاح شد.
 
 (checkpoint پیشین) 2026-11-15 صبح؛ با مجوز صریح مالک، سایت اصلی به طراحی پیش از PR #92 برگشت: web و api روی `f958586` (merge PR #95؛ درخت کد = `2bf8eae`)، worker `edc508d` دست‌نخورده. پایگاه داده بازنویسی نشد.

@@ -127,7 +127,7 @@ export function ImportsPage() {
 
   return (
     <>
-      <PageHeader title={t('admin.imports')} description={l('قطعه‌ها را از Excel وارد کنید: شمارهٔ فنی، شماره‌های معادل و جایگزین، کاربرد با سال، مشخصات و — به‌دلخواه — قیمت و موجودی. قطعهٔ بدون قیمت در سایت «قابل تأمین» است. پیش از هر تغییری پیش‌نمایش خطاها و تکراری‌ها را می‌بینید. نمونهٔ فایل را از دکمهٔ بالا بگیرید.', 'Bring parts in from Excel: part number, equivalent and replacement numbers, fitment with years, specs and — optionally — price and stock. A part without a price is “can be sourced” on the site. You see errors and duplicates in a preview before anything changes. Get the sample file from the button above.')} actions={<TemplateLinks />} />
+      <PageHeader title={t('admin.imports')} description={l('قالب را بگیرید، فایل را بارگذاری کنید و پیش‌نمایش را قبل از ثبت بررسی کنید. عکس‌ها را بعد از ثبت فایل اضافه کنید.', 'Download the template, upload the file, and review the preview before importing. Add photos after the import.')} actions={<TemplateLinks />} />
       <Steps current={1} />
       <Section title={t('admin.uploadImport')} id="imp-upload">
         <label
@@ -154,7 +154,7 @@ export function ImportsPage() {
           <li>{l('تا پیش‌نمایش را تأیید نکنید، هیچ کالا، قیمت یا موجودی‌ای تغییر نمی‌کند و هیچ کالایی با فایل حذف نمی‌شود.', 'Nothing in the catalog changes until you approve the preview, and no product is ever deleted by a file.')}</li>
         </ul>
       </Section>
-      <Section title={l('واردکردن‌های اخیر', 'Recent imports')} id="imp-recent">
+      <details id="imp-recent" className="rounded-[var(--radius-control)] border border-line-soft bg-white p-4"><summary className="cursor-pointer font-semibold text-ink">{l('سابقهٔ ورود فایل‌ها', 'Recent imports')}</summary><div className="mt-4">
         {recent.data?.length ? (
           <TableScroll caption={l('واردکردن‌های اخیر', 'Recent imports')}>
             <thead><tr><th className={th}>{l('فایل', 'File')}</th><th className={th}>{l('زمان', 'When')}</th><th className={th}>{l('وضعیت', 'Status')}</th><th className={th}>{l('جدید / به‌روزرسانی / خطا', 'New / updated / errors')}</th></tr></thead>
@@ -164,7 +164,7 @@ export function ImportsPage() {
                   <td className={td}><Link href={`/admin/imports/${j.jobId}`} className="font-semibold text-action underline underline-offset-4 hover:text-action-hover" dir="auto">{j.filename ?? j.jobId.slice(0, 8)}</Link></td>
                   <td className={td}><DateTime iso={j.createdAt} /></td>
                   <td className={td}><Badge tone={j.status === 'COMMITTED' ? 'success' : j.status === 'FAILED' || j.status === 'CONFLICT' ? 'danger' : 'neutral'}>{label('importStatus', j.status)}</Badge></td>
-                  <td className={td}>{j.summary ? <span><Num value={j.summary.create} /> / <Num value={j.summary.update} /> / <Num value={j.summary.error} /></span> : '—'}</td>
+                  <td className={td}>{Number.isFinite(j.summary?.create) && j.summary ? <span><Num value={j.summary.create} /> / <Num value={j.summary.update} /> / <Num value={j.summary.error} /></span> : '—'}</td>
                 </tr>
               ))}
             </tbody>
@@ -172,7 +172,7 @@ export function ImportsPage() {
         ) : recent.data ? <EmptyState title={l('هنوز فایلی وارد نشده است.', 'No imports yet.')} />
           : recent.error ? <Alert tone="danger" title={errorText(t, recent.error)} />
           : <p className="text-sm text-steel">{t('common.loading')}</p>}
-      </Section>
+      </div></details>
     </>
   );
 }
