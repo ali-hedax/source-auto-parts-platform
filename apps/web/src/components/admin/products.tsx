@@ -330,28 +330,12 @@ function ProductEditor({ taxonomy, product, reload, draft, readOnly }: { taxonom
       ) : null}
       <form noValidate onSubmit={(e) => { e.preventDefault(); void save(false); }} className="flex flex-col gap-6">
         <fieldset disabled={readOnly || saving || !!partialSavedId} className="contents"><legend className="sr-only">{l('اطلاعات قطعه', 'Part details')}</legend>
-        <Section title={l('شناسه و شماره‌ها', 'Identity and numbers')} id="pf-numbers">
+        <Section title={l('اطلاعات اصلی قطعه', 'Basic part information')} id="pf-details">
           <div className="grid gap-4 md:grid-cols-2">
             <Field id="pf-partnumber" label={t('parts.partNumber')} error={errors['pf-partnumber']} hint={l('شمارهٔ فنی اصلی؛ برای هر برند سازنده یکتاست. فاصله، خط تیره و ارقام فارسی در جست‌وجو مهم نیست.', 'Main part number; unique per part brand. Spaces, dashes and Persian digits do not matter in search.')} optionalLabel={t('common.optional')}>
               <Input id="pf-partnumber" dir="ltr" maxLength={80} value={f.partNumber} invalid={!!errors['pf-partnumber']} onChange={(e) => set('partNumber', e.target.value)} />
             </Field>
-            <Field id="pf-sku" label={t('admin.sku')} error={errors['pf-sku']} hint={product ? undefined : l('خالی بگذارید تا از شمارهٔ فنی ساخته شود.', 'Leave empty to make it from the part number.')} {...(product ? { required: true } : { optionalLabel: t('common.optional') })}>
-              <Input id="pf-sku" dir="ltr" value={f.sku} onChange={(e) => set('sku', e.target.value)} />
-            </Field>
-            <Field id="pf-equivalents" label={t('parts.equivalents')} hint={l('همین قطعه از سازنده‌های دیگر؛ با «،» یا «,» جدا کنید.', 'The same part from other makers; separate with commas.')} optionalLabel={t('common.optional')}>
-              <Textarea id="pf-equivalents" dir="ltr" rows={2} value={f.equivalents} onChange={(e) => set('equivalents', e.target.value)} />
-            </Field>
-            <Field id="pf-replacements" label={t('parts.replacements')} hint={l('شماره‌ای که جایگزین این قطعه شده است.', 'Numbers that replace this part.')} optionalLabel={t('common.optional')}>
-              <Textarea id="pf-replacements" dir="ltr" rows={2} value={f.replacements} onChange={(e) => set('replacements', e.target.value)} />
-            </Field>
-          </div>
-        </Section>
-        <Section title={l('مشخصات', 'Details')} id="pf-details">
-          <div className="grid gap-4 md:grid-cols-2">
             <Field id="pf-namefa" label={`${t('admin.name')} (فارسی)`} error={errors['pf-namefa']} required><Input id="pf-namefa" value={f.nameFa} onChange={(e) => set('nameFa', e.target.value)} /></Field>
-            <Field id="pf-nameen" label={`${t('admin.name')} (English)`} optionalLabel={t('common.optional')}><Input id="pf-nameen" dir="ltr" value={f.nameEn} onChange={(e) => set('nameEn', e.target.value)} /></Field>
-            <Field id="pf-slug" label="Slug" optionalLabel={t('common.optional')}><Input id="pf-slug" dir="ltr" value={f.slug} onChange={(e) => set('slug', e.target.value)} /></Field>
-            <Field id="pf-aliases" label={l('نام‌های جایگزین (برای جست‌وجو)', 'Aliases (for search)')} optionalLabel={t('common.optional')}><Input id="pf-aliases" value={f.aliases} onChange={(e) => set('aliases', e.target.value)} /></Field>
             <Field id="pf-category" label={t('parts.category')} error={errors['pf-category']} required>
               <Select id="pf-category" value={f.categoryId} onChange={(e) => set('categoryId', e.target.value)}>
                 <option value="">—</option>
@@ -364,35 +348,17 @@ function ProductEditor({ taxonomy, product, reload, draft, readOnly }: { taxonom
                 {taxonomy.manufacturers.filter(m => m.active !== false || m.id === f.manufacturerBrandId).map((m) => <option key={m.id} value={m.id}>{name(m)}</option>)}
               </Select>
             </Field>
-            <fieldset className="flex flex-col gap-1 md:col-span-2">
-              <legend className="text-sm font-semibold">{t('parts.vehicleBrands')}</legend>
-              <div className="flex flex-wrap gap-x-4">
-                {taxonomy.vehicleBrands.filter(b => b.active !== false || f.vehicleBrandIds.includes(b.id)).map((b) => (
-                  <Checkbox key={b.id} id={`pf-vb-${b.id}`} label={name(b)} checked={f.vehicleBrandIds.includes(b.id)}
-                    onChange={(e) => set('vehicleBrandIds', e.target.checked ? [...f.vehicleBrandIds, b.id] : f.vehicleBrandIds.filter((x) => x !== b.id))} />
-                ))}
-              </div>
-            </fieldset>
             <Field id="pf-type" label={t('parts.partType')}>
               <Select id="pf-type" value={f.partType} onChange={(e) => set('partType', e.target.value)}>{(['GENUINE', 'OEM', 'AFTERMARKET'] as const).map((v) => <option key={v} value={v}>{t(`partType.${v}`)}</option>)}</Select>
             </Field>
             <Field id="pf-condition" label={t('parts.condition')} hint={l('«استوک» را با وضعیت دقیق (نو/کارکرده/بازسازی‌شده) ثبت کنید؛ برای کارکرده عکس واقعی همان قلم لازم است.', 'Record stock items with their exact condition; used items need a real photo of that item.')}>
               <Select id="pf-condition" value={f.condition} onChange={(e) => set('condition', e.target.value)}>{(['NEW', 'USED', 'REFURBISHED'] as const).map((v) => <option key={v} value={v}>{t(`condition.${v}`)}</option>)}</Select>
             </Field>
-            <Field id="pf-origin" label={t('parts.origin')}>
-              <Select id="pf-origin" value={f.origin} onChange={(e) => set('origin', e.target.value)}>{(['DOMESTIC', 'IMPORTED', 'UNKNOWN'] as const).map((v) => <option key={v} value={v}>{t(`origin.${v}`)}</option>)}</Select>
-            </Field>
-            <Field id="pf-country" label={t('parts.country')} error={errors['pf-country']} hint="ISO (e.g. DE, JP)" optionalLabel={t('common.optional')}><Input id="pf-country" dir="ltr" maxLength={2} value={f.countryOfManufacture} onChange={(e) => set('countryOfManufacture', e.target.value.toUpperCase())} /></Field>
-            <Field id="pf-unit" label={t('parts.unit')} required error={errors['pf-unit']}
-              hint={selectedUnit ? (selectedUnit.allowDecimal ? l(`اعشاری، با گام ${formatQuantity(selectedUnit.step, 'fa')}`, `Decimals, step ${selectedUnit.step}`) : l('فقط عدد صحیح', 'Whole numbers only')) : undefined}>
-              <Select id="pf-unit" value={f.unitId} onChange={(e) => set('unitId', e.target.value)} invalid={!!errors['pf-unit']}>
-                {!f.unitId ? <option value="">{l('انتخاب واحد', 'Choose a unit')}</option> : null}
-                {unitOptions.map((u) => <option key={u.id} value={u.id}>{l(u.name, u.nameEn || u.name)}{u.active ? '' : l(' (غیرفعال)', ' (inactive)')}</option>)}
-              </Select>
-            </Field>
-            <Field id="pf-pack" label={t('parts.pack')} error={errors['pf-pack']}><Input id="pf-pack" inputMode="numeric" value={f.packQuantity} onChange={(e) => set('packQuantity', e.target.value)} /></Field>
-            <Field id="pf-oem" label={l('کدهای فنی قدیمی', 'Older technical codes')} hint={l('کدهایی که قبلاً برای این قطعه ثبت شده‌اند؛ مثل شماره‌های معادل در جست‌وجو پیدا می‌شوند.', 'Codes recorded earlier for this part; found by search like equivalents.')} optionalLabel={t('common.optional')}><Input id="pf-oem" dir="ltr" value={f.oemCodes} onChange={(e) => set('oemCodes', e.target.value)} /></Field>
           </div>
+        </Section>
+        <details open={!!errors['pf-years']} className="rounded-[var(--radius-control)] border border-line-soft bg-white p-4">
+          <summary className="cursor-pointer font-semibold text-ink">{l('خودروهای سازگار', 'Compatible vehicles')}</summary>
+          <div className="mt-4">
           <div className="mt-6 border-t border-line-soft pt-4">
             <VehiclePicker id="pf-vehicles" value={f.vehicles} onChange={(v) => set('vehicles', v)} options={vehicleOptions.data ?? []} onOptionsChanged={vehicleOptions.reload} />
             {f.vehicles.length ? (
@@ -417,6 +383,68 @@ function ProductEditor({ taxonomy, product, reload, draft, readOnly }: { taxonom
               </div>
             ) : null}
           </div>
+          </div>
+        </details>
+        {!product ? (
+          <Section title={l('عکس‌ها', 'Photos')} id="pf-new-photos">
+            <p className="mb-3 text-sm text-steel">{l('عکس‌ها همین حالا انتخاب می‌شوند و بلافاصله پس از ذخیره بارگذاری می‌شوند؛ عکس اول عکس اصلی است.', 'Choose photos now; they are uploaded right after saving. The first is the main photo.')}</p>
+            {previews.length ? (
+              <ul className="mb-3 grid grid-cols-3 gap-2 sm:grid-cols-6">
+                {previews.map((p, i) => (
+                  <li key={p.url} className="relative rounded-[var(--radius-control)] border border-line-soft p-1">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- local preview before upload */}
+                    <img src={p.url} alt="" className="aspect-square w-full object-contain" />
+                    {i === 0 ? <Badge tone="info" className="absolute start-1 top-1">{l('اصلی', 'Main')}</Badge> : null}
+                    <button type="button" aria-label={l('حذف این عکس', 'Remove this photo')} className="absolute end-1 top-1 grid size-7 cursor-pointer place-items-center rounded-full bg-white/90 text-danger" onClick={() => setQueued((q) => q.filter((x) => x !== p.file))}><X aria-hidden className="size-4" /></button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            <label htmlFor="pf-photo-input" className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-[var(--radius-control)] border border-line px-3 font-semibold">
+              <ImagePlus aria-hidden className="size-4" />{l('انتخاب عکس (چندتایی)', 'Choose photos (several)')}
+            </label>
+            <input id="pf-photo-input" type="file" className="sr-only" multiple accept={[...PHOTO_TYPES, ...PHOTO_EXTENSIONS].join(',')} onChange={(e) => { if (e.target.files) addPhotos(e.target.files); e.target.value = ''; }} />
+          </Section>
+        ) : null}
+        <details open={Object.keys(errors).some((id) => /^pf-(sku|unit|pack|country|s[lv]-)/.test(id))} className="rounded-[var(--radius-control)] border border-line-soft bg-white p-4">
+          <summary className="cursor-pointer font-semibold text-ink">{l('مشخصات بیشتر', 'More details')}</summary>
+          <div className="mt-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field id="pf-sku" label={t('admin.sku')} error={errors['pf-sku']} hint={product ? undefined : l('خالی بگذارید تا از شمارهٔ فنی ساخته شود.', 'Leave empty to make it from the part number.')} {...(product ? { required: true } : { optionalLabel: t('common.optional') })}>
+              <Input id="pf-sku" dir="ltr" value={f.sku} onChange={(e) => set('sku', e.target.value)} />
+            </Field>
+            <Field id="pf-equivalents" label={t('parts.equivalents')} hint={l('همین قطعه از سازنده‌های دیگر؛ با «،» یا «,» جدا کنید.', 'The same part from other makers; separate with commas.')} optionalLabel={t('common.optional')}>
+              <Textarea id="pf-equivalents" dir="ltr" rows={2} value={f.equivalents} onChange={(e) => set('equivalents', e.target.value)} />
+            </Field>
+            <Field id="pf-replacements" label={t('parts.replacements')} hint={l('شماره‌ای که جایگزین این قطعه شده است.', 'Numbers that replace this part.')} optionalLabel={t('common.optional')}>
+              <Textarea id="pf-replacements" dir="ltr" rows={2} value={f.replacements} onChange={(e) => set('replacements', e.target.value)} />
+            </Field>
+            <Field id="pf-nameen" label={`${t('admin.name')} (English)`} optionalLabel={t('common.optional')}><Input id="pf-nameen" dir="ltr" value={f.nameEn} onChange={(e) => set('nameEn', e.target.value)} /></Field>
+            <Field id="pf-slug" label="Slug" optionalLabel={t('common.optional')}><Input id="pf-slug" dir="ltr" value={f.slug} onChange={(e) => set('slug', e.target.value)} /></Field>
+            <Field id="pf-aliases" label={l('نام‌های جایگزین (برای جست‌وجو)', 'Aliases (for search)')} optionalLabel={t('common.optional')}><Input id="pf-aliases" value={f.aliases} onChange={(e) => set('aliases', e.target.value)} /></Field>
+            <Field id="pf-origin" label={t('parts.origin')}>
+              <Select id="pf-origin" value={f.origin} onChange={(e) => set('origin', e.target.value)}>{(['DOMESTIC', 'IMPORTED', 'UNKNOWN'] as const).map((v) => <option key={v} value={v}>{t(`origin.${v}`)}</option>)}</Select>
+            </Field>
+            <Field id="pf-country" label={t('parts.country')} error={errors['pf-country']} hint="ISO (e.g. DE, JP)" optionalLabel={t('common.optional')}><Input id="pf-country" dir="ltr" maxLength={2} value={f.countryOfManufacture} onChange={(e) => set('countryOfManufacture', e.target.value.toUpperCase())} /></Field>
+            <Field id="pf-unit" label={t('parts.unit')} required error={errors['pf-unit']}
+              hint={selectedUnit ? (selectedUnit.allowDecimal ? l(`اعشاری، با گام ${formatQuantity(selectedUnit.step, 'fa')}`, `Decimals, step ${selectedUnit.step}`) : l('فقط عدد صحیح', 'Whole numbers only')) : undefined}>
+              <Select id="pf-unit" value={f.unitId} onChange={(e) => set('unitId', e.target.value)} invalid={!!errors['pf-unit']}>
+                {!f.unitId ? <option value="">{l('انتخاب واحد', 'Choose a unit')}</option> : null}
+                {unitOptions.map((u) => <option key={u.id} value={u.id}>{l(u.name, u.nameEn || u.name)}{u.active ? '' : l(' (غیرفعال)', ' (inactive)')}</option>)}
+              </Select>
+            </Field>
+            <Field id="pf-pack" label={t('parts.pack')} error={errors['pf-pack']}><Input id="pf-pack" inputMode="numeric" value={f.packQuantity} onChange={(e) => set('packQuantity', e.target.value)} /></Field>
+            <Field id="pf-oem" label={l('کدهای فنی قدیمی', 'Older technical codes')} hint={l('کدهایی که قبلاً برای این قطعه ثبت شده‌اند؛ مثل شماره‌های معادل در جست‌وجو پیدا می‌شوند.', 'Codes recorded earlier for this part; found by search like equivalents.')} optionalLabel={t('common.optional')}><Input id="pf-oem" dir="ltr" value={f.oemCodes} onChange={(e) => set('oemCodes', e.target.value)} /></Field>
+          </div>
+            <fieldset className="flex flex-col gap-1 md:col-span-2">
+              <legend className="text-sm font-semibold">{t('parts.vehicleBrands')}</legend>
+              <div className="flex flex-wrap gap-x-4">
+                {taxonomy.vehicleBrands.filter(b => b.active !== false || f.vehicleBrandIds.includes(b.id)).map((b) => (
+                  <Checkbox key={b.id} id={`pf-vb-${b.id}`} label={name(b)} checked={f.vehicleBrandIds.includes(b.id)}
+                    onChange={(e) => set('vehicleBrandIds', e.target.checked ? [...f.vehicleBrandIds, b.id] : f.vehicleBrandIds.filter((x) => x !== b.id))} />
+                ))}
+              </div>
+            </fieldset>
           <div className="mt-6 border-t border-line-soft pt-4">
             <p className="mb-2 text-sm font-semibold">{t('parts.specs')}</p>
             <div className="flex flex-col gap-2">
@@ -436,8 +464,11 @@ function ProductEditor({ taxonomy, product, reload, draft, readOnly }: { taxonom
             <Field id="pf-warfa" label={`${t('parts.warranty')} (فارسی)`} hint={l('فقط ضمانت واقعی ثبت شود.', 'Only a real warranty may be recorded.')} optionalLabel={t('common.optional')}><Input id="pf-warfa" value={f.warrantyFa} onChange={(e) => set('warrantyFa', e.target.value)} /></Field>
             <Field id="pf-waren" label={`${t('parts.warranty')} (English)`} optionalLabel={t('common.optional')}><Input id="pf-waren" dir="ltr" value={f.warrantyEn} onChange={(e) => set('warrantyEn', e.target.value)} /></Field>
           </div>
-        </Section>
-        <Section title={l('قیمت و موجودی (اختیاری)', 'Price & stock (optional)')} id="pf-price-section">
+          </div>
+        </details>
+        <details open={Object.keys(errors).some((id) => /^pf-(price|threshold|manual)/.test(id))} className="rounded-[var(--radius-control)] border border-line-soft bg-white p-4">
+          <summary className="cursor-pointer font-semibold text-ink">{l('قیمت و موجودی', 'Price and stock')}</summary>
+          <div className="mt-4">
           <p className="mb-3 text-sm text-steel">{l('بدون قیمت، قطعه در سایت «قابل تأمین» است و دکمهٔ «درخواست تأمین» دارد.', 'Without a price the part is “can be sourced” on the site, with a “Request this part” button.')}</p>
           <div className="grid gap-4 md:grid-cols-3">
             <Field id="pf-currency" label={l('ارز پایه', 'Base currency')}>
@@ -464,28 +495,8 @@ function ProductEditor({ taxonomy, product, reload, draft, readOnly }: { taxonom
               <Link href="/admin/inventory" className="text-action underline">{t('admin.adjustStock')}</Link>
             </p>
           ) : null}
-        </Section>
-        {!product ? (
-          <Section title={l('عکس‌ها', 'Photos')} id="pf-new-photos">
-            <p className="mb-3 text-sm text-steel">{l('عکس‌ها همین حالا انتخاب می‌شوند و بلافاصله پس از ذخیره بارگذاری می‌شوند؛ عکس اول عکس اصلی است.', 'Choose photos now; they are uploaded right after saving. The first is the main photo.')}</p>
-            {previews.length ? (
-              <ul className="mb-3 grid grid-cols-3 gap-2 sm:grid-cols-6">
-                {previews.map((p, i) => (
-                  <li key={p.url} className="relative rounded-[var(--radius-control)] border border-line-soft p-1">
-                    {/* eslint-disable-next-line @next/next/no-img-element -- local preview before upload */}
-                    <img src={p.url} alt="" className="aspect-square w-full object-contain" />
-                    {i === 0 ? <Badge tone="info" className="absolute start-1 top-1">{l('اصلی', 'Main')}</Badge> : null}
-                    <button type="button" aria-label={l('حذف این عکس', 'Remove this photo')} className="absolute end-1 top-1 grid size-7 cursor-pointer place-items-center rounded-full bg-white/90 text-danger" onClick={() => setQueued((q) => q.filter((x) => x !== p.file))}><X aria-hidden className="size-4" /></button>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-            <label htmlFor="pf-photo-input" className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-[var(--radius-control)] border border-line px-3 font-semibold">
-              <ImagePlus aria-hidden className="size-4" />{l('انتخاب عکس (چندتایی)', 'Choose photos (several)')}
-            </label>
-            <input id="pf-photo-input" type="file" className="sr-only" multiple accept={[...PHOTO_TYPES, ...PHOTO_EXTENSIONS].join(',')} onChange={(e) => { if (e.target.files) addPhotos(e.target.files); e.target.value = ''; }} />
-          </Section>
-        ) : null}
+          </div>
+        </details>
         <div className="flex flex-wrap gap-2">
           <Button type="submit" size="lg" disabled={!!partialSavedId} variant={product?.published ? 'primary' : 'secondary'} loading={saving}>{t('common.save')}</Button>
           {!product?.published && !product?.archived ? <Button type="button" size="lg" disabled={!!partialSavedId} loading={saving} onClick={() => void save(true)}>{l('ذخیره و انتشار', 'Save and publish')}</Button> : null}

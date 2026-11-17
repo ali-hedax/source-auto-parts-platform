@@ -110,6 +110,8 @@ export function VehiclePicker({ id, value, onChange, options, onOptionsChanged }
       {q.trim() && !exact && !similar ? (
         <Button size="sm" variant="secondary" className="self-start" loading={busy} onClick={() => void quickAdd()}><Plus aria-hidden className="size-4" /> {l(`افزودن «${q.trim()}» به فهرست خودروها`, `Add "${q.trim()}" to the vehicle list`)}</Button>
       ) : null}
+      <details open={!!query}>
+        <summary className="cursor-pointer py-2 text-sm font-semibold">{l('انتخاب خودرو یا تیپ', 'Choose a vehicle or trim')}</summary>
       <div className="max-h-80 overflow-y-auto rounded-[var(--radius-control)] border border-line-soft">
         {shown.length ? (
           <ul className="divide-y divide-line-soft">
@@ -124,19 +126,23 @@ export function VehiclePicker({ id, value, onChange, options, onOptionsChanged }
                     ))}
                   </div>
                   {/* Not a <form>: the picker sits inside the product form; Enter adds the model instead of saving the product. */}
-                  <div className="ms-8 mt-1 flex items-center gap-2">
+                  <details className="ms-8 mt-1">
+                    <summary className="cursor-pointer text-xs text-steel">{l('افزودن تیپ', 'Add a trim')}</summary>
+                    <div className="mt-1 flex items-center gap-2">
                     <label htmlFor={`${id}-nm-${o.id}`} className="sr-only">{l(`مدل تازه برای ${o.name}`, `New model for ${o.name}`)}</label>
                     <Input id={`${id}-nm-${o.id}`} className="h-9 w-36 text-sm" placeholder={l('مدل تازه', 'New model')} value={modelDraft[o.id] ?? ''}
                       onChange={(e) => setModelDraft({ ...modelDraft, [o.id]: e.target.value })}
                       onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void addModel(o.id); } }} />
                     <Button size="sm" variant="ghost" type="button" onClick={() => void addModel(o.id)} disabled={!(modelDraft[o.id] ?? '').trim()}>{l('افزودن مدل', 'Add model')}</Button>
-                  </div>
+                    </div>
+                  </details>
                 </li>
               );
             })}
           </ul>
         ) : <p className="p-3 text-sm text-steel">{l('خودرویی پیدا نشد.', 'No vehicle found.')}</p>}
       </div>
+      </details>
     </fieldset>
   );
 }
